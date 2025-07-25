@@ -598,23 +598,6 @@ int init(void)
   exch = malloc(6 * sizeof(double));
 #endif 
 
-#ifdef STARS /*need to fix*/ /*TODO: ?? */
-  #ifdef STAR_CLUSTER
-  for(i=0; i<NumStars; i++)
-    {
-      struct CELibStructNextEventTimeStarbyStarInput Input = 
-      {
-        .InitialMass_in_Msun = (PPS(i).Mass * All.UnitMass_in_g / SOLAR_MASS),
-        .Metallicity = 0.0004
-      };
-      
-      SP[i].SNIITime = CELibGetNextEventTimeStarbyStar(Input, CELibFeedbackType_SNII) 
-        / (1.e6) / All.UnitTime_in_Megayears;  
-    }
-  #endif //* #ifdef STAR_CLUSTER */
-#endif /* #ifdef STARS*/
-
-
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
 }
 
