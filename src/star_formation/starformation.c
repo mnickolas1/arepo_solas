@@ -336,16 +336,6 @@ void convert_cell_into_star(int i, double birthtime)
   SP[NumStars].Metals = 0.0004;
 #endif /* ifdef METALS */
 
-#ifdef STAR_CLUSTER
-  struct CELibStructNextEventTimeStarbyStarInput Input = 
-    {
-      .InitialMass_in_Msun = (P[i].Mass * All.UnitMass_in_g / SOLAR_MASS),
-      .Metallicity = SP[NumStars].Metals
-    };
-
-  SP[NumStars].SNIITime = birthtime + CELibGetNextEventTimeStarbyStar(Input, CELibFeedbackType_SNII) 
-    / (1.e6) / All.UnitTime_in_Megayears;
-#else /* STAR_CLUSTER */
     struct CELibStructNextEventTimeInput Input = 
     {
       .R = (double)rand()/(double)RAND_MAX,
@@ -355,7 +345,6 @@ void convert_cell_into_star(int i, double birthtime)
 
   SP[NumStars].SNIITime = birthtime + CELibGetNextEventTime(Input, CELibFeedbackType_SNII) 
     / (1.e6) / All.UnitTime_in_Megayears;
-#endif /* STAR_CLUSTER */
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
  
@@ -450,16 +439,6 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SP[NumStars].Metals = 0.0004;
 #endif /* ifdef METALS */ 
 
-#ifdef STAR_CLUSTER
-  struct CELibStructNextEventTimeStarbyStarInput Input = 
-    {
-      .InitialMass_in_Msun = (P[istar].Mass * All.UnitMass_in_g / SOLAR_MASS),
-      .Metallicity = SP[NumStars].Metals
-    };
-
-  SP[NumStars].SNIITime = birthtime + CELibGetNextEventTimeStarbyStar(Input, CELibFeedbackType_SNII) 
-    / (1.e6) / All.UnitTime_in_Megayears;
-#else 
     struct CELibStructNextEventTimeInput Input = 
     {
       .R = (double)rand()/(double)RAND_MAX,
@@ -468,8 +447,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
     };
 
   SP[NumStars].SNIITime = birthtime + CELibGetNextEventTime(Input, CELibFeedbackType_SNII) 
-    / (1.e6) / All.UnitTime_in_Megayears;
-#endif  
+    / (1.e6) / All.UnitTime_in_Megayears;  
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
