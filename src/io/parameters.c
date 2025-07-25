@@ -576,6 +576,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "Lambda");
       addr[nt] = &All.Lambda;
       id[nt++] = REAL;
+      
+      strcpy(tag[nt], "Ftherm");
+      addr[nt] = &All.Ftherm;
+      id[nt++] = REAL;
 #endif
 
 #ifdef BLACKHOLES
