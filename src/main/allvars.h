@@ -1555,7 +1555,8 @@ extern struct sph_particle_data
 #endif
 #ifdef STARS
   MyDouble MassFeed; 
-  MyDouble EnergyFeed;
+  MyDouble ThermalEnergyFeed;
+  MyDouble KineticEnergyFeed;
   MyDouble MomentumFeed;
   MyDouble MomentumKickVector[3];
 #endif

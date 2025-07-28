@@ -268,11 +268,12 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
           /* do supernova */
           if (snIIflag == 1)
             {              
-              SphP[j].EnergyFeed    += snIIenergyfeed * P[j].Mass / ngbmass;
+              SphP[j].ThermalEnergyFeed += All.Ftherm*snIIenergyfeed * P[j].Mass / ngbmass;
+              SphP[j].KineticEnergyFeed += (1-All.Ftherm)*snIIenergyfeed * P[j].Mass / ngbmass;
+              
               All.EnergyExchange[4] += snIIenergyfeed * P[j].Mass / ngbmass;
               
-              if(snIImassfeed > 1e-10)
-                SphP[j].MassFeed      += snIImassfeed * P[j].Mass / ngbmass;
+              SphP[j].MassFeed += snIImassfeed * P[j].Mass / ngbmass;
             }
         }
     }
