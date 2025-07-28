@@ -645,7 +645,7 @@ void perform_end_of_step_physics(void)
               /***** energy conserving supernova *****/
               
               /* add kinetic energy */
-              SphP[i].Energy += SphP[i].KineticFeed * All.cf_atime*All.cf_atime;
+              SphP[i].Energy += SphP[i].KineticEnergyFeed * All.cf_atime*All.cf_atime;
 
               /* calculate momentum feed exactly so energy is conserved */
               /*-> we need to do this here so that particle properties don't change between loading the buffer and emptying it*/
