@@ -1606,6 +1606,7 @@ extern struct star_particle_data
   MyDouble Hsml;
   MyDouble Density;
   MyDouble NgbMass;
+  MyDouble NgbVolume;
   integertime NgbMinStep;
   int DensityFlag;
   signed char TimeBinStar;

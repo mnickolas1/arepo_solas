@@ -55,6 +55,7 @@ typedef struct
   MyDouble Ngb;
   MyDouble Rho;
   MyDouble Mass;
+  MyDouble Volume;
   integertime NgbMinStep;
 } data_out;
 
@@ -78,6 +79,7 @@ static void out2particle(data_out *out, int i, int mode)
       StarNumNgb[i]                   = out->Ngb;
       SP[i].Density                   = out->Rho;
       SP[i].NgbMass                   = out->Mass;
+      SP[i].NgbVolume                 = out->Volume;
       SP[i].NgbMinStep                = out->NgbMinStep;
     }
   else /* combine */
@@ -85,6 +87,7 @@ static void out2particle(data_out *out, int i, int mode)
       StarNumNgb[i]                   += out->Ngb;
       SP[i].Density                   += out->Rho;
       SP[i].NgbMass                   += out->Mass;
+      SP[i].NgbVolume                 += out->Volume;
       if(out->NgbMinStep < SP[i].NgbMinStep)
         SP[i].NgbMinStep               = out->NgbMinStep;
     }
@@ -306,7 +309,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
   int numnodes, *firstnode;
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble mass_j, rho, mass;
+  MyDouble  rho, mass, volume;
   MyDouble *pos;
   integertime ngb_min_step;
   
@@ -339,7 +342,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
 
-  numngb = rho = mass = 0;
+  numngb = rho = mass = volume = 0;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -384,17 +387,15 @@ static int star_density_evaluate(int target, int mode, int threadid)
 
           kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          mass_j = P[j].Mass;
-
-/* compute star density */
-          rho +=  mass_j * wk;
-
+/* compute the star density */
+          rho +=  P[j].Mass * wk;
+/* compute the star-ngb-mass */
+          mass += P[j].Mass;
+/* compute the star-ngb-volume */
+          volume += SphP[j].Volume;
 /* compute the min hydro step for neighbors */     
           if(bin > P[j].TimeBinHydro)
             bin = P[j].TimeBinHydro;
-
-/* compute the star-ngb-mass (sphere) */
-          mass += mass_j;
         }
     }
 
