@@ -541,12 +541,12 @@ void read_parameter_file(char *fname)
 #endif /* #ifdef ONEDIMS_SPHERICAL */
 
 #if defined(STARS) || defined(BLACKHOLES)
-      strcpy(tag[nt], "DesNgbMass");
-      addr[nt] = &All.DesNgbMass;
+      strcpy(tag[nt], "DesNgb");
+      addr[nt] = &All.DesNgb;
       id[nt++] = REAL;
       
-      strcpy(tag[nt], "DesMassDev");
-      addr[nt] = &All.DesMassDev;
+      strcpy(tag[nt], "DesDev");
+      addr[nt] = &All.DesDev;
       id[nt++] = REAL;
 
       strcpy(tag[nt], "FeedbackTime");

@@ -177,7 +177,7 @@ void star_density(void)
   MyFloat *Left, *Right;
   int idx, i, npleft, iter = 0;
   long long ntot;
-  double desngbmass, desmassdev, t0, t1;
+  double t0, t1;
 
   CPU_Step[CPU_MISC] += measure_time();
 
@@ -193,9 +193,6 @@ void star_density(void)
 
   generic_set_MaxNexport();
 
-  desngbmass = All.DesNgbMass;
-  desmassdev = All.DesMassDev;
-
   /* we will repeat the whole thing for those particles where we didn't find enough neighbours */
   do
     {
@@ -207,7 +204,7 @@ void star_density(void)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
 
-          if(SP[i].NgbVolume < (desngbmass - desmassdev) || SP[i].NgbVolume > (desngbmass + desmassdev))
+          if(SP[i].NgbVolume < (All.DesNgb - All.DesDev) || SP[i].NgbVolume > (All.DesNgb + All.DesDev))
           {
                   /* need to redo this particle */
             npleft++;
@@ -223,7 +220,7 @@ void star_density(void)
                 }
               } 
 
-            if(SP[i].NgbVolume < (desngbmass - desmassdev))
+            if(SP[i].NgbVolume < (All.DesNgb - All.DesDev))
               Left[i] = dmax(SP[i].Hsml, Left[i]);
             else
               {

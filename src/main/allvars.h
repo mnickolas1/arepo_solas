@@ -1288,8 +1288,8 @@ extern struct global_data_all_processes
   double EnergyExchangeTot[6];
   int FeedbackFlag;
   /* for parameter file */
-  double DesNgbMass;
-  double DesMassDev;
+  double DesNgb;
+  double DesDev;
   double FeedbackTime;
 #endif
 
