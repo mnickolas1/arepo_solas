@@ -405,6 +405,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
   out.Ngb         = numngb;
   out.Rho         = rho;
   out.Mass        = mass;
+  out.Volume      = volume;
   out.NgbMinStep  = ngb_min_step;
 
 /* now collect the result at the right place */
