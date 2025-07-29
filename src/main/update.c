@@ -566,7 +566,7 @@ void perform_end_of_step_physics(void)
                   P[i].Mass += SphP[i].MassLoading;
 
                   /* add kinetic energy */
-                  SphP[i].Energy += SphP[i].KineticFeed;
+                  SphP[i].Energy += SphP[i].KineticFeed * All.cf_atime*All.cf_atime;
 
                   /* calculate momentum feed exactly so energy is conserved */
                   /*-> we need to do this here so that particle properties don't change between loading the buffer and emptying it*/
@@ -576,14 +576,14 @@ void perform_end_of_step_physics(void)
 
                   p0 = sqrt(pow(SphP[i].Momentum[0], 2) + pow(SphP[i].Momentum[1], 2) + pow(SphP[i].Momentum[2], 2));
               
-                  pj = sqrt(2 * P[i].Mass * (SphP[i].Energy - (P[i].Mass-SphP[i].MassLoading)*SphP[i].Utherm)) - p0;
+                  pj = sqrt(2 * P[i].Mass * (SphP[i].Energy - (P[i].Mass-SphP[i].MassLoading)*SphP[i].Utherm*All.cf_atime*All.cf_atime)) - p0;
     
                   momentum_kick[0] = kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
                   momentum_kick[1] = kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
                   momentum_kick[2] = kick_vector[2] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2)); 
    
                   /* update total energy */
-                  SphP[i].Energy += SphP[i].ThermalFeed;
+                  SphP[i].Energy += SphP[i].ThermalFeed * All.cf_atime*All.cf_atime;
                   All.EnergyExchange[1] += SphP[i].ThermalFeed + SphP[i].KineticFeed;
                   /* update momentum */
                   SphP[i].Momentum[0] += momentum_kick[0];
@@ -651,7 +651,7 @@ void perform_end_of_step_physics(void)
               /*-> we need to do this here so that particle properties don't change between loading the buffer and emptying it*/
               p0 = sqrt(pow(SphP[i].Momentum[0], 2) + pow(SphP[i].Momentum[1], 2) + pow(SphP[i].Momentum[2], 2));
 
-              pj = sqrt(2 * P[i].Mass * (SphP[i].Energy - (P[i].Mass/*-SphP[i].FMass*/)*SphP[i].Utherm /*- SphP[i].FMass * u*/)) - p0;
+              pj = sqrt(2 * P[i].Mass * (SphP[i].Energy - (P[i].Mass/*-SphP[i].MassFeed*/)*SphP[i].Utherm*All.cf_atime*All.cf_atime)) - p0;
 
               momentum_kick[0] = kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
               momentum_kick[1] = kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
