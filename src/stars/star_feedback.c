@@ -22,9 +22,10 @@ typedef struct
   int Bin;  
   MyDouble Pos[3];
   MyFloat Hsml;
-  MyDouble StarDensity;
   MyDouble StarMass;
+  MyDouble StarDensity;
   MyDouble NgbMass;
+  MyDouble NgbVolume;
   int SNIIFlag;
   MyDouble SNIIEnergyFeed;
   MyDouble SNIIMassFeed;
@@ -49,9 +50,10 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->Pos[1]         = PPS(i).Pos[1];
   in->Pos[2]         = PPS(i).Pos[2];
   in->Hsml           = SP[i].Hsml;
-  in->StarDensity    = SP[i].Density;
   in->StarMass       = PPS(i).Mass;
+  in->StarDensity    = SP[i].Density;
   in->NgbMass        = SP[i].NgbMass;
+  in->NgbVolume      = SP[i].NgbVolume;
   in->SNIIFlag       = SP[i].SNIIFlag;
   in->SNIIEnergyFeed = SP[i].SNIIEnergyFeed;
   in->SNIIMassFeed   = SP[i].SNIIMassFeed;
@@ -163,7 +165,7 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   int numnodes, *firstnode;
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk, dt;
-  MyDouble *pos, star_density, star_mass, ngbmass, snIIenergyfeed, snIImassfeed;
+  MyDouble *pos, star_mass, star_density, ngbmass, ngbvolume, snIImassfeed, snIIenergyfeed;
 
   data_in local, *target_data;
   //data_out out;
@@ -186,9 +188,10 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   bin            = target_data->Bin;
   pos            = target_data->Pos;
   h              = target_data->Hsml;
-  star_density   = target_data->StarDensity;
   star_mass      = target_data->StarMass;
+  star_density   = target_data->StarDensity;
   ngbmass        = target_data->NgbMass;
+  ngbvolume      = target_data->NgbVolume;
   snIIflag       = target_data->SNIIFlag;
   snIIenergyfeed = target_data->SNIIEnergyFeed;
   snIImassfeed   = target_data->SNIIMassFeed;
@@ -268,12 +271,12 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
           /* do supernova */
           if (snIIflag == 1)
             {              
-              SphP[j].ThermalEnergyFeed += All.Ftherm*snIIenergyfeed * P[j].Mass / ngbmass;
-              SphP[j].KineticEnergyFeed += (1-All.Ftherm)*snIIenergyfeed * P[j].Mass / ngbmass;
+              SphP[j].ThermalEnergyFeed += All.Ftherm*snIIenergyfeed * SphP[j].Volume / ngbvolume;
+              SphP[j].KineticEnergyFeed += (1-All.Ftherm)*snIIenergyfeed * SphP[j].Volume / ngbvolume;
               
-              All.EnergyExchange[4] += snIIenergyfeed * P[j].Mass / ngbmass;
+              All.EnergyExchange[4] += snIIenergyfeed * SphP[j].Volume / ngbvolume;
               
-              SphP[j].MassFeed += snIImassfeed * P[j].Mass / ngbmass;
+              SphP[j].MassFeed += snIImassfeed * SphP[j].Volume / ngbvolume;
             }
         }
     }
