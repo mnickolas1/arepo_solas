@@ -630,17 +630,17 @@ void perform_end_of_step_physics(void)
               kick_vector[2] = SphP[i].MomentumKickVector[2];
               
               /******  momentum conserving wind *****/
-              //pj = SphP[i].MomentumFeed;
+              pj = SphP[i].MomentumFeed;
 
               /* update momentum */
-              //SphP[i].Momentum[0] += kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-              //SphP[i].Momentum[1] += kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-              //SphP[i].Momentum[2] += kick_vector[2] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));  
+              SphP[i].Momentum[0] += kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
+              SphP[i].Momentum[1] += kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
+              SphP[i].Momentum[2] += kick_vector[2] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));  
 
-              //All.EnergyExchange[3] += SphP[i].MomentumFeed;     
+              All.EnergyExchange[3] += SphP[i].MomentumFeed;     
                  
               /* update velocities */
-              //update_primitive_variables_single(P, SphP, i, &pvd);
+              update_primitive_variables_single(P, SphP, i, &pvd);
               
               /***** energy conserving supernova *****/
               
