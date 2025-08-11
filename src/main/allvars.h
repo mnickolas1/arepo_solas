@@ -1305,6 +1305,7 @@ extern struct global_data_all_processes
   /* for parameter file */
   double Lambda;
   double Ftherm;
+  double Fsn;
 #endif
 
 #ifdef USE_GRACKLE
