@@ -206,7 +206,8 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   hinv4 = hinv3 * hinv;
  
 /* star timestep */
-  dt    = (bin ? (((integertime)1) << bin) : 0) * All.Timebase_interval;
+  dt    =  All.TimeStep;
+  //(bin ? (((integertime)1) << bin) : 0) * All.Timebase_interval;
   //dtime = All.cf_atime * dt / All.cf_time_hubble_a;
 
   /* stellar wind */    
