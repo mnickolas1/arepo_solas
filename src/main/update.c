@@ -239,10 +239,14 @@ void update_list_of_active_bh_particles(void)
 /* get timestep for star based on smallest between ngbs */
 integertime get_timestep_star(int p)
 { 
+  /*star particles always active for winds*/
+  return 0;
+  
+  /*
   if(SP[p].SNIIFlag == 1)
     return 0;
   
-  return (integertime)(1e-2 / All.Timebase_interval);
+  return (integertime)(1e-2 / All.Timebase_interval);*/
 }
 
 void update_star_timesteps(void)
