@@ -171,9 +171,9 @@ void run(void)
 
           flush_everything();
 
+/*Create snapshots after feedback injections*/ 
 #if defined(STARS) || defined(BLACKHOLES)
 
-          /*create snapshots after feedback injection*/
           if(All.Time >= All.FeedbackTime)
             create_snapshot_if_desired();
 
@@ -182,6 +182,7 @@ void run(void)
 #if !defined(STARS) && !defined(BLACKHOLES)
           
           create_snapshot_if_desired();
+
 #endif
           if(All.Ti_Current >= TIMEBASE) /* we reached the final time */
             {
@@ -237,14 +238,6 @@ void run(void)
                               sync-point) */
 
           find_next_sync_point(); /* find next synchronization time */
-
-//#ifdef BLACKHOLES
-/*limit timestep before first energy injection*/
-//          if(All.MaxSizeTimestep > 1e-5 && All.FeedbackTime - All.Time > 0 && All.FeedbackTime - All.Time <= All.MaxSizeTimestep)
-//            All.MaxSizeTimestep *= 0.1;
-//          if(All.FeedbackTime - All.Time < 0)
-//            All.MaxSizeTimestep = 1e-6;
-//#endif
 
           make_list_of_active_particles();
 
