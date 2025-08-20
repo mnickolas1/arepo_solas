@@ -189,6 +189,9 @@ void star_density(void)
     {
       Left[i] = Right[i] = 0;
       SP[i].DensityFlag = 1;
+
+      if(SP[i].Hsml == 0)
+        SP[i].Hsml = cbrt((3.0*All.MeanVolume)/(4.0*M_PI));
     }
 
   generic_set_MaxNexport();
