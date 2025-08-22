@@ -598,6 +598,27 @@ int init(void)
   exch = malloc(6 * sizeof(double));
 #endif 
 
+#ifdef STARS
+   
+  for(i=0; i<NumStars; i++)
+  {
+    SP[i].Metals = 0.0004;
+
+    struct CELibStructNextEventTimeInput Input = 
+      {
+        .R = (double)rand()/(double)RAND_MAX,
+        .InitialMass_in_Msun = (PPS(i).Mass * All.UnitMass_in_g / SOLAR_MASS),
+        .Metallicity = SP[i].Metals
+      };
+
+    SP[i].SNIITime = CELibGetNextEventTime(Input, CELibFeedbackType_SNII) 
+      / (1.e6) / All.UnitTime_in_Megayears;
+
+    //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
+  }
+
+#endif 
+
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
 }
 
