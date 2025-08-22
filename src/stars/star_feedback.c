@@ -214,11 +214,13 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   double EddingtonLuminosity = 4. * M_PI * GRAVITY * (star_mass * All.UnitMass_in_g) * PROTONMASS * CLIGHT / THOMPSON;
   EddingtonLuminosity *=  (All.UnitTime_in_s / (All.UnitMass_in_g*pow(All.UnitVelocity_in_cm_per_s,2)));
   double energyfeed = EddingtonLuminosity * dt;
-  /* supernova */    
-  //if(snIIflag > 0)
-  //  energyfeed = 0;
+  
+#ifdef STAR_BY_STAR
+  if(snIIflag > 0)
+    energyfeed = 0;
+#endif
 
-  int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
   for(n = 0; n < nfound; n++)
     {
       j = Thread[threadid].Ngblist[n];
