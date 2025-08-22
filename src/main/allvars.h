@@ -1304,6 +1304,7 @@ extern struct global_data_all_processes
 #ifdef STARS
   /* for parameter file */
   double Lambda;
+  double WindVelocity;
   double Ftherm;
   double Fsn;
 #endif
