@@ -597,7 +597,7 @@ int init(void)
   double *exch = All.EnergyExchangeTot;
   exch = malloc(6 * sizeof(double));
 #endif 
-
+/*
 #ifdef STARS
    
   for(i=0; i<NumStars; i++)
@@ -617,8 +617,8 @@ int init(void)
     //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
   }
 
-#endif 
-
+#endif
+*/
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
 }
 
