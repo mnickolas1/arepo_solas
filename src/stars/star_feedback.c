@@ -259,6 +259,7 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
 
           kernel(u, hinv3, hinv4, &wk, &dwk);
 
+#ifdef WINDS
           /* set radial momentum kick for wind */
           /* uncomment for kernel */ 
           //SphP[j].MomentumFeed  += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * P[j].Mass / star_density * wk;
@@ -270,7 +271,8 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
           SphP[j].MomentumKickVector[0] = -dx;
           SphP[j].MomentumKickVector[1] = -dy;
           SphP[j].MomentumKickVector[2] = -dz;
-
+#endif
+#ifdef SUPERNOVAE
           /* do supernova */
           if (snIIflag == 1)
             {              
@@ -281,6 +283,7 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
               
               //SphP[j].MassFeed += snIImassfeed * SphP[j].Volume / ngbvolume;
             }
+#endif
         }
     }
 
