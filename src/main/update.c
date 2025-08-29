@@ -557,12 +557,13 @@ void perform_end_of_step_physics(void)
   mpi_printf("BLACK_HOLES: Energy given by BH = %e, Energy taken up by gas particles = %e \n", 
     All.EnergyExchangeTot[0] * All.UnitEnergy_in_cgs, All.EnergyExchangeTot[1] * All.UnitEnergy_in_cgs);
 #endif /* ifdef BLACKHOLES */
+#ifdef STARS
   mpi_printf("STARS: Momentum given by StarParts = %e, Momentum taken up by gas particles = %e \n", 
     All.EnergyExchangeTot[2] * All.UnitMass_in_g * All.UnitVelocity_in_cm_per_s, 
     All.EnergyExchangeTot[3] * All.UnitMass_in_g * All.UnitVelocity_in_cm_per_s);
   mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n", 
     All.EnergyExchangeTot[4] * All.UnitEnergy_in_cgs, All.EnergyExchangeTot[5] * All.UnitEnergy_in_cgs);
-
+#endif
 #ifdef BURST_MODE
   if(All.EnergyExchangeTot[0] - All.EnergyExchangeTot[1] > 10)  
     All.FeedbackFlag = 1;
