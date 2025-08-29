@@ -473,18 +473,20 @@ void perform_end_of_step_physics(void)
           continue;
 
 #ifdef STARS            
-          /* dump mass, momentum and energy injected by stars */              
-          if(SphP[i].MomentumFeed > 0 || SphP[i].ThermalEnergyFeed > 0 || SphP[i].KineticEnergyFeed > 0)
-            {               
+          /* dump mass, momentum and energy injected by stars */   
+
+          /* calculate kick */
+          kick_vector[0] = SphP[i].MomentumKickVector[0];
+          kick_vector[1] = SphP[i].MomentumKickVector[1];
+          kick_vector[2] = SphP[i].MomentumKickVector[2];
+#ifdef WINDS           
+          if(SphP[i].MomentumFeed > 0)
+            {                             
+              /******  momentum conserving wind *****/
+
               /* add mass */
               //P[i].Mass += SphP[i].MassFeed;
-
-              /* calculate kick */
-              kick_vector[0] = SphP[i].MomentumKickVector[0];
-              kick_vector[1] = SphP[i].MomentumKickVector[1];
-              kick_vector[2] = SphP[i].MomentumKickVector[2];
               
-              /******  momentum conserving wind *****/
               pj = SphP[i].MomentumFeed;
 
               /* update momentum */
@@ -496,8 +498,24 @@ void perform_end_of_step_physics(void)
                  
               /* update velocities */
               update_primitive_variables_single(P, SphP, i, &pvd);
-              
+              /* update total energy */
+              SphP[i].Energy = SphP[i].Utherm * P[i].Mass + 
+                0.5 * P[i].Mass * (pow(P[i].Vel[0], 2) + pow(P[i].Vel[1], 2) + pow(P[i].Vel[2], 2));               
+              /* update internal energy */
+              update_internal_energy(P, SphP, i, &pvd);
+              /* update pressure */
+              set_pressure_of_cell_internal(P, SphP, i);
+              /* set feed flags to zero */
+              SphP[i].MomentumFeed = 0;
+            }
+#endif
+#ifdef SUPERNOVAE          
+          if(SphP[i].ThermalEnergyFeed || SphP[i].KineticEnergyFeed> 0)
+            {    
               /***** energy conserving supernova *****/
+
+              /* add mass */
+              //P[i].Mass += SphP[i].MassFeed; remember to set flag to 0
               
               /* add kinetic energy */
               SphP[i].Energy += SphP[i].KineticEnergyFeed * All.cf_atime*All.cf_atime;
@@ -526,8 +544,7 @@ void perform_end_of_step_physics(void)
               /* update pressure */
               set_pressure_of_cell_internal(P, SphP, i);
               /* set feed flags to zero */
-              SphP[i].MomentumFeed = SphP[i].ThermalEnergyFeed = SphP[i].KineticEnergyFeed = SphP[i].MassFeed = 0;
-              momentum_kick[0] = momentum_kick[1] = momentum_kick[2] = 0;
+              SphP[i].ThermalEnergyFeed = SphP[i].KineticEnergyFeed = 0;
             }
 #endif
         }

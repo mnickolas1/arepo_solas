@@ -259,18 +259,14 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
 
           kernel(u, hinv3, hinv4, &wk, &dwk);
 
-#ifdef WINDS
-          /* set radial momentum kick for wind */
-          /* uncomment for kernel */ 
-          //SphP[j].MomentumFeed  += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * P[j].Mass / star_density * wk;
-          //All.EnergyExchange[2] += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * P[j].Mass / star_density * wk;
-
-          SphP[j].MomentumFeed  += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
-          All.EnergyExchange[2] += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
-              
           SphP[j].MomentumKickVector[0] = -dx;
           SphP[j].MomentumKickVector[1] = -dy;
           SphP[j].MomentumKickVector[2] = -dz;
+
+#ifdef WINDS
+          /* set radial momentum kick for wind */
+          SphP[j].MomentumFeed  += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
+          All.EnergyExchange[2] += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
 #endif
 #ifdef SUPERNOVAE
           /* do supernova */
