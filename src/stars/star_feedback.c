@@ -215,8 +215,9 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   dt  = All.TimeStep;
   dt *= All.cf_atime / All.cf_time_hubble_a;
 
-/* stellar wind */    
-double massloss = interpolate_stellar_mass(star_mass, All.Time);
+/* stellar wind */ 
+if (star_mass >= 13)   
+  double massloss = interpolate_stellar_mass(star_mass, All.Time);
   
 #ifdef STAR_BY_STAR
   if(snIIflag > 0)
@@ -268,8 +269,8 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
 
 #ifdef WINDS
           /******  momentum conserving wind *****/
-          SphP[j].MomentumFeed  += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
-          All.EnergyExchange[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
+          SphP[j].MomentumFeed  += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;
+          All.EnergyExchange[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;
 #endif
 #ifdef SUPERNOVAE
           /***** energy conserving supernova *****/
