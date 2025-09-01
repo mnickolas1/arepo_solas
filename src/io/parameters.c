@@ -573,10 +573,6 @@ void read_parameter_file(char *fname)
 #endif
 
 #ifdef STARS
-      strcpy(tag[nt], "Lambda");
-      addr[nt] = &All.Lambda;
-      id[nt++] = REAL;     
-      
       strcpy(tag[nt], "WindVelocity");
       addr[nt] = &All.WindVelocity;
       id[nt++] = REAL;
