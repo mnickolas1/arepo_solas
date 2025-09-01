@@ -1,7 +1,7 @@
 #ifndef MASSLOSS_TABLES_H
 #define MASSLOSS_TABLES_H
 
-static const int N_TRACKS = 8;
+#define N_TRACKS 8
 static const double init_mass[N_TRACKS] = {13, 15, 20, 30, 40, 60, 80, 120};
 
 static const int nsteps[N_TRACKS] = {302, 317, 1231, 1109, 1112, 1237, 1299, 1450};
