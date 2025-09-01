@@ -216,8 +216,8 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   dt *= All.cf_atime / All.cf_time_hubble_a;
 
 /* stellar wind */ 
-if (star_mass >= 13)   
-  double massloss = interpolate_stellar_mass(star_mass, All.Time);
+//if (star_mass >= 13)   
+double massloss = interpolate_stellar_mass(star_mass, All.Time);
   
 #ifdef STAR_BY_STAR
   if(snIIflag > 0)
