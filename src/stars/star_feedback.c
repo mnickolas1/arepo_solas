@@ -214,7 +214,7 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   dt *= All.cf_atime / All.cf_time_hubble_a;
 
 /* stellar wind */    
-#include "massloss_tables.h"
+#include "../stellar_evolution/massloss_tables.h"
 
 double massloss = interpolate_stellar_mass(star_mass, All.time);
   
