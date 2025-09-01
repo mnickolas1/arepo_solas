@@ -211,9 +211,7 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   dt *= All.cf_atime / All.cf_time_hubble_a;
 
   /* stellar wind */    
-  double EddingtonLuminosity = 4. * M_PI * GRAVITY * (star_mass * All.UnitMass_in_g) * PROTONMASS * CLIGHT / THOMPSON;
-  EddingtonLuminosity *=  (All.UnitTime_in_s / (All.UnitMass_in_g*pow(All.UnitVelocity_in_cm_per_s,2)));
-  double energyfeed = EddingtonLuminosity * dt;
+  double massloss = masslossrate * dt;
   
 #ifdef STAR_BY_STAR
   if(snIIflag > 0)
@@ -264,12 +262,12 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
           SphP[j].MomentumKickVector[2] = -dz;
 
 #ifdef WINDS
-          /* set radial momentum kick for wind */
-          SphP[j].MomentumFeed  += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
-          All.EnergyExchange[2] += All.Lambda * energyfeed / (CLIGHT / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
+          /******  momentum conserving wind *****/
+          SphP[j].MomentumFeed  += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
+          All.EnergyExchange[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * SphP[j].Volume / ngbvolume;
 #endif
 #ifdef SUPERNOVAE
-          /* do supernova */
+          /***** energy conserving supernova *****/
           if (snIIflag == 1)
             {              
               SphP[j].ThermalEnergyFeed += All.Fsn*All.Ftherm*snIIenergyfeed * SphP[j].Volume / ngbvolume;
