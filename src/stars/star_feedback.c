@@ -330,9 +330,9 @@ double interpolate_age(int track, double t)
 /* Linear interpolation in stellar mass */
 double interpolate_stellar_mass(double Mstar_init, double age) 
 {
-  //units
-  //Mstar_init *= 
-  //age *=
+  //units (years - solar masses)
+  age *= All.UnitTime_in_s / SEC_PER_YEAR;
+  Mstar_init *= All.UnitMass_in_g / SOLAR_MASS;
 
   if (Mstar_init <= init_mass[0])
     return interpolate_age(0, age);
@@ -350,6 +350,7 @@ double interpolate_stellar_mass(double Mstar_init, double age)
         return linear_interpolation(Mstar_init, m0, m1, y0, y1);
       }
   }
-  return 0.0; // fallback
+  // fallback
+  return 0.0; 
 }
 
