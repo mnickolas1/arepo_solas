@@ -334,6 +334,9 @@ double interpolate_stellar_mass(double Mstar_init, double age)
   age *= All.UnitTime_in_s / SEC_PER_YEAR;
   Mstar_init *= All.UnitMass_in_g / SOLAR_MASS;
 
+  //only include winds of massive stars
+  if(Mstar_init < 8) return 0.0;
+
   if (Mstar_init <= init_mass[0])
     return interpolate_age(0, age);
   if (Mstar_init >= init_mass[N_TRACKS-1])
