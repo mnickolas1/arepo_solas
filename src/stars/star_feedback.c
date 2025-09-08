@@ -31,7 +31,7 @@ typedef struct
   MyDouble StarDensity;
   MyDouble NgbMass;
   MyDouble NgbVolume;
-  MyDouble Metallicity;
+  MyDouble Metals;
   int SNIIFlag;
   MyDouble SNIIEnergyFeed;
   MyDouble SNIIMassFeed;
@@ -60,7 +60,7 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->StarDensity    = SP[i].Density;
   in->NgbMass        = SP[i].NgbMass;
   in->NgbVolume      = SP[i].NgbVolume;
-  in->Metallicity    = SP[i].Metallicity;
+  in->Metals         = SP[i].Metals;
   in->SNIIFlag       = SP[i].SNIIFlag;
   in->SNIIEnergyFeed = SP[i].SNIIEnergyFeed;
   in->SNIIMassFeed   = SP[i].SNIIMassFeed;
@@ -172,7 +172,7 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   int numnodes, *firstnode;
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk, dt;
-  MyDouble *pos, star_mass, star_density, ngbmass, ngbvolume, metallicity, snIImassfeed, snIIenergyfeed;
+  MyDouble *pos, star_mass, star_density, ngbmass, ngbvolume, metals, snIImassfeed, snIIenergyfeed;
 
   data_in local, *target_data;
   //data_out out;
@@ -199,7 +199,7 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   star_density   = target_data->StarDensity;
   ngbmass        = target_data->NgbMass;
   ngbvolume      = target_data->NgbVolume;
-  metallicity    = target_data->Metallicity;    
+  metals         = target_data->Metals;    
   snIIflag       = target_data->SNIIFlag;
   snIIenergyfeed = target_data->SNIIEnergyFeed;
   snIImassfeed   = target_data->SNIIMassFeed;
@@ -272,7 +272,7 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
 #ifdef WINDS
           /******  momentum conserving wind *****/
           SphP[j].MassFeed     += massloss * SphP[j].Volume / ngbvolume;
-          SphP[j].Metallicity  += massloss * metallicity * SphP[j].Volume / ngbvolume;
+          SphP[j].Metals       += massloss * metals * SphP[j].Volume / ngbvolume;
 
           SphP[j].MomentumFeed  += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;
           All.EnergyExchange[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;

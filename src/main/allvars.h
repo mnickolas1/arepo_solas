@@ -1612,7 +1612,6 @@ extern struct star_particle_data
   int DensityFlag;
   signed char TimeBinStar;
   double Birthtime;
-  double Metallicity;
   MyDouble SNIITime;
   MyDouble SNIIEnergyFeed;
   MyDouble SNIIMassFeed;
