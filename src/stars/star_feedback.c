@@ -271,8 +271,8 @@ int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numno
 
 #ifdef WINDS
           /******  momentum conserving wind *****/
-          SphP[j].MassFeed     += massloss * SphP[j].Volume / ngbvolume;
-          SphP[j].Metals       += massloss * metals * SphP[j].Volume / ngbvolume;
+          SphP[j].MassFeed      += massloss * SphP[j].Volume / ngbvolume;
+          SphP[j].Metals        += massloss/star_mass * metals * SphP[j].Volume / ngbvolume;
 
           SphP[j].MomentumFeed  += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;
           All.EnergyExchange[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;

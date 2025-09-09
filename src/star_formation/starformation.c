@@ -330,11 +330,9 @@ void convert_cell_into_star(int i, double birthtime)
   SP[NumStars].Birthtime = birthtime;
   SP[NumStars].SNIIFlag = 0;
 
-#ifdef METALS
+#ifdef METALS 
   SP[NumStars].Metals = SphP[i].Metals;
-#else
-  SP[NumStars].Metals = 0.0004;
-#endif /* ifdef METALS */
+#endif  
 
     struct CELibStructNextEventTimeInput Input = 
     {
@@ -435,9 +433,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
 
 #ifdef METALS 
   SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
-#else
-  SP[NumStars].Metals = 0.0004;
-#endif /* ifdef METALS */ 
+#endif
 
     struct CELibStructNextEventTimeInput Input = 
     {
