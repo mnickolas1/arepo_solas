@@ -1566,7 +1566,8 @@ extern struct sph_particle_data
  * calling it PScalars
  * */
 #ifdef METALS
-#define Metals PScalars[METALLICITY_INDEX]
+#define Metallicity PScalars[METALLICITY_INDEX]
+#define Metals PConservedScalars[METALLICITY_INDEX]
 #endif /* METALS */
        
 } * SphP,          /*!< holds SPH particle data on local processor */
