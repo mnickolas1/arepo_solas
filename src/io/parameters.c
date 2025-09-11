@@ -579,11 +579,17 @@ void read_parameter_file(char *fname)
       
       strcpy(tag[nt], "Ftherm");
       addr[nt] = &All.Ftherm;
-      id[nt++] = REAL;
+      id[nt++] = INT;
 
       strcpy(tag[nt], "Fsn");
       addr[nt] = &All.Fsn;
-      id[nt++] = REAL;
+      id[nt++] = INT;
+
+#ifndef STAR_BY_STAR
+      strcpy(tag[nt], "IMF");
+      addr[nt] = &All.IMF;
+      id[nt++] = INT;
+#endif
 #endif
 
 #ifdef BLACKHOLES

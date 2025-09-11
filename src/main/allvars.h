@@ -1306,6 +1306,9 @@ extern struct global_data_all_processes
   double WindVelocity;
   double Ftherm;
   double Fsn;
+#ifndef STAR_BY_STAR
+  double IMF;
+#endif 
 #endif
 
 #ifdef USE_GRACKLE
@@ -1601,18 +1604,6 @@ extern struct bh_particle_data
 #define PPB(i) P[BhP[i].PID]
 #endif 
 
-#ifndef STAR_BY_STAR
-struct stars
-{ 
-  MyDouble Age;
-  MyDouble Mass;
-  MyDouble SN_Time;
-  MyDouble SN_MassFeed;
-  MyDouble SN_EnergyFeed;
-  MyDouble SN_Flag;
-} *stars;
-#endif
-
 #ifdef STARS 
 extern struct star_particle_data
 {
@@ -1625,8 +1616,6 @@ extern struct star_particle_data
   integertime NgbMinStep;
   int DensityFlag;
   signed char TimeBinStar;
-
-#ifdef STAR_BY_STAR
   MyDouble Age;
   MyDouble Mass;
   MyDouble SN_Time;
@@ -1635,11 +1624,6 @@ extern struct star_particle_data
   
   //=0 before SNII, =1 during SNII (do supernova feedback), =2 after SNII (pause winds)
   MyDouble SN_Flag;
-#endif
-
-#ifndef STAR_BY_STAR
-  struct stars Stars;
-#endif 
 }  *SP;
 
 #define SPP(i) SP[P[i].SID]
