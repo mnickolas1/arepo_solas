@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include "Integral.h"
 
 /* Unnormalized Kroupa IMF */
 double imf_kroupa(double m) 
@@ -56,6 +57,14 @@ double m_times_imf(double m)
 /* Normalization */
 double normalization(double M_star, double mmin, double mmax) 
 {
-  double denom = integrate(m_times_imf, mmin, mmax, 1000);
+  double denom = IntegralTrapezoidal(mmin, mmax, 1000, m_times_imf);
   return M_star / denom;
 }
+
+/* Star counts */
+double expected_star_count(double imf_norm, double m1, double m2)
+{
+    return imf_norm * IntegralTrapezoidal(m1, m2, 1000, imf);
+}
+
+
