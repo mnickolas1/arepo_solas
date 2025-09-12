@@ -64,7 +64,61 @@ double normalization(double M_star, double mmin, double mmax)
 /* Star counts */
 double expected_star_count(double imf_norm, double m1, double m2)
 {
-    return imf_norm * IntegralTrapezoidal(m1, m2, 1000, imf);
+  return imf_norm * IntegralTrapezoidal(m1, m2, 1000, imf);
 }
+
+/* Poisson sampling */
+int poisson_sample(double lambda) 
+{
+  return gsl_ran_poisson(rng, lambda);
+}
+
+/* SN events between t and t+dt */
+int sne_events(double imf_norm, double mmin, double mmax, double t, double dt)
+{
+  int N_SN = 0;
+  int nbins = 100;
+  double dm = (mmax - mmin) / nbins;
+
+  for (int i = 0; i < nbins; i++) 
+    {
+      double m1 = mmin + i*dm;
+      double m2 = m1 + dm;
+
+      double meanN = expected_star_count(imf_norm, m1, m2);
+      double m_mid = 0.5*(m1+m2);
+
+      double tau = lifetime(m_mid);
+      if (tau >= t && tau < (t+dt)) 
+        {
+          N_SN += poisson_sample(meanN);
+        }
+    }
+  return N_SN;
+}
+
+/* Winds between t and t+dt */
+double winds(double imf_norm, double mmin, double mmax, double t, double dt)
+{
+  double total = 0.0;
+  int nbins = 100;
+  double dm = (mmax - mmin) / nbins;
+
+  for (int i = 0; i < nbins; i++) 
+    {
+      double m1 = mmin + i*dm;
+      double m2 = m1 + dm;
+
+      double meanN = expected_star_count(imf_norm, m1, m2);
+      int Nstars = poisson_sample(meanN);
+
+      double m_mid = 0.5*(m1+m2);
+      double mloss = massloss(m_mid, t, dt);
+
+      total += Nstars * mloss;
+    }
+  return total;
+}
+
 
 
