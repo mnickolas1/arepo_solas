@@ -547,10 +547,9 @@ void perform_end_of_step_physics(void)
               SphP[i].ThermalEnergyFeed = SphP[i].KineticEnergyFeed = 0;
             }
 #endif
-        }
-       
+#endif 
+        }     
     }
-#endif
   MPI_Allreduce(&All.EnergyExchange, &All.EnergyExchangeTot, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD); // synchronize all tasks
   
