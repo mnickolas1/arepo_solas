@@ -10,8 +10,6 @@
 
 #include "../domain/domain.h"
 
-#if defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK)
-      
 #define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0)
 
 static int bh_ngb_feedback_evaluate(int target, int mode, int threadid);
@@ -282,7 +280,7 @@ static int bh_ngb_feedback_evaluate(int target, int mode, int threadid)
 
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           if(!All.JetFeedback)
             {
@@ -339,5 +337,3 @@ static int bh_ngb_feedback_evaluate(int target, int mode, int threadid)
 
   return 0;
 }
-
-#endif /* #if defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK) */
