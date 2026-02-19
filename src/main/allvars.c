@@ -107,7 +107,7 @@ struct TimeBinData TimeBinsHydro, TimeBinsGravity;
 #ifdef BLACKHOLES
 struct TimeBinData TimeBinsBh;
 #endif
-#ifdef STARS
+#ifdef STAR_FEEDBACK_ACTIVE
 struct TimeBinData TimeBinsStar;
 #endif
 
