@@ -48,8 +48,6 @@
 
 #include "../gravity/forcetree.h"
 
-#include "../../celib/src/config.h"
-
 #ifdef USE_SFR
 
 static int stars_spawned;           /*!< local number of star particles spawned in the time step */
@@ -345,26 +343,11 @@ void convert_cell_into_star(int i, double birthtime)
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
-  SP[NumStars].SNIIFlag = 0;
 #ifdef METALS 
   SP[NumStars].Metals = SphP[i].Metals;
 #endif  
 
-#ifdef USE_CELIB
-  struct CELibStructNextEventTimeInput Input =
-    {
-      .R = (double)rand()/(double)RAND_MAX,
-      .InitialMass_in_Msun = (P[i].Mass * All.UnitMass_in_g / SOLAR_MASS),
-      .Metallicity = SP[NumStars].Metals,
-    };
-//  Input.Metallicity = SP[NumStars].Metals;
-
-  SP[NumStars].SNIITime = birthtime + CELibGetNextEventTime(Input, CELibFeedbackType_SNII) 
-    / (1.e6) / All.UnitTime_in_Megayears;
-#else
-    SP[NumStars].SNIITime = birthtime + 0.1; //All.FeedbackTime/(1.e6)/All.UnitTime_in_Megayears;
-#endif
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
+  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
  
   NumStars++;
 #endif /* STARS */
@@ -394,6 +377,17 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   P[istar].Type          = 4;
   P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   P[istar].Mass          = mass_of_star;
+
+  // give star small random displacement
+  double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+
+  double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+  double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
+  double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+
+  P[istar].Pos[0] += rx;
+  P[istar].Pos[1] += ry;
+  P[istar].Pos[2] += rz;
 
 #if defined(REFINEMENT_HIGH_RES_GAS)
   if(SphP[igas].HighResMass < HIGHRESMASSFAC * P[igas].Mass)
@@ -444,32 +438,16 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   P[istar].SID = NumStars;
   SP[NumStars].PID = istar;
   /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));;
+  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
-  SP[NumStars].SNIIFlag = 0;
-
 #ifdef METALS 
   SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
 #endif
 
-#ifdef USE_CELIB
-  struct CELibStructNextEventTimeInput Input =
-    {
-      .R = (double)rand()/(double)RAND_MAX,
-      .InitialMass_in_Msun = (P[istar].Mass * All.UnitMass_in_g / SOLAR_MASS),
-      .Metallicity = SP[NumStars].Metals,
-    };
-//  Input.Metallicity = SP[NumStars].Metals;
-
-  SP[NumStars].SNIITime = birthtime + CELibGetNextEventTime(Input, CELibFeedbackType_SNII)
-    / (1.e6) / All.UnitTime_in_Megayears;  
-#else
-  SP[NumStars].SNIITime = birthtime + All.FeedbackTime/(1.e6)/All.UnitTime_in_Megayears;
-#endif
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
+  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
   NumStars++;
 #endif
