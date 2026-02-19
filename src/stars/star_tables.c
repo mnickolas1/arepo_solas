@@ -28,6 +28,22 @@ double ***MetalsLossRate = NULL;
 double ***WindVelocity = NULL;
 #endif
 
+#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
+// Photoionization and radiation pressure
+double ***RAD_IonizingRate = NULL; // photons/s
+double ***RAD_IonizingLuminosity = NULL; // energy/s
+#endif
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
+// Photoelectric and radiation pressure
+double ***RAD_UVLymanWernerLuminosity = NULL; // energy/s
+double ***RAD_UltravioletLuminosity = NULL; // energy/s
+#endif
+#if defined(RADIATION_PRESSURE)
+// Radiation pressure
+double ***RAD_OpticalLuminosity = NULL; // energy/s
+double ***RAD_InfraredLuminosity = NULL; // energy/s
+#endif 
+
 #ifdef SUPERNOVAE
 // Supernovae 
 double **SN_MassLoss = NULL;  
@@ -43,22 +59,6 @@ double **AGB_MassLoss;
 double **AGB_MetalsLoss; 
 #endif 
 #endif
-
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-// Photoionization and radiation pressure
-double ***RAD_IonizingRate = NULL; // photons/s
-double ***RAD_IonizingLuminosity = NULL; // energy/s
-#endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
-// Photoelectric and radiation pressure
-double ***RAD_UVLymanWernerLuminosity = NULL; // energy/s
-double ***RAD_UltravioletLuminosity = NULL; // energy/s
-#endif
-#if defined(RADIATION_PRESSURE)
-// Radiation pressure
-double ***RAD_OpticalLuminosity = NULL; // energy/s
-double ***RAD_InfraredLuminosity = NULL; // energy/s
-#endif 
 
 void free_stellar_tables(void)
 {
@@ -83,7 +83,7 @@ void free_stellar_tables(void)
             free(RAD_IonizingRate[z][m]);
             free(RAD_IonizingLuminosity[z][m]);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
             free(RAD_UVLymanWernerLuminosity[z][m]);
             free(RAD_UltravioletLuminosity[z][m]);
 #endif
@@ -109,24 +109,24 @@ void free_stellar_tables(void)
           free(WindVelocity[z]);
 #endif
 
-#ifdef SUPERNOVAE
-          free(SN_MassLoss[z]);
-#ifdef METALS
-          free(SN_MetalsLoss[z]);
-#endif
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
           free(RAD_IonizingRate[z]);
           free(RAD_IonizingLuminosity[z]);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
           free(RAD_UVLymanWernerLuminosity[z]);
           free(RAD_UltravioletLuminosity[z]);
 #endif
 #if defined(RADIATION_PRESSURE)
           free(RAD_OpticalLuminosity[z]);
           free(RAD_InfraredLuminosity[z]);
+#endif
+
+#ifdef SUPERNOVAE
+          free(SN_MassLoss[z]);
+#ifdef METALS
+          free(SN_MetalsLoss[z]);
+#endif
 #endif
         }
 
@@ -147,24 +147,24 @@ void free_stellar_tables(void)
       free(WindVelocity);
 #endif
 
-#ifdef SUPERNOVAE
-      free(SN_MassLoss);
-#ifdef METALS
-      free(SN_MetalsLoss);
-#endif
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
       free(RAD_IonizingRate);
       free(RAD_IonizingLuminosity);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
       free(RAD_UVLymanWernerLuminosity);
       free(RAD_UltravioletLuminosity);
 #endif
 #if defined(RADIATION_PRESSURE)
       free(RAD_OpticalLuminosity);
       free(RAD_InfraredLuminosity);
+#endif
+
+#ifdef SUPERNOVAE
+      free(SN_MassLoss);
+#ifdef METALS
+      free(SN_MetalsLoss);
+#endif
 #endif
 
       Z_VALUES = NULL;
@@ -184,24 +184,24 @@ void free_stellar_tables(void)
       WindVelocity = NULL;
 #endif
 
-#ifdef SUPERNOVAE
-      SN_MassLoss = NULL;
-#ifdef METALS
-      SN_MetalsLoss = NULL;
-#endif
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
       RAD_IonizingRate = NULL;
       RAD_IonizingLuminosity = NULL;
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
       RAD_UVLymanWernerLuminosity = NULL;
       RAD_UltravioletLuminosity = NULL;
 #endif
 #if defined(RADIATION_PRESSURE)
       RAD_OpticalLuminosity = NULL;
       RAD_InfraredLuminosity = NULL;
+#endif
+
+#ifdef SUPERNOVAE
+      SN_MassLoss = NULL;
+#ifdef METALS
+      SN_MetalsLoss = NULL;
+#endif
 #endif
     }
 }
@@ -264,18 +264,11 @@ void load_stellar_tables(const char *filename)
   WindVelocity = malloc(Z_COUNT * sizeof(double**));
 #endif
 
-#ifdef SUPERNOVAE
-  SN_MassLoss   = malloc(Z_COUNT * sizeof(double *));
-#ifdef METALS
-  SN_MetalsLoss = malloc(Z_COUNT * sizeof(double *));
-#endif
-#endif 
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
   RAD_IonizingRate = malloc(Z_COUNT * sizeof(double**));
   RAD_IonizingLuminosity = malloc(Z_COUNT * sizeof(double**));
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
   RAD_UVLymanWernerLuminosity = malloc(Z_COUNT * sizeof(double**));
   RAD_UltravioletLuminosity = malloc(Z_COUNT * sizeof(double**));
 #endif
@@ -283,6 +276,13 @@ void load_stellar_tables(const char *filename)
   RAD_OpticalLuminosity = malloc(Z_COUNT * sizeof(double**));
   RAD_InfraredLuminosity = malloc(Z_COUNT * sizeof(double**));
 #endif
+
+#ifdef SUPERNOVAE
+  SN_MassLoss   = malloc(Z_COUNT * sizeof(double *));
+#ifdef METALS
+  SN_MetalsLoss = malloc(Z_COUNT * sizeof(double *));
+#endif
+#endif 
 
   for(int z = 0; z < Z_COUNT; z++)
     {
@@ -300,18 +300,11 @@ void load_stellar_tables(const char *filename)
       WindVelocity[z] = malloc(M_COUNT * sizeof(double*));
 #endif
 
-#ifdef SUPERNOVAE
-      SN_MassLoss[z]   = malloc(M_COUNT * sizeof(double));
-#ifdef METALS
-      SN_MetalsLoss[z] = malloc(M_COUNT * sizeof(double));
-#endif
-#endif 
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
       RAD_IonizingRate[z] = malloc(M_COUNT * sizeof(double*));
       RAD_IonizingLuminosity[z] = malloc(M_COUNT * sizeof(double*));
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
       RAD_UVLymanWernerLuminosity[z] = malloc(M_COUNT * sizeof(double*));
       RAD_UltravioletLuminosity[z] = malloc(M_COUNT * sizeof(double*));
 #endif
@@ -319,6 +312,13 @@ void load_stellar_tables(const char *filename)
       RAD_OpticalLuminosity[z] = malloc(M_COUNT * sizeof(double*));
       RAD_InfraredLuminosity[z] = malloc(M_COUNT * sizeof(double*));
 #endif
+
+#ifdef SUPERNOVAE
+      SN_MassLoss[z]   = malloc(M_COUNT * sizeof(double));
+#ifdef METALS
+      SN_MetalsLoss[z] = malloc(M_COUNT * sizeof(double));
+#endif
+#endif 
     }
 
   if(ThisTask == 0)
@@ -398,23 +398,6 @@ void load_stellar_tables(const char *filename)
               my_H5Dclose(d_wv,  "WindVelocity");
 #endif
 
-#ifdef SUPERNOVAE
-              hid_t d_snml = my_H5Dopen(mgrp, "SN_MassLoss");
-#ifdef METALS
-              hid_t d_snmz = my_H5Dopen(mgrp, "SN_MetalsLoss");
-#endif
-              my_H5Dread(d_snml, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_MassLoss[z][m], "SN_MassLoss");
-#ifdef METALS
-              my_H5Dread(d_snmz, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_MetalsLoss[z][m], "SN_MetalsLoss");
-#endif
-              my_H5Dclose(d_snml, "SN_MassLoss");
-#ifdef METALS
-              my_H5Dclose(d_snmz, "SN_MetalsLoss");
-#endif
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
               RAD_IonizingRate[z][m] = malloc(N[z][m] * sizeof(double));
               RAD_IonizingLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
@@ -430,7 +413,7 @@ void load_stellar_tables(const char *filename)
                       H5S_ALL, H5S_ALL, H5P_DEFAULT, RAD_IonizingLuminosity[z][m], "RAD_IonizingLuminosity");
               my_H5Dclose(d_l, "RAD_IonizingLuminosity");
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
               RAD_UVLymanWernerLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
               RAD_UltravioletLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
 
@@ -459,6 +442,23 @@ void load_stellar_tables(const char *filename)
 
               my_H5Dclose(d_op, "RAD_OpticalLuminosity");
               my_H5Dclose(d_ir, "RAD_InfraredLuminosity");
+#endif
+
+#ifdef SUPERNOVAE
+              hid_t d_snml = my_H5Dopen(mgrp, "SN_MassLoss");
+#ifdef METALS
+              hid_t d_snmz = my_H5Dopen(mgrp, "SN_MetalsLoss");
+#endif
+              my_H5Dread(d_snml, H5T_NATIVE_DOUBLE,
+                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_MassLoss[z][m], "SN_MassLoss");
+#ifdef METALS
+              my_H5Dread(d_snmz, H5T_NATIVE_DOUBLE,
+                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_MetalsLoss[z][m], "SN_MetalsLoss");
+#endif
+              my_H5Dclose(d_snml, "SN_MassLoss");
+#ifdef METALS
+              my_H5Dclose(d_snmz, "SN_MetalsLoss");
+#endif
 #endif
 
               my_H5Gclose(mgrp, mname);
@@ -499,7 +499,7 @@ void load_stellar_tables(const char *filename)
                 RAD_IonizingRate[z][m] = malloc(N[z][m] * sizeof(double));
                 RAD_IonizingLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
                 RAD_UVLymanWernerLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
                 RAD_UltravioletLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
 #endif
@@ -525,7 +525,7 @@ void load_stellar_tables(const char *filename)
             MPI_Bcast(RAD_IonizingRate[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
             MPI_Bcast(RAD_IonizingLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
             MPI_Bcast(RAD_UVLymanWernerLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
             MPI_Bcast(RAD_UltravioletLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif

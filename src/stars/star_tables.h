@@ -23,6 +23,19 @@ extern double ***MetalsLossRate;
 extern double ***WindVelocity;
 #endif
 
+#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
+extern double ***RAD_IonizingRate;
+extern double ***RAD_IonizingLuminosity;
+#endif
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION PRESSURE)
+extern double ***RAD_UVLymanWernerLuminosity;
+extern double ***RAD_UltravioletLuminosity;
+#endif
+#if defined(RADIATION_PRESSURE)
+extern double ***RAD_OpticalLuminosity;
+extern double ***RAD_InfraredLuminosity;
+#endif
+
 #ifdef SUPERNOVAE
 extern double **SN_MassLoss; 
 #ifdef METALS
@@ -35,17 +48,4 @@ extern double **AGB_MassLoss;
 #ifdef METALS
 extern double **AGB_MetalsLoss; 
 #endif 
-#endif
-
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-extern double ***RAD_IonizingRate;
-extern double ***RAD_IonizingLuminosity;
-#endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION PRESSURE)
-extern double ***RAD_UVLymanWernerLuminosity;
-extern double ***RAD_UltravioletLuminosity;
-#endif
-#if defined(RADIATION_PRESSURE)
-extern double ***RAD_OpticalLuminosity;
-extern double ***RAD_InfraredLuminosity;
 #endif

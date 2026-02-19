@@ -19,7 +19,7 @@
 
 #STAR_RADIATION         # Full radiation
 #PHOTOIONIZATION        # Only photoionization
-#PHOTOELECTRIC          # Only photoelectric
+#PHOTOELECTRIC_HEATING          # Only photoelectric
 #RADIATION_PRESSURE     # Only radiation pressure
 
 #SUPERNOVAE             # Only supernovae

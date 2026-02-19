@@ -154,18 +154,21 @@
 
 #ifdef STAR_FEEDBACK
 #define WINDS
-#define SUPERNOVAE
 #define RADIATION
+#define SUPERNOVAE
 #endif
 
 #ifdef RADIATION
 #define PHOTOIONIZATION
-#define PHOTOELECTRIC
+#define PHOTOELECTRIC_HEATING
 #define RADIATION_PRESSURE
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE) || defined(PHOTOIONIZATION) \
-    || defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(WINDS) \
+|| defined(PHOTOIONIZATION) \
+|| defined(PHOTOELECTRIC_HEATING) \
+|| defined(RADIATION_PRESSURE) \
+|| defined(SUPERNOVAE)
 #define STAR_FEEDBACK_ACTIVE
 #endif
 
@@ -175,7 +178,7 @@
 #endif
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
 #define STAR_RADIATION_ACTIVE
 #endif
 
@@ -1614,46 +1617,48 @@ extern struct sph_particle_data
 #endif 
     
 #ifdef BLACKHOLES_ACCRETION_ACTIVE
-  MyDouble MassDrain;
+  MyDouble BhMassDrain;
 #endif
 
 #ifdef BLACKHOLES_FEEDBACK_ACTIVE
-  MyDouble MassLoading;
-  MyDouble ThermalFeed;
-  MyDouble KineticFeed;
-  MyDouble BhKickVector[3];
+  MyDouble BhMassFeed;
+  MyDouble BhThermalFeed;
+  MyDouble BhKineticFeed;
+  MyDouble BhMomentumFeed[3];
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-  MyDouble MassFeed;
+  MyDouble StarMassFeed;
 #ifdef METALS
-  MyDouble MetalsFeed;
+  MyDouble StarMetalsFeed;
 #endif
-  MyDouble ThermalEnergyFeed;
-  MyDouble KineticEnergyFeed;
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE) || defined(RADIATION_PRESSURE)
-MyDouble MomentumFeed;
-MyDouble MomentumKickVector[3]; 
+MyDouble StarMomentumFeed[3]; 
 #endif
 
 #ifdef PHOTOIONIZATION
   MyDouble PI_Balance;
 #endif 
 
-#ifdef PHOTOELECTRIC
+#ifdef PHOTOELECTRIC_HEATING
   MyDouble PE_Energy;
 #endif
 
 #ifdef RADIATION_PRESSURE
-  MyDouble RAD_Ionizing; // do we want to expand this to include ionizing HE?
+  MyDouble RAD_Ionizing; 
   MyDouble RAD_UVLymanWerner;
   MyDouble RAD_Ultraviolet;
   MyDouble RAD_Optical;
   MyDouble RAD_Infrared;
-  MyDouble RAD_Pressure[3];
 #endif
+
+#ifdef SUPERNOVAE
+  MyDouble StarThermalFeed;
+  MyDouble StarKineticFeed;
+#endif
+
 } * SphP,          /*!< holds SPH particle data on local processor */
     *DomainSphBuf; /*!< buffer for SPH particle data in domain decomposition */
 
@@ -1712,20 +1717,12 @@ extern struct star_particle_data
   MyDouble WindMomentum;
 #endif
 
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyEject;
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
   MyDouble RAD_IonizingHPhotons;
   MyDouble RAD_Ionizing;
 #endif
 
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
   MyDouble RAD_UVLymanWerner;
   MyDouble RAD_Ultraviolet;
 #endif
@@ -1733,6 +1730,14 @@ extern struct star_particle_data
 #if defined(RADIATION_PRESSURE)
   MyDouble RAD_Optical;
   MyDouble RAD_Infrared;
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SN_MassLoss;
+#ifdef METALS
+  MyDouble SN_MetalsLoss;
+#endif
+  MyDouble SN_EnergyEject;
 #endif
 }  *SP;
 
@@ -1754,20 +1759,12 @@ struct star_interpolate
   MyDouble WindVelocity;
 #endif
 
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
   MyDouble RAD_IonizingRate;
   MyDouble RAD_IonizingLuminosity;
 #endif
 
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
   MyDouble RAD_UVLymanWernerLuminosity;
   MyDouble RAD_UltravioletLuminosity;
 #endif
@@ -1775,6 +1772,14 @@ struct star_interpolate
 #if defined(RADIATION_PRESSURE)
   MyDouble RAD_OpticalLuminosity;
   MyDouble RAD_InfraredLuminosity;
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SN_MassLoss;
+#ifdef METALS
+  MyDouble SN_MetalsLoss;
+#endif
+  MyDouble SN_EnergyInject;
 #endif
 };
 
@@ -1790,20 +1795,12 @@ struct star_feedback
   MyDouble WindMomentum;
 #endif
 
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
   MyDouble RAD_IonizingHPhotons;
   MyDouble RAD_Ionizing;
 #endif
 
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
   MyDouble RAD_UVLymanWerner;
   MyDouble RAD_Ultraviolet;
 #endif
@@ -1811,6 +1808,14 @@ struct star_feedback
 #if defined(RADIATION_PRESSURE)
   MyDouble RAD_Optical;
   MyDouble RAD_Infrared;
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SN_MassLoss;
+#ifdef METALS
+  MyDouble SN_MetalsLoss;
+#endif
+  MyDouble SN_EnergyInject;
 #endif
 };
 #endif

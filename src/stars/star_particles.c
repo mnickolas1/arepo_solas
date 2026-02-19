@@ -104,14 +104,11 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
   const double *windvelocity = WindVelocity[z_idx][m_idx];
 #endif
 
-#ifdef SUPERNOVAE
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
   const double *RAD_ionizingrate = RAD_IonizingRate[z_idx][m_idx];
   const double *RAD_ionizingluminosity = RAD_IonizingLuminosity[z_idx][m_idx];
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
   const double *RAD_uvlymanwernerluminosity = RAD_UVLymanWernerLuminosity[z_idx][m_idx];
   const double *RAD_ultravioletluminosity = RAD_UltravioletLuminosity[z_idx][m_idx];
 #endif
@@ -139,7 +136,7 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
       feedback.RAD_IonizingRate = RAD_ionizingrate[0];
       feedback.RAD_IonizingLuminosity = RAD_ionizingluminosity[0];
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
       feedback.RAD_UVLymanWernerLuminosity = RAD_uvlymanwernerluminosity[0];
       feedback.RAD_UltravioletLuminosity = RAD_ultravioletluminosity[0];
 #endif
@@ -168,7 +165,7 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
       feedback.RAD_IonizingRate = RAD_ionizingrate[n - 1];
       feedback.RAD_IonizingLuminosity = RAD_ionizingluminosity[n - 1];
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
       feedback.RAD_UVLymanWernerLuminosity = RAD_uvlymanwernerluminosity[n - 1];
       feedback.RAD_UltravioletLuminosity = RAD_ultravioletluminosity[n - 1];
 #endif
@@ -199,7 +196,7 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
           feedback.RAD_IonizingRate = linear_interpolation(a, age[i], age[i + 1], RAD_ionizingrate[i], RAD_ionizingrate[i + 1]);
           feedback.RAD_IonizingLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_ionizingluminosity[i], RAD_ionizingluminosity[i + 1]);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
           feedback.RAD_UVLymanWernerLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_uvlymanwernerluminosity[i], RAD_uvlymanwernerluminosity[i + 1]);
           feedback.RAD_UltravioletLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_ultravioletluminosity[i], RAD_ultravioletluminosity[i + 1]);
 #endif
@@ -247,7 +244,7 @@ static struct star_interpolate interpolate_mass(int z_idx, double m_val, double 
           feedback.RAD_IonizingRate = linear_interpolation(m_val, m0, m1, feedback0.RAD_IonizingRate, feedback1.RAD_IonizingRate);
           feedback.RAD_IonizingLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_IonizingLuminosity, feedback1.RAD_IonizingLuminosity);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
           feedback.RAD_UVLymanWernerLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_UVLymanWernerLuminosity, feedback1.RAD_UVLymanWernerLuminosity);
           feedback.RAD_UltravioletLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_UltravioletLuminosity, feedback1.RAD_UltravioletLuminosity);
 #endif
@@ -295,7 +292,7 @@ static struct star_interpolate interpolate_metallicity(double z_val, double m_va
           feedback.RAD_IonizingRate = linear_interpolation(z_val, z0, z1, feedback0.RAD_IonizingRate, feedback1.RAD_IonizingRate);
           feedback.RAD_IonizingLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_IonizingLuminosity, feedback1.RAD_IonizingLuminosity);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
           feedback.RAD_UVLymanWernerLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_UVLymanWernerLuminosity, feedback1.RAD_UVLymanWernerLuminosity);
           feedback.RAD_UltravioletLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_UltravioletLuminosity, feedback1.RAD_UltravioletLuminosity);
 #endif
@@ -417,7 +414,7 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
       star.RAD_IonizingHPhotons = feedback.RAD_IonizingRate * dt;
       star.RAD_Ionizing = feedback.RAD_IonizingLuminosity * dt;
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
       star.RAD_UVLymanWerner = feedback.RAD_UVLymanWernerLuminosity * dt;
       star.RAD_Ultraviolet = feedback.RAD_UltravioletLuminosity * dt;
 #endif
@@ -465,24 +462,24 @@ struct star_feedback units_for_feedback(struct star_feedback star)
   star.WindMomentum /= ((All.UnitMass_in_g / SOLAR_MASS) * (All.UnitVelocity_in_cm_per_s / 1.e5));
 #endif
 
-#ifdef SUPERNOVAE
-  star.SN_MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
-#ifdef METALS
-  star.SN_MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
-#endif
-  star.SN_EnergyInject /= (All.UnitEnergy_in_cgs);
-#endif
-
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
   star.RAD_Ionizing /= (All.UnitEnergy_in_cgs);
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
   star.RAD_UVLymanWerner /= (All.UnitEnergy_in_cgs);
   star.RAD_Ultraviolet /= (All.UnitEnergy_in_cgs);
 #endif
 #if defined(RADIATION_PRESSURE)
   star.RAD_Optical /= (All.UnitEnergy_in_cgs);
   star.RAD_Infrared /= (All.UnitEnergy_in_cgs);
+#endif
+
+#ifdef SUPERNOVAE
+  star.SN_MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+#ifdef METALS
+  star.SN_MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+#endif
+  star.SN_EnergyInject /= (All.UnitEnergy_in_cgs);
 #endif
 
   return star;
@@ -605,6 +602,7 @@ struct star_feedback star_particle_feedback(double dt, double z, double m, doubl
       switch(star.Stage)
         {
           case 0:
+
 #ifdef WINDS
           star_particle.MassLoss += Nstars * star.MassLoss;
 #ifdef METALS
@@ -612,11 +610,12 @@ struct star_feedback star_particle_feedback(double dt, double z, double m, doubl
 #endif
           star_particle.WindMomentum += Nstars * star.WindMomentum;
 #endif
+
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
           star_particle.RAD_IonizingHPhotons += Nstars * star.RAD_IonizingHPhotons;
           star_particle.RAD_Ionizing += Nstars * star.RAD_Ionizing;
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
           star_particle.RAD_UVLymanWerner += Nstars * star.RAD_UVLymanWerner;
           star_particle.RAD_Ultraviolet += Nstars * star.RAD_Ultraviolet;
 #endif
@@ -624,9 +623,11 @@ struct star_feedback star_particle_feedback(double dt, double z, double m, doubl
           star_particle.RAD_Optical += Nstars * star.RAD_Optical;
           star_particle.RAD_Infrared += Nstars * star.RAD_Infrared;
 #endif
+
           break;
 
           case 1:
+
 #ifdef SUPERNOVAE
           star_particle.SN_MassLoss += Nstars * star.SN_MassLoss;
 #ifdef METALS
@@ -634,9 +635,11 @@ struct star_feedback star_particle_feedback(double dt, double z, double m, doubl
 #endif
           star_particle.SN_EnergyInject += Nstars * star.SN_EnergyInject;   
 #endif
+
           break;
 
           case 2:
+
           break;
         }
     }

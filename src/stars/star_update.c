@@ -83,7 +83,7 @@ void star_prep(void)
       SP[i].RAD_IonizingHPhotons = star_feedback.RAD_IonizingHPhotons;
       SP[i].RAD_Ionizing = star_feedback.RAD_Ionizing;
 #endif
-#if defined(PHOTOELECTRIC) || defined(RADIATION_PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
       SP[i].RAD_UVLymanWerner = star_feedback.RAD_UVLymanWerner;
       SP[i].RAD_Ultraviolet = star_feedback.RAD_Ultraviolet;
 #endif
