@@ -6,28 +6,39 @@
 
 #--------------------------------------- SOLAS additions
 
+#FEEDBACK_TESTING_RESTRICT_SNAPSHOTS     # Only dump snapshots after a feedback event
 
-#--------------------------------------- Feedback options
-#FEEDBACK_TESTING_RESTRICT_SNAPSHOTS  # Only dump snapshots after a feedback event
-#STARS
-#STAR_BY_STAR
-#WINDS
-#SUPERNOVAE
-#USE_CELIB              # Use the CELib libraries
+#--------------------------------------- Star options
+#STARS                  # General stars framework flag
+
+#STAR_BY_STAR           # Resolved individual star particles
+
+#STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
+
+#WINDS                  # Only winds
+
+#STAR_RADIATION         # Full radiation
+#PHOTOIONIZATION        # Only photoionization
+#PHOTOELECTRIC          # Only photoelectric
+#RADIATION_PRESSURE     # Only radiation pressure
+
+#SUPERNOVAE             # Only supernovae
 
 #--------------------------------------- Star Formation options
-#EEOS_SF               # Default SF scheme in Arepo
+#EEOS_SF                # Default SF scheme in Arepo
 #AGORA_SF               # Agora based SF
 #JEANS_SF               # Jeans length based SF
 #JEANS_MASS_BASED       # Jeans mass based SF
 
-#--------------------------------------- Black Hole options
+#--------------------------------------- Blackhole options
 #BLACKHOLES
-#BLACKHOLES_FEEDBACK
-#BH_WITH_FEEDBACK
-#BURST_MODE
+#BLACKHOLE_ACCRETION_ACTIVE
 #BONDI_ACCRETION
 #INFALL_ACCRETION
+#BLACKHOLES_FEEDBACK_ACTIVE
+
+#BURST_MODE
+
 #OUTPUT_TIMEBIN_BH
 
 #REFINEMENT_AROUND_BH
@@ -48,8 +59,6 @@
 
 #--------------------------------------- Metal parameters
 #METALS # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS.
-
-#WENDLAND_C2_KERNEL
 
 #--------------------------------------- Inline halo finding
 #FIND_HALOS

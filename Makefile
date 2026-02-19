@@ -309,20 +309,43 @@ ifeq (BLACKHOLES,$(findstring BLACKHOLES,$(CONFIGVARS)))
 OBJS    += blackholes/bh_density.o \
            blackholes/bh_jet_density.o\
            blackholes/bh_feedback.o \
-           blackholes/bh_refinement.o
+           blackholes/bh_update.o
 INCL    += blackholes/bh_proto.h
 SUBDIRS += blackholes
 endif
 
-ifeq (STARS,$(findstring STARS,$(CONFIGVARS)))
+ifneq (,$(findstring STAR_FEEDBACK,$(CONFIGVARS)))
+CONFIGVARS += WINDS RADIATION SUPERNOVAE 
+endif
+
+ifneq (,$(findstring RADIATION,$(CONFIGVARS)))
+CONFIGVARS += PHOTOIONIZATION PHOTOELECTRIC RADIATION_PRESSURE 
+endif
+
+CONFIGVARS := $(sort $(CONFIGVARS))
+
+STAR_FEEDBACK_ACTIVE = WINDS PHOTOIONIZATION PHOTOELECTRIC RADIATION_PRESSURE SUPERNOVAE
+
+ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
+ifeq (,$(filter STARS,$(CONFIGVARS)))
+$(error Star feedback requires STARS)
+endif
+
 OBJS    += stars/star_density.o \
-           stars/star_feedback.o 
-INCL    += stars/star_proto.h
+           stars/star_feedback.o \
+           stars/star_update.o \
+           stars/star_particles.o \
+           stars/star_tables.o
+INCL    += stars/star_proto.h \
+           stars/star_tables.h
 SUBDIRS += stars
 endif
 
-OBJS    += main/update.o
+STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC RADIATION_PRESSURE
 
+ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
+OBJS += stars/star_radiation.o 
+endif
 
 ################################
 #determine the needed libraries#
@@ -346,11 +369,6 @@ endif
 ifneq (IMPOSE_PINNING,$(findstring IMPOSE_PINNING,$(CONFIGVARS)))
 HWLOC_INCL =
 HWLOC_LIB =
-endif
-
-ifeq (USE_CELIB,$(findstring USE_CELIB,$(CONFIGVARS)))
-CELIB_INCL = -I./celib/src
-CELIB_LIB = -L./celib/src -lCELib
 endif
 
 ifeq (USE_GRACKLE,$(findstring USE_GRACKLE,$(CONFIGVARS)))
