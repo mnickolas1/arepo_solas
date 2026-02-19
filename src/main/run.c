@@ -394,6 +394,7 @@ void calculate_non_standard_physics_with_valid_gravity_tree_always(void) {}
  */
 void calculate_non_standard_physics_prior_mesh_construction(void)
 {
+  
 #ifdef FIND_HALOS
     if(All.Time>=All.NextTimeOfHaloFinding)
     {
@@ -407,7 +408,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   sfr_create_star_particles();
 #endif /* #if defined(COOLING) && defined(USE_SFR) */
 
-#ifdef BLACKHOLES
+#ifdef BLACKHOLE_ACCRETION_ACTIVE
   bh_density();
 #ifdef BONDI_ACCRETION
   update_bh_accretion_rate();
@@ -415,15 +416,13 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   update_bh_timesteps();
 #endif
 
-#ifdef STARS
-  update_SNII();
-  
+#ifdef STAR_FEEDBACK_ACTIVE  
   update_star_timesteps();
-
   star_density();
+  star_prep();
 #endif
 
-#ifdef BLACKHOLES_FEEDBACK
+#ifdef BLACKHOLE_FEEDBACK_ACTIVE
    if(All.Time >= All.FeedbackTime)
     {   
       if(All.JetFeedback)
@@ -433,7 +432,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
     }
 #endif
 
-#ifdef STARS
+#ifdef STAR_FEEDBACK_ACTIVE
    if(All.Time >= All.FeedbackTime)
     {   
       star_ngb_feedback();
@@ -450,8 +449,12 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
-#if defined (STARS) || defined(BLACKHOLES)
-  perform_end_of_step_physics();
+#ifdef BLACKHOLE_FEEDBACK_ACTIVE
+  perform_end_of_step_bh_physics();
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE 
+  perform_end_of_step_star_physics();
 #endif 
 
 #ifdef COOLING
