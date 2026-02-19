@@ -1,14 +1,13 @@
-#include <gsl/gsl_math.h>
+#include <stdlib.h>       
 #include <math.h>
-#include <mpi.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <gsl/gsl_math.h>              
+#include <mpi.h>            
+  
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
+#include "../utils/generic_comm_helpers2.h"
 
 static int star_density_evaluate(int target, int mode, int threadid);
 static int star_density_isactive(int n);
@@ -51,11 +50,10 @@ static void particle2in(data_in *in, int i, int firstnode)
  *         DataOut needed by generic_comm_helpers2.
  */
 typedef struct
-{
-  MyDouble Ngb;
-  MyDouble Rho;
-  MyDouble Mass;
-  MyDouble Volume;
+{ 
+  MyDouble NumNgb;
+  MyDouble NgbMass;
+  MyDouble NgbVolume;
   integertime NgbMinStep;
 } data_out;
 
@@ -76,25 +74,20 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      StarNumNgb[i]                   = out->Ngb;
-      SP[i].Density                   = out->Rho;
-      SP[i].NgbMass                   = out->Mass;
-      SP[i].NgbVolume                 = out->Volume;
+      StarNumNgb[i]                   = out->NumNgb;
+      SP[i].NgbMass                   = out->NgbMass;
+      SP[i].NgbVolume                 = out->NgbVolume;
       SP[i].NgbMinStep                = out->NgbMinStep;
     }
   else /* combine */
     {
-      StarNumNgb[i]                   += out->Ngb;
-      SP[i].Density                   += out->Rho;
-      SP[i].NgbMass                   += out->Mass;
-      SP[i].NgbVolume                 += out->Volume;
+      StarNumNgb[i]                   += out->NumNgb;
+      SP[i].NgbMass                   += out->NgbMass;
+      SP[i].NgbVolume                 += out->NgbVolume;
       if(out->NgbMinStep < SP[i].NgbMinStep)
         SP[i].NgbMinStep               = out->NgbMinStep;
     }
 }
-
-
-#include "../utils/generic_comm_helpers2.h"
 
 /*! \brief Routine that defines what to do with local particles.
  *
@@ -104,35 +97,33 @@ static void out2particle(data_out *out, int i, int mode)
  */
 static void kernel_local(void)
 {
-  int i, idx;
+  int i, idx, j;
 
-  {
-    int j, threadid = get_thread_num();
+  int threadid = get_thread_num();
 
-    for(j = 0; j < NTask; j++)
-      Thread[threadid].Exportflag[j] = -1;
+  for(j = 0; j < NTask; j++)
+    Thread[threadid].Exportflag[j] = -1;
 
-    while(1)
-      {
-        if(Thread[threadid].ExportSpace < MinSpace)
-          break;
+  while(1)
+    {
+      if(Thread[threadid].ExportSpace < MinSpace)
+        break;
 
-        //i = NextParticle++;
+      //i = NextParticle++;
 
-        //if(i >= NumStars)
-        //  break;
+      //if(i >= NumStars)
+      //  break;
         
-        idx = NextParticle++;
+      idx = NextParticle++;
 
-        if(idx >= TimeBinsStar.NActiveParticles)
-          break;
+      if(idx >= TimeBinsStar.NActiveParticles)
+        break;
 
-        i = TimeBinsStar.ActiveParticleList[idx];
+      i = TimeBinsStar.ActiveParticleList[idx];
 
-        if(star_density_isactive(i))
-          star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
-      }
-  }
+      if(star_density_isactive(i))
+        star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+    }
 }
 
 /*! \brief Routine that defines what to do with imported particles.
@@ -145,19 +136,18 @@ static void kernel_imported(void)
 {
   /* now do the particles that were sent to us */
   int i, cnt = 0;
-  {
-    int threadid = get_thread_num();
 
-    while(1)
-      {
-        i = cnt++;
+  int threadid = get_thread_num();
 
-        if(i >= Nimport)
-          break;
+  while(1)
+    {
+      i = cnt++;
 
-        star_density_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
-      }
-  }
+      if(i >= Nimport)
+        break;
+
+      star_density_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+    }
 }
 
 /*! \brief Main function of SPH density calculation.
@@ -181,15 +171,16 @@ void star_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", NumStars * sizeof(MyFloat));
-  Left      = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
-  Right     = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
+  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
+  Left      = (MyFloat *)mymalloc("Left", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
+  Right     = (MyFloat *)mymalloc("Right", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
 
-  for(i = 0; i < NumStars; i++)
+  for(i = 0; i < TimeBinsStar.NActiveParticles; i++)
     {
       Left[i] = Right[i] = 0;
       SP[i].DensityFlag = 1;
       StarNumNgb[i] = 0;
+      
       if(SP[i].Hsml == 0)
         SP[i].Hsml = cbrt((3.0*All.MeanVolume)/(4.0*M_PI));
     }
@@ -208,54 +199,54 @@ void star_density(void)
           i = TimeBinsStar.ActiveParticleList[idx];
 
           if(StarNumNgb[i] < (All.StarDesNgb - All.StarDesDev) || StarNumNgb[i] > (All.StarDesNgb + All.StarDesDev))
-          {
-                  /* need to redo this particle */
-            npleft++;
+            {
+              /* need to redo this particle */
+              npleft++;
 
-            if(Left[i] > 0 && Right[i] > 0)
-              {
-                if((Right[i] - Left[i]) < 1.0e-3 * Left[i])
-                  {
-                        /* this one should be ok */
-                    npleft--;
-                    SP[i].DensityFlag = -1; /* Mark as inactive */
-                    continue;
+              if(Left[i] > 0 && Right[i] > 0)
+                {
+                  if((Right[i] - Left[i]) < 1.0e-3 * Left[i])
+                    {
+                      /* this one should be ok */
+                      npleft--;
+                      SP[i].DensityFlag = -1; /* Mark as inactive */
+                      continue;
+                    }
+                } 
+
+              if(StarNumNgb[i] < (All.StarDesNgb - All.StarDesDev))
+                Left[i] = dmax(SP[i].Hsml, Left[i]);
+              else
+                {
+                  if(Right[i] != 0)
+                    {
+                      if(SP[i].Hsml < Right[i])
+                        Right[i] = SP[i].Hsml;
+                    }
+                  else
+                    Right[i] = SP[i].Hsml;
                 }
-              } 
 
-            if(StarNumNgb[i] < (All.StarDesNgb - All.StarDesDev))
-              Left[i] = dmax(SP[i].Hsml, Left[i]);
-            else
-              {
-                if(Right[i] != 0)
-                  {
-                    if(SP[i].Hsml < Right[i])
-                        Right[i] = SP[i].Hsml;
-                  }
-                    else
-                        Right[i] = SP[i].Hsml;
-              }
-
-            if(Right[i] > 0 && Left[i] > 0)
+              if(Right[i] > 0 && Left[i] > 0)
                 SP[i].Hsml = pow(0.5 * (pow(Left[i], 3) + pow(Right[i], 3)), 1.0 / 3);
-            else
-              {
-                if(Right[i] == 0 && Left[i] == 0)
+              else
+                {
+                  if(Right[i] == 0 && Left[i] == 0)
                     terminate("should not occur");
 
-                if(Right[i] == 0 && Left[i] > 0)
-                  {
-                    SP[i].Hsml *= 1.26;
-                  }
+                  if(Right[i] == 0 && Left[i] > 0)
+                    {
+                      SP[i].Hsml *= 1.26;
+                    }
 
-                if(Right[i] > 0 && Left[i] == 0)
-                  {
-                    SP[i].Hsml /= 1.26;
-                  }
-              }
-          }
-        else
-             SP[i].DensityFlag = -1; /* Mark as inactive */ 
+                  if(Right[i] > 0 && Left[i] == 0)
+                    {
+                      SP[i].Hsml /= 1.26;
+                    }
+                }
+            }
+          else
+            SP[i].DensityFlag = -1; /* Mark as inactive */ 
         }
 
       sumup_large_ints(1, &npleft, &ntot);
@@ -271,9 +262,7 @@ void star_density(void)
                        timediff(t0, t1));
 
           if(iter > MAXITER)
-          {
-              terminate("failed to converge in neighbour iteration in star_density()\n");
-          }
+            terminate("failed to converge in neighbour iteration in star_density()\n");
         }
     }
   while(ntot > 0);
@@ -284,9 +273,7 @@ void star_density(void)
 
   /* mark as active again */
   for(i = 0; i < NumStars; i++)
-    {
      SP[i].DensityFlag = 1;
-    }
   
   /* collect some timing information */
   CPU_Step[CPU_INIT] += measure_time();
@@ -306,15 +293,13 @@ void star_density(void)
  */
 static int star_density_evaluate(int target, int mode, int threadid)
 {
-  int bin = TIMEBINS;
-  int j, n, numngb;
-  int numnodes, *firstnode;
+  int j, n, numnodes, *firstnode; 
+  int numngb, bin = TIMEBINS; 
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble  rho, mass, volume;
-  MyDouble *pos;
+  MyDouble *pos, ngbmass, ngbvolume;
   integertime ngb_min_step;
-  
+
   data_in local, *target_data;
   data_out out;
 
@@ -344,7 +329,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
 
-  numngb = rho = mass = volume = 0;
+  numngb = ngbmass = ngbvolume = 0;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -387,15 +372,13 @@ static int star_density_evaluate(int target, int mode, int threadid)
 
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-/* compute the star density */
-          rho +=  P[j].Mass * wk;
-/* compute the star-ngb-mass */
-          mass += P[j].Mass;
-/* compute the star-ngb-volume */
-          volume += SphP[j].Volume;
-/* compute the min hydro step for neighbors */     
+          // compute the star-ngb-mass 
+          ngbmass += P[j].Mass;
+          // compute the star-ngb-volume
+          ngbvolume += SphP[j].Volume;
+          // compute the min hydro step for neighbors   
           if(bin > P[j].TimeBinHydro)
             bin = P[j].TimeBinHydro;
         }
@@ -407,13 +390,12 @@ static int star_density_evaluate(int target, int mode, int threadid)
   else
     ngb_min_step   = (((integertime)1) << bin);
   
-  out.Ngb         = numngb;
-  out.Rho         = rho;
-  out.Mass        = mass;
-  out.Volume      = volume;
+  out.NumNgb = numngb;
+  out.NgbMass = ngbmass;
+  out.NgbVolume = ngbvolume;
   out.NgbMinStep  = ngb_min_step;
 
-/* now collect the result at the right place */
+  /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)
     out2particle(&out, target, MODE_LOCAL_PARTICLES);
   else
