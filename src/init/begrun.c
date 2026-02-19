@@ -61,10 +61,6 @@ herr_t my_hdf5_error_handler(void *unused);
 
 #include <time.h>
 
-#ifdef USE_CELIB
-#include "CELib.h"
-#endif
-
 static void delete_end_file(void);
 
 /*! \brief Prints a welcome message.
@@ -232,19 +228,6 @@ void begrun2(void)
 
   if(RestartFlag > 2)
     open_logfiles();
-
-#ifdef USE_CELIB
-    /* celib init */
-    if(ThisTask == 0)
-      CELibShowVersion();
-  
-    CELibInit();
-    
-    srand((unsigned int)time(NULL));
-  
-    if(ThisTask == 0)
-      CELibShowCurrentStatus();
-#endif
 
 #if defined(USE_SFR) && defined(EEOS_SF)   /* For the default SF scheme in Arepo */
   sfr_init();

@@ -483,6 +483,10 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.TemperatureThresh;
         id[nt++] = REAL;
         
+        strcpy(tag[nt], "CritPhysDensity");
+        addr[nt] = &All.CritPhysDensity;
+        id[nt++] = REAL;
+        
         strcpy(tag[nt], "FactorSN");
         addr[nt] = &All.FactorSN;
         id[nt++] = REAL;
@@ -531,13 +535,13 @@ void read_parameter_file(char *fname)
         id[nt++] = REAL;
 #endif
         
-#if defined(METALS) && defined(USE_CELIB)
+#if defined(METALS)
         strcpy(tag[nt], "ConstantMetallicityYield");
         addr[nt] = &All.ConstantMetallicityYield;
         id[nt++] = REAL;
 #endif
         
-#if defined(STARS) || (defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK))
+#if defined(STARS) || defined(BLACKHOLES)
       strcpy(tag[nt], "FeedbackTime");
       addr[nt] = &All.FeedbackTime;
       id[nt++] = REAL;
@@ -551,16 +555,16 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "BhDesDev");
       addr[nt] = &All.BhDesDev;
       id[nt++] = REAL;
- 
-      strcpy(tag[nt], "Epsilon_r"); // Radiative efficiency for accretion rate
-      addr[nt] = &All.Epsilon_r;
-      id[nt++] = REAL;
-#ifdef BLACKHOLES_FEEDBACK
+#ifdef BH_FEEDBACK
       strcpy(tag[nt], "JetFeedback");
       addr[nt] = &All.JetFeedback;
       id[nt++] = INT;
 
-      strcpy(tag[nt], "Epsilon_f"); // Feedback efficiency
+      strcpy(tag[nt], "Epsilon_r");
+      addr[nt] = &All.Epsilon_r;
+      id[nt++] = REAL;
+            
+      strcpy(tag[nt], "Epsilon_f");
       addr[nt] = &All.Epsilon_f;
       id[nt++] = REAL;
 
@@ -578,11 +582,17 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "StarDesDev");
       addr[nt] = &All.StarDesDev;
       id[nt++] = REAL;
-
+#if defined(WINDS) || defined(SUPERNOVAE)
+      strcpy(tag[nt], "StellarTablesFile");
+      addr[nt] = All.StellarTablesFile;
+      id[nt++] = STRING;
+#endif
+#ifdef WINDS
       strcpy(tag[nt], "WindVelocity");
       addr[nt] = &All.WindVelocity;
       id[nt++] = REAL;
-      
+#endif
+#ifdef SUPERNOVAE      
       strcpy(tag[nt], "Ftherm");
       addr[nt] = &All.Ftherm;
       id[nt++] = REAL;
@@ -590,6 +600,12 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "Fsn");
       addr[nt] = &All.Fsn;
       id[nt++] = REAL;
+#endif
+#ifndef STAR_BY_STAR
+      strcpy(tag[nt], "IMF");
+      addr[nt] = &All.IMF;
+      id[nt++] = INT;
+#endif
 #endif
 
 #ifdef BLACKHOLES

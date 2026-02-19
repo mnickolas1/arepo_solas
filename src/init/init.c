@@ -41,6 +41,7 @@
 #include <mpi.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "../main/allvars.h"
 #include "../main/proto.h"
@@ -48,7 +49,11 @@
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
 
-#include "../../celib/src/config.h"
+#ifdef STARS 
+#if defined(WINDS) || defined(SUPERNOVAE)
+#include "../stars/stellar_tables.h"
+#endif
+#endif
 
 /*! \brief Prepares the loaded initial conditions for the run.
  *
@@ -537,8 +542,10 @@ int init(void)
 
   free_mesh();
 
-#if defined(STARS) || defined(BH_WITH_FEEDBACK)
+#if defined(STARS) || defined(BLACKHOLES)
   /* initialize feedback variables */
+  srand((unsigned int)time(NULL));
+
   All.FeedbackFlag = 1;
   All.EnergyExchange[0] = All.EnergyExchange[1] = 0;
   All.EnergyExchange[2] = All.EnergyExchange[3] = 0;
@@ -547,28 +554,13 @@ int init(void)
   double *exch = All.EnergyExchangeTot;
   exch = malloc(6 * sizeof(double));
 #endif 
-/*
+
 #ifdef STARS
-   
-  for(i=0; i<NumStars; i++)
-  {
-    SP[i].Metals = 0.0004;
-
-    struct CELibStructNextEventTimeInput Input = 
-      {
-        .R = (double)rand()/(double)RAND_MAX,
-        .InitialMass_in_Msun = (PPS(i).Mass * All.UnitMass_in_g / SOLAR_MASS),
-        .Metallicity = SP[i].Metals
-      };
-
-    SP[i].SNIITime = CELibGetNextEventTime(Input, CELibFeedbackType_SNII) 
-      / (1.e6) / All.UnitTime_in_Megayears;
-
-    //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
-  }
-
+#if defined(WINDS) || defined(SUPERNOVAE)
+  load_stellar_tables(All.StellarTablesFile);
 #endif
-*/
+#endif
+
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
 }
 
