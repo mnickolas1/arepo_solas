@@ -547,18 +547,26 @@ int init(void)
   srand((unsigned int)time(NULL));
 
   All.FeedbackFlag = 1;
-  All.EnergyExchange[0] = All.EnergyExchange[1] = 0;
-  All.EnergyExchange[2] = All.EnergyExchange[3] = 0;
-  All.EnergyExchange[4] = All.EnergyExchange[5] = 0;
+#endif
 
-  double *exch = All.EnergyExchangeTot;
-  exch = malloc(6 * sizeof(double));
+#ifdef BLACKHOLE_FEEDBACK_ACTIVE  
+  for(i=0; i < 8; i++)
+    All.BhFeedbackLocal[i] = 0;
+  
+  double *bfg = All.BhFeedbackGlobal;
+  bfg = malloc(8 * sizeof(double));
 #endif 
 
-#ifdef STARS
-#if defined(WINDS) || defined(SUPERNOVAE)
+#ifdef STAR_FEEDBACK_ACTIVE  
+  for(i=0; i < 8; i++)
+    All.StarFeedbackLocal[i] = 0;
+  
+  double *sfg = All.StarFeedbackGlobal;
+  sfg = malloc(8 * sizeof(double));
+#endif 
+
+#ifdef STAR_FEEDBACK_ACTIVE
   load_stellar_tables(All.StellarTablesFile);
-#endif
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

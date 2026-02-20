@@ -1328,9 +1328,16 @@ extern struct global_data_all_processes
 
   double GlobalDisplacementVector[3];
 
-#if defined(BLACKHOLE_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
-  double EnergyExchange[6];
-  double EnergyExchangeTot[6];
+#ifdef BLACKHOLE_FEEDBACK_ACTIVE 
+  double BhFeedbackLocal[8];
+  double BhFeedbackGlobal[8];
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double StarFeedbackLocal[8];
+  double StarFeedbackGlobal[8];
+#endif
+
   int FeedbackFlag;
   /* for parameter file */
   double FeedbackTime;

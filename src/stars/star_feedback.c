@@ -22,13 +22,15 @@ typedef struct
   MyFloat Hsml;
   MyDouble NgbMass;
   MyDouble NgbVolume;
-  int CellIndex;
+
 #ifdef WINDS
   MyDouble MassLoss;
 #ifdef METALS
   MyDouble MetalsLoss;
 #endif
+  MyDouble WindMomentum;
 #endif
+
 #ifdef SUPERNOVAE
   MyDouble SN_MassLoss;
 #ifdef METALS
@@ -36,6 +38,7 @@ typedef struct
 #endif
   MyDouble SN_EnergyEject;
 #endif
+
   int Firstnode;
 } data_in;
 
@@ -59,13 +62,15 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->Hsml           = SP[i].Hsml;
   in->NgbMass        = SP[i].NgbMass;
   in->NgbVolume      = SP[i].NgbVolume;
-  in->CellIndex      = SP[i].CellIndex;
+
 #ifdef WINDS
   in->MassLoss       = SP[i].MassLoss;
 #ifdef METALS
   in->MetalsLoss     = SP[i].MetalsLoss;
 #endif
+  in->WindMomentum   = SP[i].WindMomentum;
 #endif
+
 #ifdef SUPERNOVAE
   in->SN_MassLoss    = SP[i].SN_MassLoss;
 #ifdef METALS
@@ -73,6 +78,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 #endif
   in->SN_EnergyEject = SP[i].SN_EnergyEject;
 #endif
+
   in->Firstnode      = firstnode;
 }
 
@@ -178,7 +184,7 @@ void star_ngb_feedback(void)
 static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
-  int bin, cellindex;
+  int bin;
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
   MyDouble *pos, ngbmass, ngbvolume;
@@ -206,20 +212,21 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
   
   ngbmass   = target_data->NgbMass;
   ngbvolume = target_data->NgbVolume;
-  cellindex = target_data->CellIndex;
 
 #ifdef WINDS
-  MyDouble massloss        = target_data->MassLoss;
+  MyDouble massloss = target_data->MassLoss;
 #ifdef METALS
-  MyDouble metalsloss      = target_data->MetalsLoss;
+  MyDouble metalsloss = target_data->MetalsLoss;
 #endif
+  MyDouble windmomentum = target_data->WindMomentum;
 #endif
+
 #ifdef SUPERNOVAE
-  MyDouble SNmassloss      = target_data->SN_MassLoss;
+  MyDouble SNmassloss = target_data->SN_MassLoss;
 #ifdef METALS
-  MyDouble SNmetalsloss    = target_data->SN_MetalsLoss;
+  MyDouble SNmetalsloss = target_data->SN_MetalsLoss;
 #endif
-  MyDouble SNenergyeject   = target_data->SN_EnergyEject;
+  MyDouble SNenergyeject = target_data->SN_EnergyEject;
 #endif  
 
   h2   = h * h;
@@ -277,23 +284,28 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
 #ifdef WINDS
           // momentum conserving wind
           SphP[j].StarMassFeed += massloss * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[0] += massloss * SphP[j].Volume / ngbvolume;
 #ifdef METALS
           SphP[j].StarMetalsFeed += metalsloss * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[1] += metalsloss * SphP[j].Volume / ngbvolume;
 #endif
-          SphP[j].StarMomentumFeed[0] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * dx/r * SphP[j].Volume / ngbvolume;
-          SphP[j].StarMomentumFeed[1] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * dy/r * SphP[j].Volume / ngbvolume;
-          SphP[j].StarMomentumFeed[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * dz/r * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[0] += windmomentum * dx/r * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[1] += windmomentum * dy/r * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[2] += windmomentum * dz/r * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[2] += windmomentum * SphP[j].Volume / ngbvolume;
 #endif
 
 #ifdef SUPERNOVAE
           // energy conserving supernova 
           SphP[j].StarMassFeed += SNmassloss * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[0] += SNmassloss * SphP[j].Volume / ngbvolume;
 #ifdef METALS
           SphP[j].StarMetalsFeed += SNmetalsloss * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[1] += SNmetalsloss * SphP[j].Volume / ngbvolume;
 #endif
           SphP[j].StarThermalFeed += All.Fsn*All.Ftherm*SNenergyeject * SphP[j].Volume / ngbvolume;
           SphP[j].StarKineticFeed += All.Fsn*(1-All.Ftherm)*SNenergyeject * SphP[j].Volume / ngbvolume;
-          All.EnergyExchange[4] += All.Fsn*SNenergyeject * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[3] += All.Fsn * SNenergyeject * SphP[j].Volume / ngbvolume;
 #endif
         }
     }
