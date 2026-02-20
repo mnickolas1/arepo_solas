@@ -240,9 +240,9 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
     {
       j = Thread[threadid].Ngblist[n];
 
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      dx = P[j].Pos[0] - pos[0];
+      dy = P[j].Pos[1] - pos[1]; 
+      dz = P[j].Pos[2] - pos[2]; 
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -274,36 +274,26 @@ static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
 
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-#if defined(WINDS) || defined(SUPERNOVAE) || defined(RADIATION_PRESSURE)
-          SphP[j].MomentumKickVector[0] = -dx;
-          SphP[j].MomentumKickVector[1] = -dy;
-          SphP[j].MomentumKickVector[2] = -dz;
-#endif
-
 #ifdef WINDS
           // momentum conserving wind
-          SphP[j].MassFeed      += massloss * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMassFeed += massloss * SphP[j].Volume / ngbvolume;
 #ifdef METALS
-          SphP[j].MetalsFeed    += metalsloss * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMetalsFeed += metalsloss * SphP[j].Volume / ngbvolume;
 #endif
-          SphP[j].MomentumFeed  += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;
-          All.EnergyExchange[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[0] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * dx/r * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[1] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * dy/r * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[2] += (All.WindVelocity * pow(10,5) / All.UnitVelocity_in_cm_per_s) * massloss * dz/r * SphP[j].Volume / ngbvolume;
 #endif
 
 #ifdef SUPERNOVAE
           // energy conserving supernova 
-          SphP[j].MassFeed += SNmassloss * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMassFeed += SNmassloss * SphP[j].Volume / ngbvolume;
 #ifdef METALS
-          SphP[j].MetalsFeed += SNmetalsloss * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMetalsFeed += SNmetalsloss * SphP[j].Volume / ngbvolume;
 #endif
-          SphP[j].ThermalEnergyFeed += All.Fsn*All.Ftherm*SNenergyeject * SphP[j].Volume / ngbvolume;
-          SphP[j].KineticEnergyFeed += All.Fsn*(1-All.Ftherm)*SNenergyeject * SphP[j].Volume / ngbvolume;
+          SphP[j].StarThermalFeed += All.Fsn*All.Ftherm*SNenergyeject * SphP[j].Volume / ngbvolume;
+          SphP[j].StarKineticFeed += All.Fsn*(1-All.Ftherm)*SNenergyeject * SphP[j].Volume / ngbvolume;
           All.EnergyExchange[4] += All.Fsn*SNenergyeject * SphP[j].Volume / ngbvolume;
-#endif
-
-#ifdef STAR_RADIATION_ACTIVE
-          if(j == cellindex)
-            continue;
 #endif
         }
     }

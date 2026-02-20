@@ -203,76 +203,51 @@ void perform_end_of_step_star_physics(void)
           // Dump mass, momentum and energy injected by stars 
 #if defined(WINDS) || defined(SUPERNOVAE)
           // Add mass 
-          P[i].Mass += SphP[i].MassFeed;
+          P[i].Mass += SphP[i].StarMassFeed;
+          SphP[i].StarMassFeed = 0;
 #ifdef METALS
           // Add metals
-          SphP[i].Metals += SphP[i].MetalsFeed;
+          SphP[i].Metals += SphP[i].StarMetalsFeed;
+          SphP[i].StarMetalsFeed = 0;
 #endif
 #endif
             
 #if defined(WINDS) || defined(SUPERNOVAE) || defined (RADIATION_PRESSURE)
-          // Calculate kick
-          kick_vector[0] = SphP[i].MomentumKickVector[0];
-          kick_vector[1] = SphP[i].MomentumKickVector[1];
-          kick_vector[2] = SphP[i].MomentumKickVector[2];
 
 #ifdef WINDS
-          if(SphP[i].MomentumFeed > 0)
-            {
-              // Momentum conserving wind 
-              pj = SphP[i].MomentumFeed;
-                
-              // Update momentum 
-              SphP[i].Momentum[0] += kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-              SphP[i].Momentum[1] += kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-              SphP[i].Momentum[2] += kick_vector[2] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-                
-              All.EnergyExchange[3] += SphP[i].MomentumFeed;
-                
-              // Update velocities 
-              update_primitive_variables_single(P, SphP, i, &pvd);
-              // Update total energy 
-              SphP[i].Energy = SphP[i].Utherm * P[i].Mass +
-                0.5 * P[i].Mass * (pow(P[i].Vel[0], 2) + pow(P[i].Vel[1], 2) + pow(P[i].Vel[2], 2));
-              // Update internal energy 
-              update_internal_energy(P, SphP, i, &pvd);
-              // Update pressure
-              set_pressure_of_cell_internal(P, SphP, i);
-              // Set feed flags to zero
-              SphP[i].MomentumFeed = 0;
-            }
+          // Momentum conserving wind 
+          // Update momentum 
+          SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0];
+          SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1];
+          SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2];   
+          // Update velocities 
+          update_primitive_variables_single(P, SphP, i, &pvd);
+          // Update total energy 
+          SphP[i].Energy = SphP[i].Utherm * P[i].Mass +
+          0.5 * P[i].Mass * (pow(P[i].Vel[0], 2) + pow(P[i].Vel[1], 2) + pow(P[i].Vel[2], 2));
+          // Update internal energy 
+          update_internal_energy(P, SphP, i, &pvd);
+          // Update pressure
+          set_pressure_of_cell_internal(P, SphP, i);
+          // Set feed flags to zero
+          SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
 #endif
 
 #ifdef SUPERNOVAE
-          if(SphP[i].ThermalEnergyFeed || SphP[i].KineticEnergyFeed> 0)
-            {
-              // Energy conserving supernova
-             
-              // Add kinetic energy 
-              SphP[i].Energy += SphP[i].KineticEnergyFeed * All.cf_atime*All.cf_atime;
-                
-              // Calculate momentum feed exactly so energy is conserved 
-              //-> we need to do this here so that particle properties don't change between loading the buffer and emptying it
-              p0 = sqrt(pow(SphP[i].Momentum[0], 2) + pow(SphP[i].Momentum[1], 2) + pow(SphP[i].Momentum[2], 2));
-                
-              pj = sqrt(2 * P[i].Mass * (SphP[i].Energy - (P[i].Mass/*-SphP[i].MassFeed*/)*SphP[i].Utherm*All.cf_atime*All.cf_atime)) - p0;
-  
-              // Update total energy 
-              SphP[i].Energy += SphP[i].ThermalEnergyFeed * All.cf_atime*All.cf_atime;
-              All.EnergyExchange[5] += SphP[i].ThermalEnergyFeed + SphP[i].KineticEnergyFeed;
-              // Update momentum 
-              SphP[i].Momentum[0] += kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-              SphP[i].Momentum[1] += kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-              SphP[i].Momentum[2] += kick_vector[2] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-              // Update velocities 
-              update_primitive_variables_single(P, SphP, i, &pvd);
-              // Update internal energy 
-              update_internal_energy(P, SphP, i, &pvd);
-              // Update pressure 
-              set_pressure_of_cell_internal(P, SphP, i);
-              // Set feed flags to zero
-              SphP[i].ThermalEnergyFeed = SphP[i].KineticEnergyFeed = 0;
-            }
+          // Energy conserving supernova
+          // Add energy  
+          SphP[i].Energy += (SphP[i].StarThermalFeed + SphP[i].StarKineticFeed) * All.cf_atime*All.cf_atime;
+          //All.EnergyExchange[5] += SphP[i].ThermalEnergyFeed + SphP[i].KineticEnergyFeed;
+          // Update momentum 
+          // ---
+          // Update velocities 
+          update_primitive_variables_single(P, SphP, i, &pvd);
+          // Update internal energy 
+          update_internal_energy(P, SphP, i, &pvd);
+          // Update pressure 
+          set_pressure_of_cell_internal(P, SphP, i);
+          // Set feed flags to zero
+          SphP[i].StarThermalFeed = SphP[i].StarKineticFeed = 0;
 #endif
 #endif
         } // for(idx...
