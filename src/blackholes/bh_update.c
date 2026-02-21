@@ -34,7 +34,7 @@ void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
   *wk  *= K_norm * hinv3;
 }
 
-#ifdef BLACKHOLE_ACCRETION_ACTIVE
+#ifdef BH_ACCRETION_ACTIVE
 #ifdef BONDI_ACCRETION 
 /* Calculate bondi accretion rate */
 void update_bh_accretion_rate(void)
@@ -185,7 +185,7 @@ void perform_end_of_step_bh_physics(void)
   double pj, p0;
   double kick_vector[3];
     
-#ifdef BLACKHOLE_ACCRETION_ACTIVE
+#ifdef BH_ACCRETION_ACTIVE
 #ifdef BONDI_ACCRETION
   int j, bin;
   double dt;
@@ -243,7 +243,7 @@ void perform_end_of_step_bh_physics(void)
 #endif
 #endif
 
-#ifdef BLACKHOLE_FEEDBACK_ACTIVE   
+#ifdef BH_FEEDBACK_ACTIVE   
   struct pv_update_data pvd;
   if(All.ComovingIntegrationOn)
     {

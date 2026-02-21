@@ -1280,6 +1280,7 @@ static void contents_restart_file(int modus)
       byten(&SP[0], NumStars * sizeof(struct star_particle_data), modus);
     }
 
+#ifdef STAR_FEEDBACK_ACTIVE
   in(&TimeBinsStar.NActiveParticles, modus);
   byten(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles * sizeof(int), modus);
   byten(TimeBinsStar.NextInTimeBin, NumStars * sizeof(int), modus);
@@ -1287,6 +1288,7 @@ static void contents_restart_file(int modus)
   byten(TimeBinsStar.TimeBinCount, TIMEBINS * sizeof(int), modus);
   byten(TimeBinsStar.FirstInTimeBin, TIMEBINS * sizeof(int), modus);
   byten(TimeBinsStar.LastInTimeBin, TIMEBINS * sizeof(int), modus);
+#endif
 #endif
 
   polling(modus);

@@ -159,7 +159,7 @@ void begrun1(void)
   timebins_init(&TimeBinsBh, "Bh", &All.MaxPartBhs);
 #endif /* BLACKHOLES */
 
-#ifdef STARS 
+#ifdef STAR_FEEDBACK_ACTIVE 
   timebins_init(&TimeBinsStar, "Star", &All.MaxPartStars);
 #endif /* STARS */
 

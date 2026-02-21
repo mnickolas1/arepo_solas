@@ -113,10 +113,12 @@ void allocate_memory(void)
 
   timebins_allocate(&TimeBinsHydro);
   timebins_allocate(&TimeBinsGravity);
-#ifdef BLACKHOLES
+
+#ifdef BH_FEEDBACK_ACTIVE
   timebins_allocate(&TimeBinsBh);
 #endif
-#ifdef STARS
+
+#ifdef STAR_FEEDBACK_ACTIVE
   timebins_allocate(&TimeBinsStar);
 #endif
 

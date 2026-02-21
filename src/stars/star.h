@@ -35,6 +35,7 @@ extern int NumStars;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
+#include "../time_integration/timestep.h"
 extern struct TimeBinData TimeBinsStar;
 #endif
 

@@ -1289,7 +1289,7 @@ extern struct global_data_all_processes
 
   double GlobalDisplacementVector[3];
 
-#if defined(BLACKHOLE_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
+#if defined(BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
   /* for parameter file */
   double FeedbackTime;
 #endif

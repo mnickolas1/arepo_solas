@@ -554,7 +554,7 @@ int init(void)
   All.FeedbackFlag = 1;
 #endif
 
-#ifdef BLACKHOLE_FEEDBACK_ACTIVE  
+#ifdef BH_FEEDBACK_ACTIVE  
   for(i=0; i < 8; i++)
     All.BhFeedbackLocal[i] = 0;
   
@@ -752,6 +752,7 @@ void setup_smoothinglengths(void)
 #endif /* #ifdef FIX_SPH_PARTICLES_AT_IDENTICAL_COORDINATES */
 }
 
+#if defined(BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
 /*! \brief This function is used to find an initial SPH smoothing length for
  *         stars and black holes
  *
@@ -787,12 +788,13 @@ void setup_smoothinglengths_particles(void)
 
   construct_forcetree(0, 1, 0, 0); /* build force tree with all particles only */
 
-#ifdef STARS
-  TimeBinsStar.NActiveParticles = 0;
-#endif /* #ifdef STARS */
-#ifdef BLACKHOLES
+#ifdef BH_FEEDBACK_ACTIVE
   TimeBinsBh.NActiveParticles = 0;
 #endif /* #ifdef BLACKHOLES */
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  TimeBinsStar.NActiveParticles = 0;
+#endif /* #ifdef STARS */
 
   for(i = 0; i < NumPart; i++)
     {
@@ -869,6 +871,7 @@ void setup_smoothinglengths_particles(void)
 
   myfree(save_masses);
 }
+#endif
 
 /*! \brief This function checks for unique particle IDs.
  *

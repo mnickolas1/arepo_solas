@@ -412,7 +412,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   sfr_create_star_particles();
 #endif /* #if defined(COOLING) && defined(USE_SFR) */
 
-#ifdef BLACKHOLE_ACCRETION_ACTIVE
+#ifdef BH_ACCRETION_ACTIVE
   bh_density();
 #ifdef BONDI_ACCRETION
   update_bh_accretion_rate();
@@ -426,7 +426,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   star_prep();
 #endif
 
-#ifdef BLACKHOLE_FEEDBACK_ACTIVE
+#ifdef BH_FEEDBACK_ACTIVE
    if(All.Time >= All.FeedbackTime)
     {   
       if(All.JetFeedback)
@@ -453,7 +453,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
-#ifdef BLACKHOLE_FEEDBACK_ACTIVE
+#ifdef BH_FEEDBACK_ACTIVE
   perform_end_of_step_bh_physics();
 #endif
 
