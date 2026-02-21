@@ -60,9 +60,9 @@ void star_prep(void)
       struct star_feedback star_feedback;
 
 #ifndef STAR_BY_STAR
-      star_feedback = units_for_feedback(star_particle_feedback(star_timestep, star_metallicity, star_mass, star_age));
+      star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, star_age));
 #else     
-      star_feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, star_age));
+      star_feedback = units_for_feedback(star_feedback_compute(star_mass, star_timestep, star_metallicity, star_age));
 #endif
 
 #ifdef WINDS

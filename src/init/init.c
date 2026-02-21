@@ -52,7 +52,10 @@
 #ifdef STARS
 #include "../stars/star.h"
 #ifdef STAR_FEEDBACK_ACTIVE
-#include "../stars/stellar_tables.h"
+#include "../stars/star_tables.h"
+#endif
+#ifndef STAR_BY_STAR
+#include "../stars/star_particle.h"
 #endif
 #endif
 
@@ -571,16 +574,8 @@ int init(void)
   load_stellar_tables(All.StellarTablesFile);
 
 #ifndef STAR_BY_STAR
-  for(i = 0; i < NBINS; i++)
-{
-    double m1 = StarMassBins[i];
-    double m2 = StarMassBins[i+1];
-
-    double numerator = IntegralTrapezoidal(m1, m2, 100, m_times_imf);
-    double denominator = IntegralTrapezoidal(m1, m2, 100, imf);
-
-    StarMeanMassInBins[i] = numerator / denominator;
-}
+  setup_mass_bins();
+  build_imf_cdf();
 #endif
 #endif
 

@@ -5,12 +5,6 @@
 extern int NumStars;
 
 #ifdef STAR_FEEDBACK
-#ifndef STAR_BY_STAR
-#include "../stars/star_particle.h"
-#endif
-#endif
-
-#ifdef STAR_FEEDBACK
 #define WINDS
 #define RADIATION
 #define SUPERNOVAE
@@ -42,6 +36,12 @@ extern int NumStars;
 
 #ifdef STAR_FEEDBACK_ACTIVE
 extern struct TimeBinData TimeBinsStar;
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+#ifndef STAR_BY_STAR
+#include "../stars/star_particle.h"
+#endif
 #endif
 
 extern struct star_particle_data

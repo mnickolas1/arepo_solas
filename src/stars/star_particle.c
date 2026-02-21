@@ -1,8 +1,8 @@
 #include <math.h>
 
-#define NBINS 114
-#define MMIN 0.1
-#define MMAX 120
+#include "../main/proto.h"
+
+#include "../stars/star_particle.h"
 
 double StarMassBins[NBINS + 1] = 
 {
@@ -46,7 +46,7 @@ double StarMassBins[NBINS + 1] =
 double StarMeanMassInBins[NBINS];
 
 /* Compute integral with the trapezoid method */
-static double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
+double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
 {
   double h = (b - a) / N;
   double sum = 0.5 * (f(a) + f(b));
@@ -110,111 +110,101 @@ double m_times_imf(double m)
   return m * imf(m);
 }
 
-/* Normalization */
-double normalization(double m) 
+void setup_mass_bins(void)
 {
-  double denom = IntegralTrapezoidal(MMIN, MMAX, 1000, m_times_imf);
-  return m / denom;
+  int i;
+  double m1, m2, numerator, denominator;
+  
+  for(i = 0; i < NBINS; i++)
+    {
+      m1 = StarMassBins[i];
+      m2 = StarMassBins[i+1];
+
+      numerator = IntegralTrapezoidal(m1, m2, 100, m_times_imf);
+      denominator = IntegralTrapezoidal(m1, m2, 100, imf);
+
+      StarMeanMassInBins[i] = numerator / denominator;
+    }
 }
 
-#define N_CDF_BINS 10000  /* resolution of the numerical CDF table */
-
 /* --- CDF table (built once, reused for all draws) --- */
-static double cdf_mass[N_CDF_BINS + 1];   /* mass values at each node */
-static double cdf_val[N_CDF_BINS + 1];    /* cumulative probability at each node */
-static int    cdf_built = 0;
+double cdf_masses[N_CDF_BINS + 1];   /* mass values at each node */
+double cdf_values[N_CDF_BINS + 1];   /* cumulative probability at each node */
 
-/* Build a numerical CDF table by integrating the IMF over log-spaced masses.
-   Log spacing is important because the IMF spans decades in mass. */
+/* Build a numerical CDF table by integrating the IMF over log-spaced masses */
 void build_imf_cdf(void)
 {
-    if(cdf_built) return;
-
     double log_mmin = log(M_MIN);
     double log_mmax = log(M_MAX);
-    double dlog     = (log_mmax - log_mmin) / N_CDF_BINS;
+    double dlog = (log_mmax - log_mmin) / N_CDF_BINS;
 
     /* First pass: fill mass nodes and compute unnormalized cumulative sum.
        We integrate ξ(m) dm = ξ(m) * m * d(ln m), so the integrand in log space
        is imf(m) * m. */
-    cdf_mass[0] = M_MIN;
-    cdf_val[0]  = 0.0;
+    cdf_masses[0] = M_MIN;
+    cdf_values[0] = 0.0;
 
     for(int i = 1; i <= N_CDF_BINS; i++)
-    {
-        double log_m    = log_mmin + i * dlog;
-        double m        = exp(log_m);
+      {
+        double log_m = log_mmin + i * dlog;
+        double m = exp(log_m);
         double log_m_prev = log_mmin + (i-1) * dlog;
-        double m_prev   = exp(log_m_prev);
+        double m_prev = exp(log_m_prev);
 
-        cdf_mass[i] = m;
+        cdf_masses[i] = m;
 
         /* Trapezoid step in log space: integrand is imf(m)*m */
-        double f_left  = imf(m_prev) * m_prev;
-        double f_right = imf(m)      * m;
-        cdf_val[i] = cdf_val[i-1] + 0.5 * (f_left + f_right) * dlog;
-    }
+        double f_left = imf(m_prev) * m_prev;
+        double f_right = imf(m) * m;
+        cdf_values[i] = cdf_values[i-1] + 0.5 * (f_left + f_right) * dlog;
+      }
 
     /* Second pass: normalize so CDF runs from 0 to 1 */
-    double total = cdf_val[N_CDF_BINS];
+    double total = cdf_values[N_CDF_BINS];
     for(int i = 0; i <= N_CDF_BINS; i++)
-        cdf_val[i] /= total;
-
-    cdf_built = 1;
+        cdf_values[i] /= total;
 }
 
 /* Invert the CDF at a given u in [0,1] using binary search + linear interpolation */
-double sample_imf_mass(double u)
+double sample_imf(double u)
 {
-    if(!cdf_built) build_imf_cdf();
-
     /* Binary search for the interval [i, i+1] straddling u */
     int lo = 0, hi = N_CDF_BINS;
     while(hi - lo > 1)
-    {
+      {
         int mid = (lo + hi) / 2;
         if(cdf_val[mid] <= u)
             lo = mid;
         else
             hi = mid;
-    }
+      }
 
     /* Linear interpolation within the interval */
     double cdf_lo = cdf_val[lo];
     double cdf_hi = cdf_val[hi];
-    double t      = (cdf_hi > cdf_lo) ? (u - cdf_lo) / (cdf_hi - cdf_lo) : 0.0;
+    double t = (cdf_hi > cdf_lo) ? (u - cdf_lo) / (cdf_hi - cdf_lo) : 0.0;
 
-    return cdf_mass[lo] + t * (cdf_mass[hi] - cdf_mass[lo]);
+    return cdf_masses[lo] + t * (cdf_masses[hi] - cdf_masses[lo]);
 }
 
-/* Draw masses for a star particle of total mass M_particle.
-   Fills the bin_counts array (length N_BINS) with integer star counts.
-   bin_edges must have length N_BINS+1 and be pre-filled (e.g. log-spaced). */
-void sample_star_particle(double M_particle, double *bin_edges, int *bin_counts, gsl_rng *rng)
+/* Draw masses for a star particle of total mass M_particle */
+void sample_star_particle(double m, int *bins)
 {
     /* Zero the bins */
-    for(int i = 0; i < N_BINS; i++) bin_counts[i] = 0;
+    for(int i = 0; i < NBINS; i++) bins[i] = 0;
 
-    double M_remaining = M_particle;
+    double m_remaining = m;
 
-    while(M_remaining > M_MIN)  /* stop when we can't fit even the smallest star */
-    {
-        double u = gsl_rng_uniform(rng);   /* or replace with your RNG */
-        double m = sample_imf_mass(u);
+    while(m_remaining > 0) 
+      {
+        double u = get_random_number_aux();
+        double m = sample_imf(u);
 
-        if(m > M_remaining) break;  /* overshoot: stop here (slightly under-massive) */
-
-        M_remaining -= m;
-
-        /* Find the bin for this star via binary search */
-        int lo = 0, hi = N_BINS;
-        while(hi - lo > 1)
-        {
-            int mid = (lo + hi) / 2;
-            if(bin_edges[mid] <= m) lo = mid;
-            else hi = mid;
-        }
-        if(m >= bin_edges[lo] && m < bin_edges[lo+1])
-            bin_counts[lo]++;
-    }
+        m_remaining -= m;
+        
+        /* Find bin with linear search from bottom */
+        int bin = 0;
+        while(bin < NBINS - 1 && StarMassBins[bin + 1] < m) bin++;
+        bins[bin]++;
+      }
 }

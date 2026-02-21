@@ -9,16 +9,18 @@
 #include "../stars/star.h"
 #include "../stars/star_tables.h"
 
+#ifndef STAR_BY_STAR
+#include "../stars/star_particle.h"
+#endif
 
 /*  Feedback tables interpolation */
-static double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 static inline double linear_interpolation(double x, double x0, double x1, double y0, double y1);
 static inline double star_lifetime(int z_idx, double m_val);
 static double lifetime(double z_val, double m_val);
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
-static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, double age);
-static struct star_interpolate interpolate_mass(int z_idx, double m_val, double age);
-static struct star_interpolate interpolate_metallicity(double z_val, double m_val, double age);
+static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, double a);
+static struct star_interpolate interpolate_mass(int z_idx, double m_val, double a);
+static struct star_interpolate interpolate_metallicity(double z_val, double m_val, double a);
 #endif
 #ifdef SUPERNOVAE
 static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_val);
@@ -488,16 +490,16 @@ struct star_feedback units_for_feedback(struct star_feedback star)
 }
 
 #ifndef STAR_BY_STAR
-struct star_feedback star_particle_feedback(index, double dt, double z, double a)
+struct star_feedback star_particle_feedback(int index, double dt, double z, double a)
 {  
   struct star_feedback star_particle = {0};
 
-  // 3) Add feedback contributions for each bin 
+  // Add feedback contributions for each bin 
   for(i = 0; i < NBINS; i++) 
     {
       Nstars = SP[index].StarBins[i];
       
-      m = All.MassInBins[i]; 
+      m = StarMeanMassInBins[i]; 
 
       struct star_feedback star = star_feedback_compute(dt, z, m, a);
       
