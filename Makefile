@@ -314,6 +314,12 @@ INCL    += blackholes/bh_proto.h
 SUBDIRS += blackholes
 endif
 
+ifneq (,$(findstring STARS,$(CONFIGVARS)))
+OBJS    += stars/star.o 
+INCL    += stars/star.h
+SUBDIRS += stars 
+endif
+
 ifneq (,$(findstring STAR_FEEDBACK,$(CONFIGVARS)))
 CONFIGVARS += WINDS RADIATION SUPERNOVAE 
 endif
@@ -334,11 +340,16 @@ endif
 OBJS    += stars/star_density.o \
            stars/star_feedback.o \
            stars/star_update.o \
-           stars/star_particles.o \
+           stars/star_interpolation.o \
            stars/star_tables.o
 INCL    += stars/star_proto.h \
            stars/star_tables.h
-SUBDIRS += stars
+
+ifeq (,$(findstring STAR_BY_STAR,$(CONFIGVARS)))
+OBJS    += stars/star_particle.o
+INCL    += stars/star_particle.h  
+endif
+
 endif
 
 STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE

@@ -10,3 +10,5 @@ extern double StarMassBins[NBINS + 1];
 extern double StarMeanMassInBins[NBINS];
 extern double cdf_masses[N_CDF_BINS + 1];   
 extern double cdf_values[N_CDF_BINS + 1];   
+
+#endif

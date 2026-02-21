@@ -134,14 +134,14 @@ double cdf_values[N_CDF_BINS + 1];   /* cumulative probability at each node */
 /* Build a numerical CDF table by integrating the IMF over log-spaced masses */
 void build_imf_cdf(void)
 {
-    double log_mmin = log(M_MIN);
-    double log_mmax = log(M_MAX);
+    double log_mmin = log(MMIN);
+    double log_mmax = log(MMAX);
     double dlog = (log_mmax - log_mmin) / N_CDF_BINS;
 
     /* First pass: fill mass nodes and compute unnormalized cumulative sum.
        We integrate ξ(m) dm = ξ(m) * m * d(ln m), so the integrand in log space
        is imf(m) * m. */
-    cdf_masses[0] = M_MIN;
+    cdf_masses[0] = MMIN;
     cdf_values[0] = 0.0;
 
     for(int i = 1; i <= N_CDF_BINS; i++)
@@ -173,7 +173,7 @@ double sample_imf(double u)
     while(hi - lo > 1)
       {
         int mid = (lo + hi) / 2;
-        if(cdf_val[mid] <= u)
+        if(cdf_values[mid] <= u)
             lo = mid;
         else
             hi = mid;

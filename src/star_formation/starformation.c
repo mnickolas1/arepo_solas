@@ -219,8 +219,12 @@ if(need_realloc_global)
         }
     } /* end of main loop over active gas particles */
 
+#ifdef STAR_FEEDBACK_ACTIVE
+#ifndef STAR_BY_STAR
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
     sample_star_particle(PPS(i).Mass, &SP[i].StarBins);
+#endif
+#endif
 
   int in[4], out[4], cnt = 2;
   in[0] = stars_spawned;
