@@ -4,7 +4,7 @@
 
 #include "../main/allvars.h"
 #include "../main/proto.h"
-#include "stellar_tables.h"
+#include "star_tables.h"
 
 // Main Sequence
 int Z_COUNT = 0;

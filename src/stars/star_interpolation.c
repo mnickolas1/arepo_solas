@@ -5,6 +5,8 @@
 
 #include "../main/allvars.h"
 #include "../main/proto.h"
+
+#include "../stars/star.h"
 #include "../stars/star_tables.h"
 
 
@@ -486,118 +488,18 @@ struct star_feedback units_for_feedback(struct star_feedback star)
 }
 
 #ifndef STAR_BY_STAR
-
-#define M_MIN  0.1
-#define M_MAX  120
-#define N_BINS 100
-
-/* Compute integral with the trapezoid method */
-static double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
-{
-  double h = (b - a) / N;
-  double sum = 0.5 * (f(a) + f(b));
-
-  for(int i = 1; i < N; i++)
-    sum += f(a + i * h);
-
-  return sum * h;
-}
-
-/* Unnormalized Kroupa IMF */
-double imf_kroupa(double m) 
-{
-  if(m < 0.1 || m > 100.0) return 0.0;
-  
-  if(m < 0.5) return pow(m, -1.3);
-  
-  return pow(m, -2.3);
-}
-
-/* Unnormalized Chabrier IMF */
-double imf_chabrier(double m) 
-{
-  if(m < 0.1 || m > 100.0) return 0.0;
-
-  if(m <= 1.0) 
-    {
-      double mc = 0.08;
-      double sigma = 0.69;
-      double logm = log10(m);
-      double logmc = log10(mc);
-      return (1.0 / m) * exp(-pow((logm - logmc), 2) / (2.0 * sigma*sigma));
-    } 
-  else return pow(m, -2.3);
-}
-
-/* Unnormalized Salpeter IMF */
-double imf_salpeter(double m) 
-{
-  if(m < 0.1 || m > 100.0) return 0.0;
-  
-  return pow(m, -2.35);
-}
-
-/* Select IMF */
-double imf(double m) 
-{
-  switch(All.IMF) 
-  {
-    case 0: return imf_kroupa(m);
-    case 1: return imf_chabrier(m);
-    case 2: return imf_salpeter(m);
-        
-    // fallback
-    default: return imf_kroupa(m); 
-  }
-}
-
-/* Wrapper: m * imf(m) */
-double m_times_imf(double m) 
-{
-  return m * imf(m);
-}
-
-/* Normalization */
-double normalization(double m) 
-{
-  double denom = IntegralTrapezoidal(M_MIN, M_MAX, 1000, m_times_imf);
-  return m / denom;
-}
-
-/* Star counts */
-double expected_star_count(double imf_norm, double m1, double m2)
-{
-  return imf_norm * IntegralTrapezoidal(m1, m2, 1000, imf);
-}
-
-/* Poisson sampling */
-int poisson_sample(double lambda) 
-{
-  return gsl_ran_poisson(random_generator, lambda);
-}
-
-struct star_feedback star_particle_feedback(double dt, double z, double m, double a)
+struct star_feedback star_particle_feedback(index, double dt, double z, double a)
 {  
   struct star_feedback star_particle = {0};
 
-  // 1) Compute IMF normalization for this particle
-  double imf_norm = normalization(m);
-  
-  // 2) Loop over the mass bins
-  double dm = (M_MAX - M_MIN) / (double) N_BINS;
-
   // 3) Add feedback contributions for each bin 
-  for(int i = 0; i < N_BINS; i++) 
+  for(i = 0; i < NBINS; i++) 
     {
-      double m1 = M_MIN + i*dm;
-      double m2 = m1 + dm;
+      Nstars = SP[index].StarBins[i];
+      
+      m = All.MassInBins[i]; 
 
-      double meanN = expected_star_count(imf_norm, m1, m2);
-      int Nstars = poisson_sample(meanN);
-
-      double m_mid = 0.5*(m1+m2);
-
-      struct star_feedback star = star_feedback_compute(dt, z, m_mid, a);
+      struct star_feedback star = star_feedback_compute(dt, z, m, a);
       
       switch(star.Stage)
         {

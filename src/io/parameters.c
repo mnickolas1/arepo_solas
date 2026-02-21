@@ -46,6 +46,10 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 /*! \brief This function parses the parameter file.
  *
  *  Each parameter is defined by a keyword (`tag'), and can be either

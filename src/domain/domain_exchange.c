@@ -48,6 +48,10 @@
 #include "../mesh/voronoi/voronoi.h"
 #include "domain.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 /*! \brief Changes memory allocation if necessary for particle and cell data.
  *
  *  If the memory usage due to a net import or export of particles changes

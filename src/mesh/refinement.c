@@ -34,6 +34,10 @@
 
 #include "../main/allvars.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 #ifdef REFINEMENT
 #include "../main/proto.h"
 

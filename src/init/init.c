@@ -49,11 +49,13 @@
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
 
-#ifdef STARS 
-#if defined(WINDS) || defined(SUPERNOVAE)
+#ifdef STARS
+#include "../stars/star.h"
+#ifdef STAR_FEEDBACK_ACTIVE
 #include "../stars/stellar_tables.h"
 #endif
 #endif
+
 
 /*! \brief Prepares the loaded initial conditions for the run.
  *
@@ -567,6 +569,19 @@ int init(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   load_stellar_tables(All.StellarTablesFile);
+
+#ifndef STAR_BY_STAR
+  for(i = 0; i < NBINS; i++)
+{
+    double m1 = StarMassBins[i];
+    double m2 = StarMassBins[i+1];
+
+    double numerator = IntegralTrapezoidal(m1, m2, 100, m_times_imf);
+    double denominator = IntegralTrapezoidal(m1, m2, 100, imf);
+
+    StarMeanMassInBins[i] = numerator / denominator;
+}
+#endif
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

@@ -152,36 +152,6 @@
 #endif /* #ifndef RIEMANN_HLLD */
 #endif /* #ifdef MHD */
 
-#ifdef STAR_FEEDBACK
-#define WINDS
-#define RADIATION
-#define SUPERNOVAE
-#endif
-
-#ifdef RADIATION
-#define PHOTOIONIZATION
-#define PHOTOELECTRIC_HEATING
-#define RADIATION_PRESSURE
-#endif
-
-#if defined(WINDS) \
-|| defined(PHOTOIONIZATION) \
-|| defined(PHOTOELECTRIC_HEATING) \
-|| defined(RADIATION_PRESSURE) \
-|| defined(SUPERNOVAE)
-#define STAR_FEEDBACK_ACTIVE
-#endif
-
-#ifdef STAR_FEEDBACK_ACTIVE
-#ifndef STARS
-#error "We cannot run star feeedback simulations without stars!"
-#endif
-#endif
-
-#if defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-#define STAR_RADIATION_ACTIVE
-#endif
-
 /* optional additional headers based on config options */
 
 #include "../utils/timer.h"
@@ -354,9 +324,6 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #ifdef BLACKHOLES
 #define ALLOC_BH_ROOM 4
 #endif
-#ifdef STARS
-#define ALLOC_STAR_ROOM 16
-#endif 
 
 #ifdef TOLERATE_WRITE_ERROR
 #define IO_TRIALS 20
@@ -720,9 +687,6 @@ extern struct TimeBinData TimeBinsHydro, TimeBinsGravity;
 #ifdef BLACKHOLES
 extern struct TimeBinData TimeBinsBh;
 #endif
-#ifdef STAR_FEEDBACK_ACTIVE
-extern struct TimeBinData TimeBinsStar;
-#endif
 
 #ifdef USE_SFR
 extern double TimeBinSfr[TIMEBINS];
@@ -772,9 +736,6 @@ extern int NumPart; /*!< number of particles on the LOCAL processor */
 extern int NumGas;  /*!< number of gas particles on the LOCAL processor  */
 #ifdef BLACKHOLES
 extern int NumBhs;
-#endif
-#ifdef STARS
-extern int NumStars;
 #endif
 
 extern gsl_rng *random_generator;     /*!< a random number generator  */
@@ -1328,27 +1289,22 @@ extern struct global_data_all_processes
 
   double GlobalDisplacementVector[3];
 
-#ifdef BLACKHOLE_FEEDBACK_ACTIVE 
-  double BhFeedbackLocal[8];
-  double BhFeedbackGlobal[8];
-#endif
-
-#ifdef STAR_FEEDBACK_ACTIVE
-  double StarFeedbackLocal[8];
-  double StarFeedbackGlobal[8];
-#endif
-
-  int FeedbackFlag;
+#if defined(BLACKHOLE_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
   /* for parameter file */
   double FeedbackTime;
 #endif
 
-#ifdefined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#if defined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
   /* for parameter file */
   double BhDesNgb;
   double BhDesDev;
 
 #ifdef BH_FEEDBACK_ACTIVE
+  double BhFeedbackLocal[8];
+  double BhFeedbackGlobal[8];
+
+  int FeedbackFlag;
+
   double JetFeedback;
   double Epsilon_r;
   double Epsilon_f;
@@ -1357,6 +1313,9 @@ extern struct global_data_all_processes
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
+  double StarFeedbackLocal[8];
+  double StarFeedbackGlobal[8];
+  
   /* for parameter file */
   double StarDesNgb;
   double StarDesDev;
@@ -1374,7 +1333,6 @@ extern struct global_data_all_processes
 #ifndef STAR_BY_STAR
   int IMF;
 #endif 
-
 #endif
 
 #ifdef USE_GRACKLE
@@ -1696,136 +1654,6 @@ extern struct bh_particle_data
 #define BPP(i) BhP[P[i].BhID]
 #define PPB(i) P[BhP[i].PID]
 #endif 
-
-#ifdef STARS 
-extern struct star_particle_data
-{
-  MyIDType PID;
-
-#ifdef METALS
- MyDouble Metals;
-#endif
-
-#ifdef STAR_FEEDBACK_ACTIVE
-  MyDouble Hsml;
-  MyDouble NgbMass;
-  MyDouble NgbVolume;
-  integertime NgbMinStep;
-  int DensityFlag;
-  signed char TimeBinStar;
-  MyDouble Birthtime;
-#endif
-
-#ifdef WINDS 
-  MyDouble MassLoss;
-#ifdef METALS
-  MyDouble MetalsLoss;
-#endif
-  MyDouble WindMomentum;
-#endif
-
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_IonizingHPhotons;
-  MyDouble RAD_Ionizing;
-#endif
-
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_UVLymanWerner;
-  MyDouble RAD_Ultraviolet;
-#endif
-  
-#if defined(RADIATION_PRESSURE)
-  MyDouble RAD_Optical;
-  MyDouble RAD_Infrared;
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyEject;
-#endif
-}  *SP;
-
-#define SPP(i) SP[P[i].SID]
-#define PPS(i) P[SP[i].PID]
-#endif
-
-#ifdef STAR_FEEDBACK_ACTIVE
-struct star_interpolate
-{
-  MyDouble Radius;
-  MyDouble Temperature;
-
-#ifdef WINDS
-  MyDouble MassLossRate;
-#ifdef METALS
-  MyDouble MetalsLossRate;
-#endif
-  MyDouble WindVelocity;
-#endif
-
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_IonizingRate;
-  MyDouble RAD_IonizingLuminosity;
-#endif
-
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_UVLymanWernerLuminosity;
-  MyDouble RAD_UltravioletLuminosity;
-#endif
-
-#if defined(RADIATION_PRESSURE)
-  MyDouble RAD_OpticalLuminosity;
-  MyDouble RAD_InfraredLuminosity;
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
-};
-
-struct star_feedback
-{
-  int Stage; // 0:preSN, 1:SN, 2:postSN
-
-#ifdef WINDS
-  MyDouble MassLoss;
-#ifdef METALS
-  MyDouble MetalsLoss;
-#endif
-  MyDouble WindMomentum;
-#endif
-
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_IonizingHPhotons;
-  MyDouble RAD_Ionizing;
-#endif
-
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_UVLymanWerner;
-  MyDouble RAD_Ultraviolet;
-#endif
-
-#if defined(RADIATION_PRESSURE)
-  MyDouble RAD_Optical;
-  MyDouble RAD_Infrared;
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
-};
-#endif
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
 extern struct special_particle_data

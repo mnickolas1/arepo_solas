@@ -66,6 +66,10 @@
 #include "../mesh/voronoi/voronoi.h"
 #include "domain.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 /*! \brief The main routine for the domain decomposition.
  *
  *  It acts as a driver routine that allocates various temporary buffers,

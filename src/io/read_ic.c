@@ -55,6 +55,10 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 #ifndef IDS_OFFSET
 #ifdef LONGIDS
 #define IDS_OFFSET 100000000000

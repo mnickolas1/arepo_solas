@@ -62,11 +62,6 @@
 #include "../stars/star_proto.h"
 #endif 
 
-#if defined(STARS) || defined(BLACKHOLES)
-void kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
-void perform_end_of_step_physics(void);
-#endif
-
 #ifdef JEANS_SF
 double get_jeans_length(int i);
 #endif

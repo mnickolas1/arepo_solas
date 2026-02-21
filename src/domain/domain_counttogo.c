@@ -43,6 +43,10 @@
 #include "../mesh/voronoi/voronoi.h"
 #include "domain.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 /*! \brief Determines communication matrix for particles and cells.
  *
  *  This function determines how many particles that are currently stored

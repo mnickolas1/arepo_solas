@@ -107,9 +107,6 @@ struct TimeBinData TimeBinsHydro, TimeBinsGravity;
 #ifdef BLACKHOLES
 struct TimeBinData TimeBinsBh;
 #endif
-#ifdef STAR_FEEDBACK_ACTIVE
-struct TimeBinData TimeBinsStar;
-#endif
 
 #ifdef USE_SFR
 double TimeBinSfr[TIMEBINS];
@@ -132,9 +129,6 @@ int NumPart; /*!< number of particles on the LOCAL processor */
 int NumGas;  /*!< number of gas particles on the LOCAL processor  */
 #ifdef BLACKHOLES
 int NumBhs;
-#endif
-#ifdef STARS
-int NumStars;
 #endif
 
 gsl_rng *random_generator;     /*!< a random number generator  */
@@ -243,10 +237,6 @@ struct sph_particle_data *SphP, /*!< holds SPH particle data on local processor 
 #ifdef BLACKHOLES
 struct bh_particle_data *BhP;
 #endif 
-
-#ifdef STARS
-struct star_particle_data *SP;
-#endif
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
 struct special_particle_data *PartSpecialListGlobal;

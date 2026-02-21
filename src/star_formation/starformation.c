@@ -48,6 +48,10 @@
 
 #include "../gravity/forcetree.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 #ifdef USE_SFR
 
 static int stars_spawned;           /*!< local number of star particles spawned in the time step */

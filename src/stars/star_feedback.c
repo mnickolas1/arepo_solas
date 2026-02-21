@@ -9,6 +9,8 @@
 #include "../domain/domain.h"
 #include "../utils/generic_comm_helpers2.h"
 
+#include "../stars/star.h"
+
 static int star_ngb_feedback_evaluate(int target, int mode, int threadid);
 
 /*! \brief Local data structure for collecting particle/cell data that is sent

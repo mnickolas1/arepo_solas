@@ -5,6 +5,8 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+#include "../stars/star.h"
+
 static int int_compare(const void *a, const void *b);
 
 /* Sph loop kernel function */

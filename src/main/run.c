@@ -56,6 +56,10 @@
 
 #include "../fof/fof.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 static void do_second_order_source_terms_first_half(void);
 static void do_second_order_source_terms_second_half(void);
 static void create_end_file(void);

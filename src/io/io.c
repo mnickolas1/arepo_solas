@@ -77,6 +77,10 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 /* needs to be included after allvars.h */
 #ifdef OUTPUT_XDMF
 #include <libgen.h> /* for basename() function */
@@ -105,6 +109,7 @@ static void write_xdmf(char *fname);
 static int n_type[NTYPES]; /**< contains the local (for a single task) number of particles of each type in the snapshot file */
 static long long ntot_type_all[NTYPES]; /**< contains the global number of particles of each type in the snapshot file */
 static int subbox_dump = 0;
+
 
 /*! \brief Function for registering an output field.
  *

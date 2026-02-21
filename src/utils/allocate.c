@@ -40,6 +40,10 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 /*! \brief Allocates memory for global arrays.
  *
  *  This routine allocates memory for

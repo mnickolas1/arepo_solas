@@ -9,6 +9,8 @@
 #include "../domain/domain.h"
 #include "../utils/generic_comm_helpers2.h"
 
+#include "../stars/star.h"
+
 static int star_density_evaluate(int target, int mode, int threadid);
 static int star_density_isactive(int n);
 

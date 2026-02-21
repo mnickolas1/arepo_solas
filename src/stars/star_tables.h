@@ -1,5 +1,5 @@
-#ifndef STELLAR_TABLES_H
-#define STELLAR_TABLES_H
+#ifndef STAR_TABLES_H
+#define STAR_TABLES_H
 
 #include <mpi.h>
 
