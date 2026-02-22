@@ -178,14 +178,10 @@ void run(void)
           flush_everything();
 
 /*Create snapshots after feedback injections*/ 
-#if defined(STARS) || defined(BLACKHOLES)
-
+#ifdef FEEDBACK_TESTING_RESTRICT_SNAPSHOTS
           if(All.Time >= All.FeedbackTime)
             create_snapshot_if_desired();
-
-#endif
-
-#ifndef FEEDBACK_TESTING_RESTRICT_SNAPSHOTS
+#else
           create_snapshot_if_desired();
 #endif
           if(All.Ti_Current >= TIMEBASE) /* we reached the final time */

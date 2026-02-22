@@ -351,6 +351,7 @@ void convert_cell_into_star(int i, double birthtime)
   /* assign star_ids */
   P[i].SID = NumStars;
   SP[NumStars].PID = i;
+#ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI));
   /* set timebin */
@@ -359,7 +360,8 @@ void convert_cell_into_star(int i, double birthtime)
   SP[NumStars].Birthtime = birthtime;
 #ifdef METALS 
   SP[NumStars].Metals = SphP[i].Metals;
-#endif  
+#endif 
+#endif 
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
  
@@ -451,6 +453,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   /* assign star_ids */
   P[istar].SID = NumStars;
   SP[NumStars].PID = istar;
+#ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
@@ -459,6 +462,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SP[NumStars].Birthtime = birthtime;
 #ifdef METALS 
   SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
+#endif
 #endif
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
