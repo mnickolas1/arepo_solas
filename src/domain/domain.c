@@ -188,7 +188,7 @@ void domain_Decomposition(void)
   update_bh_timesteps();
 #endif
     
-#ifdef STARS
+#ifdef STAR_FEEDBACK_ACTIVE
   update_star_timesteps();
 #endif
 

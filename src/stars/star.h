@@ -1,6 +1,8 @@
 #ifndef STAR_H
 #define STAR_H
 
+#include "../main/allvars.h"
+
 #define ALLOC_STAR_ROOM 16
 extern int NumStars;
 

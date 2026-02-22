@@ -427,10 +427,10 @@ int init(void)
   {
       mpi_printf("Finding smoothing lengths on local processor %d\n", ThisTask);
       setup_smoothinglengths();
-#if defined(STARS) || defined(BLACKHOLES)
+#if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
       mpi_printf("Finding smoothing lengths for stars and black holes on local processor %d\n", ThisTask);
       setup_smoothinglengths_particles();
-#endif /* #if defined(STARS) || defined(BLACKHOLES) */
+#endif 
   }
 
 #ifdef ADDBACKGROUNDGRID
