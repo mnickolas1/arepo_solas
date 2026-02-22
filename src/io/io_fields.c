@@ -827,20 +827,12 @@ void init_io_fields()
   init_field(IO_STARID, "SID  ", "StarIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].SID, 0, STARS_ONLY);
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_STARID, SN_MINI);
+#endif
 
-
+#ifdef STAR_FEEDBACK_ACTIVE
   init_field(IO_STARHSML, "SHS", "StarHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_S, &SP[0].Hsml, 0, STARS_ONLY);
   init_units(IO_STARHSML, 0., 0., 0., 0., 0., All.UnitLength_in_cm);
   init_snapshot_type(IO_STARHSML, SN_MINI);
-
-
-  init_field(IO_STARDENSITY, "SD ", "StarDensity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Density, 0, STARS_ONLY);
-  init_units(IO_STARDENSITY, 0., 0., 0., 0., 0., All.UnitDensity_in_cgs);
-  init_snapshot_type(IO_STARDENSITY, SN_MINI);
-
-  init_field(IO_STAR_NGBMASS, "SNM ", "StarNgbMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].NgbMass, 0, STARS_ONLY);
-  init_units(IO_STAR_NGBMASS, 0., 0., 0., 0., 0., All.UnitMass_in_g);
-  init_snapshot_type(IO_STAR_NGBMASS, SN_MINI);
  
   init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metals, 0, STARS_ONLY);
   init_units(IO_STAR_METALS, 0., 0., 0., 0., 0., 0);

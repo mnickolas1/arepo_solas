@@ -547,7 +547,7 @@ int init(void)
 
   free_mesh();
 
-#if defined(STARS) || defined(BLACKHOLES)
+#if defined (BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
   /* initialize feedback variables */
   srand((unsigned int)time(NULL));
 
@@ -568,9 +568,7 @@ int init(void)
   
   double *sfg = All.StarFeedbackGlobal;
   sfg = malloc(8 * sizeof(double));
-#endif 
 
-#ifdef STAR_FEEDBACK_ACTIVE
   load_stellar_tables(All.StellarTablesFile);
 
 #ifndef STAR_BY_STAR
