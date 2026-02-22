@@ -551,7 +551,7 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif
 
-#ifdef BLACKHOLES
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
       strcpy(tag[nt], "BhDesNgb");
       addr[nt] = &All.BhDesNgb;
       id[nt++] = REAL;
@@ -559,7 +559,7 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "BhDesDev");
       addr[nt] = &All.BhDesDev;
       id[nt++] = REAL;
-#ifdef BH_FEEDBACK
+
       strcpy(tag[nt], "JetFeedback");
       addr[nt] = &All.JetFeedback;
       id[nt++] = INT;
@@ -576,7 +576,6 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.Mload;
       id[nt++] = REAL;
 #endif
-#endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
       strcpy(tag[nt], "StarDesNgb");
@@ -590,6 +589,12 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "StellarTablesFile");
       addr[nt] = All.StellarTablesFile;
       id[nt++] = STRING;
+#ifndef STAR_BY_STAR
+      strcpy(tag[nt], "IMF");
+      addr[nt] = &All.IMF;
+      id[nt++] = INT;
+#endif
+#endif
 
 #ifdef SUPERNOVAE      
       strcpy(tag[nt], "Ftherm");
@@ -599,14 +604,6 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "Fsn");
       addr[nt] = &All.Fsn;
       id[nt++] = REAL;
-#endif
-
-#ifndef STAR_BY_STAR
-      strcpy(tag[nt], "IMF");
-      addr[nt] = &All.IMF;
-      id[nt++] = INT;
-#endif
-
 #endif
 
 #ifdef BLACKHOLES

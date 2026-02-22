@@ -827,17 +827,17 @@ void init_io_fields()
   init_field(IO_STARID, "SID  ", "StarIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].SID, 0, STARS_ONLY);
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_STARID, SN_MINI);
+#ifdef METALS
+  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metals, 0, STARS_ONLY);
+  init_units(IO_STAR_METALS, 0., 0., 0., 0., 0., 0);
+  init_snapshot_type(IO_STAR_METALS, SN_MINI);
+#endif
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
   init_field(IO_STARHSML, "SHS", "StarHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_S, &SP[0].Hsml, 0, STARS_ONLY);
   init_units(IO_STARHSML, 0., 0., 0., 0., 0., All.UnitLength_in_cm);
   init_snapshot_type(IO_STARHSML, SN_MINI);
- 
-  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metals, 0, STARS_ONLY);
-  init_units(IO_STAR_METALS, 0., 0., 0., 0., 0., 0);
-  init_snapshot_type(IO_STAR_METALS, SN_MINI);
- 
 #ifdef OUTPUT_TIMEBIN_STAR
   init_field(IO_TIMEBIN_STAR, "TBS", "TimebinStar", MEM_INT, FILE_INT, FILE_NONE, 1, A_S, &SP[0].TimeBinStar, 0, STARS_ONLY);
   init_units(IO_TIMEBIN_STAR, 0., 0., 0., 0., 0., 0.0);
