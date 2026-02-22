@@ -154,8 +154,8 @@ void build_imf_cdf(void)
         cdf_masses[i] = m;
 
         /* Trapezoid step in log space: integrand is imf(m)*m */
-        double f_left = imf(m_prev) * m_prev;
-        double f_right = imf(m) * m;
+        double f_left = m_times_imf(m_prev);
+        double f_right = m_times_imf(m);
         cdf_values[i] = cdf_values[i-1] + 0.5 * (f_left + f_right) * dlog;
       }
 
@@ -180,11 +180,11 @@ double sample_imf(double u)
       }
 
     /* Linear interpolation within the interval */
-    double cdf_lo = cdf_val[lo];
-    double cdf_hi = cdf_val[hi];
+    double cdf_lo = cdf_values[lo];
+    double cdf_hi = cdf_values[hi];
     double t = (cdf_hi > cdf_lo) ? (u - cdf_lo) / (cdf_hi - cdf_lo) : 0.0;
 
-    return cdf_masses[lo] + t * (cdf_masses[hi] - cdf_masses[lo]);
+    return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));;
 }
 
 /* Draw masses for a star particle of total mass M_particle */
@@ -198,13 +198,13 @@ void sample_star_particle(double m, int *bins)
     while(m_remaining > 0) 
       {
         double u = get_random_number_aux();
-        double m = sample_imf(u);
+        double mstar = sample_imf(u);
 
-        m_remaining -= m;
+        m_remaining -= mstar;
         
         /* Find bin with linear search from bottom */
         int bin = 0;
-        while(bin < NBINS - 1 && StarMassBins[bin + 1] < m) bin++;
+        while(bin < NBINS - 1 && StarMassBins[bin + 1] < mstar) bin++;
         bins[bin]++;
       }
 }
