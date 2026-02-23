@@ -73,10 +73,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 #ifdef OUTPUT_TASK
 /*! \brief Output of the task the particles are at.
  *

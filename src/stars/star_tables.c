@@ -333,7 +333,7 @@ void load_stellar_tables(const char *filename)
           for(int m = 0; m < M_COUNT; m++)
             {
               char mname[64];
-              snprintf(mname, sizeof(mname), "M=%03d", int(round((M_VALUES[m]))));
+              snprintf(mname, sizeof(mname), "M=%03d", (int)round((M_VALUES[m])));
 
               if (H5Lexists(zgrp, mname, H5P_DEFAULT) <= 0)
                 {
@@ -477,6 +477,7 @@ void load_stellar_tables(const char *filename)
       MPI_Bcast(SN_MassLoss[z], M_COUNT, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #ifdef METALS
       MPI_Bcast(SN_MetalsLoss[z], M_COUNT, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
 #endif
       for(int m = 0; m < M_COUNT; m++)
         if(N[z][m] > 0)

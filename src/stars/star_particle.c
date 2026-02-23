@@ -1,5 +1,6 @@
 #include <math.h>
 
+#include "../main/allvars.h"
 #include "../main/proto.h"
 
 #include "../stars/star_particle.h"

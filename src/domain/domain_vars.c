@@ -45,10 +45,6 @@
 #include "../mesh/voronoi/voronoi.h"
 #include "domain.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 struct domain_peano_hilbert_data *mp;
 
 struct local_topnode_data *topNodes, *branchNodes; /*!< points to the root node of the top-level tree */

@@ -48,7 +48,6 @@
 
 #include "../gravity/forcetree.h"
 
-#include "../stars/star.h"
 #include "../stars/star_particle.h"
 
 #ifdef USE_SFR

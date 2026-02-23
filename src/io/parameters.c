@@ -46,10 +46,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 /*! \brief This function parses the parameter file.
  *
  *  Each parameter is defined by a keyword (`tag'), and can be either
@@ -586,8 +582,8 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.StarDesDev;
       id[nt++] = REAL;
 
-      strcpy(tag[nt], "StellarTablesFile");
-      addr[nt] = All.StellarTablesFile;
+      strcpy(tag[nt], "StarTablesFile");
+      addr[nt] = All.StarTablesFile;
       id[nt++] = STRING;
 #ifndef STAR_BY_STAR
       strcpy(tag[nt], "IMF");

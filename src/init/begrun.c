@@ -54,10 +54,6 @@
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 #ifdef HAVE_HDF5
 #include <hdf5.h>
 herr_t my_hdf5_error_handler(void *unused);

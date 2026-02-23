@@ -54,7 +54,11 @@
 #ifdef USE_GRACKLE
 #include <grackle.h>
 #endif // USE_GRACKLE //
-       //
+       
+#ifdef STARS
+#include "../stars/star.h"
+#endif
+
 #define AREPO_VERSION "Arepo public 1.0" /* code version string */
 
 /* default values for unspecified config options */

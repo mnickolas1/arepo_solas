@@ -7,11 +7,8 @@
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
-#include "../utils/generic_comm_helpers2.h"
 
-#include "../stars/star.h"
-
-static int star_ngb_feedback_evaluate(int target, int mode, int threadid);
+static int star_feedback_evaluate(int target, int mode, int threadid);
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -115,6 +112,8 @@ static void out2particle(data_out *out, int i, int mode)
     }
 }
 
+#include "../utils/generic_comm_helpers2.h"
+
 /*! \brief Routine that defines what to do with local particles.
  *
  *  Calls the *_evaluate function in MODE_LOCAL_PARTICLES.
@@ -147,8 +146,7 @@ static void kernel_local(void)
 
       i = TimeBinsStar.ActiveParticleList[idx];
 
-      if(star_density_isactive(i))
-        star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+      star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 
@@ -172,18 +170,18 @@ static void kernel_imported(void)
       if(i >= Nimport)
         break;
 
-      star_density_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+      star_feedback_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
     }
 }
 
-void star_ngb_feedback(void)
+void star_feedback(void)
 {
   generic_set_MaxNexport();
 
   generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
 }
 
-static int star_ngb_feedback_evaluate(int target, int mode, int threadid)
+static int star_feedback_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
   int bin;

@@ -77,10 +77,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 /* needs to be included after allvars.h */
 #ifdef OUTPUT_XDMF
 #include <libgen.h> /* for basename() function */

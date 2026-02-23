@@ -57,10 +57,6 @@
 
 #include <gsl/gsl_heapsort.h>
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 /*! Data structure for Peano Hilbert data.
  */
 static struct peano_hilbert_data

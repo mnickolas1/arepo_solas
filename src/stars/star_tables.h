@@ -27,7 +27,7 @@ extern double ***WindVelocity;
 extern double ***RAD_IonizingRate;
 extern double ***RAD_IonizingLuminosity;
 #endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION PRESSURE)
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
 extern double ***RAD_UVLymanWernerLuminosity;
 extern double ***RAD_UltravioletLuminosity;
 #endif

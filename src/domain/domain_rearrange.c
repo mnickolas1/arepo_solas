@@ -44,10 +44,6 @@
 #include "../mesh/voronoi/voronoi.h"
 #include "domain.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 /*! \brief Gets rid of inactive/eliminated cells and particles.
  *
  *  Cells that were de-refined or turned into star particles are kept in the

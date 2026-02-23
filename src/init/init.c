@@ -49,16 +49,13 @@
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
 
-#ifdef STARS
-#include "../stars/star.h"
 #ifdef STAR_FEEDBACK_ACTIVE
 #include "../stars/star_tables.h"
 #endif
+
 #ifndef STAR_BY_STAR
 #include "../stars/star_particle.h"
 #endif
-#endif
-
 
 /*! \brief Prepares the loaded initial conditions for the run.
  *
@@ -547,14 +544,10 @@ int init(void)
 
   free_mesh();
 
-#if defined (BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
-  /* initialize feedback variables */
+#ifdef BH_FEEDBACK_ACTIVE 
   srand((unsigned int)time(NULL));
-
   All.FeedbackFlag = 1;
-#endif
 
-#ifdef BH_FEEDBACK_ACTIVE  
   for(i=0; i < 8; i++)
     All.BhFeedbackLocal[i] = 0;
   
@@ -569,7 +562,7 @@ int init(void)
   double *sfg = All.StarFeedbackGlobal;
   sfg = malloc(8 * sizeof(double));
 
-  load_stellar_tables(All.StellarTablesFile);
+  load_stellar_tables(All.StarTablesFile);
 
 #ifndef STAR_BY_STAR
   setup_mass_bins();

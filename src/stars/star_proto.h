@@ -13,7 +13,9 @@ void update_list_of_active_star_particles(void);
 /* Density-Feedback loop */
 void star_density(void);
 void star_prep(void);
-void star_ngb_feedback(void);
+void star_feedback(void);
+void perform_end_of_step_star_physics(void);
+void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
 
 /* Feedback tables interpolation */
 void load_stellar_tables(const char *filename);
@@ -33,6 +35,6 @@ double m_times_imf(double m);
 void setup_mass_bins(void);
 void build_imf_cdf(void);
 double sample_imf(double u);
-void sample_star_particle(double m, double *bins);
+void sample_star_particle(double m, int *bins);
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a);
 #endif

@@ -56,10 +56,6 @@
 
 #include "../fof/fof.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 static void do_second_order_source_terms_first_half(void);
 static void do_second_order_source_terms_second_half(void);
 static void create_end_file(void);
@@ -435,7 +431,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 #ifdef STAR_FEEDBACK_ACTIVE
    if(All.Time >= All.FeedbackTime)
     {   
-      star_ngb_feedback();
+      star_feedback();
     }
 #endif
 }

@@ -7,9 +7,6 @@
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
-#include "../utils/generic_comm_helpers2.h"
-
-#include "../stars/star.h"
 
 static int star_density_evaluate(int target, int mode, int threadid);
 static int star_density_isactive(int n);
@@ -90,6 +87,8 @@ static void out2particle(data_out *out, int i, int mode)
         SP[i].NgbMinStep               = out->NgbMinStep;
     }
 }
+
+#include "../utils/generic_comm_helpers2.h"
 
 /*! \brief Routine that defines what to do with local particles.
  *

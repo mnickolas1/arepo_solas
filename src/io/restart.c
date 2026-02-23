@@ -78,10 +78,6 @@
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
 
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
 #define MODUS_WRITE 0
 #define MODUS_READ 1
 #define MODUS_READCHECK 2

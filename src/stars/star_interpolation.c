@@ -6,7 +6,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#include "../stars/star.h"
 #include "../stars/star_tables.h"
 
 #ifndef STAR_BY_STAR
@@ -492,12 +491,14 @@ struct star_feedback units_for_feedback(struct star_feedback star)
 #ifndef STAR_BY_STAR
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a)
 {  
+  int i, Nstars;
+  double m;
   struct star_feedback star_particle = {0};
 
   // Add feedback contributions for each bin 
   for(i = 0; i < NBINS; i++) 
     {
-      Nstars = SP[index].StarBins[i];
+      Nstars = SP[index].NumOfStarsInBins[i];
       
       m = StarMeanMassInBins[i]; 
 

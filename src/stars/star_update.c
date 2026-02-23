@@ -5,12 +5,11 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#include "../stars/star.h"
 
 static int int_compare(const void *a, const void *b);
 
 /* Sph loop kernel function */
-static void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
+void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
 {
   // Cubic spline
   double K_norm = 8.0 / M_PI;
@@ -47,8 +46,12 @@ void star_prep(void)
       
       MyDouble star_timestep = All.TimeStep;
       MyDouble star_age = All.Time - SP[i].Birthtime;
-      MyDouble star_mass = PPS(i).Mass; 
+      MyDouble star_mass = PPS(i).Mass;
+#ifdef METALS 
       MyDouble star_metals = SP[i].Metals;
+#else 
+      MyDouble star_metals = 0;
+#endif
       MyDouble star_metallicity = star_metals/star_mass;
     
       // Convert units (-> solar masses and years) (cosmological?)
