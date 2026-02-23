@@ -4,47 +4,6 @@
 
 #include "../stars/star_particle.h"
 
-double StarMassBins[NBINS + 1] = 
-{
-  /* Region A */
-  MMIN, 2.0,
-
-  /* Region B */
-  4.0, 6.0, 8.0,
-
-  /* Region C: 8–20, Δm = 0.2 (60 bins) */
-  8.2, 8.4, 8.6, 8.8, 9.0,
-  9.2, 9.4, 9.6, 9.8, 10.0,
-  10.2, 10.4, 10.6, 10.8, 11.0,
-  11.2, 11.4, 11.6, 11.8, 12.0,
-  12.2, 12.4, 12.6, 12.8, 13.0,
-  13.2, 13.4, 13.6, 13.8, 14.0,
-  14.2, 14.4, 14.6, 14.8, 15.0,
-  15.2, 15.4, 15.6, 15.8, 16.0,
-  16.2, 16.4, 16.6, 16.8, 17.0,
-  17.2, 17.4, 17.6, 17.8, 18.0,
-  18.2, 18.4, 18.6, 18.8, 19.0,
-  19.2, 19.4, 19.6, 19.8, 20.0,
-
-  /* Region D: 20–40, Δm = 1 (20 bins) */
-  21.0, 22.0, 23.0, 24.0, 25.0,
-  26.0, 27.0, 28.0, 29.0, 30.0,
-  31.0, 32.0, 33.0, 34.0, 35.0,
-  36.0, 37.0, 38.0, 39.0, 40.0,
-
-  /* Region E: 40–80, Δm = 2 (20 bins) */
-  42.0, 44.0, 46.0, 48.0, 50.0,
-  52.0, 54.0, 56.0, 58.0, 60.0,
-  62.0, 64.0, 66.0, 68.0, 70.0,
-  72.0, 74.0, 76.0, 78.0, 80.0,
-
-  /* Region F: 80–120, Δm = 4 (10 bins) */
-  84.0, 88.0, 92.0, 96.0, 100.0,
-  104.0, 108.0, 112.0, 116.0, MMAX
-};
-  
-double StarMeanMassInBins[NBINS];
-
 /* Compute integral with the trapezoid method */
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
 {
@@ -110,23 +69,6 @@ double m_times_imf(double m)
   return m * imf(m);
 }
 
-void setup_mass_bins(void)
-{
-  int i;
-  double m1, m2, numerator, denominator;
-  
-  for(i = 0; i < NBINS; i++)
-    {
-      m1 = StarMassBins[i];
-      m2 = StarMassBins[i+1];
-
-      numerator = IntegralTrapezoidal(m1, m2, 100, m_times_imf);
-      denominator = IntegralTrapezoidal(m1, m2, 100, imf);
-
-      StarMeanMassInBins[i] = numerator / denominator;
-    }
-}
-
 /* --- CDF table (built once, reused for all draws) --- */
 double cdf_masses[N_CDF_BINS + 1];   /* mass values at each node */
 double cdf_values[N_CDF_BINS + 1];   /* cumulative probability at each node */
@@ -187,6 +129,65 @@ double sample_imf(double u)
     return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));;
 }
 
+#ifndef STAR_BY_STAR
+double StarMassBins[NBINS + 1] = 
+{
+  /* Region A */
+  MMIN, 2.0,
+
+  /* Region B */
+  4.0, 6.0, 8.0,
+
+  /* Region C: 8–20, Δm = 0.2 (60 bins) */
+  8.2, 8.4, 8.6, 8.8, 9.0,
+  9.2, 9.4, 9.6, 9.8, 10.0,
+  10.2, 10.4, 10.6, 10.8, 11.0,
+  11.2, 11.4, 11.6, 11.8, 12.0,
+  12.2, 12.4, 12.6, 12.8, 13.0,
+  13.2, 13.4, 13.6, 13.8, 14.0,
+  14.2, 14.4, 14.6, 14.8, 15.0,
+  15.2, 15.4, 15.6, 15.8, 16.0,
+  16.2, 16.4, 16.6, 16.8, 17.0,
+  17.2, 17.4, 17.6, 17.8, 18.0,
+  18.2, 18.4, 18.6, 18.8, 19.0,
+  19.2, 19.4, 19.6, 19.8, 20.0,
+
+  /* Region D: 20–40, Δm = 1 (20 bins) */
+  21.0, 22.0, 23.0, 24.0, 25.0,
+  26.0, 27.0, 28.0, 29.0, 30.0,
+  31.0, 32.0, 33.0, 34.0, 35.0,
+  36.0, 37.0, 38.0, 39.0, 40.0,
+
+  /* Region E: 40–80, Δm = 2 (20 bins) */
+  42.0, 44.0, 46.0, 48.0, 50.0,
+  52.0, 54.0, 56.0, 58.0, 60.0,
+  62.0, 64.0, 66.0, 68.0, 70.0,
+  72.0, 74.0, 76.0, 78.0, 80.0,
+
+  /* Region F: 80–120, Δm = 4 (10 bins) */
+  84.0, 88.0, 92.0, 96.0, 100.0,
+  104.0, 108.0, 112.0, 116.0, MMAX
+};
+  
+double StarMeanMassInBins[NBINS];
+
+void setup_mass_bins(void)
+{
+  int i;
+  double m1, m2, numerator, denominator;
+  
+  for(i = 0; i < NBINS; i++)
+    {
+      m1 = StarMassBins[i];
+      m2 = StarMassBins[i+1];
+
+      numerator = IntegralTrapezoidal(m1, m2, 100, m_times_imf);
+      denominator = IntegralTrapezoidal(m1, m2, 100, imf);
+
+      StarMeanMassInBins[i] = numerator / denominator;
+    }
+}
+
 /* Draw masses for a star particle of total mass M_particle */
 void sample_star_particle(double m, int *bins)
 {
@@ -208,3 +209,4 @@ void sample_star_particle(double m, int *bins)
         bins[bin]++;
       }
 }
+#endif

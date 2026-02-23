@@ -48,12 +48,8 @@
 
 #include "../gravity/forcetree.h"
 
-#ifdef STARS
 #include "../stars/star.h"
-#ifndef STAR_BY_STAR
 #include "../stars/star_particle.h"
-#endif
-#endif
 
 #ifdef USE_SFR
 
@@ -137,7 +133,8 @@ if(need_realloc_global)
             {
               p = All.Epsilon * dt / dtff;
                
-              draw_star;
+              u = get_random_number_aux();
+              mass_of_star = sample_imf(u);
 
               prob = (P[i].Mass / mass_of_star) * (1 - exp(-p));
             }
