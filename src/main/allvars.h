@@ -1236,6 +1236,14 @@ extern struct global_data_all_processes
 #endif
 #endif
 
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  double StarFormationEfficiency;
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  int IMF 
+#endif
+
 #ifdef MHD_POWELL
   double Powell_Momentum[3];
   double Powell_Angular_Momentum[3];
@@ -1293,6 +1301,17 @@ extern struct global_data_all_processes
 
   double GlobalDisplacementVector[3];
 
+#ifdef USE_GRACKLE
+  code_units GrackleUnits;
+  grackle_field_data GrackleFieldData;
+  char GrackleDataFile[100];
+#endif
+
+#ifdef METALS
+double InitMetallicityinSolar; 
+double ConstantMetallicityYield;
+#endif 
+
 #if defined(BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
   /* for parameter file */
   double FeedbackTime;
@@ -1324,34 +1343,12 @@ extern struct global_data_all_processes
   double StarDesNgb;
   double StarDesDev;
   char StarTablesFile[MAXLEN_PATH];
-
-#ifdef WINDS  
-  double WindVelocity;
-#endif
-
+#endif  
+  
 #ifdef SUPERNOVAE
   double Ftherm;
   double Fsn;
 #endif
-
-#ifndef STAR_BY_STAR
-  int IMF;
-#endif 
-#endif
-
-#ifdef USE_GRACKLE
-  code_units GrackleUnits;
-  grackle_field_data GrackleFieldData;
-  char GrackleDataFile[100];
-#endif
-
-#ifdef METALS
-double InitMetallicityinSolar;
-#endif // METALS
-    
-#if defined(METALS) 
-double ConstantMetallicityYield;
-#endif  // defined(METALS) 
 } All;
 
 /*****************************************************************************

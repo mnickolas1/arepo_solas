@@ -477,6 +477,7 @@ void read_parameter_file(char *fname)
         strcpy(tag[nt], "CritPhysDensity");
         addr[nt] = &All.CritPhysDensity;
         id[nt++] = REAL;
+#endif
         
 #ifdef EEOS_SF
         strcpy(tag[nt], "TemperatureThresh");
@@ -508,15 +509,15 @@ void read_parameter_file(char *fname)
         id[nt++] = REAL;
 #endif /* #ifdef EEOS_SF */
         
+#if defined(AGORA_SF) || defined(JEANS_SF) || defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+        strcpy(tag[nt], "StarFormationEfficiency");  // Value between 0 and 1
+        addr[nt] = &All.StarFormationEfficiency;
+        id[nt++] = REAL;
+#endif
+
 #ifdef AGORA_SF
         strcpy(tag[nt], "StarFormationNumberDensityThreshold"); // n_H in units of cm^-3
         addr[nt] = &All.StarFormationNumberDensityThreshold;
-        id[nt++] = REAL;
-#endif
-        
-#if defined(AGORA_SF) || defined(JEANS_SF)
-        strcpy(tag[nt], "StarFormationEfficiency");  // Value between 0 and 1
-        addr[nt] = &All.StarFormationEfficiency;
         id[nt++] = REAL;
 #endif
         
@@ -524,9 +525,13 @@ void read_parameter_file(char *fname)
         strcpy(tag[nt], "JeansMassThreshold");
         addr[nt] = &All.JeansMassThreshold;
         id[nt++] = REAL;
-#endif // JEANS_MASS_BASED
-        
-#endif // defined(USE_SFR)
+#endif 
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      strcpy(tag[nt], "IMF");
+      addr[nt] = &All.IMF;
+      id[nt++] = INT;
+#endif
         
 /* Metallicity */
 #ifdef METALS
@@ -585,11 +590,6 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "StarTablesFile");
       addr[nt] = All.StarTablesFile;
       id[nt++] = STRING;
-#ifndef STAR_BY_STAR
-      strcpy(tag[nt], "IMF");
-      addr[nt] = &All.IMF;
-      id[nt++] = INT;
-#endif
 #endif
 
 #ifdef SUPERNOVAE      

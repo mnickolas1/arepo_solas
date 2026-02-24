@@ -50,8 +50,6 @@
 
 #include "../stars/star_particle.h"
 
-#ifdef USE_SFR
-
 static int stars_spawned;           /*!< local number of star particles spawned in the time step */
 static int tot_stars_spawned;       /*!< global number of star paricles spawned in the time step */
 static int stars_converted;         /*!< local number of gas cells converted into stars in the time step */
@@ -114,11 +112,6 @@ if(need_realloc_global)
           if(P[i].Mass == 0 && P[i].ID == 0)
             continue; /* skip cells that have been swallowed or eliminated */
 
-#ifdef SFR_KEEP_CELLS
-          if(P[i].Mass < 0.3 * All.TargetGasMass)
-            continue;
-#endif /* #ifdef SFR_KEEP_CELLS */
-
           dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
           dt *= All.cf_atime / All.cf_time_hubble_a;
 
@@ -135,7 +128,7 @@ if(need_realloc_global)
               u = get_random_number_aux();
               mass_of_star = sample_imf(u);
 
-              prob = (P[i].Mass / mass_of_star) * (1 - exp(-p));
+              prob = (1 - exp(-p));
             }
 
           if(prob == 0)
@@ -155,7 +148,7 @@ if(need_realloc_global)
           p_decide = get_random_number();
 
           if(p_decide < prob) /* ok, it is decided to consider star formation */
-            make_star(idx, i, prob, mass_of_star, &sum_mass_stars);
+            make_star(i, mass_of_star, &sum_mass_stars);
         }
     } /* end of main loop over active gas particles */
 
@@ -257,7 +250,7 @@ if(need_realloc_global)
  *
  *  \return void
  */
-void convert_cell_into_star(int i, double birthtime)
+void spawn_heavy(int i, double birthtime)
 {
   P[i].Type          = 4;
   P[i].SofteningType = All.SofteningTypeOfPartType[P[i].Type];
@@ -320,7 +313,7 @@ void convert_cell_into_star(int i, double birthtime)
  *
  *  \return void
  */
-void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_of_star)
+void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
   P[istar]               = P[igas];
   P[istar].Type          = 4;
@@ -337,15 +330,6 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   P[istar].Pos[0] += rx;
   P[istar].Pos[1] += ry;
   P[istar].Pos[2] += rz;
-
-#if defined(REFINEMENT_HIGH_RES_GAS)
-  if(SphP[igas].HighResMass < HIGHRESMASSFAC * P[igas].Mass)
-    {
-      /* this cell does not appear to be in the high-res region.
-         We give the star the SofteningType=3 particle to give it large softening */
-      P[istar].SofteningType = All.SofteningTypeOfPartType[3];
-    }
-#endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
 
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
@@ -422,39 +406,19 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
  *
  *  \return void
  */
-void make_star(int idx, int i, double prob, MyDouble mass_of_star, double *sum_mass_stars)
+void make_star(int idx, int i, MyDouble mass_of_star, double *sum_mass_stars)
 {
-  if(mass_of_star > P[i].Mass)
-    terminate("mass_of_star > P[i].Mass");
+  altogether_spawned = stars_spawned;
+  if(NumPart + altogether_spawned >= All.MaxPart)
+    terminate("NumPart=%d spwawn %d particles no space left (All.MaxPart=%d)\n", NumPart, altogether_spawned, All.MaxPart);
 
-  if(get_random_number() < prob)
-    {
-      if(mass_of_star == P[i].Mass)
-        {
-          /* here we turn the gas particle itself into a star particle */
-          Stars_converted++;
-          stars_converted++;
+  int j = NumPart + altogether_spawned;
+  *sum_mass_stars += mass_of_star;
+  stars_spawned++;
 
-          *sum_mass_stars += P[i].Mass;
+  if(mass_of_star < P[i].Mass)
+    spawn_light(i, All.Time, j, mass_of_star);
 
-          convert_cell_into_star(i, All.Time);
-          timebin_remove_particle(&TimeBinsHydro, idx, P[i].TimeBinHydro);
-        }
-      else
-        {
-          /* in this case we spawn a new star particle, only reducing the mass in the cell by mass_of_star */
-          altogether_spawned = stars_spawned;
-          if(NumPart + altogether_spawned >= All.MaxPart)
-            terminate("NumPart=%d spwawn %d particles no space left (All.MaxPart=%d)\n", NumPart, altogether_spawned, All.MaxPart);
-
-          int j = NumPart + altogether_spawned; /* index of new star */
-
-          spawn_star_from_cell(i, All.Time, j, mass_of_star);
-
-          *sum_mass_stars += mass_of_star;
-          stars_spawned++;
-        }
-    }
+  else 
+    spawn_heavy();
 }
-
-#endif /* #ifdef USE_SFR */
