@@ -1604,6 +1604,10 @@ extern struct sph_particle_data
 MyDouble StarMomentumFeed[3]; 
 #endif
 
+#if defined(WINDS) || defined(SUPERNOVAE)
+  MyDouble StarEnergyFeed;
+#endif
+
 #ifdef PHOTOIONIZATION
   MyDouble PI_Balance;
 #endif 
@@ -1618,11 +1622,6 @@ MyDouble StarMomentumFeed[3];
   MyDouble RAD_Ultraviolet;
   MyDouble RAD_Optical;
   MyDouble RAD_Infrared;
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble StarThermalFeed;
-  MyDouble StarKineticFeed;
 #endif
 
 } * SphP,          /*!< holds SPH particle data on local processor */

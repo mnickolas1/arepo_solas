@@ -35,7 +35,7 @@ typedef struct
 #ifdef METALS
   MyDouble SN_MetalsLoss;
 #endif
-  MyDouble SN_EnergyEject;
+  MyDouble SN_EnergyInject;
 #endif
 
   int Firstnode;
@@ -75,7 +75,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 #ifdef METALS
   in->SN_MetalsLoss  = SP[i].SN_MetalsLoss;
 #endif
-  in->SN_EnergyEject = SP[i].SN_EnergyEject;
+  in->SN_EnergyInject = SP[i].SN_EnergyInject;
 #endif
 
   in->Firstnode      = firstnode;
@@ -226,7 +226,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #ifdef METALS
   MyDouble SNmetalsloss = target_data->SN_MetalsLoss;
 #endif
-  MyDouble SNenergyeject = target_data->SN_EnergyEject;
+  MyDouble SNenergyinject = target_data->SN_EnergyInject;
 #endif  
 
   h2   = h * h;
@@ -282,7 +282,6 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
 #ifdef WINDS
-          // momentum conserving wind
           SphP[j].StarMassFeed += massloss * SphP[j].Volume / ngbvolume;
           All.StarFeedbackLocal[0] += massloss * SphP[j].Volume / ngbvolume;
 #ifdef METALS
@@ -293,19 +292,25 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
           SphP[j].StarMomentumFeed[1] += windmomentum * dy/r * SphP[j].Volume / ngbvolume;
           SphP[j].StarMomentumFeed[2] += windmomentum * dz/r * SphP[j].Volume / ngbvolume;
           All.StarFeedbackLocal[2] += windmomentum * SphP[j].Volume / ngbvolume;
+          
+          SphP[j].StarEnergyFeed += (windmomentum *  windmomentum) / (2 * massloss) * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[3] += (windmomentum *  windmomentum) / (2 * massloss) * SphP[j].Volume / ngbvolume;
 #endif
 
 #ifdef SUPERNOVAE
-          // energy conserving supernova 
           SphP[j].StarMassFeed += SNmassloss * SphP[j].Volume / ngbvolume;
           All.StarFeedbackLocal[0] += SNmassloss * SphP[j].Volume / ngbvolume;
 #ifdef METALS
           SphP[j].StarMetalsFeed += SNmetalsloss * SphP[j].Volume / ngbvolume;
           All.StarFeedbackLocal[1] += SNmetalsloss * SphP[j].Volume / ngbvolume;
 #endif
-          SphP[j].StarThermalFeed += All.Fsn*All.Ftherm*SNenergyeject * SphP[j].Volume / ngbvolume;
-          SphP[j].StarKineticFeed += All.Fsn*(1-All.Ftherm)*SNenergyeject * SphP[j].Volume / ngbvolume;
-          All.StarFeedbackLocal[3] += All.Fsn * SNenergyeject * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[0] += sqrt(2 * SNenergyinject * SNmassloss) * dx/r * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[1] += sqrt(2 * SNenergyinject * SNmassloss) * dy/r * SphP[j].Volume / ngbvolume;
+          SphP[j].StarMomentumFeed[2] += sqrt(2 * SNenergyinject * SNmassloss) * dz/r * SphP[j].Volume / ngbvolume;   
+          All.StarFeedbackLocal[2] += sqrt(2 * SNenergyinject * SNmassloss) * SphP[j].Volume / ngbvolume;
+
+          SphP[j].StarEnergyFeed += SNenergyinject * SphP[j].Volume / ngbvolume;
+          All.StarFeedbackLocal[3] += SNenergyinject * SphP[j].Volume / ngbvolume;
 #endif
         }
     }

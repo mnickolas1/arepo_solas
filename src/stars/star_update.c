@@ -81,7 +81,7 @@ void star_prep(void)
 #ifdef METALS
       SP[i].SN_MetalsLoss = star_feedback.SN_MetalsLoss;
 #endif
-      SP[i].SN_EnergyEject = star_feedback.SN_EnergyInject;
+      SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
 #endif
 
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
@@ -209,7 +209,6 @@ void perform_end_of_step_star_physics(void)
           P[i].Mass += SphP[i].StarMassFeed;
           All.StarFeedbackLocal[4] += SphP[i].StarMassFeed;
           SphP[i].StarMassFeed = 0;
-
 #ifdef METALS
           // Add metals
           SphP[i].Metals += SphP[i].StarMetalsFeed;
@@ -219,9 +218,6 @@ void perform_end_of_step_star_physics(void)
 #endif
             
 #if defined(WINDS) || defined(SUPERNOVAE) || defined (RADIATION_PRESSURE)
-
-#ifdef WINDS
-          // Momentum conserving wind 
           // Update momentum 
           SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0] * All.cf_atime;
           SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1] * All.cf_atime;
@@ -230,34 +226,16 @@ void perform_end_of_step_star_physics(void)
           pow(SphP[i].StarMomentumFeed[1],2) + pow(SphP[i].StarMomentumFeed[2],2));   
           // Update velocities 
           update_primitive_variables_single(P, SphP, i, &pvd);
-          // Update total energy 
-          SphP[i].Energy = SphP[i].Utherm * P[i].Mass +
-          0.5 * P[i].Mass * (pow(P[i].Vel[0], 2) + pow(P[i].Vel[1], 2) + pow(P[i].Vel[2], 2));
+          // Update total energy
+          SphP[i].Energy += SphP[i].StarEnergyFeed * All.cf_atime * All.cf_atime;
+          All.StarFeedbackLocal[7] += SphP[i].StarEnergyFeed;
           // Update internal energy 
           update_internal_energy(P, SphP, i, &pvd);
           // Update pressure
           set_pressure_of_cell_internal(P, SphP, i);
           // Set feed flags to zero
           SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
-#endif
-
-#ifdef SUPERNOVAE
-          // Energy conserving supernova
-          // Add energy  
-          SphP[i].Energy += (SphP[i].StarThermalFeed + SphP[i].StarKineticFeed) * All.cf_atime*All.cf_atime;
-          All.StarFeedbackLocal[7] += SphP[i].StarThermalFeed + SphP[i].StarKineticFeed;
-          // Update momentum 
-          // ---
-          // Update velocities 
-          update_primitive_variables_single(P, SphP, i, &pvd);
-          // Update internal energy 
-          update_internal_energy(P, SphP, i, &pvd);
-          // Update pressure 
-          set_pressure_of_cell_internal(P, SphP, i);
-          // Set feed flags to zero
-          SphP[i].StarThermalFeed = SphP[i].StarKineticFeed = 0;
-#endif
-
+          SphP[i].StarEnergyFeed = 0;
 #endif
         } // for(idx...
         

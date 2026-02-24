@@ -96,7 +96,7 @@ extern struct star_particle_data
 #ifdef METALS
   MyDouble SN_MetalsLoss;
 #endif
-  MyDouble SN_EnergyEject;
+  MyDouble SN_EnergyInject;
 #endif
 }  *SP;
 
