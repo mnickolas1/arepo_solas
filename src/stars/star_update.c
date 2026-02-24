@@ -54,9 +54,9 @@ void star_prep(void)
 #endif
       MyDouble star_metallicity = star_metals/star_mass;
     
-      // Convert units (-> solar masses and years) (cosmological?)
+      // Convert units (-> solar masses and years)
       star_timestep *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
-      star_age *= (All.UnitTime_in_s / SEC_PER_YEAR);
+      star_age *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
       star_mass *= (All.UnitMass_in_g / SOLAR_MASS);
 
 
@@ -223,9 +223,9 @@ void perform_end_of_step_star_physics(void)
 #ifdef WINDS
           // Momentum conserving wind 
           // Update momentum 
-          SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0];
-          SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1];
-          SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2];
+          SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0] * All.cf_atime;
+          SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1] * All.cf_atime;
+          SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2] * All.cf_atime;
           All.StarFeedbackLocal[6] += sqrt(pow(SphP[i].StarMomentumFeed[0],2) + 
           pow(SphP[i].StarMomentumFeed[1],2) + pow(SphP[i].StarMomentumFeed[2],2));   
           // Update velocities 
@@ -271,9 +271,9 @@ void perform_end_of_step_star_physics(void)
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",
                All.StarFeedbackGlobal[1], All.StarFeedbackGlobal[5]);
     mpi_printf("STARS: Momentum given by StarParts = %e, Momentum taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[2], All.StarFeedbackGlobal[6]);
+               All.StarFeedbackGlobal[2] * All.cf_atime, All.StarFeedbackGlobal[6] * All.cf_atime);
     mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[3], All.StarFeedbackGlobal[7]);   
+               All.StarFeedbackGlobal[3] * All.cf_atime * All.cf_atime, All.StarFeedbackGlobal[7] * All.cf_atime * All.cf_atime);   
 } 
 
 static int int_compare(const void *a, const void *b)
