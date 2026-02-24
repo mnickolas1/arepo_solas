@@ -19,7 +19,7 @@ double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
 /* Unnormalized Kroupa IMF */
 double imf_kroupa(double m) 
 {
-  if(m < 0.1 || m > 100.0) return 0.0;
+  if(m < MMIN || m > MMAX) return 0.0;
   
   if(m < 0.5) return pow(m, -1.3);
   
@@ -29,7 +29,7 @@ double imf_kroupa(double m)
 /* Unnormalized Chabrier IMF */
 double imf_chabrier(double m) 
 {
-  if(m < 0.1 || m > 100.0) return 0.0;
+  if(m < MMIN || m > MMAX) return 0.0;
 
   if(m <= 1.0) 
     {
@@ -45,7 +45,7 @@ double imf_chabrier(double m)
 /* Unnormalized Salpeter IMF */
 double imf_salpeter(double m) 
 {
-  if(m < 0.1 || m > 100.0) return 0.0;
+  if(m < MMIN || m > MMAX) return 0.0;
   
   return pow(m, -2.35);
 }

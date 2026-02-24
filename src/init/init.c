@@ -564,9 +564,19 @@ int init(void)
 
   load_stellar_tables(All.StarTablesFile);
 
+if(ThisTask == 0)
+  {
+    build_imf_cdf();
+
 #ifndef STAR_BY_STAR
-  setup_mass_bins();
-  build_imf_cdf();
+    setup_mass_bins();
+#endif
+  }
+MPI_Bcast(cdf_masses, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+MPI_Bcast(cdf_values, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#ifndef STAR_BY_STAR
+MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 #endif
 
