@@ -219,7 +219,7 @@ if(need_realloc_global)
 #ifdef STAR_FEEDBACK_ACTIVE
 #ifndef STAR_BY_STAR
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
-    sample_star_particle(PPS(i).Mass, SP[i].NumOfStarsInBins);
+    sample_star_particle(PPS(i).Mass * (All.UnitMass_in_g / SOLAR_MASS), SP[i].NumOfStarsInBins);
 #endif
 #endif
 

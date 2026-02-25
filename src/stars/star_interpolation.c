@@ -274,7 +274,7 @@ static struct star_interpolate interpolate_metallicity(double z_val, double m_va
     {
       double z0 = Z_VALUES[z];
       double z1 = Z_VALUES[z + 1];
-      if (z_val >= z0 && z_val <= z1)
+      if(z_val >= z0 && z_val <= z1)
         {
           struct star_interpolate feedback0 = interpolate_mass(z, m_val, a);
           struct star_interpolate feedback1 = interpolate_mass(z + 1, m_val, a);
@@ -347,7 +347,7 @@ static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_va
     {
       double m0 = M_VALUES[m];
       double m1 = M_VALUES[m + 1];
-      if (m_val >= m0 && m_val <= m1)
+      if(m_val >= m0 && m_val <= m1)
         {
           SNfeedback.SN_MassLoss = linear_interpolation(m_val, m0, m1, SN_massloss[m], SN_massloss[m + 1]);
 #ifdef METALS
