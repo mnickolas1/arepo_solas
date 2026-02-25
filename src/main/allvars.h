@@ -1241,7 +1241,7 @@ extern struct global_data_all_processes
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  int IMF 
+  int IMF;
 #endif
 
 #ifdef MHD_POWELL

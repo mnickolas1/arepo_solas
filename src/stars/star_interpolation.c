@@ -327,7 +327,7 @@ static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_va
 #ifdef METALS
       SNfeedback.SN_MetalsLoss = SN_metalsloss[0];
 #endif
-      SNfeedback.SN_EnergyInject = 1e51;
+      SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
       
       return SNfeedback;
     }       
@@ -338,7 +338,7 @@ static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_va
 #ifdef METALS
       SNfeedback.SN_MetalsLoss = SN_metalsloss[M_COUNT - 1];
 #endif
-      SNfeedback.SN_EnergyInject = 1e51;
+      SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
       
       return SNfeedback;
     } 
@@ -353,7 +353,7 @@ static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_va
 #ifdef METALS
           SNfeedback.SN_MetalsLoss = linear_interpolation(m_val, m0, m1, SN_metalsloss[m], SN_metalsloss[m + 1]);
 #endif
-          SNfeedback.SN_EnergyInject = 1e51;
+          SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
           
           return SNfeedback;
         } 
@@ -383,7 +383,7 @@ static struct star_interpolate SN_interpolate_metallicity(double z_val, double m
 #ifdef METALS
           SNfeedback.SN_MetalsLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MetalsLoss, SNfeedback1.SN_MetalsLoss);
 #endif
-          SNfeedback.SN_EnergyInject = 1e51;
+          SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
           
           return SNfeedback;
         }
@@ -397,6 +397,9 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
 {
   double tau = lifetime(z_val, m_val);
   struct star_feedback star = {0};
+
+  if(m_val <= 2)
+    return star;
 
   if(a < tau)
     {
