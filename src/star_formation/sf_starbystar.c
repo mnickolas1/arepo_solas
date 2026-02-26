@@ -11,8 +11,6 @@
 static int sf_starbystar_evaluate(int target, int mode, int threadid);
 static int sf_starbystar_isactive(int n);
 
-static MyFloat *StarNumNgb;
-
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
  *         pointers DataIn and DataGet needed by generic_comm_helpers2.
@@ -50,7 +48,7 @@ static void particle2in(data_in *in, int i, int firstnode)
  */
 typedef struct
 { 
-  MyDouble FormationMass;
+  MyDouble NgbMass;
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -70,11 +68,11 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      StarFormationMass[i] = out->FormationMass;
+      SP[i].StarNgbMass = out->NgbMass;
     }
   else /* combine */
     {
-      StarFormationMass[i] += out->FormationMass;
+      SP[i].StarNgbMass += out->NgbMass;
     }
 }
 
@@ -162,7 +160,6 @@ void sf_starbystar(mass_of_star)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  StarFormationMass = (MyFloat *)mymalloc("StarFormationMass", NumStars * sizeof(MyFloat));
   Left = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
   Right = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
 
@@ -188,10 +185,11 @@ void sf_starbystar(mass_of_star)
       for(i = 0, npleft = 0; i < NumStars; i++)
         {
           //i = TimeBinsStar.ActiveParticleList[idx];
+          
           if(SP[i].Hsml > 10*cbrt((3.0*All.MeanVolume)/(4.0*M_PI)))
             terminate("Star formation radius too large!");
 
-          if(StarFormationMass[i] < (5*mass_of_star) || StarFormationMass[i] > (10*mass_of_star))
+          if(SP[i].NgbMass < (5*mass_of_star) || SP[i].NgbMass > (10*mass_of_star))
             {
               /* need to redo this particle */
               npleft++;
@@ -207,7 +205,7 @@ void sf_starbystar(mass_of_star)
                     }
                 } 
 
-              if(StarFormationMass[i] < (mass_of_star - 0.5 * mass_of_star))
+              if(SP[i].NgbMass < (mass_of_star - 0.5 * mass_of_star))
                 Left[i] = dmax(SP[i].Hsml, Left[i]);
               else
                 {
@@ -289,7 +287,7 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
   int j, n, numnodes, *firstnode; 
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble *pos, formationmass;
+  MyDouble *pos, ngbmass;
 
   data_in local, *target_data;
   data_out out;
@@ -320,7 +318,7 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
 
-  formationmass = 0;
+  ngbmass = 0;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -364,11 +362,11 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           // compute the star-ngb-mass 
-          formationmass += P[j].Mass * wk;
+          ngbmass += P[j].Mass * wk;
         }
     }
 
-  out.FormationMass = formationmass;
+  out.NgbMass = ngbmass;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)

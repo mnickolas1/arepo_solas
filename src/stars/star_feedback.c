@@ -296,8 +296,8 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
               SphP[j].StarMomentumFeed[2] += windmomentum * dz/r * SphP[j].Volume / ngbvolume;
               All.StarFeedbackLocal[2] += windmomentum * SphP[j].Volume / ngbvolume;
           
-              SphP[j].StarEnergyFeed += (windmomentum *  windmomentum) / (2 * massloss) * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[3] += (windmomentum *  windmomentum) / (2 * massloss) * SphP[j].Volume / ngbvolume;
+              SphP[j].StarEnergyFeed += windmomentum *  windmomentum / (2 * massloss) * SphP[j].Volume / ngbvolume;
+              All.StarFeedbackLocal[3] += windmomentum *  windmomentum / (2 * massloss) * SphP[j].Volume / ngbvolume;
             }
 #endif     
 

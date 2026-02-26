@@ -1551,6 +1551,10 @@ extern struct sph_particle_data
   MySingle Sfr;
 #endif /* #ifdef USE_SFR */
 
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  StarMassDrain;
+#endif
+
 #ifdef OUTPUT_COOLHEAT
   MyFloat CoolHeat;
 #endif /* #ifdef OUTPUT_COOLHEAT */
