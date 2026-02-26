@@ -188,8 +188,10 @@ void sf_starbystar(mass_of_star)
       for(i = 0, npleft = 0; i < NumStars; i++)
         {
           //i = TimeBinsStar.ActiveParticleList[idx];
+          if(SP[i].Hsml > 10*cbrt((3.0*All.MeanVolume)/(4.0*M_PI)))
+            terminate("Star formation radius too large!");
 
-          if(StarFormationMass[i] < (mass_of_star - 0.5 * mass_of_star) || StarFormationMass[i] > (mass_of_star + 0.5 * mass_of_star))
+          if(StarFormationMass[i] < (5*mass_of_star) || StarFormationMass[i] > (10*mass_of_star))
             {
               /* need to redo this particle */
               npleft++;
@@ -362,25 +364,11 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           // compute the star-ngb-mass 
-          ngbmass += P[j].Mass;
-          // compute the star-ngb-volume
-          ngbvolume += SphP[j].Volume;
-          // compute the min hydro step for neighbors   
-          if(bin > P[j].TimeBinHydro)
-            bin = P[j].TimeBinHydro;
+          formationmass += P[j].Mass * wk;
         }
     }
 
-/* compute star timestep based on min ngb timestep */
-  if(bin == 0)
-    ngb_min_step = 0;
-  else
-    ngb_min_step   = (((integertime)1) << bin);
-  
-  out.NumNgb = numngb;
-  out.NgbMass = ngbmass;
-  out.NgbVolume = ngbvolume;
-  out.NgbMinStep  = ngb_min_step;
+  out.FormationMass = formationmass;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)

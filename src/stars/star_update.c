@@ -59,7 +59,6 @@ void star_prep(void)
       star_age *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
       star_mass *= (All.UnitMass_in_g / SOLAR_MASS);
 
-
       struct star_feedback star_feedback;
 
 #ifndef STAR_BY_STAR
