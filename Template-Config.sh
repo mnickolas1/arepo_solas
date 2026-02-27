@@ -11,7 +11,7 @@
 #--------------------------------------- Star options
 #STARS                  # General stars framework flag
 
-#STAR_PARTICLES = 1     # Star particles model flag: set to 1 for massive star particles, set to 2 for resolved individual stars
+#STAR_PARTICLES=1     # Star particles model flag: set to 1 for massive star particles, set to 2 for resolved individual stars
 
 #STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
 
@@ -29,6 +29,8 @@
 #AGORA_SF               # Agora based SF
 #JEANS_SF               # Jeans length based SF
 #JEANS_MASS_BASED       # Jeans mass based SF
+
+#INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars (need STAR_PARTICLES=2 AND USE_SFR)
 
 #--------------------------------------- Blackhole options
 #BLACKHOLES

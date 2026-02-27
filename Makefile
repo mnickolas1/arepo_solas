@@ -371,6 +371,21 @@ ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
 OBJS += stars/star_radiation.o 
 endif
 
+ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
+ifeq (,$(filter STAR_PARTICLES=2,$(CONFIGVARS)))
+$(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES = 2 and USE_SFR)
+endif
+ifeq (,$(filter USE_SFR,$(CONFIGVARS)))
+$(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES = 2 and USE_SFR)
+endif
+endif
+
+ifneq (,$(filter $(INDIVIDUAL_STAR_BY_STAR_FORMATION),$(CONFIGVARS)))
+OBJS += star_formation/individual_star_formation.o \
+        star_formation/sf_starbystar.o \
+        star_formation/sf_massdrain.o   
+endif
+
 ################################
 #determine the needed libraries#
 ################################
