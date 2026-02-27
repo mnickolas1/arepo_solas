@@ -19,6 +19,8 @@ typedef struct
 {
   MyDouble Pos[3];
   MyFloat Hsml;
+  MyDouble MassOfStar;
+
   int Firstnode;
 } data_in;
 
@@ -39,6 +41,8 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->Pos[1]        = PPS(i).Pos[1];
   in->Pos[2]        = PPS(i).Pos[2];
   in->Hsml          = SP[i].Hsml;
+  in->MassOfStar    = SP[i].MassOfStar;
+
   in->Firstnode     = firstnode;
 }  
 
@@ -151,7 +155,7 @@ static void kernel_imported(void)
  *
  *  \return void
  */
-void sf_starbystar(mass_of_star)
+void sf_starbystar()
 {
   MyFloat *Left, *Right;
   int idx, i, npleft, iter = 0;
@@ -189,7 +193,7 @@ void sf_starbystar(mass_of_star)
           if(SP[i].Hsml > 10*cbrt((3.0*All.MeanVolume)/(4.0*M_PI)))
             terminate("Star formation radius too large!");
 
-          if(SP[i].NgbMass < (5*mass_of_star) || SP[i].NgbMass > (10*mass_of_star))
+          if(SP[i].NgbMass < (5*SP[i].MassOfStar) || SP[i].NgbMass > (10*SP[i].MassOfStar))
             {
               /* need to redo this particle */
               npleft++;
@@ -205,7 +209,7 @@ void sf_starbystar(mass_of_star)
                     }
                 } 
 
-              if(SP[i].NgbMass < (mass_of_star - 0.5 * mass_of_star))
+              if(SP[i].NgbMass < (10*SP[i].MassOfStar))
                 Left[i] = dmax(SP[i].Hsml, Left[i]);
               else
                 {

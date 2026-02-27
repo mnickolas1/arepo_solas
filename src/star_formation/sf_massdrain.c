@@ -18,6 +18,7 @@ typedef struct
 {
   MyDouble Pos[3];
   MyFloat Hsml;
+  MyDouble MassOfStar;
   MyDouble NgbMass;
   
   int Firstnode;
@@ -40,6 +41,7 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->Pos[1]        = PPS(i).Pos[1];
   in->Pos[2]        = PPS(i).Pos[2];
   in->Hsml          = SP[i].Hsml;
+  in->MassOfStar    = SP[i].MassOfStar;
   in->NgbMass       = SP[i].NgbMass;
 
   in->Firstnode     = firstnode;
@@ -151,7 +153,7 @@ static void kernel_imported(void)
  *
  *  \return void
  */
-void sf_massdrain(mass_of_star)
+void sf_massdrain()
 {
   generic_set_MaxNexport();
   generic_comm_pattern(NumStars, kernel_local, kernel_imported);
@@ -174,7 +176,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   int j, n, numnodes, *firstnode; 
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble *pos, ngbmass;
+  MyDouble *pos, massofstar, ngbmass;
 
   data_in local, *target_data;
   data_out out;
@@ -197,6 +199,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   pos = target_data->Pos;
   h = target_data->Hsml;
   
+  massofstar = target_data->MassOfStar;
   ngbmass = target_data->NgbMass;
 
   h2 = h * h;
@@ -250,7 +253,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           // compute the mass drain
-          SphP[j].StarMassDrain += mass_of_star * P[j] * wk / ngbmass;
+          SphP[j].StarMassDrain += massofstar * P[j] * wk / ngbmass;
         }
     }
   return 0;

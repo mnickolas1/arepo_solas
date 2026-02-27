@@ -66,6 +66,8 @@ extern struct star_particle_data
 #ifndef STAR_BY_STAR
   int NumOfStarsInBins[NBINS];
 #endif
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  MyDouble MassOfStar;
 #endif
 
 #ifdef WINDS 
