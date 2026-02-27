@@ -19,21 +19,35 @@ extern int NumStars;
 #endif
 
 #if defined(WINDS) \
-|| defined(PHOTOIONIZATION) \
-|| defined(PHOTOELECTRIC_HEATING) \
-|| defined(RADIATION_PRESSURE) \
+|| defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE) \
 || defined(SUPERNOVAE)
 #define STAR_FEEDBACK_ACTIVE
 #endif
 
-#ifdef STAR_FEEDBACK_ACTIVE
+#if defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
+#define STAR_RADIATION_ACTIVE
+#endif
+
+#if defined(STAR_FEEDBACK_ACTIVE) 
+#ifndef STAR_PARTICLES
+#error "We cannot run star feedback simulations without a star particles model!"
+#endif
+#endif
+
+#if defined(STAR_PARTICLES) || (STAR_FEEDBACK_ACTIVE)
 #ifndef STARS
 #error "We cannot run star feeedback simulations without stars!"
 #endif
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-#define STAR_RADIATION_ACTIVE
+#if defined(STAR_PARTICLES) 
+#if !defined(USE_SFR) && !defined(STAR_FEEDBACK_ACTIVE) 
+#error "We need star formation/feedback for star particles!"
+#endif
+#endif
+
+#ifdef STAR_PARTICLES
+#include "../stars/star_particle.h"
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
@@ -41,11 +55,6 @@ extern int NumStars;
 extern struct TimeBinData TimeBinsStar;
 #endif
 
-#ifdef STAR_FEEDBACK_ACTIVE
-#ifndef STAR_BY_STAR
-#include "../stars/star_particle.h"
-#endif
-#endif
 
 extern struct star_particle_data
 {
@@ -53,6 +62,14 @@ extern struct star_particle_data
 
 #ifdef METALS
  MyDouble Metals;
+#endif
+
+#if STAR_PARTICLES == 1
+  int NumOfStarsInBins[NBINS];
+#endif
+
+#if STAR_PARTICLES == 2
+  MyDouble MassOfStar;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
@@ -63,11 +80,6 @@ extern struct star_particle_data
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble Birthtime;
-#ifndef STAR_BY_STAR
-  int NumOfStarsInBins[NBINS];
-#endif
-#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-  MyDouble MassOfStar;
 #endif
 
 #ifdef WINDS 

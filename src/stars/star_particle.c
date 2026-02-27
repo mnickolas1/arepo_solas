@@ -130,7 +130,7 @@ double sample_imf(double u)
     return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));;
 }
 
-#ifndef STAR_BY_STAR
+#if STAR_PARTICLES = 1
 double StarMassBins[NBINS + 1] = 
 {
   /* Region A */

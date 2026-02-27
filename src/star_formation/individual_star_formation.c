@@ -52,8 +52,6 @@
 
 static int stars_spawned;           /*!< local number of star particles spawned in the time step */
 static int tot_stars_spawned;       /*!< global number of star paricles spawned in the time step */
-static int stars_converted;         /*!< local number of gas cells converted into stars in the time step */
-static int tot_stars_converted;     /*!< global number of gas cells converted into stars in the time step */
 static int altogether_spawned;      /*!< local number of particles spawned in the time step */
 static int tot_altogether_spawned;  /*!< global number of particles spawned in the time step */
 static double cum_mass_stars = 0.0; /*!< cumulative mass of stars created in the time step (global value) */

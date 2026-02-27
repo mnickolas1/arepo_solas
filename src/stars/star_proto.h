@@ -25,16 +25,19 @@ struct star_feedback units_for_feedback(struct star_feedback star);
 
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 
-#ifndef STAR_BY_STAR
+#ifdef STAR_PARTICLES
 /* IMF */
 double imf_kroupa(double m); 
 double imf_chabrier(double m); 
 double imf_salpeter(double m);
 double imf(double m); 
 double m_times_imf(double m); 
-void setup_mass_bins(void);
 void build_imf_cdf(void);
 double sample_imf(double u);
+#endif
+
+#if STAR_PARTICLES = 1
+void setup_mass_bins(void);
 void sample_star_particle(double m, int *bins);
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a);
 #endif

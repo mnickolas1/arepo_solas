@@ -11,7 +11,7 @@
 #--------------------------------------- Star options
 #STARS                  # General stars framework flag
 
-#STAR_BY_STAR           # Resolved individual star particles
+#STAR_PARTICLES = 1     # Star particles model flag: set to 1 for massive star particles, set to 2 for resolved individual stars
 
 #STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
 

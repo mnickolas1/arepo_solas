@@ -33,7 +33,7 @@
  *
  * - DD.MM.YYYY Description
  * - 04.05.2018 Prepared file for public release -- Rainer Weinberger
- *  - 10/10/2025 Added functionality to compute initial smoothing lengths for stars and black holes - Chris Power
+ * - 10/10/2025 Added functionality to compute initial smoothing lengths for stars and black holes - Chris Power
  */
 
 #include <gsl/gsl_sf_gamma.h>
@@ -49,12 +49,12 @@
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
 
-#ifdef STAR_FEEDBACK_ACTIVE
-#include "../stars/star_tables.h"
+#ifdef STAR_PARTICLES
+#include "../stars/star_particle.h"
 #endif
 
-#ifndef STAR_BY_STAR
-#include "../stars/star_particle.h"
+#ifdef STAR_FEEDBACK_ACTIVE
+#include "../stars/star_tables.h"
 #endif
 
 /*! \brief Prepares the loaded initial conditions for the run.
@@ -555,6 +555,23 @@ int init(void)
   bfg = malloc(8 * sizeof(double));
 #endif 
 
+#ifdef STAR_PARTICLES
+if(ThisTask == 0)
+  {
+    build_imf_cdf();
+
+#if STAR_PARTICLES == 1
+    setup_mass_bins();
+#endif
+  }
+MPI_Bcast(cdf_masses, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+MPI_Bcast(cdf_values, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#if STAR_PARTICLES == 1
+MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+#endif
+
 #ifdef STAR_FEEDBACK_ACTIVE  
   for(i=0; i < 8; i++)
     All.StarFeedbackLocal[i] = 0;
@@ -563,21 +580,6 @@ int init(void)
   sfg = malloc(8 * sizeof(double));
 
   load_stellar_tables(All.StarTablesFile);
-
-if(ThisTask == 0)
-  {
-    build_imf_cdf();
-
-#ifndef STAR_BY_STAR
-    setup_mass_bins();
-#endif
-  }
-MPI_Bcast(cdf_masses, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-MPI_Bcast(cdf_values, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-#ifndef STAR_BY_STAR
-MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

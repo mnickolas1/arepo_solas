@@ -332,11 +332,32 @@ CONFIGVARS := $(sort $(CONFIGVARS))
 
 STAR_FEEDBACK_ACTIVE = WINDS PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE SUPERNOVAE
 
+STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
+
 ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
-ifeq (,$(filter STARS,$(CONFIGVARS)))
-$(error Star feedback requires STARS)
+ifeq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
+$(error STAR_FEEDBACK_ACTIVE requires STAR_PARTICLES)
+endif
 endif
 
+ifneq (,$(filter STAR_PARTICLES STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+ifeq (,$(filter STARS,$(CONFIGVARS)))
+$(error STAR_PARTICLES or STAR_FEEDBACK_ACTIVE requires STARS)
+endif
+endif
+
+ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
+ifeq (,$(filter USE_SFR STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+$(error STAR_PARTICLES requires USE_SFR or STAR_FEEDBACK_ACTIVE)
+endif
+endif
+
+ifeq (,$(findstring STAR_PARTICLES,$(CONFIGVARS)))
+OBJS    += stars/star_particle.o
+INCL    += stars/star_particle.h  
+endif
+
+ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
 OBJS    += stars/star_density.o \
            stars/star_feedback.o \
            stars/star_update.o \
@@ -344,15 +365,7 @@ OBJS    += stars/star_density.o \
            stars/star_tables.o
 INCL    += stars/star_proto.h \
            stars/star_tables.h
-
-ifeq (,$(findstring STAR_BY_STAR,$(CONFIGVARS)))
-OBJS    += stars/star_particle.o
-INCL    += stars/star_particle.h  
 endif
-
-endif
-
-STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
 
 ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
 OBJS += stars/star_radiation.o 
