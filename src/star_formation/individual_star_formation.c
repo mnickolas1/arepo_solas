@@ -69,7 +69,7 @@ static double cum_mass_stars = 0.0; /*!< cumulative mass of stars created in the
  *
  *  \return void
  */
-void sfr_create_star_particles(void)
+void individual_starbystar_formation(void)
 {
   TIMER_START(CPU_COOLINGSFR);
 
@@ -138,7 +138,7 @@ if(need_realloc_global)
           if(prob > 1)
             {
               terminate(
-              "SFR: need to make a heavier star than desired. Task=%d prob=%g P[i].Mass=%g mass_of_star=%g",
+              "Individual Star Formation: need to make a heavier star than desired. Task=%d prob=%g P[i].Mass=%g mass_of_star=%g",
               ThisTask, prob, P[i].Mass, mass_of_star);
             }
 
@@ -150,22 +150,12 @@ if(need_realloc_global)
         }
     } /* end of main loop over active gas particles */
 
-  int in[4], out[4], cnt = 2;
-  in[0] = stars_spawned;
-  in[1] = stars_converted;
+  MPI_Allreduce(&stars_spawned, &tot_stars_spawned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-  MPI_Allreduce(in, out, cnt, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  if(tot_stars_spawned > 0)
+    mpi_printf("Individual Star Formation: spawned %d stars\n", tot_stars_spawned);
 
-  tot_stars_spawned   = out[0];
-  tot_stars_converted = out[1];
-
-  if(tot_stars_spawned > 0 || tot_stars_converted > 0)
-    mpi_printf("SFR: spawned %d stars, converted %d gas particles into stars\n", tot_stars_spawned, tot_stars_converted);
-
-  tot_altogether_spawned = tot_stars_spawned;
-  altogether_spawned     = stars_spawned;
-
-  if(tot_altogether_spawned)
+  if(tot_stars_spawned)
     {
       /* need to assign new unique IDs to the spawned stars */
 
@@ -176,7 +166,7 @@ if(need_realloc_global)
 
       list = mymalloc("list", NTask * sizeof(int));
 
-      MPI_Allgather(&altogether_spawned, 1, MPI_INT, list, 1, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(&stars_spawned, 1, MPI_INT, list, 1, MPI_INT, MPI_COMM_WORLD);
 
       MyIDType newid = All.MaxID + 1;
 
@@ -185,21 +175,20 @@ if(need_realloc_global)
 
       myfree(list);
 
-      for(i = 0; i < altogether_spawned; i++)
+      for(i = 0; i < stars_spawned; i++)
         {
           P[NumPart + i].ID = newid;
 
           newid++;
         }
 
-      All.MaxID += tot_altogether_spawned;
+      All.MaxID += tot_stars_spawned;
     }
 
   /* Note: New tree construction can be avoided because of  `force_add_star_to_tree()' */
-  if(tot_stars_spawned > 0 || tot_stars_converted > 0)
+  if(tot_stars_spawned > 0)
     {
       All.TotNumPart += tot_stars_spawned;
-      All.TotNumGas -= tot_stars_converted;
       NumPart += stars_spawned;
     }
 
@@ -236,61 +225,56 @@ if(need_realloc_global)
   TIMER_STOP(CPU_COOLINGSFR);
 }
 
-/*! \brief Convert a cell into a star.
+/*! \brief Spawn a star particle from a gas cell.
  *
- *  This function converts an active star-forming gas cell into a star.
- *  The particle information of the gas cell is copied to the
- *  location star and the fields necessary for the creation of the star
- *  particle are initialized.
+ *  This function spawns a star particle from an active star-forming
+ *  cell. The particle information of the gas cell is copied to the
+ *  location istar and the fields necessary for the creation of the star
+ *  particle are initialized. The conserved variables of the gas cell
+ *  are then updated according to the mass ratio between the two components
+ *  to ensure conservation.
  *
- *  \param[in] i Index of the gas cell to be converted.
+ *  \param[in] igas Index of the gas cell from which the star is spawned.
  *  \param[in] birthtime Time of birth (in code units) of the stellar particle.
+ *  \param[in] istar Index of the spawned stellar particle.
+ *  \param[in] mass_of_star The mass of the spawned stellar particle.
  *
  *  \return void
  */
-void spawn_heavy(int i, double birthtime)
+void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
-  P[i].Type          = 4;
-  P[i].SofteningType = All.SofteningTypeOfPartType[P[i].Type];
+  /* assign star_ids */
+  P[istar].SID = NumStars;
+  SP[NumStars].PID = istar;
+  
+  /* prepare for star forming loop */
+  P[istar].Mass = 0;
+  SP[NumStars].MassOfStar = mass_of_star;
+  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+  
+  sf_starbystar();
 
-#if defined(REFINEMENT_HIGH_RES_GAS)
-  if(SphP[i].HighResMass < HIGHRESMASSFAC * P[i].Mass)
-    {
-      /* this cell does not appear to be in the high-res region.
-         We give the star the SofteningType=3 particle to give it large softening */
-      P[i].SofteningType = All.SofteningTypeOfPartType[3];
-    }
-#endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
-
+  P[istar].Type = 4;
+  P[istar].Mass = mass_of_star;
+  
+  P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
-  if(((1 << P[i].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
-    P[i].SofteningType = get_softening_type_from_mass(P[i].Mass);
+  if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
+    P[istar].SofteningType = get_softening_type_from_mass(P[istar].Mass);
 #endif /* #ifdef INDIVIDUAL_GRAVITY_SOFTENING */
 
-  TimeBinSfr[P[i].TimeBinHydro] -= SphP[i].Sfr;
+  timebin_add_particle(&TimeBinsGravity, istar, igas, P[istar].TimeBinGrav, TimeBinSynchronized[P[istar].TimeBinGrav]);
 
-  voronoi_remove_connection(i);
-
-#ifdef STARS
-  /* assign star_ids */
-  P[i].SID = NumStars;
-  SP[NumStars].PID = i;
 #ifdef STAR_FEEDBACK_ACTIVE
-  /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI));
   /* set timebin */
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
-#ifdef METALS 
-  SP[NumStars].Metals = SphP[i].Metals;
-#endif 
-#endif 
+#endif
 
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
- 
+  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+
   NumStars++;
-#endif /* STARS */
 
   return;
 }
@@ -319,15 +303,15 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
   P[istar].Mass          = mass_of_star;
 
   // give star small random displacement
-  double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+  //double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
 
-  double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
-  double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
-  double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+  //double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+  //double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
+  //double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
 
-  P[istar].Pos[0] += rx;
-  P[istar].Pos[1] += ry;
-  P[istar].Pos[2] += rz;
+  //P[istar].Pos[0] += rx;
+  //P[istar].Pos[1] += ry;
+  //P[istar].Pos[2] += rz;
 
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
@@ -364,10 +348,14 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
     *(MyFloat *)(((char *)(&SphP[igas])) + scalar_elements[s].offset_mass) *= fac;
 #endif /* #ifdef MAXSCALARS */
 
-#ifdef STARS
   /* assign star_ids */
   P[istar].SID = NumStars;
   SP[NumStars].PID = istar;
+
+#ifdef METALS 
+  SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
+#endif
+
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
@@ -375,15 +363,11 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
-#ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
-#endif
-#endif
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+#endif
 
   NumStars++;
-#endif
 
   return;
 }
@@ -404,19 +388,17 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
  *
  *  \return void
  */
-void make_star(int idx, int i, MyDouble mass_of_star, double *sum_mass_stars)
+void make_star(int i, MyDouble mass_of_star, double *sum_mass_stars)
 {
-  altogether_spawned = stars_spawned;
-  if(NumPart + altogether_spawned >= All.MaxPart)
-    terminate("NumPart=%d spwawn %d particles no space left (All.MaxPart=%d)\n", NumPart, altogether_spawned, All.MaxPart);
+  if(NumPart + stars_spawned >= All.MaxPart)
+    terminate("NumPart=%d spwawn %d particles no space left (All.MaxPart=%d)\n", NumPart, stars_spawned, All.MaxPart);
 
-  int j = NumPart + altogether_spawned;
+  int j = NumPart + stars_spawned;
   *sum_mass_stars += mass_of_star;
   stars_spawned++;
 
   if(mass_of_star < P[i].Mass)
     spawn_light(i, All.Time, j, mass_of_star);
-
   else 
-    spawn_heavy();
+    spawn_heavy(i, All.Time, j, mass_of_star);
 }

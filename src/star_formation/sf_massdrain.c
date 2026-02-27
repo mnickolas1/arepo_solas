@@ -53,6 +53,9 @@ static void particle2in(data_in *in, int i, int firstnode)
  */
 typedef struct
 { 
+  MyDouble CM[3];
+  MyDouble VM[3];
+  MyDouble Metals;
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -72,9 +75,21 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
+      for(int j = 0; j < 3; j++)
+        {
+          PPS(i).Pos[j] = out->CM[j];
+          PPS(i).Vel[j] = out->VM[j];
+        }
+      SP[i].Metals = out->Metals;
     }
   else /* combine */
     {
+      for(int j = 0; j < 3; j++)
+        {
+          PPS(i).Pos[j] += out->CM[j];
+          PPS(i).Vel[j] += out->VM[j];
+        }
+      SP[i].Metals += out->Metals;
     }
 }
 
@@ -177,6 +192,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
   MyDouble *pos, massofstar, ngbmass;
+  MyDouble cm[3], vm[3], metals;
 
   data_in local, *target_data;
   data_out out;
@@ -201,6 +217,10 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   
   massofstar = target_data->MassOfStar;
   ngbmass = target_data->NgbMass;
+
+  for(j = 0; j < 3; j++)
+    cm[j] = vm[j] = 0;
+  metals = 0;
 
   h2 = h * h;
   hinv = 1.0 / h;
@@ -253,8 +273,32 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           // compute the mass drain
-          SphP[j].StarMassDrain += massofstar * P[j] * wk / ngbmass;
+          SphP[j].StarMassDrain += massofstar * P[j].Mass * wk / ngbmass;
+          // compute center of mass and velocity
+          cm[0] += P[j].Mass * wk / ngbmass * P[j].Pos[0];
+          cm[1] += P[j].Mass * wk / ngbmass * P[j].Pos[1];
+          cm[2] += P[j].Mass * wk / ngbmass * P[j].Pos[2];
+
+          vm[0] += P[j].Mass * wk / ngbmass * P[j].Vel[0];
+          vm[1] += P[j].Mass * wk / ngbmass * P[j].Vel[1];
+          vm[2] += P[j].Mass * wk / ngbmass * P[j].Vel[2];
+
+          metals += P[j].Mass * wk / ngbmass * SphP[j].Metals;
         }
     }
+
+  for(int k = 0; k < 3; k++) 
+    {
+      out.CM[k] = cm[k];
+      out.VM[k] = vm[k];
+    }
+    out.Metals = metals;
+
+  /* now collect the result at the right place */
+  if(mode == MODE_LOCAL_PARTICLES)
+    out2particle(&out, target, MODE_LOCAL_PARTICLES);
+  else
+    DataResult[target] = out;
+
   return 0;
 }

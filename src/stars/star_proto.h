@@ -41,3 +41,8 @@ void setup_mass_bins(void);
 void sample_star_particle(double m, int *bins);
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a);
 #endif
+
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+void sf_starbystar(void);
+void sf_massdrain(void);
+#endif

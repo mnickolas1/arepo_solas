@@ -527,7 +527,7 @@ void read_parameter_file(char *fname)
         id[nt++] = REAL;
 #endif 
 
-#ifdef STAR_FEEDBACK_ACTIVE
+#ifdef STAR_PARTICLES
       strcpy(tag[nt], "IMF");
       addr[nt] = &All.IMF;
       id[nt++] = INT;
