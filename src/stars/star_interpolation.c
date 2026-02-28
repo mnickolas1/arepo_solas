@@ -8,7 +8,7 @@
 
 #include "../stars/star_tables.h"
 
-#ifndef STAR_PARTICLES = 1
+#if STAR_PARTICLES == 1
 #include "../stars/star_particle.h"
 #endif
 
@@ -491,7 +491,7 @@ struct star_feedback units_for_feedback(struct star_feedback star)
   return star;
 }
 
-#if STAR_PARTICLES = 1
+#if STAR_PARTICLES == 1
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a)
 {  
   int i, Nstars;

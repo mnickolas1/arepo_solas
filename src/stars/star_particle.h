@@ -10,7 +10,7 @@
 extern double cdf_masses[N_CDF_BINS + 1];   
 extern double cdf_values[N_CDF_BINS + 1];   
 
-#if STAR_PARTICLES = 1
+#if STAR_PARTICLES == 1
 extern double StarMassBins[NBINS + 1];
 extern double StarMeanMassInBins[NBINS];
 #endif

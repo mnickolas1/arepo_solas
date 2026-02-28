@@ -34,7 +34,7 @@ extern int NumStars;
 #endif
 #endif
 
-#if defined(STAR_PARTICLES) || (STAR_FEEDBACK_ACTIVE)
+#if defined(STAR_PARTICLES) || defined(STAR_FEEDBACK_ACTIVE)
 #ifndef STARS
 #error "We cannot run star feeedback simulations without stars!"
 #endif

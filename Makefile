@@ -314,17 +314,19 @@ INCL    += blackholes/bh_proto.h
 SUBDIRS += blackholes
 endif
 
-ifneq (,$(findstring STARS,$(CONFIGVARS)))
+ifneq (,$(filter STARS,$(CONFIGVARS)))
 OBJS    += stars/star.o 
 INCL    += stars/star.h
 SUBDIRS += stars 
 endif
 
-ifneq (,$(findstring STAR_FEEDBACK,$(CONFIGVARS)))
+STAR_PARTICLES = STAR_PARTICLES=1 STAR_PARTICLES=2
+
+ifneq (,$(filter STAR_FEEDBACK,$(CONFIGVARS)))
 CONFIGVARS += WINDS RADIATION SUPERNOVAE 
 endif
 
-ifneq (,$(findstring RADIATION,$(CONFIGVARS)))
+ifneq (,$(filter RADIATION,$(CONFIGVARS)))
 CONFIGVARS += PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE 
 endif
 
@@ -335,24 +337,24 @@ STAR_FEEDBACK_ACTIVE = WINDS PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRE
 STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
 
 ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
-ifeq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
+ifeq (,$(filter $(STAR_PARTICLES),$(CONFIGVARS)))
 $(error STAR_FEEDBACK_ACTIVE requires STAR_PARTICLES)
 endif
 endif
 
-ifneq (,$(filter STAR_PARTICLES STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+ifneq (,$(filter $(STAR_PARTICLES) $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
 ifeq (,$(filter STARS,$(CONFIGVARS)))
 $(error STAR_PARTICLES or STAR_FEEDBACK_ACTIVE requires STARS)
 endif
 endif
 
-ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
-ifeq (,$(filter USE_SFR STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+ifneq (,$(filter $(STAR_PARTICLES),$(CONFIGVARS)))
+ifeq (,$(filter USE_SFR $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
 $(error STAR_PARTICLES requires USE_SFR or STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
-ifeq (,$(findstring STAR_PARTICLES,$(CONFIGVARS)))
+ifneq (,$(filter $(STAR_PARTICLES),$(CONFIGVARS)))
 OBJS    += stars/star_particle.o
 INCL    += stars/star_particle.h  
 endif
@@ -373,14 +375,14 @@ endif
 
 ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
 ifeq (,$(filter STAR_PARTICLES=2,$(CONFIGVARS)))
-$(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES = 2 and USE_SFR)
+$(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES=2 and USE_SFR)
 endif
 ifeq (,$(filter USE_SFR,$(CONFIGVARS)))
-$(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES = 2 and USE_SFR)
+$(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES=2 and USE_SFR)
 endif
 endif
 
-ifneq (,$(filter $(INDIVIDUAL_STAR_BY_STAR_FORMATION),$(CONFIGVARS)))
+ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
 OBJS += star_formation/individual_star_formation.o \
         star_formation/sf_starbystar.o \
         star_formation/sf_massdrain.o   
