@@ -368,7 +368,11 @@ INCL    += stars/star_proto.h \
 endif
 
 ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
-OBJS += stars/star_radiation.o 
+OBJS    += extern/chealpix.o \
+           stars/star_radiation.o
+INCL    += extern/chealpix.h \
+           stars/star_radiation.h
+SUBDIRS += extern
 endif
 
 ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))

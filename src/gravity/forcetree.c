@@ -710,6 +710,18 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
           export_Tree_Points[n].Type          = P[i].Type;
           export_Tree_Points[n].th            = th_list[i];
           export_Tree_Points[n].level         = level_list[i];
+
+#ifdef STAR_RADIATION_ACTIVE
+          if(P[i].Type == 0)
+            {
+              export_Tree_Points[n].Density = SphP[i].Density;
+              export_Tree_Points[n].Volume = SphP[i].Volume;
+              export_Tree_Points[n].Metals = SphP[i].Metals;
+            }
+          if(P[i].Type == 4)
+            export_Tree_Points[n].RAD_Ionizing = SPP(i).RAD_Ionizing;
+#endif
+
 #ifndef HIERARCHICAL_GRAVITY
           if(TimeBinSynchronized[P[i].TimeBinGrav])
             export_Tree_Points[n].ActiveFlag = 1;
@@ -1218,7 +1230,13 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
 {
   int j, jj, p, pp, nextsib, suns[8];
   double s[3], mass;
-  unsigned char maxsofttype;
+
+#ifdef STAR_RADIATION_ACTIVE
+  double density, metallicity;  
+  double luminosity, l[3];
+#endif
+
+unsigned char maxsofttype;
 #ifdef MULTIPLE_NODE_SOFTENING
   double mass_per_type[NSOFTTYPES];
 #ifdef ADAPTIVE_HYDRO_SOFTENING
@@ -1251,12 +1269,20 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
       s[0]        = 0;
       s[1]        = 0;
       s[2]        = 0;
-      maxsofttype = NSOFTTYPES + NSOFTTYPES_HYDRO;
 
+#ifdef STAR_RADIATION_ACTIVE
+      density = 0;
+      metallicity = 0;
+      luminosity = 0;
+      l[0] = 0;
+      l[1] = 0;
+      l[2] = 0;
+#endif
+
+      maxsofttype = NSOFTTYPES + NSOFTTYPES_HYDRO;
 #ifdef MULTIPLE_NODE_SOFTENING
       for(j = 0; j < NSOFTTYPES; j++)
         mass_per_type[j] = 0;
-
 #ifdef ADAPTIVE_HYDRO_SOFTENING
       maxhydrosofttype = NSOFTTYPES;
       minhydrosofttype = NSOFTTYPES + NSOFTTYPES_HYDRO - 1;
@@ -1288,13 +1314,26 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
                   s[1] += P[p].Mass * pos[1];
                   s[2] += P[p].Mass * pos[2];
 
+#ifdef STAR_RADIATION_ACTIVE
+                  if(P[p].Type == 0)  
+                    {
+                      density += P[p].Mass * SphP[p].Density;
+                      metallicity += SphP[p].Metals; 
+                    }
+                  if(P[p].Type == 4)  
+                    {
+                      luminosity += SPP(p).RAD_Ionizing;
+                      l[0] += SPP(p).RAD_Ionizing * pos[0];
+                      l[1] += SPP(p).RAD_Ionizing * pos[1];
+                      l[2] += SPP(p).RAD_Ionizing * pos[2];
+                    }
+#endif  
+
                   if(All.ForceSoftening[maxsofttype] < All.ForceSoftening[P[p].SofteningType])
                     maxsofttype = P[p].SofteningType;
-
 #ifdef MULTIPLE_NODE_SOFTENING
 #ifdef ADAPTIVE_HYDRO_SOFTENING
                   mass_per_type[P[p].Type == 0 ? 0 : P[p].SofteningType] += P[p].Mass;
-
                   if(P[p].Type == 0)
                     {
                       if(maxhydrosofttype < P[p].SofteningType)
@@ -1314,14 +1353,21 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
                   s[1] += Nodes[p].u.d.mass * Nodes[p].u.d.s[1];
                   s[2] += Nodes[p].u.d.mass * Nodes[p].u.d.s[2];
 
+#ifdef STAR_RADIATION_ACTIVE
+                  density += Nodes[p].u.d.density;
+                  metallicity += Nodes[p].u.d.metallicity; 
+                  luminosity += Nodes[p].u.d.luminosity;
+                  l[0] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[0];
+                  l[1] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[1];
+                  l[2] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[2];
+#endif 
+
                   if(All.ForceSoftening[maxsofttype] < All.ForceSoftening[Nodes[p].u.d.maxsofttype])
                     maxsofttype = Nodes[p].u.d.maxsofttype;
-
 #ifdef MULTIPLE_NODE_SOFTENING
                   int k;
                   for(k = 0; k < NSOFTTYPES; k++)
                     mass_per_type[k] += ExtNodes[p].mass_per_type[k];
-
 #ifdef ADAPTIVE_HYDRO_SOFTENING
                   if(maxhydrosofttype < Nodes[p].u.d.maxhydrosofttype)
                     maxhydrosofttype = Nodes[p].u.d.maxhydrosofttype;
@@ -1349,10 +1395,18 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
                   s[1] += Tree_Points[n].Mass * Tree_Points[n].Pos[1];
                   s[2] += Tree_Points[n].Mass * Tree_Points[n].Pos[2];
 
+#ifdef STAR_RADIATION_ACTIVE
+                  density += Tree_Points[n].Mass * Tree_Points[n].Density;
+                  metallicity += Tree_Points[n].Metals;
+                  luminosity += Tree_Points[n].RAD_Ionizing;
+                  l[0] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[0];
+                  l[1] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[1];
+                  l[2] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[2];
+#endif              
+
                   /* Might not need the following routine */
                   if(All.ForceSoftening[maxsofttype] < All.ForceSoftening[Tree_Points[n].SofteningType])
                     maxsofttype = Tree_Points[n].SofteningType;
-
 #ifdef MULTIPLE_NODE_SOFTENING
 #ifdef ADAPTIVE_HYDRO_SOFTENING
                   mass_per_type[Tree_Points[n].Type == 0 ? 0 : Tree_Points[n].SofteningType] += Tree_Points[n].Mass;
@@ -1385,16 +1439,45 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
           s[2] = Nodes[no].center[2];
         }
 
+#ifdef STAR_RADIATION_ACTIVE
+      if(mass)
+        {
+          density /= mass;
+          metallicity /= mass;
+        }
+      if(luminosity)
+        {
+          l[0] /= luminosity;
+          l[1] /= luminosity;
+          l[2] /= luminosity;
+        }
+      else
+        {
+          l[0] = Nodes[no].center[0];
+          l[1] = Nodes[no].center[1];
+          l[2] = Nodes[no].center[2];
+        }
+#endif
+
       Nodes[no].u.d.mass        = mass;
       Nodes[no].u.d.s[0]        = s[0];
       Nodes[no].u.d.s[1]        = s[1];
       Nodes[no].u.d.s[2]        = s[2];
+
+#ifdef STAR_RADIATION_ACTIVE 
+      Nodes[no].u.d.density = density;
+      Nodes[no].u.d.metallicity = metallicity;
+      Nodes[no].u.d.luminosity = luminosity;
+      Nodes[no].u.d.l[0] = l[0];
+      Nodes[no].u.d.l[1] = l[1];
+      Nodes[no].u.d.l[2] = l[2];
+#endif
+
       Nodes[no].u.d.maxsofttype = maxsofttype;
 #ifdef MULTIPLE_NODE_SOFTENING
       int k;
       for(k = 0; k < NSOFTTYPES; k++)
         ExtNodes[no].mass_per_type[k] = mass_per_type[k];
-
 #ifdef ADAPTIVE_HYDRO_SOFTENING
       Nodes[no].u.d.maxhydrosofttype = maxhydrosofttype;
       Nodes[no].u.d.minhydrosofttype = minhydrosofttype;
@@ -1442,6 +1525,14 @@ void force_exchange_topleafdata(void)
   {
     MyDouble s[3];
     MyDouble mass;
+
+#ifdef STAR_RADIATION_ACTIVE
+    MyDouble density;
+    MyDouble metallicity;
+    MyDouble luminosity;
+    MyDouble l[3];
+#endif
+
 #ifdef MULTIPLE_NODE_SOFTENING
     MyDouble mass_per_type[NSOFTTYPES];
 #ifdef ADAPTIVE_HYDRO_SOFTENING
@@ -1493,13 +1584,21 @@ void force_exchange_topleafdata(void)
           loc_DomainMoment[idx].s[0]        = Nodes[no].u.d.s[0];
           loc_DomainMoment[idx].s[1]        = Nodes[no].u.d.s[1];
           loc_DomainMoment[idx].s[2]        = Nodes[no].u.d.s[2];
-          loc_DomainMoment[idx].mass        = Nodes[no].u.d.mass;
-          loc_DomainMoment[idx].maxsofttype = Nodes[no].u.d.maxsofttype;
+          loc_DomainMoment[idx].mass        = Nodes[no].u.d.mass;  
 
+#ifdef STAR_RADIATION_ACTIVE
+          loc_DomainMoment[idx].density = Nodes[no].u.d.density;
+          loc_DomainMoment[idx].metallicity = Nodes[no].u.d.metallicity;
+          loc_DomainMoment[idx].luminosity = Nodes[no].u.d.luminosity;
+          loc_DomainMoment[idx].l[0] = Nodes[no].u.d.l[0];
+          loc_DomainMoment[idx].l[1] = Nodes[no].u.d.l[1];
+          loc_DomainMoment[idx].l[2] = Nodes[no].u.d.l[2];
+#endif            
+
+          loc_DomainMoment[idx].maxsofttype = Nodes[no].u.d.maxsofttype;
 #ifdef MULTIPLE_NODE_SOFTENING
           for(int k = 0; k < NSOFTTYPES; k++)
             loc_DomainMoment[idx].mass_per_type[k] = ExtNodes[no].mass_per_type[k];
-
 #ifdef ADAPTIVE_HYDRO_SOFTENING
           loc_DomainMoment[idx].maxhydrosofttype = Nodes[no].u.d.maxhydrosofttype;
           loc_DomainMoment[idx].minhydrosofttype = Nodes[no].u.d.minhydrosofttype;
@@ -1526,8 +1625,17 @@ void force_exchange_topleafdata(void)
           Nodes[no].u.d.s[1]        = DomainMoment[idx].s[1];
           Nodes[no].u.d.s[2]        = DomainMoment[idx].s[2];
           Nodes[no].u.d.mass        = DomainMoment[idx].mass;
-          Nodes[no].u.d.maxsofttype = DomainMoment[idx].maxsofttype;
 
+#ifdef STAR_RADIATION_ACTIVE
+          Nodes[no].u.d.density = DomainMoment[idx].density;
+          Nodes[no].u.d.metallicity = DomainMoment[idx].metallicity;
+          Nodes[no].u.d.luminosity = DomainMoment[idx].luminosity;
+          Nodes[no].u.d.l[0] = DomainMoment[idx].l[0];
+          Nodes[no].u.d.l[1] = DomainMoment[idx].l[1];
+          Nodes[no].u.d.l[2] = DomainMoment[idx].l[2];
+#endif              
+
+          Nodes[no].u.d.maxsofttype = DomainMoment[idx].maxsofttype;
 #ifdef MULTIPLE_NODE_SOFTENING
           for(int k = 0; k < NSOFTTYPES; k++)
             ExtNodes[no].mass_per_type[k] = DomainMoment[idx].mass_per_type[k];
@@ -1566,7 +1674,13 @@ void force_exchange_topleafdata(void)
 void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int z)
 {
   double s[3], mass;
-  unsigned char maxsofttype;
+
+#ifdef STAR_RADIATION_ACTIVE
+  double density, metallicity;
+  double luminosity, l[3];
+#endif               
+
+unsigned char maxsofttype;
 #ifdef MULTIPLE_NODE_SOFTENING
   double mass_per_type[NSOFTTYPES];
 #ifdef ADAPTIVE_HYDRO_SOFTENING
@@ -1592,11 +1706,20 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
       s[0]        = 0;
       s[1]        = 0;
       s[2]        = 0;
+
+#ifdef STAR_RADIATION_ACTIVE
+      density = 0;
+      metallicity = 0;
+      luminosity = 0;
+      l[0] = 0;
+      l[1] = 0;
+      l[2] = 0;
+#endif              
+
       maxsofttype = NSOFTTYPES + NSOFTTYPES_HYDRO;
 #ifdef MULTIPLE_NODE_SOFTENING
       for(int j = 0; j < NSOFTTYPES; j++)
         mass_per_type[j] = 0;
-
 #ifdef ADAPTIVE_HYDRO_SOFTENING
       maxhydrosofttype = NSOFTTYPES;
       minhydrosofttype = NSOFTTYPES + NSOFTTYPES_HYDRO - 1;
@@ -1614,12 +1737,20 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
               s[1] += Nodes[p].u.d.mass * Nodes[p].u.d.s[1];
               s[2] += Nodes[p].u.d.mass * Nodes[p].u.d.s[2];
 
+#ifdef STAR_RADIATION_ACTIVE
+              density += Nodes[p].u.d.density;
+              metallicity += Nodes[p].u.d.metallicity;
+              luminosity += Nodes[p].u.d.luminosity;
+              l[0] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[0];
+              l[1] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[1];
+              l[2] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[2];
+#endif              
+
               if(All.ForceSoftening[maxsofttype] < All.ForceSoftening[Nodes[p].u.d.maxsofttype])
                 maxsofttype = Nodes[p].u.d.maxsofttype;
 #ifdef MULTIPLE_NODE_SOFTENING
               for(int k = 0; k < NSOFTTYPES; k++)
                 mass_per_type[k] += ExtNodes[p].mass_per_type[k];
-
 #ifdef ADAPTIVE_HYDRO_SOFTENING
               if(maxhydrosofttype < Nodes[p].u.d.maxhydrosofttype)
                 maxhydrosofttype = Nodes[p].u.d.maxhydrosofttype;
@@ -1647,10 +1778,33 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
           s[2] = Nodes[no].center[2];
         }
 
+#ifdef STAR_RADIATION_ACTIVE
+      if(luminosity)
+        {
+          l[0] /= luminosity;
+          l[1] /= luminosity;
+          l[2] /= luminosity;
+        }
+      else
+        {
+          l[0] = Nodes[no].center[0];
+          l[1] = Nodes[no].center[1];
+          l[2] = Nodes[no].center[2];
+        }
+#endif              
+
       Nodes[no].u.d.s[0]        = s[0];
       Nodes[no].u.d.s[1]        = s[1];
       Nodes[no].u.d.s[2]        = s[2];
       Nodes[no].u.d.mass        = mass;
+
+#ifdef STAR_RADIATION_ACTIVE
+      Nodes[no].u.d.luminosity = luminosity;
+      Nodes[no].u.d.l[0] = l[0];
+      Nodes[no].u.d.l[1] = l[1];
+      Nodes[no].u.d.l[2] = l[2];
+#endif              
+
       Nodes[no].u.d.maxsofttype = maxsofttype;
 #ifdef MULTIPLE_NODE_SOFTENING
       for(int k = 0; k < NSOFTTYPES; k++)
