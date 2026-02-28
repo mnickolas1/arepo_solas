@@ -839,15 +839,19 @@ extern struct treepoint_data
   MyDouble Pos[3];
   unsigned long long IntPos[3];
   MyDouble Mass;
-#ifdef STAR_RADIATION_ACTIVE
-  MyDouble RAD_Luminosity;
-#endif
   float OldAcc;
   int index;
   int th;
   unsigned char level;
   unsigned char Type;
   unsigned char SofteningType : 7;
+
+#ifdef STAR_RADIATION_ACTIVE
+  MyDouble Density;
+  MyDouble Metals;
+  MyDouble RAD_Ionizing;
+#endif
+
 #ifndef HIERARCHICAL_GRAVITY
   unsigned char ActiveFlag : 1;
 #endif /* #ifndef HIERARCHICAL_GRAVITY */
@@ -2081,10 +2085,14 @@ extern struct NODE
     {
       MyDouble s[3]; /*!< center of mass of node */
       MyDouble mass; /*!< mass of node */
+
 #ifdef STAR_RADIATION_ACTIVE
-      MyDouble l[3]; /*!< center of luminosity of node */
+      MyDouble density;
+      MyDouble metallicity; 
       MyDouble luminosity; /*!< luminosity of node */
+      MyDouble l[3]; /*!< center of luminosity of node */
 #endif
+
       /*! The next node in the tree walk in case the current node does
        *  not need to be opened. This means that it traverses the 8
        *  subnodes of a node in a breadth-first fashion, and then goes
