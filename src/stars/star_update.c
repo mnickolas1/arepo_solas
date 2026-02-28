@@ -201,6 +201,41 @@ void perform_end_of_step_star_physics(void)
           i = TimeBinsHydro.ActiveParticleList[idx];
           if(i < 0)
             continue;
+
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+          if(SphP[j].StarMassDrain > 0)
+            {
+              if(P[j].Mass - SphP[j].StarMassDrain < 0.1*P[j].Mass)
+                {
+                  P[j].Mass -= 0.9*P[j].Mass;
+                  SP[i].MassToDrain += SphP[j].StarMassDrain - 0.9*P[j].Mass;
+                  
+                  // We're also losing thermal and kinetic energy & momentum 
+      
+                  // Update total energy 
+                  SphP[j].Energy *= 0.1;
+                    
+                  // Update momentum 
+                  SphP[j].Momentum[0] *= 0.1;
+                  SphP[j].Momentum[1] *= 0.1;
+                  SphP[j].Momentum[2] *= 0.1;
+                }
+              else
+                {
+                  P[j].Mass -= SphP[j].StarMassDrain;
+                    
+                  // Update total energy 
+                  SphP[j].Energy *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
+                    
+                  // Update momentum 
+                  SphP[j].Momentum[0] *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
+                  SphP[j].Momentum[1] *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
+                  SphP[j].Momentum[2] *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
+                }
+              SphP[j].StarMassDrain = 0;
+            }
+#endif
+
             
           // Dump mass, momentum and energy injected by stars 
 #if defined(WINDS) || defined(SUPERNOVAE)

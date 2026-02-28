@@ -200,12 +200,12 @@ void perform_end_of_step_bh_physics(void)
       BhP[i].AngularMomentum[2] += BhP[i].AccretionRate * dt * BhP[i].VelocityGasCircular[2];
       for(j=0; j<NumGas; j++)
         {
-          if(SphP[j].MassDrain > 0)
+          if(SphP[j].BhMassDrain > 0)
             {
-              if(P[j].Mass - SphP[j].MassDrain < 0.1*P[j].Mass)
+              if(P[j].Mass - SphP[j].BhMassDrain < 0.1*P[j].Mass)
                 {
                   P[j].Mass -= 0.9*P[j].Mass;
-                  BhP[i].MassToDrain += SphP[j].MassDrain - 0.9*P[j].Mass;
+                  BhP[i].MassToDrain += SphP[j].BhMassDrain - 0.9*P[j].Mass;
                   // We're also losing thermal and kinetic energy & momentum 
                     
                   // Update total energy 
@@ -218,17 +218,17 @@ void perform_end_of_step_bh_physics(void)
                 }
               else
                 {
-                  P[j].Mass -= SphP[j].MassDrain;
+                  P[j].Mass -= SphP[j].BhMassDrain;
                     
                   // Update total energy 
-                  SphP[j].Energy *= (P[j].Mass)/(P[j].Mass + SphP[j].MassDrain);
+                  SphP[j].Energy *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
                     
                   // Update momentum 
-                  SphP[j].Momentum[0] *= (P[j].Mass)/(P[j].Mass + SphP[j].MassDrain);
-                  SphP[j].Momentum[1] *= (P[j].Mass)/(P[j].Mass + SphP[j].MassDrain);
-                  SphP[j].Momentum[2] *= (P[j].Mass)/(P[j].Mass + SphP[j].MassDrain);
+                  SphP[j].Momentum[0] *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
+                  SphP[j].Momentum[1] *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
+                  SphP[j].Momentum[2] *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
                 }
-              SphP[j].MassDrain = 0;
+              SphP[j].BhMassDrain = 0;
             }
         }
     }

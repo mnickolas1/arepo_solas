@@ -43,6 +43,7 @@ struct star_feedback star_particle_feedback(int index, double dt, double z, doub
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+void individual_starbystar_formation(void);
 void sf_starbystar(void);
 void sf_massdrain(void);
 #endif

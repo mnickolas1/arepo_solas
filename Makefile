@@ -378,9 +378,13 @@ ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
 endif
 
 ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
-OBJS += star_formation/individual_star_formation.o \
-        star_formation/sf_starbystar.o \
-        star_formation/sf_massdrain.o   
+ifeq (,$(filter COOLING USE_SFR,$(CONFIGVARS)))
+$(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires COOLING and USE_SFR)
+endif
+OBJS += star_formation/individual_star_formation/sfr_starbystar.o \
+        star_formation/individual_star_formation/individual_star_formation.o \
+        star_formation/individual_star_formation/sf_starbystar.o \
+        star_formation/individual_star_formation/sf_massdrain.o
 endif
 
 ################################

@@ -1237,6 +1237,8 @@ extern struct global_data_all_processes
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  double NumberDensityThresh;
+  double TemperatureThresh;
   double StarFormationEfficiency;
 #endif
 

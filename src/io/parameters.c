@@ -483,7 +483,7 @@ void read_parameter_file(char *fname)
         strcpy(tag[nt], "TemperatureThresh");
         addr[nt] = &All.TemperatureThresh;
         id[nt++] = REAL;
-        
+  
         strcpy(tag[nt], "CritPhysDensity");
         addr[nt] = &All.CritPhysDensity;
         id[nt++] = REAL;
@@ -509,7 +509,7 @@ void read_parameter_file(char *fname)
         id[nt++] = REAL;
 #endif /* #ifdef EEOS_SF */
         
-#if defined(AGORA_SF) || defined(JEANS_SF) || defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#if defined(AGORA_SF) || defined(JEANS_SF)
         strcpy(tag[nt], "StarFormationEfficiency");  // Value between 0 and 1
         addr[nt] = &All.StarFormationEfficiency;
         id[nt++] = REAL;
@@ -526,6 +526,20 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.JeansMassThreshold;
         id[nt++] = REAL;
 #endif 
+
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+        strcpy(tag[nt], "NumberDensityThresh"); // n_H in units of cm^-3
+        addr[nt] = &All.StarFormationNumberDensityThreshold;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "TemperatureThresh");
+        addr[nt] = &All.TemperatureThresh;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "StarFormationEfficiency");  
+        addr[nt] = &All.StarFormationEfficiency;
+        id[nt++] = REAL;
+#endif
 
 #ifdef STAR_PARTICLES
       strcpy(tag[nt], "IMF");

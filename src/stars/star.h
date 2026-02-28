@@ -61,7 +61,7 @@ extern struct star_particle_data
   MyIDType PID;
 
 #ifdef METALS
- MyDouble Metals;
+  MyDouble Metals;
 #endif
 
 #if STAR_PARTICLES == 1
@@ -70,6 +70,10 @@ extern struct star_particle_data
 
 #if STAR_PARTICLES == 2
   MyDouble MassOfStar;
+#endif
+
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  MyDouble MassToDrain;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
