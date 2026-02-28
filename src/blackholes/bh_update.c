@@ -198,14 +198,22 @@ void perform_end_of_step_bh_physics(void)
       BhP[i].AngularMomentum[0] += BhP[i].AccretionRate * dt * BhP[i].VelocityGasCircular[0];
       BhP[i].AngularMomentum[1] += BhP[i].AccretionRate * dt * BhP[i].VelocityGasCircular[1];
       BhP[i].AngularMomentum[2] += BhP[i].AccretionRate * dt * BhP[i].VelocityGasCircular[2];
+      
       for(j=0; j<NumGas; j++)
         {
           if(SphP[j].BhMassDrain > 0)
             {
               if(P[j].Mass - SphP[j].BhMassDrain < 0.1*P[j].Mass)
                 {
-                  P[j].Mass -= 0.9*P[j].Mass;
-                  BhP[i].MassToDrain += SphP[j].BhMassDrain - 0.9*P[j].Mass;
+                  double M_old = P[j].Mass;
+                  double requested = SphP[j].BhMassDrain;
+
+                  double drained = 0.9 * M_old;
+
+                  P[j].Mass = 0.1 * M_old;
+
+                  BhP[i].MassToDrain += requested - drained;
+
                   // We're also losing thermal and kinetic energy & momentum 
                     
                   // Update total energy 

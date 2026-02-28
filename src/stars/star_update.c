@@ -207,18 +207,25 @@ void perform_end_of_step_star_physics(void)
             {
               if(P[j].Mass - SphP[j].StarMassDrain < 0.1*P[j].Mass)
                 {
-                  P[j].Mass -= 0.9*P[j].Mass;
-                  SP[i].MassToDrain += SphP[j].StarMassDrain - 0.9*P[j].Mass;
-                  
+                  terminate("STAR FORMATION DRAIN");
+                  //double M_old = P[j].Mass;
+                  //double requested = SphP[j].StarMassDrain;
+
+                  //double drained = 0.9 * M_old;
+
+                  //P[j].Mass = 0.1 * M_old;
+
+                  //SP[i].MassToDrain += requested - drained;
+
                   // We're also losing thermal and kinetic energy & momentum 
       
                   // Update total energy 
-                  SphP[j].Energy *= 0.1;
+                  //SphP[j].Energy *= 0.1;
                     
                   // Update momentum 
-                  SphP[j].Momentum[0] *= 0.1;
-                  SphP[j].Momentum[1] *= 0.1;
-                  SphP[j].Momentum[2] *= 0.1;
+                  //SphP[j].Momentum[0] *= 0.1;
+                  //SphP[j].Momentum[1] *= 0.1;
+                  //SphP[j].Momentum[2] *= 0.1;
                 }
               else
                 {
@@ -236,7 +243,6 @@ void perform_end_of_step_star_physics(void)
             }
 #endif
 
-            
           // Dump mass, momentum and energy injected by stars 
 #if defined(WINDS) || defined(SUPERNOVAE)
           // Add mass 
