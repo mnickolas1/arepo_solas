@@ -1511,6 +1511,9 @@ extern struct sph_particle_data
 #ifdef TREE_BASED_TIMESTEPS
   MySingle CurrentMaxTiStep;
   MySingle Csnd;
+#ifdef SUPERNOVAE
+  MyDouble Csn;
+#endif
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
 #if defined(REFINEMENT_HIGH_RES_GAS)

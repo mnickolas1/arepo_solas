@@ -246,6 +246,7 @@ void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   /* set timebin */
+  SP[NumStars].Active = 0;
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
@@ -339,6 +340,7 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
+  SP[NumStars].Active = 0;
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;

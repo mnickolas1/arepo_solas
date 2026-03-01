@@ -466,6 +466,9 @@ void tree_based_timesteps_setsoundspeeds(void)
 
       csnd = get_sound_speed(i);
 
+      if(SphP[i].Csn > csnd)
+        csnd = SphP[i].Csn;
+
       if(csnd <= 1.0e-30)
         csnd = 1.0e-30;
 

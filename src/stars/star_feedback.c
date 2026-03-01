@@ -22,6 +22,10 @@ typedef struct
   MyDouble NgbMass;
   MyDouble NgbVolume;
 
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  MyDouble TimeSN;
+#endif  
+
 #ifdef WINDS
   MyDouble MassLoss;
 #ifdef METALS
@@ -61,6 +65,10 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->Hsml           = SP[i].Hsml;
   in->NgbMass        = SP[i].NgbMass;
   in->NgbVolume      = SP[i].NgbVolume;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  in->TimeSN         = SP[i].TimeSN;
+#endif  
 
 #ifdef WINDS
   in->MassLoss       = SP[i].MassLoss;
@@ -146,7 +154,12 @@ static void kernel_local(void)
 
       i = TimeBinsStar.ActiveParticleList[idx];
 
-      star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+      if(SP[i].Active == 0)
+        if(TimeBinSynchronized[SP[i].NgbMaxBin])
+          SP[i].Active = 1;
+      
+      if(SP[i].Active == 1)    
+        star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 
@@ -206,12 +219,16 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
       generic_get_numnodes(target, &numnodes, &firstnode);
     }
   
-  bin       = target_data->Bin;
-  pos       = target_data->Pos;
-  h         = target_data->Hsml;
+  bin = target_data->Bin;
+  pos = target_data->Pos;
+  h = target_data->Hsml;
   
-  ngbmass   = target_data->NgbMass;
+  ngbmass = target_data->NgbMass;
   ngbvolume = target_data->NgbVolume;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  MyDouble timesn = target_data->TimeSN;
+#endif
 
 #ifdef WINDS
   MyDouble massloss = target_data->MassLoss;
@@ -280,6 +297,13 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
           u = r * hinv;
 
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+          double unew = (SphP[j].Utherm * P[j].Mass + 1e51 * SphP[j].Volume / ngbvolume) / (P[j].Mass /*+dm_inject*/);
+
+          if(timesn < MAX_DOUBLE_NUMBER)
+            SphP[j].Csn = SphP[j].Csnd + ((sqrt(GAMMA*GAMMA_MINUS1*unew)) - SphP[j].Csnd) * All.Time / timesn;
+#endif
               
 #ifdef WINDS
           if(massloss > 0)

@@ -350,6 +350,7 @@ void convert_cell_into_star(int i, double birthtime)
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI));
   /* set timebin */
+  SP[NumStars].Active = 0;
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
@@ -452,6 +453,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
+  SP[NumStars].Active = 0;
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;

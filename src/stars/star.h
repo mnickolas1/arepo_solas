@@ -76,11 +76,19 @@ extern struct star_particle_data
   MyDouble MassToDrain;
 #endif
 
+#if defined(USE_SFR) && defined(STAR_FEEDBACK_ACTIVE)
+  int Active;
+#endif
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  MyDouble TimeSN;
+#endif
+
 #ifdef STAR_FEEDBACK_ACTIVE
   MyDouble Hsml;
   MyDouble NgbMass;
   MyDouble NgbVolume;
-  integertime NgbMinStep;
+  int NgbMaxBin;
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble Birthtime;
@@ -161,6 +169,10 @@ struct star_interpolate
 
 struct star_feedback
 {
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  double TimeSN;
+#endif
+  
   int Stage; // 0:preSN, 1:SN, 2:postSN
 
 #ifdef WINDS

@@ -16,11 +16,17 @@
 static inline double linear_interpolation(double x, double x0, double x1, double y0, double y1);
 static inline double star_lifetime(int z_idx, double m_val);
 static double lifetime(double z_val, double m_val);
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+static double next_SN_time(double z_val, double m_val, double a);
+#endif
+
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
 static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, double a);
 static struct star_interpolate interpolate_mass(int z_idx, double m_val, double a);
 static struct star_interpolate interpolate_metallicity(double z_val, double m_val, double a);
 #endif
+
 #ifdef SUPERNOVAE
 static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_val);
 static struct star_interpolate SN_interpolate_metallicity(double z_val, double m_val);
@@ -90,6 +96,20 @@ static double lifetime(double z_val, double m_val)
   terminate("Lifetime: failed to bracket metallicity");
 }
 
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+static double next_SN_time(double tau, double z_val, double m_val, double a)
+{ 
+  if(m_val >= 8 && tau > a)
+    {
+      struct star_interpolate SNfeedback = SN_interpolate_metallicity(z_val, m_val);
+      if(SNfeedback.SN_MassLoss > 0.0)
+        return tau;
+    }
+  return MAX_DOUBLE_NUMBER; /* No SN or already past SN */
+}
+#endif
+
+#if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
 /* Linear interpolation in age */
 static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, double a) 
 {
@@ -309,6 +329,7 @@ static struct star_interpolate interpolate_metallicity(double z_val, double m_va
     }
   terminate("Interpolate_metallicity: failed to bracket metallicity");
 }
+#endif
 
 #ifdef SUPERNOVAE
 /* Linear interpolation in mass */
@@ -397,9 +418,15 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
 {
   double tau = lifetime(z_val, m_val);
   struct star_feedback star = {0};
+  
+  star.TimeSN = MAX_DOUBLE_NUMBER;
 
   if(m_val <= 2)
     return star;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  star.TimeSN = next_SN_time(tau, z_val, m_val, a);
+#endif
 
   if(a < tau)
     {
@@ -458,37 +485,41 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
   return star;
 }
 
-struct star_feedback units_for_feedback(struct star_feedback star)
+struct star_feedback units_for_feedback(struct star_feedback star_feedback)
 {
-#ifdef WINDS
-  star.MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
-#ifdef METALS
-  star.MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  star_feedback.TimeSN /= (All.UnitTime_in_s / SEC_PER_YEAR);
 #endif
-  star.WindMomentum /= ((All.UnitMass_in_g / SOLAR_MASS) * (All.UnitVelocity_in_cm_per_s / 1.e5));
+
+#ifdef WINDS
+  star_feedback.MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+#ifdef METALS
+  star_feedback.MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+#endif
+  star_feedback.WindMomentum /= ((All.UnitMass_in_g / SOLAR_MASS) * (All.UnitVelocity_in_cm_per_s / 1.e5));
 #endif
 
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  star.RAD_Ionizing /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_Ionizing /= (All.UnitEnergy_in_cgs);
 #endif
 #if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  star.RAD_UVLymanWerner /= (All.UnitEnergy_in_cgs);
-  star.RAD_Ultraviolet /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_UVLymanWerner /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_Ultraviolet /= (All.UnitEnergy_in_cgs);
 #endif
 #if defined(RADIATION_PRESSURE)
-  star.RAD_Optical /= (All.UnitEnergy_in_cgs);
-  star.RAD_Infrared /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_Optical /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_Infrared /= (All.UnitEnergy_in_cgs);
 #endif
 
 #ifdef SUPERNOVAE
-  star.SN_MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+  star_feedback.SN_MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
 #ifdef METALS
-  star.SN_MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+  star_feedback.SN_MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
 #endif
-  star.SN_EnergyInject /= (All.UnitEnergy_in_cgs);
+  star_feedback.SN_EnergyInject /= (All.UnitEnergy_in_cgs);
 #endif
 
-  return star;
+  return star_feedback;
 }
 
 #if STAR_PARTICLES == 1
@@ -497,16 +528,26 @@ struct star_feedback star_particle_feedback(int index, double dt, double z, doub
   int i, Nstars;
   double m;
   struct star_feedback star_particle = {0};
+  
+  star_particle.TimeSN = MAX_DOUBLE_NUMBER; 
 
   // Add feedback contributions for each bin 
   for(i = 0; i < NBINS; i++) 
     {
+      if(SP[index].NumOfStarsInBins[i] == 0)
+        continue;
+
       Nstars = SP[index].NumOfStarsInBins[i];
       
       m = StarMeanMassInBins[i]; 
 
       struct star_feedback star = star_feedback_compute(dt, z, m, a);
-      
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+      if(star.TimeSN < star_particle.TimeSN)
+      star_particle.TimeSN = star.TimeSN;
+#endif
+
       switch(star.Stage)
         {
           case 0:

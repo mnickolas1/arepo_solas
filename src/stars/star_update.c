@@ -67,6 +67,10 @@ void star_prep(void)
       star_feedback = units_for_feedback(star_feedback_compute(star_mass, star_timestep, star_metallicity, star_age));
 #endif
 
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+     SP[i].TimeSN = star_feedback.TimeSN;
+#endif
+
 #ifdef WINDS
       SP[i].MassLoss = star_feedback.MassLoss;
 #ifdef METALS
@@ -98,28 +102,19 @@ void star_prep(void)
     }
 }
 
-/* Get timestep for star based on smallest between ngbs */
-integertime get_timestep_star(int p)
+/* Get timebin for star */
+int get_star_timebin(int p)
 { 
-  // Star particles always active for winds
-  return 0;
-  
-  // return (integertime)(1e-2 / All.Timebase_interval);
+  return PPS(p).TimeBinGrav;
 }
 
 void update_star_timesteps(void)
 {
-  int i, bin;
-  integertime ti_step;
+  int i;
 
   for(i = 0; i < NumStars; i++)
-    { 
-      ti_step = get_timestep_star(i);
-    
-      bin = get_timestep_bin(ti_step);
-
-      SP[i].TimeBinStar = bin;
-    }
+    SP[i].TimeBinStar = get_star_timebin(i);
+  
   reconstruct_star_timebins();
   update_list_of_active_star_particles();
 }
@@ -159,7 +154,7 @@ void reconstruct_star_timebins(void)
     }
 }
 
-/* Call this function after updating the star-timebin to the ngb condition */
+/* Call this function after updating the star-timebin */
 void update_list_of_active_star_particles(void)
 {
   int i, n;

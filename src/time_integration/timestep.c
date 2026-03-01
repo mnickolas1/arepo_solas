@@ -323,6 +323,20 @@ integertime get_timestep_gravity(int p)
 #endif
   }
 
+#ifdef STAR_FEEDBACK_ACTIVE
+  if(P[p].Type == 4)
+    { 
+      double dt_star = pow(10,4) * SEC_PER_YEAR / All.UnitTime_in_s;
+      double dt_maxngb = (SPP(p).NgbMaxBin ? (((integertime)1) << SPP(p).NgbMaxBin) : 0) * All.Timebase_interval;
+
+      if(dt_star < dt)
+        dt = dt_star;
+  
+      if(dt_maxngb < dt)
+        dt = dt_maxngb;
+    }
+#endif
+
   dt *= All.cf_hubble_a;
 
   if(P[p].Mass == 0 && P[p].ID == 0)
