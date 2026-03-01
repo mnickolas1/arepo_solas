@@ -387,7 +387,7 @@ static void io_func_ne(int particle, int components, void *buffer, int mode)
 }
 #endif /* #if defined(COOLING) */
 
-#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#if defined(COOLING) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
 /*! \brief Output function for neutral hydrogen fraction.
  *
  *  \param[in] particle Index of particle/cell.

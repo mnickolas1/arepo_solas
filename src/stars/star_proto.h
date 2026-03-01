@@ -18,7 +18,7 @@ void perform_end_of_step_star_physics(void);
 void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
 
 /* Feedback tables interpolation */
-void load_stellar_tables(const char *filename);
+void load_star_tables(const char *filename);
 void free_stellar_tables(void);
 struct star_feedback star_feedback_compute(double dt, double z_val, double m_val, double a);
 struct star_feedback units_for_feedback(struct star_feedback star);

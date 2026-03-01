@@ -55,7 +55,6 @@ extern int NumStars;
 extern struct TimeBinData TimeBinsStar;
 #endif
 
-
 extern struct star_particle_data
 {
   MyIDType PID;

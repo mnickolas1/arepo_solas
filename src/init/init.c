@@ -579,7 +579,8 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   double *sfg = All.StarFeedbackGlobal;
   sfg = malloc(8 * sizeof(double));
 
-  load_stellar_tables(All.StarTablesFile);
+  mpi_printf("Loading star evolution tables\n");
+  load_star_tables(All.StarTablesFile);
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
