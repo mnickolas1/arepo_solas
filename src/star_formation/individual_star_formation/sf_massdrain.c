@@ -1,12 +1,11 @@
 #include <stdlib.h>       
-#include <math.h>
-#include <gsl/gsl_math.h>              
+#include <math.h>     
 #include <mpi.h>            
   
-#include "../main/allvars.h"
-#include "../main/proto.h"
+#include "../../main/allvars.h"
+#include "../../main/proto.h"
 
-#include "../domain/domain.h"
+#include "../../domain/domain.h"
 
 static int sf_massdrain_evaluate(int target, int mode, int threadid);
 
@@ -80,7 +79,9 @@ static void out2particle(data_out *out, int i, int mode)
           PPS(i).Pos[j] = out->CM[j];
           PPS(i).Vel[j] = out->VM[j];
         }
+#ifdef METALS
       SP[i].Metals = out->Metals;
+#endif
     }
   else /* combine */
     {
@@ -89,11 +90,13 @@ static void out2particle(data_out *out, int i, int mode)
           PPS(i).Pos[j] += out->CM[j];
           PPS(i).Vel[j] += out->VM[j];
         }
+#ifdef METALS
       SP[i].Metals += out->Metals;
+#endif
     }
 }
 
-#include "../utils/generic_comm_helpers2.h"
+#include "../../utils/generic_comm_helpers2.h"
 
 /*! \brief Routine that defines what to do with local particles.
  *
@@ -192,7 +195,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
   MyDouble *pos, massofstar, ngbmass;
-  MyDouble cm[3], vm[3], metals;
+  MyDouble cm[3], vm[3];
 
   data_in local, *target_data;
   data_out out;
@@ -220,7 +223,9 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 
   for(j = 0; j < 3; j++)
     cm[j] = vm[j] = 0;
-  metals = 0;
+#ifdef METALS
+  MyDouble metals = 0;
+#endif
 
   h2 = h * h;
   hinv = 1.0 / h;
@@ -282,8 +287,9 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
           vm[0] += P[j].Mass * wk / ngbmass * P[j].Vel[0];
           vm[1] += P[j].Mass * wk / ngbmass * P[j].Vel[1];
           vm[2] += P[j].Mass * wk / ngbmass * P[j].Vel[2];
-
+#ifdef METALS
           metals += P[j].Mass * wk / ngbmass * SphP[j].Metals;
+#endif
         }
     }
 
@@ -292,7 +298,9 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
       out.CM[k] = cm[k];
       out.VM[k] = vm[k];
     }
+#ifdef METALS
     out.Metals = metals;
+#endif
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)

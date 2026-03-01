@@ -198,9 +198,9 @@ void perform_end_of_step_star_physics(void)
             continue;
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-          if(SphP[j].StarMassDrain > 0)
+          if(SphP[i].StarMassDrain > 0)
             {
-              if(P[j].Mass - SphP[j].StarMassDrain < 0.1*P[j].Mass)
+              if(P[i].Mass - SphP[i].StarMassDrain < 0.1*P[i].Mass)
                 {
                   terminate("STAR FORMATION DRAIN");
                   //double M_old = P[j].Mass;
@@ -224,17 +224,17 @@ void perform_end_of_step_star_physics(void)
                 }
               else
                 {
-                  P[j].Mass -= SphP[j].StarMassDrain;
+                  P[i].Mass -= SphP[i].StarMassDrain;
                     
                   // Update total energy 
-                  SphP[j].Energy *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
+                  SphP[i].Energy *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
                     
                   // Update momentum 
-                  SphP[j].Momentum[0] *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
-                  SphP[j].Momentum[1] *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
-                  SphP[j].Momentum[2] *= (P[j].Mass)/(P[j].Mass + SphP[j].StarMassDrain);
+                  SphP[i].Momentum[0] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
+                  SphP[i].Momentum[1] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
+                  SphP[i].Momentum[2] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
                 }
-              SphP[j].StarMassDrain = 0;
+              SphP[i].StarMassDrain = 0;
             }
 #endif
 

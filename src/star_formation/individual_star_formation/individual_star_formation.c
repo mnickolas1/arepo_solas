@@ -43,15 +43,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../main/allvars.h"
-#include "../main/proto.h"
+#include "../../main/allvars.h"
+#include "../../main/proto.h"
 
-#include "../gravity/forcetree.h"
+#include "../../stars/star_particle.h"
 
-#include "../stars/star_particle.h"
+static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star);
+static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star);
+static void make_individual_star(int i, MyDouble mass_of_star, double *local_stars_mass);
 
 static int stars_spawned;      /*!< local number of star particles spawned in the time step */
 static int tot_stars_spawned;  /*!< global number of star paricles spawned in the time step */
+
 
 /*! \brief This routine creates star particles according to their
  *         respective rates.
@@ -114,7 +117,7 @@ if(need_realloc_global)
     
           if(SphP[i].Sfr > 0)
             {
-              p = All.Epsilon * dt / dtff;
+              p = All.StarFormationEfficiency * dt / dtff;
                
               u = get_random_number_aux();
               mass_of_star = sample_imf(u);
@@ -139,7 +142,7 @@ if(need_realloc_global)
           p_decide = get_random_number();
 
           if(p_decide < prob) /* ok, it is decided to consider star formation */
-            make_star(i, mass_of_star, &local_stars_mass);
+            make_individual_star(i, mass_of_star, &local_stars_mass);
         }
     } /* end of main loop over active gas particles */
 
@@ -220,7 +223,7 @@ if(need_realloc_global)
  *
  *  \return void
  */
-void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
+static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
   /* assign star_ids */
   P[istar].SID = NumStars;
@@ -275,7 +278,7 @@ void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
  *
  *  \return void
  */
-void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
+static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
   P[istar]               = P[igas];
   P[istar].Type          = 4;
@@ -369,7 +372,7 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
  *
  *  \return void
  */
-void make_star(int i, MyDouble mass_of_star, double *local_stars_mass)
+static void make_individual_star(int i, MyDouble mass_of_star, double *local_stars_mass)
 {
   if(NumPart + stars_spawned >= All.MaxPart)
     terminate("NumPart=%d spwawn %d particles no space left (All.MaxPart=%d)\n", NumPart, stars_spawned, All.MaxPart);

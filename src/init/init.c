@@ -524,7 +524,7 @@ int init(void)
   sfr_init();
 #endif /* #if defined(USE_SFR) */
 
-#if defined(USE_SFR)
+#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
   for(i = 0; i < NumGas; i++)
     SphP[i].Sfr = get_starformation_rate(i);
 #endif /* #if defined(USE_SFR) */

@@ -379,10 +379,11 @@ ifeq (,$(filter STAR_PARTICLES 2,$(CONFIGVARS)))
     $(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES=2)
 endif
 
-  OBJS += star_formation/individual_star_formation/sfr_starbystar.o \
+  OBJS    += star_formation/individual_star_formation/sfr_starbystar.o \
           star_formation/individual_star_formation/individual_star_formation.o \
           star_formation/individual_star_formation/sf_starbystar.o \
           star_formation/individual_star_formation/sf_massdrain.o
+  SUBDIRS += star_formation/individual_star_formation
 endif
 
 ################################

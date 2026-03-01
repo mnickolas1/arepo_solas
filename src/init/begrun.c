@@ -318,7 +318,7 @@ void set_units(void)
       mpi_printf("BEGRUN: MinEgySpec set to %g based on MinGasTemp=%g\n", All.MinEgySpec, All.MinGasTemp);
     }
 
-#if defined(USE_SFR)
+#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
   set_units_sfr();
 #endif /* #if defined(USE_SFR) */
 
