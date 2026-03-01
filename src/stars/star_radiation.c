@@ -21,7 +21,7 @@ void init_healpix_rays(int nside)
     }
 }
 
-void trace_ray(int star_index, double *dir, double *column_density, double *intensity)
+void radiation(int star_index, double *dir, double *column_density, double *intensity)
 {
   int i, idx;
    
@@ -39,7 +39,7 @@ void trace_ray(int star_index, double *dir, double *column_density, double *inte
         RayIntensity[iray] = SP[i].RAD_Ionizing;
 
         // Walk the tree for this ray
-        //raytrace_tree_walk(pos, dir, &RayColumnDensity[iray], &RayIntensity[iray]);
+        raytrace_tree_walk(pos, dir, &RayColumnDensity[iray], &RayIntensity[iray]);
         }
 
     // Store results for this star, e.g. total absorbed energy or column
