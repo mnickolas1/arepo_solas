@@ -402,11 +402,11 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
     
 #if defined(COOLING) && defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
   sfr_create_star_particles();
-#endif /* #if defined(COOLING) && defined(USE_SFR) */
+#endif 
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
   individual_starbystar_formation();
-#endif 
+#endif
 
 #ifdef BH_ACCRETION_ACTIVE
   bh_density();

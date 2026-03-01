@@ -528,12 +528,12 @@ void read_parameter_file(char *fname)
 #endif 
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-        strcpy(tag[nt], "NumberDensityThresh"); // n_H in units of cm^-3
-        addr[nt] = &All.StarFormationNumberDensityThreshold;
+        strcpy(tag[nt], "NumberDensThreshold"); // n_H in units of cm^-3
+        addr[nt] = &All.NumberDensThreshold ;
         id[nt++] = REAL;
 
-        strcpy(tag[nt], "TemperatureThresh");
-        addr[nt] = &All.TemperatureThresh;
+        strcpy(tag[nt], "TemperatureThreshold");
+        addr[nt] = &All.TemperatureThreshold;
         id[nt++] = REAL;
 
         strcpy(tag[nt], "StarFormationEfficiency");  

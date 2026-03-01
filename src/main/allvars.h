@@ -1237,8 +1237,8 @@ extern struct global_data_all_processes
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-  double NumberDensityThresh;
-  double TemperatureThresh;
+  double NumberDensThreshold;
+  double TemperatureThreshold;
   double StarFormationEfficiency;
 #endif
 
@@ -1557,7 +1557,7 @@ extern struct sph_particle_data
 #endif /* #ifdef USE_SFR */
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-  StarMassDrain;
+  MyDouble StarMassDrain;
 #endif
 
 #ifdef OUTPUT_COOLHEAT

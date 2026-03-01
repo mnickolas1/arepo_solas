@@ -24,7 +24,7 @@ void cooling_and_starformation(void)
 
   /* note: assuming FULL ionization */ //need grackle fields to do properly
   double u_to_temp_fac =
-      (4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC))) * PROTONMASS / BOLTZMANN * GAMMA_MINUS1 * All.UnitEnergy_in_cgs / All.UnitMass_in_g;
+  (4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC))) * PROTONMASS / BOLTZMANN * GAMMA_MINUS1 * All.UnitEnergy_in_cgs / All.UnitMass_in_g;
 
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
@@ -53,7 +53,7 @@ void cooling_and_starformation(void)
       dens = SphP[i].Density;
       temp = SphP[i].Utherm * u_to_temp_fac;
 
-      numdens_threshold = All.NumberDensityThresh*PROTONMASS/All.UnitDensity_in_cgs;
+      double numberdens_threshold = All.NumberDensThreshold * PROTONMASS / All.UnitDensity_in_cgs;
 
       /* check whether conditions for star formation are fulfilled.
        * f=1  normal cooling
@@ -63,7 +63,7 @@ void cooling_and_starformation(void)
       flag = 1; /* default is normal cooling */
 
       /* enable star formation if gas is above SF density threshold */
-      if((dens * All.cf_a3inv >= numdens_threshold) && temp < All.TemperatureThresh)
+      if(dens * All.cf_a3inv >= numberdens_threshold && temp < All.TemperatureThreshold)
         if(All.Time > 0)  
           flag = 0;
 

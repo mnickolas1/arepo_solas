@@ -18,7 +18,7 @@ static inline double star_lifetime(int z_idx, double m_val);
 static double lifetime(double z_val, double m_val);
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-static double next_SN_time(double z_val, double m_val, double a);
+static double next_SN_time(double tau, double z_val, double m_val, double a);
 #endif
 
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
@@ -418,8 +418,10 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
 {
   double tau = lifetime(z_val, m_val);
   struct star_feedback star = {0};
-  
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   star.TimeSN = MAX_DOUBLE_NUMBER;
+#endif
 
   if(m_val <= 2)
     return star;
