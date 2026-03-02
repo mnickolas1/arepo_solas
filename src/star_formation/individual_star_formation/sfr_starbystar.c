@@ -16,7 +16,11 @@ static double compute_mu(int i)
     double Xe  = SphP[i].Ne; // electron fraction
 
     /* Optional: include metals if desired (usually negligible) */
+#ifdef METALS    
     double Z = SphP[i].Metallicity;
+#else
+    double Z = 0;
+#endif    
     double A_Z = 16.0 * PROTONMASS; // metals, approx oxygen
 
     /* Compute mean molecular weight: g per particle */

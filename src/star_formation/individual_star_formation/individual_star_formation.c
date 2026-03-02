@@ -138,6 +138,7 @@ void individual_starbystar_formation(void)
                
               u = get_random_number_aux();
               mass_of_star = sample_imf(u);
+              mass_of_star /= All.UnitMass_in_g / SOLAR_MASS;
 
               prob = (1 - exp(-p));
             }

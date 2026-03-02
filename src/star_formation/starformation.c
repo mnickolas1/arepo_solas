@@ -235,7 +235,7 @@ void sfr_create_star_particles(void)
 
 #if STAR_PARTICLES == 1
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
-    sample_star_particle(PPS(i).Mass * (All.UnitMass_in_g / SOLAR_MASS), SP[i].NumOfStarsInBins);
+    sample_star_particle(PPS(i).Mass * All.UnitMass_in_g / SOLAR_MASS, SP[i].NumOfStarsInBins);
 #endif
 
   int in[4], out[4], cnt = 2;

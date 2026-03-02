@@ -1552,6 +1552,15 @@ extern struct sph_particle_data
                  indirectly ionization state and mean molecular weight. */
 #endif        /* #if defined(COOLING) */
 
+#ifdef USE_GRACKLE
+  MyDouble grHI;
+  MyDouble grHII;
+  MyDouble grH2I;
+  MyDouble grHeI;
+  MyDouble grHeII;
+  MyDouble grHeIII;
+#endif
+
 #ifdef USE_SFR
   MySingle Sfr;
 #endif /* #ifdef USE_SFR */
