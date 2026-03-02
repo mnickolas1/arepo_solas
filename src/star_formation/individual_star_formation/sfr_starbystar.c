@@ -7,6 +7,23 @@
 #include "../../main/allvars.h"
 #include "../../main/proto.h"
 
+static double compute_mu(int i)
+{
+    /* Grab mass fractions from Grackle */
+    double XH  = SphP[i].grHI + SphP[i].grHII; // atomic hydrogen fraction
+    double XH2 = SphP[i].grH2I; // molecular hydrogen fraction 
+    double XHe = SphP[i].grHeI + SphP[i].grHeII + SphP[i].grHeIII; // helium fraction
+    double Xe  = SphP[i].Ne; // electron fraction
+
+    /* Optional: include metals if desired (usually negligible) */
+    double Z = SphP[i].Metallicity;
+    double A_Z = 16.0 * PROTONMASS; // metals, approx oxygen
+
+    /* Compute mean molecular weight: g per particle */
+    /* 1 H atom = m_H, 1 He atom = 4*m_H, electrons = m_H (counted as particles for n) */
+    return 1.0 / (XH + XH2/2.0 + XHe/4.0 + Xe + Z/16.0); // -> Dimensionless mu
+}
+
 /*! \brief Main driver for star formation and gas cooling.
  *
  *
@@ -18,11 +35,7 @@ void cooling_and_starformation(void)
 
   int idx, i, flag;
   double dt, du, unew;
-  double dens, temp;
-
-  /* note: assuming FULL ionization */ //need grackle fields to do properly
-  double u_to_temp_fac =
-  (4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC))) * PROTONMASS / BOLTZMANN * GAMMA_MINUS1 * All.UnitEnergy_in_cgs / All.UnitMass_in_g;
+  double number_dens, temp;
 
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
@@ -47,12 +60,17 @@ void cooling_and_starformation(void)
       SphP[i].Energy += All.cf_atime * All.cf_atime * du * P[i].Mass;
 
       cool_cell(i);
+      
+      //double mu = compute_mu(i); 
+      double mu = 2.33; // molecular H
 
-      dens = SphP[i].Density;
-      temp = SphP[i].Utherm * u_to_temp_fac;
+      number_dens = (SphP[i].Density * All.UnitDensity_in_cgs) / mu / PROTONMASS;
+      number_dens /= All.cf_a3inv;
+      
+      double u_to_temp_fac = mu * PROTONMASS / BOLTZMANN * GAMMA_MINUS1;
 
-      double numberdens_threshold = All.NumberDensThreshold * PROTONMASS / All.UnitDensity_in_cgs;
-
+      temp = (SphP[i].Utherm * All.UnitEnergy_in_cgs / All.UnitMass_in_g) * u_to_temp_fac;
+     
       /* check whether conditions for star formation are fulfilled.
        * f=1  normal cooling
        * f=0  star formation
@@ -61,7 +79,7 @@ void cooling_and_starformation(void)
       flag = 1; /* default is normal cooling */
 
       /* enable star formation if gas is above SF density threshold */
-      if(dens * All.cf_a3inv >= numberdens_threshold && temp < All.TemperatureThreshold)
+      if(number_dens >= All.NumberDensThreshold && temp < All.TemperatureThreshold)
         if(All.Time > 0)  
           flag = 0;
 
