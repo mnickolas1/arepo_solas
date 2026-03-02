@@ -1,3 +1,23 @@
+
+/* Wavebands */
+typedef enum
+{
+  LYMAN_WERNER = 0,
+  ULTRAVIOLET,
+  OPTICAL,
+  INFRARED,
+  WB_COUNT
+} Waveband;
+
+
+/* Opacity coefficients */
+static double Kappa[WB_COUNT] = {
+  1.0,  // LW
+  1.0,  // UV
+  1.0,  // OP
+  1.0   // IR
+};
+
 #define RAY_STACK_SIZE 64
 
 typedef struct 
@@ -67,12 +87,13 @@ Tree indices are saved as follows:
  
                        └──  [Tree_FirstNonTopLevelNode ... Tree_MaxPart+Tree_MaxNodes-1] -> local branch nodes
 
-[Tree_MaxPart+Tree_MaxNodes ... ] -> pseudo-particles and imported points 
+[Tree_MaxPart+Tree_MaxNodes ... Tree_MaxPart+Tree_MaxNodes+NTopleaves-1] -> pseudo-particles
+
+[Tree_MaxPart+Tree_MaxNodes+NTopleaves ... ] -> imported points (Tree_ImportedNodeOffset = Tree_MaxPart + Tree_MaxNodes + NTopleaves)
 */
 
 void raytrace_treewalk(RayData *ray, int mode, int target_node)
 {
-
   /* local stack for ordering within this domain */
   StackEntry stack[RAY_STACK_SIZE];
   int stack_top = 0;
@@ -81,15 +102,67 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node)
   if(mode == 0)
     stack[stack_top++] = (StackEntry){0.0, Tree_MaxPart}; /* root */
   else
-    stack[stack_top++] = (StackEntry){0.0, target_node};
+    {
+      /* restore whatever was pending from previous rank */
+      memcpy(stack, ray->pending, ray->n_pending * sizeof(StackEntry));
+      stack_top = ray->n_pending;
+      ray->n_pending = 0;
+      /* push the target node on top - it goes first */
+      stack[stack_top++] = (StackEntry){ray->t, target_node};
+    }
   
   while(stack_top > 0)
     {
       StackEntry cur = stack[--stack_top];
       int no = cur.node;
 
+      /* ---- real particle ---- */
+      if(no < Tree_MaxPart)
+        {
+          double px = Tree_Pos_list[3*no+0] - ray->pos[0];
+          double py = Tree_Pos_list[3*no+1] - ray->pos[1];
+          double pz = Tree_Pos_list[3*no+2] - ray->pos[2];
+                  
+          /* assume cell is a sphere */
+          /* project onto ray for closest approach */
+          double t_closest = px*ray->dir[0] + py*ray->dir[1] + pz*ray->dir[2];
+
+          /* perpendicular distance squared from ray to sphere center */
+          double cx = px - t_closest*ray->dir[0];
+          double cy = py - t_closest*ray->dir[1];
+          double cz = pz - t_closest*ray->dir[2];
+          double b2 = cx*cx + cy*cy + cz*cz;
+
+          double r  = cbrt((3.0*SphP[no].Volume)/(4.0*M_PI)); 
+          double r2 = r * r;
+
+          if(b2 < r2 && t_closest > 0)
+            {
+              /* ray intersects sphere */
+              double chord_length = 2.0 * sqrt(r2 - b2); /* path through sphere */
+
+              double density = SphP[no].Density;
+              double metallicity = SphP[no].Metallicity;
+              double kappa = Kappa[LYMAN_WERNER]; 
+
+              /* optical depth */
+              double dtau = kappa * density * metallicity * chord_length;
+
+              /* absorption */
+              SphP[no].RAD_Ionizing += ray->RAD_Ionizing * (1 - exp(-dtau));
+
+              /* attenuation */
+              ray->RAD_Ionizing *= exp(-dtau);
+
+              /* early termination */
+              if(ray->RAD_Ionizing < RAD_BACKGROUND)
+                return;
+            }
+          else
+            terminate("Should not happen!");
+        }
       /* ---- internal node ---- */
-      if(no >= Tree_MaxPart && no < Tree_MaxPart + Tree_MaxNodes)
+      else if(no < Tree_MaxPart + Tree_MaxNodes)
         {
           /* mode==1 guard: don't escape back into top-level tree */
           if(mode == 1 && no < Tree_FirstNonTopLevelNode)
@@ -99,7 +172,7 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node)
 
           double t_enter, t_exit;
           if(!ray_box_intersect(ray->pos, ray->dir, nop->center, nop->len, &t_enter, &t_exit))
-            continue; /* ray misses, skip */
+            terminate("Should not happen!");
 
           /* enumerate direct children, sort by t_enter, push */
           StackEntry children[8];
@@ -133,10 +206,10 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node)
                   if(b2 < r2 && t_closest > 0)
                     {
                       /* ray intersects sphere */
-                      double dt  = sqrt(r2 - b2); /* half chord length */
-                      ct_enter   = t_closest - dt;
-                      ct_exit    = t_closest + dt;
-                      hit        = 1;
+                      double dt = sqrt(r2 - b2); /* half chord length */
+                      ct_enter = t_closest - dt;
+                      ct_exit = t_closest + dt;
+                      hit = 1;
                     }
                   else
                     hit = 0;
@@ -145,12 +218,38 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node)
                 {
                   hit = ray_box_intersect(ray->pos, ray->dir, Nodes[child].center, Nodes[child].len, &ct_enter, &ct_exit);
                 }
-              else /* pseudo-particle or imported */
+              else if(child >= Tree_ImportedNodeOffset) /* imported point */
+                {
+                  int n = child - Tree_ImportedNodeOffset;
+    
+                  double px = Tree_Points[n].Pos[0] - ray->pos[0];
+                  double py = Tree_Points[n].Pos[1] - ray->pos[1];
+                  double pz = Tree_Points[n].Pos[2] - ray->pos[2];
+
+                  double t_closest = px*ray->dir[0] + py*ray->dir[1] + pz*ray->dir[2];
+
+                  double cx = px - t_closest*ray->dir[0];
+                  double cy = py - t_closest*ray->dir[1];
+                  double cz = pz - t_closest*ray->dir[2];
+                  double b2 = cx*cx + cy*cy + cz*cz;
+
+                  double r = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
+                  double r2 = r * r;
+
+                  if(b2 < r2 && t_closest > 0)
+                    {
+                      /* ray intersects sphere */
+                      double dt = sqrt(r2 - b2); /* half chord length */
+                      ct_enter = t_closest - dt;
+                      ct_exit = t_closest + dt;
+                      hit = 1;
+                    }
+                }
+              else /* pseudo-particle - requires export */
                 {
                   int pseudo_idx = child - (Tree_MaxPart + Tree_MaxNodes);
-                  int top_node   = DomainNodeIndex[pseudo_idx];
-    
-                  /* use the top-level node's geometry for intersection */
+                  int top_node = DomainNodeIndex[pseudo_idx];
+
                   hit = ray_box_intersect(ray->pos, ray->dir, Nodes[top_node].center, Nodes[top_node].len, &ct_enter, &ct_exit);
                 }
 
@@ -167,28 +266,74 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node)
             }
 
           /* sort ascending by t_enter */
-          qsort(children, nchildren, sizeof(StackEntry), compare_t_enter);
+          for(int i = 1; i < nchildren; i++)
+            {
+              StackEntry key = children[i];
+              int j = i - 1;
+              while(j >= 0 && children[j].t_enter > key.t_enter)
+                {
+                  children[j+1] = children[j];
+                  j--;
+                }
+              children[j+1] = key;
+            }
 
           /* push in reverse so smallest t_enter is popped first */
           for(int i = nchildren - 1; i >= 0; i--)
             stack[stack_top++] = children[i];
         }
 
-      /* ---- real particle ---- */
-      else if(no < Tree_MaxPart)
+      /* ---- imported particle: remote domain ---- */  
+      else if(no >= Tree_ImportedNodeOffset) 
         {
-          /* your RT physics here */
-          ray->tau += compute_opacity(ray, no);
+          int n = no - Tree_ImportedNodeOffset;
+    
+          double px = Tree_Points[n].Pos[0] - ray->pos[0];
+          double py = Tree_Points[n].Pos[1] - ray->pos[1];
+          double pz = Tree_Points[n].Pos[2] - ray->pos[2];
+        
+          /* assume cell is a sphere */
+          /* project onto ray for closest approach */
+          double t_closest = px*ray->dir[0] + py*ray->dir[1] + pz*ray->dir[2];
 
-          /* early termination */
-          if(ray->tau > TAU_MAX)
-            return;
+          /* perpendicular distance squared from ray to sphere center */
+          double cx = px - t_closest*ray->dir[0];
+          double cy = py - t_closest*ray->dir[1];
+          double cz = pz - t_closest*ray->dir[2];
+          double b2 = cx*cx + cy*cy + cz*cz;
+
+          double r  = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
+          double r2 = r * r;
+
+          if(b2 < r2 && t_closest > 0)
+            {
+              /* ray intersects sphere */
+              double chord_length = 2.0 * sqrt(r2 - b2); /* path through sphere */
+
+              double density = Tree_Points[n].Density;
+              double metallicity = Tree_Points[n].Metallicity;
+              double kappa = Kappa[LYMAN_WERNER]; 
+
+              /* optical depth */
+              double dtau = kappa * density * metallicity * chord_length;
+
+              /* absorption */
+              Tree_Points[n].RAD_Ionizing += ray->RAD_Ionizing * (1 - exp(-dtau));
+
+              /* attenuation */
+              ray->RAD_Ionizing *= exp(-dtau);
+
+              /* early termination */
+              if(ray->RAD_Ionizing < RAD_BACKGROUND)
+                return;
+            }
+          else
+            terminate("Should not happen!");
         }
-
-      /* ---- pseudo-particle: remote domain ---- */
+      /* ---- pseudo-particle: remote domain ---- */  
       else
         {
-          int task        = DomainNewTask[no - (Tree_MaxPart + Tree_MaxNodes)];
+          int task = DomainNewTask[no - (Tree_MaxPart + Tree_MaxNodes)];
           int remote_node = DomainNodeIndex[no - (Tree_MaxPart + Tree_MaxNodes)];
 
           /* everything left on local stack is downstream of this domain,
@@ -210,25 +355,8 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node)
         }
     }
 
-  /* stack empty: ray finished in this domain */
-  /* check if there are pending top-level nodes to continue */
-  if(ray->n_pending > 0)
-    {
-      /* pop next pending node */
-      StackEntry next = ray->pending[0];
-      memmove(ray->pending, ray->pending + 1, (ray->n_pending - 1) * sizeof(StackEntry));
-      ray->n_pending--;
-
-      int task        = DomainNewTask[next.node - (Tree_MaxPart + Tree_MaxNodes)];
-      int remote_node = DomainNodeIndex[next.node - (Tree_MaxPart + Tree_MaxNodes)];
-
-      export_ray(ray, task, remote_node);
-    }
-  else
-    {
-      /* ray truly finished - send result home */
-      send_result_home(ray);
-    }
+  /* ray truly finished - send result home */
+  send_result_home(ray);
 }
 
 /*! \brief Prepares node to be exported.

@@ -847,8 +847,9 @@ extern struct treepoint_data
   unsigned char SofteningType : 7;
 
 #ifdef STAR_RADIATION_ACTIVE
+  MyDouble Volume;
   MyDouble Density;
-  MyDouble Metals;
+  MyDouble Metallicity;
   MyDouble RAD_Ionizing;
 #endif
 
