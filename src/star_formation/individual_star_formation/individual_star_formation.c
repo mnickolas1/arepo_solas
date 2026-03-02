@@ -80,20 +80,37 @@ void individual_starbystar_formation(void)
 
 #ifdef STARS
 //Check if we are overflowing the stars array
-int need_realloc_local = 0;
-if (NumStars == All.MaxPartStars)
-    need_realloc_local = 1;
+  int local_potential_stars = 0;
+  int local_star_load, global_star_load;
 
-//Determine if any mpi rank needs more memory 
-int need_realloc_global;
-MPI_Allreduce(&need_realloc_local, &need_realloc_global, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
+  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+    {
+      i = TimeBinsHydro.ActiveParticleList[idx];
+      if(i >= 0)
+        {
+          if(P[i].Mass == 0 && P[i].ID == 0)
+            continue;
+          
+          if(SphP[i].Sfr > 0)
+            local_potential_stars ++;
+        }    
+    }
 
-if(need_realloc_global)
-  {
-    //Determine the new MaxPartStars
-    All.MaxPartStars = 1.25*All.MaxPartStars + 1;
-    reallocate_memory_maxpartstars();
-  }
+  local_star_load = NumStars + local_potential_stars;
+  
+  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  
+  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
+    {
+      int old_alloc =  All.MaxPartStars;
+      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
+      
+      if(All.MaxPartStars < ALLOC_STAR_ROOM)
+        All.MaxPartStars = ALLOC_STAR_ROOM;
+      
+      if(All.MaxPartStars != old_alloc)
+        reallocate_memory_maxpartstars();
+    }
 #endif
 
   stars_spawned = local_stars_mass = 0;
