@@ -1588,7 +1588,8 @@ extern struct sph_particle_data
 #endif /* #ifdef ADDBACKGROUNDGRID */
 
 #ifdef METALS
-#define Metals PScalars[METALLICITY_INDEX]
+#define Metallicity PScalars[METALLICITY_INDEX]
+//#define Metals PConservedScalars[METALLICITY_INDEX]
 #endif 
     
 #ifdef BLACKHOLES_ACCRETION_ACTIVE

@@ -241,12 +241,14 @@ void perform_end_of_step_star_physics(void)
           // Dump mass, momentum and energy injected by stars 
 #if defined(WINDS) || defined(SUPERNOVAE)
           // Add mass 
+          double Mold = P[i].Mass;
+
           P[i].Mass += SphP[i].StarMassFeed;
           All.StarFeedbackLocal[4] += SphP[i].StarMassFeed;
           SphP[i].StarMassFeed = 0;
 #ifdef METALS
           // Add metals
-          SphP[i].Metals += SphP[i].StarMetalsFeed;
+          SphP[i].Metallicity = (Mold * SphP[i].Metallicity + SphP[i].StarMetalsFeed)/(P[i].Mass);
           All.StarFeedbackLocal[5] += SphP[i].StarMetalsFeed;
           SphP[i].StarMetalsFeed = 0;
 #endif

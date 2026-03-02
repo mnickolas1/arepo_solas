@@ -318,9 +318,9 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   SphP[igas].Momentum[1] *= fac;
   SphP[igas].Momentum[2] *= fac;
 
-#ifdef METALS
-  SphP[igas].Metals *= fac;
-#endif /* ifdef Metals */
+//#ifdef METALS
+//  SphP[igas].Metals *= fac;
+//#endif /* ifdef Metals */
 
 //#ifdef MHD
 //  SphP[igas].Energy += Emag;
@@ -336,7 +336,7 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   SP[NumStars].PID = istar;
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
+  SP[NumStars].Metals = SphP[igas].Metallicity * P[istar].Mass;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE

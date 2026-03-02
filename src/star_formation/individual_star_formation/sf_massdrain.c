@@ -280,15 +280,15 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
           // compute the mass drain
           SphP[j].StarMassDrain += massofstar * P[j].Mass * wk / ngbmass;
           // compute center of mass and velocity
-          cm[0] += P[j].Mass * wk / ngbmass * P[j].Pos[0];
-          cm[1] += P[j].Mass * wk / ngbmass * P[j].Pos[1];
-          cm[2] += P[j].Mass * wk / ngbmass * P[j].Pos[2];
+          cm[0] += P[j].Pos[0] * P[j].Mass * wk / ngbmass;
+          cm[1] += P[j].Pos[1] * P[j].Mass * wk / ngbmass;
+          cm[2] += P[j].Pos[2] * P[j].Mass * wk / ngbmass;
 
-          vm[0] += P[j].Mass * wk / ngbmass * P[j].Vel[0];
-          vm[1] += P[j].Mass * wk / ngbmass * P[j].Vel[1];
-          vm[2] += P[j].Mass * wk / ngbmass * P[j].Vel[2];
+          vm[0] += P[j].Vel[0] * P[j].Mass * wk / ngbmass;
+          vm[1] += P[j].Vel[1] * P[j].Mass * wk / ngbmass;
+          vm[2] += P[j].Vel[2] * P[j].Mass * wk / ngbmass;
 #ifdef METALS
-          metals += P[j].Mass * wk / ngbmass * SphP[j].Metals;
+          metals += SphP[j].Metallicity * P[j].Mass * P[j].Mass * wk / ngbmass;
 #endif
         }
     }
