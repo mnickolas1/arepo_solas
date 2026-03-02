@@ -78,41 +78,6 @@ void individual_starbystar_formation(void)
   double p = 0, prob, p_decide;
   double rate, local_stars_mass, global_stars_mass;
 
-#ifdef STARS
-//Check if we are overflowing the stars array
-  int local_potential_stars = 0;
-  int local_star_load, global_star_load;
-
-  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
-    {
-      i = TimeBinsHydro.ActiveParticleList[idx];
-      if(i >= 0)
-        {
-          if(P[i].Mass == 0 && P[i].ID == 0)
-            continue;
-          
-          if(SphP[i].Sfr > 0)
-            local_potential_stars ++;
-        }    
-    }
-
-  local_star_load = NumStars + local_potential_stars;
-  
-  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  
-  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
-    {
-      int old_alloc =  All.MaxPartStars;
-      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
-      
-      if(All.MaxPartStars < ALLOC_STAR_ROOM)
-        All.MaxPartStars = ALLOC_STAR_ROOM;
-      
-      if(All.MaxPartStars != old_alloc)
-        reallocate_memory_maxpartstars();
-    }
-#endif
-
   stars_spawned = local_stars_mass = 0;
 
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
@@ -163,6 +128,26 @@ void individual_starbystar_formation(void)
             make_individual_star(i, mass_of_star, &local_stars_mass);
         }
     } /* end of main loop over active gas particles */
+
+#ifdef STARS
+  /* Check if we are overflowing the stars array based on stars actually formed this step */
+  int local_star_load = NumStars;
+  int global_star_load;
+
+  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
+    {
+      int old_alloc = All.MaxPartStars;
+      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
+
+      if(All.MaxPartStars < ALLOC_STAR_ROOM)
+        All.MaxPartStars = ALLOC_STAR_ROOM;
+
+      if(All.MaxPartStars != old_alloc)
+        reallocate_memory_maxpartstars();
+    }
+#endif /* #ifdef STARS */
 
   MPI_Allreduce(&stars_spawned, &tot_stars_spawned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 

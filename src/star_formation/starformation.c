@@ -104,41 +104,6 @@ void sfr_create_star_particles(void)
   double rate_in_msunperyear;
   double sfrrate, totsfrrate;
 
-#ifdef STARS
-//Check if we are overflowing the stars array
-  int local_potential_stars = 0;
-  int local_star_load, global_star_load;
-
-  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
-    {
-      i = TimeBinsHydro.ActiveParticleList[idx];
-      if(i >= 0)
-        {
-          if(P[i].Mass == 0 && P[i].ID == 0)
-            continue;
-          
-          if(SphP[i].Sfr > 0)
-            local_potential_stars ++;
-        }    
-    }
-
-  local_star_load = NumStars + local_potential_stars;
-  
-  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  
-  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
-    {
-      int old_alloc =  All.MaxPartStars;
-      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
-      
-      if(All.MaxPartStars < ALLOC_STAR_ROOM)
-        All.MaxPartStars = ALLOC_STAR_ROOM;
-      
-      if(All.MaxPartStars != old_alloc)
-        reallocate_memory_maxpartstars();
-    }
-#endif
-
   stars_spawned = stars_converted = 0;
   sum_sm = sum_mass_stars = 0;
 
@@ -232,6 +197,26 @@ void sfr_create_star_particles(void)
             make_star(idx, i, prob, mass_of_star, &sum_mass_stars);
         }
     } /* end of main loop over active gas particles */
+
+#ifdef STARS
+  /* Check if we are overflowing the stars array based on stars actually formed this step */
+  int local_star_load = NumStars;
+  int global_star_load;
+
+  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
+    {
+      int old_alloc = All.MaxPartStars;
+      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
+
+      if(All.MaxPartStars < ALLOC_STAR_ROOM)
+        All.MaxPartStars = ALLOC_STAR_ROOM;
+
+      if(All.MaxPartStars != old_alloc)
+        reallocate_memory_maxpartstars();
+    }
+#endif /* #ifdef STARS */
 
 #if STAR_PARTICLES == 1
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
