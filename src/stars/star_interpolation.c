@@ -105,7 +105,7 @@ static double next_SN_time(double tau, double z_val, double m_val, double a)
       if(SNfeedback.SN_MassLoss > 0.0)
         return tau;
     }
-  return MAX_DOUBLE_NUMBER; /* No SN or already past SN */
+  return MAX_REAL_NUMBER; /* No SN or already past SN */
 }
 #endif
 
@@ -420,7 +420,7 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
   struct star_feedback star = {0};
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  star.TimeSN = MAX_DOUBLE_NUMBER;
+  star.TimeSN = MAX_REAL_NUMBER;
 #endif
 
   if(m_val <= 2)
@@ -530,8 +530,10 @@ struct star_feedback star_particle_feedback(int index, double dt, double z, doub
   int i, Nstars;
   double m;
   struct star_feedback star_particle = {0};
-  
-  star_particle.TimeSN = MAX_DOUBLE_NUMBER; 
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  star_particle.TimeSN = MAX_REAL_NUMBER; 
+#endif
 
   // Add feedback contributions for each bin 
   for(i = 0; i < NBINS; i++) 

@@ -274,6 +274,10 @@ void sfr_create_star_particles(void)
       All.TotNumPart += tot_stars_spawned;
       All.TotNumGas -= tot_stars_converted;
       NumPart += stars_spawned;
+
+#ifdef STARS 
+      All.TotNumStars += tot_stars_spawned + tot_stars_converted;
+#endif
     }
 
   for(bin = 0, sfrrate = 0; bin < TIMEBINS; bin++)

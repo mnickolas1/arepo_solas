@@ -306,7 +306,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
           double unew = (SphP[j].Utherm * P[j].Mass + 1e51 * SphP[j].Volume / ngbvolume) / (P[j].Mass /*+dm_inject*/);
 
-          if(timesn < MAX_DOUBLE_NUMBER)
+          if(timesn < MAX_REAL_NUMBER)
             SphP[j].Csn = SphP[j].Csnd + ((sqrt(GAMMA*GAMMA_MINUS1*unew)) - SphP[j].Csnd) * All.Time / timesn;
 #endif
               

@@ -189,6 +189,10 @@ void individual_starbystar_formation(void)
     {
       All.TotNumPart += tot_stars_spawned;
       NumPart += stars_spawned;
+
+#ifdef STARS 
+      All.TotNumStars += tot_stars_spawned;
+#endif
     }
 
   MPI_Reduce(&local_stars_mass, &global_stars_mass, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
