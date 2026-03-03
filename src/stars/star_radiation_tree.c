@@ -1,43 +1,9 @@
+#include <math.h>
 
-/* Wavebands */
-typedef enum
-{
-  LYMAN_WERNER = 0,
-  ULTRAVIOLET,
-  OPTICAL,
-  INFRARED,
-  WB_COUNT
-} Waveband;
+#include "../main/allvars.h"
+#include "../main/proto.h"
 
-
-/* Opacity coefficients */
-static double Kappa[WB_COUNT] = {
-  1.0,  // LW
-  1.0,  // UV
-  1.0,  // OP
-  1.0   // IR
-};
-
-#define RAY_STACK_SIZE 64
-
-typedef struct 
-{
-  double t_enter;
-  int node;
-} StackEntry;
-
-typedef struct 
-{
-  double pos[3];
-  double dir[3];
-  double RAD_Ionizing;
-  double t;
-  int ray_id;
-  int home_task;
-  /* pending top-level nodes still to traverse after current domain */
-  StackEntry pending[RAY_STACK_SIZE];
-  int  n_pending;
-} RayData;
+#include "../stars/star_radiation.h"
 
 static int ray_box_intersect(double *ray_pos, double *ray_dir, double *center, double len, double *t_enter, double *t_exit)
 {
@@ -77,7 +43,7 @@ static int ray_box_intersect(double *ray_pos, double *ray_dir, double *center, d
 }
 
 /* 
-Tree indices are saved as follows:
+Tree indices are organized as follows:
 
 [0 ... Tree_MaxPart-1] -> real particles
 
@@ -92,7 +58,7 @@ Tree indices are saved as follows:
 [Tree_MaxPart+Tree_MaxNodes+NTopleaves ... ] -> imported points (Tree_ImportedNodeOffset = Tree_MaxPart + Tree_MaxNodes + NTopleaves)
 */
 
-void raytrace_treewalk(RayData *ray, int mode, int target_node)
+void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer *export_buf)
 {
   /* local stack for ordering within this domain */
   StackEntry stack[RAY_STACK_SIZE];
@@ -336,57 +302,25 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node)
           int task = DomainNewTask[no - (Tree_MaxPart + Tree_MaxNodes)];
           int remote_node = DomainNodeIndex[no - (Tree_MaxPart + Tree_MaxNodes)];
 
-          /* everything left on local stack is downstream of this domain,
-             but we need to check: are any remaining stack entries 
-             actually local? No - because we sorted by t_enter and 
-             this pseudo-particle came before them, so they are all 
-             further along the ray = further domains */
-
-          /* pack pending: current local stack + ray's existing pending */
+          /* pack pending */
           ray->n_pending = stack_top;
           memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
 
-          /* forward ray to remote rank */
           ray->t = cur.t_enter;
-          export_ray(ray, task, remote_node);
+          ray->target_node = remote_node;  /* store for mode=1 */
 
-          /* this rank is done with this ray */
-          return;
+          /* add to export buffer */
+          if(export_buf->n < export_buf->capacity)
+            {
+              export_buf->rays[export_buf->n] = *ray;
+              export_buf->task[export_buf->n] = task;
+              export_buf->n++;
+            }
+          else
+            terminate("Export buffer full!");
+
+        /* this rank is done with this ray */
+        return;
         }
     }
-
-  /* ray truly finished - send result home */
-  send_result_home(ray);
-}
-
-/*! \brief Prepares node to be exported.
- *
- *  \param[in] no Index of node.
- *  \param[in] i Index of particle.
- *  \param[in] thread_id ID of thread.
- *
- *  \return 0
- */
-int tree_treefind_export_node_threads(int no, int i, int thread_id)
-{
-  /* The task indicated by the pseudoparticle node */
-  int task = DomainNewTask[no - (Tree_MaxPart + Tree_MaxNodes)];
-
-  if(Thread[thread_id].Exportflag[task] != i)
-    {
-      Thread[thread_id].Exportflag[task]     = i;
-      int nexp                               = Thread[thread_id].Nexport++;
-      Thread[thread_id].PartList[nexp].Task  = task;
-      Thread[thread_id].PartList[nexp].Index = i;
-      Thread[thread_id].ExportSpace -= Thread[thread_id].ItemSize;
-    }
-
-  int nexp                      = Thread[thread_id].NexportNodes++;
-  nexp                          = -1 - nexp;
-  struct datanodelist *nodelist = (struct datanodelist *)(((char *)Thread[thread_id].PartList) + Thread[thread_id].InitialSpace);
-  nodelist[nexp].Task           = task;
-  nodelist[nexp].Index          = i;
-  nodelist[nexp].Node           = DomainNodeIndex[no - (Tree_MaxPart + Tree_MaxNodes)];
-  Thread[thread_id].ExportSpace -= sizeof(struct datanodelist) + sizeof(int);
-  return 0;
 }
