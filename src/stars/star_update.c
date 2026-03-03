@@ -35,6 +35,112 @@ void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
   *wk  *= K_norm * hinv3;
 }
 
+int get_timestep_star(int p)
+{ 
+  double dt_grav = (PPS(p).TimeBinGrav ? (((integertime)1) << PPS(p).TimeBinGrav) : 0) * All.Timebase_interval;
+  double dt_ngbmax = (SP[p].NgbMaxBin ? (((integertime)1) << SP[p].NgbMaxBin) : 0) * All.Timebase_interval;
+  double dt_star = pow(10,4) * SEC_PER_YEAR / All.UnitTime_in_s;
+
+  double dt = dt_grav;
+
+  if(dt_ngbmax < dt)
+    dt = dt_ngbmax;
+
+  if(dt_star < dt)
+    dt = dt_star;
+
+  dt *= All.cf_hubble_a;
+
+  if(dt >= All.MaxSizeTimestep)
+    dt = All.MaxSizeTimestep;
+
+  if(dt < All.MinSizeTimestep)
+    {
+#ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP
+      dt = All.MinSizeTimestep;
+#else  /* #ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP */
+      print_particle_info(p);
+      terminate("Timestep dt=%g below All.MinSizeTimestep=%g", dt, All.MinSizeTimestep);
+#endif /* #ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP #else */
+    }
+
+  integertime ti_step = (integertime)(dt / All.Timebase_interval);
+
+  validate_timestep(dt, ti_step, p);
+  
+  return ti_step;
+}
+
+void update_star_timesteps(void)
+{
+  int i;
+  integertime ti_step;
+
+  for(i = 0; i < NumStars; i++)
+    { 
+      ti_step = get_timestep_star(i);
+    
+      SP[i].TimeBinStar = get_timestep_bin(ti_step);
+    }
+  reconstruct_star_timebins();
+  update_list_of_active_star_particles();
+}
+
+/* Call this function as the reconstruct_timebins() star version */
+void reconstruct_star_timebins(void)
+{
+  int i, bin;
+
+  for(bin = 0; bin < TIMEBINS; bin++)
+    {
+      TimeBinsStar.TimeBinCount[bin] = 0;
+      TimeBinsStar.FirstInTimeBin[bin] = -1;
+      TimeBinsStar.LastInTimeBin[bin] = -1;
+    }
+  
+  for(i = 0; i < NumStars; i++)
+    {
+      
+      bin = SP[i].TimeBinStar;
+      if(bin >= TIMEBINS)
+        continue;
+
+      if(TimeBinsStar.TimeBinCount[bin] > 0)
+        {
+          TimeBinsStar.PrevInTimeBin[i] = TimeBinsStar.LastInTimeBin[bin];
+          TimeBinsStar.NextInTimeBin[i] = -1;
+          TimeBinsStar.NextInTimeBin[TimeBinsStar.LastInTimeBin[bin]] = i;
+          TimeBinsStar.LastInTimeBin[bin] = i;
+        }
+      else
+        {
+          TimeBinsStar.FirstInTimeBin[bin] = TimeBinsStar.LastInTimeBin[bin] = i;
+          TimeBinsStar.PrevInTimeBin[i] = TimeBinsStar.NextInTimeBin[i] = -1;
+        }
+      TimeBinsStar.TimeBinCount[bin]++;
+    }
+}
+
+/* Call this function after updating the star-timebin */
+void update_list_of_active_star_particles(void)
+{
+  int i, n;
+  TimeBinsStar.NActiveParticles = 0;
+  for(n = 0; n < TIMEBINS; n++)
+    {
+      if(TimeBinSynchronized[n]) 
+        {
+          for(i = TimeBinsStar.FirstInTimeBin[n]; i >= 0; i = TimeBinsStar.NextInTimeBin[i])
+            {
+              TimeBinsStar.ActiveParticleList[TimeBinsStar.NActiveParticles] = i;
+              TimeBinsStar.NActiveParticles++;  
+            }
+        }
+    }
+
+    mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
+}
+
 /* Compute feedback properties of active stars */
 void star_prep(void)
 {
@@ -100,78 +206,6 @@ void star_prep(void)
       SP[i].RAD_Infrared = star_feedback.RAD_Infrared;
 #endif
     }
-}
-
-/* Get timebin for star */
-int get_star_timebin(int p)
-{ 
-  return PPS(p).TimeBinGrav;
-}
-
-void update_star_timesteps(void)
-{
-  int i;
-
-  for(i = 0; i < NumStars; i++)
-    SP[i].TimeBinStar = get_star_timebin(i);
-  
-  reconstruct_star_timebins();
-  update_list_of_active_star_particles();
-}
-
-/* Call this function as the reconstruct_timebins() star version */
-void reconstruct_star_timebins(void)
-{
-  int i, bin;
-
-  for(bin = 0; bin < TIMEBINS; bin++)
-    {
-      TimeBinsStar.TimeBinCount[bin] = 0;
-      TimeBinsStar.FirstInTimeBin[bin] = -1;
-      TimeBinsStar.LastInTimeBin[bin] = -1;
-    }
-  
-  for(i = 0; i < NumStars; i++)
-    {
-      
-      bin = SP[i].TimeBinStar;
-      if(bin >= TIMEBINS)
-        continue;
-
-      if(TimeBinsStar.TimeBinCount[bin] > 0)
-        {
-          TimeBinsStar.PrevInTimeBin[i] = TimeBinsStar.LastInTimeBin[bin];
-          TimeBinsStar.NextInTimeBin[i] = -1;
-          TimeBinsStar.NextInTimeBin[TimeBinsStar.LastInTimeBin[bin]] = i;
-          TimeBinsStar.LastInTimeBin[bin] = i;
-        }
-      else
-        {
-          TimeBinsStar.FirstInTimeBin[bin] = TimeBinsStar.LastInTimeBin[bin] = i;
-          TimeBinsStar.PrevInTimeBin[i] = TimeBinsStar.NextInTimeBin[i] = -1;
-        }
-      TimeBinsStar.TimeBinCount[bin]++;
-    }
-}
-
-/* Call this function after updating the star-timebin */
-void update_list_of_active_star_particles(void)
-{
-  int i, n;
-  TimeBinsStar.NActiveParticles = 0;
-  for(n = 0; n < TIMEBINS; n++)
-    {
-      if(TimeBinSynchronized[n]) 
-        {
-          for(i = TimeBinsStar.FirstInTimeBin[n]; i >= 0; i = TimeBinsStar.NextInTimeBin[i])
-            {
-              TimeBinsStar.ActiveParticleList[TimeBinsStar.NActiveParticles] = i;
-              TimeBinsStar.NActiveParticles++;  
-            }
-        }
-    }
-
-    mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
 }
 
 void perform_end_of_step_star_physics(void)

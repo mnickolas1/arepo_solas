@@ -256,6 +256,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
+  SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
 #endif
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
@@ -350,7 +351,8 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
-
+  
+  SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 #endif
 

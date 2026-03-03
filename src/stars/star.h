@@ -3,7 +3,7 @@
 
 #include "../main/allvars.h"
 
-#define ALLOC_STAR_ROOM 16
+#define ALLOC_STAR_ROOM 64
 extern int NumStars;
 
 #ifdef STAR_FEEDBACK

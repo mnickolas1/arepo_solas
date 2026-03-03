@@ -350,19 +350,19 @@ void convert_cell_into_star(int i, double birthtime)
   SP[NumStars].PID = i;
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI));
+  SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI)); //need to check that this works!
   /* set timebin */
   SP[NumStars].Active = 0;
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
+  SP[NumStars].NgbMaxBin = P[i].TimeBinHydro; //need to check that this works!
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
+
+  //SP[NumStars].Birthtime = birthtime;
+
 #ifdef METALS 
   SP[NumStars].Metals = SphP[i].Metallicity * P[i].Mass;
 #endif 
 #endif 
 
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
- 
   NumStars++;
 #endif /* STARS */
 
@@ -456,15 +456,15 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
   SP[NumStars].Active = 0;
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
+  SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+
+  //SP[NumStars].Birthtime = birthtime;
+
 #ifdef METALS 
   SP[NumStars].Metals = SphP[igas].Metallicity * P[istar].Mass;
 #endif
 #endif
-
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
   NumStars++;
 #endif

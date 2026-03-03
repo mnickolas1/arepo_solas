@@ -156,7 +156,12 @@ static void kernel_local(void)
 
       if(SP[i].Active == 0)
         if(TimeBinSynchronized[SP[i].NgbMaxBin])
-          SP[i].Active = 1;
+          {
+            SP[i].Active = 1;
+            
+            // need to reset the age to when star first starts injecting feedback
+            SP[i].Birthtime = All.Time; 
+          }
       
       if(SP[i].Active == 1)    
         star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
