@@ -18,12 +18,14 @@ typedef struct
 {
   int Bin;  
   MyDouble Pos[3];
+  MyDouble Vel[3];
   MyFloat Hsml;
   MyDouble NgbMass;
   MyDouble NgbVolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble TimeSN;
+  MyDouble Birthtime;
 #endif  
 
 #ifdef WINDS
@@ -62,12 +64,16 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->Pos[0]         = PPS(i).Pos[0];
   in->Pos[1]         = PPS(i).Pos[1];
   in->Pos[2]         = PPS(i).Pos[2];
+  in->Vel[0]         = PPS(i).Vel[0];
+  in->Vel[1]         = PPS(i).Vel[1];
+  in->Vel[2]         = PPS(i).Vel[2];
   in->Hsml           = SP[i].Hsml;
   in->NgbMass        = SP[i].NgbMass;
   in->NgbVolume      = SP[i].NgbVolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   in->TimeSN         = SP[i].TimeSN;
+  in->Birthtime      = SP[i].Birthtime;
 #endif  
 
 #ifdef WINDS
@@ -153,15 +159,6 @@ static void kernel_local(void)
         break;
 
       i = TimeBinsStar.ActiveParticleList[idx];
-
-      if(SP[i].Active == 0)
-        if(TimeBinSynchronized[SP[i].NgbMaxBin])
-          {
-            SP[i].Active = 1;
-            
-            // need to reset the age to when star first starts injecting feedback
-            SP[i].Birthtime = All.Time; 
-          }
       
       if(SP[i].Active == 1)    
         star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
@@ -205,7 +202,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   int bin;
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble *pos, ngbmass, ngbvolume;
+  MyDouble *pos, *vel, ngbmass, ngbvolume, factor;
   
   data_in local, *target_data;
 
@@ -226,6 +223,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   
   bin = target_data->Bin;
   pos = target_data->Pos;
+  vel = target_data->Vel;
   h = target_data->Hsml;
   
   ngbmass = target_data->NgbMass;
@@ -233,6 +231,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble timesn = target_data->TimeSN;
+  MyDouble birthtime = target_data->Birthtime;
 #endif
 
 #ifdef WINDS
@@ -303,49 +302,68 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
+          factor = SphP[j].Volume / ngbvolume;
+
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-          double unew = (SphP[j].Utherm * P[j].Mass + 1e51 * SphP[j].Volume / ngbvolume) / (P[j].Mass /*+dm_inject*/);
+          double unew = (SphP[j].Utherm * P[j].Mass + (1e51 / All.UnitEnergy_in_cgs) * factor) / (P[j].Mass /*+dm_inject*/);
+
+          double t_frac = (All.Time - birthtime) / (timesn - birthtime);
+          t_frac = fmin(fmax(t_frac, 0.0), 1.0);
 
           if(timesn < MAX_REAL_NUMBER)
-            SphP[j].Csn = SphP[j].Csnd + ((sqrt(GAMMA*GAMMA_MINUS1*unew)) - SphP[j].Csnd) * All.Time / timesn;
+            SphP[j].Csn = SphP[j].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[j].Csnd) * t_frac;
 #endif
               
 #ifdef WINDS
           if(massloss > 0)
             {  
-              SphP[j].StarMassFeed += massloss * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[0] += massloss * SphP[j].Volume / ngbvolume;
+              SphP[j].StarMassFeed += massloss * factor;
+              All.StarFeedbackLocal[0] += massloss * factor;
 #ifdef METALS
-              SphP[j].StarMetalsFeed += metalsloss * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[1] += metalsloss * SphP[j].Volume / ngbvolume;
+              SphP[j].StarMetalsFeed += metalsloss * factor;
+              All.StarFeedbackLocal[1] += metalsloss * factor;
 #endif
-          
-              SphP[j].StarMomentumFeed[0] += windmomentum * dx/r * SphP[j].Volume / ngbvolume;
-              SphP[j].StarMomentumFeed[1] += windmomentum * dy/r * SphP[j].Volume / ngbvolume;
-              SphP[j].StarMomentumFeed[2] += windmomentum * dz/r * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[2] += windmomentum * SphP[j].Volume / ngbvolume;
-          
-              SphP[j].StarEnergyFeed += windmomentum *  windmomentum / (2 * massloss) * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[3] += windmomentum *  windmomentum / (2 * massloss) * SphP[j].Volume / ngbvolume;
+              SphP[j].StarMomentumFeed[0] += (windmomentum * dx/r + massloss * vel[0]) * factor;
+              SphP[j].StarMomentumFeed[1] += (windmomentum * dy/r + massloss * vel[1]) * factor;
+              SphP[j].StarMomentumFeed[2] += (windmomentum * dz/r + massloss * vel[2]) * factor;
+              All.StarFeedbackLocal[2] += windmomentum * factor; //need to update 
+              
+              double vsq = vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2];
+              double vdotp = vel[0] * (dx / r) + vel[1] * (dy / r) + vel[2] * (dz / r);
+              SphP[j].StarEnergyFeed += (windmomentum * windmomentum / (2.0 * massloss) // wind KE
+                                     + 0.5 * massloss * vsq                             // bulk KE
+                                     + windmomentum * vdotp) * factor;                     // cross
+              All.StarFeedbackLocal[3] += (windmomentum * windmomentum / (2.0 * massloss) 
+                                       + 0.5 * massloss * vsq                             
+                                       + windmomentum * vdotp) * factor;
             }
 #endif     
 
 #ifdef SUPERNOVAE
           if(SNmassloss > 0)
             {
-              SphP[j].StarMassFeed += SNmassloss * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[0] += SNmassloss * SphP[j].Volume / ngbvolume;
+              SphP[j].StarMassFeed += SNmassloss * factor;
+              All.StarFeedbackLocal[0] += SNmassloss * factor;
 #ifdef METALS
-              SphP[j].StarMetalsFeed += SNmetalsloss * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[1] += SNmetalsloss * SphP[j].Volume / ngbvolume;
+              SphP[j].StarMetalsFeed += SNmetalsloss * factor;
+              All.StarFeedbackLocal[1] += SNmetalsloss * factor;
 #endif
-              SphP[j].StarMomentumFeed[0] += sqrt(2 * SNenergyinject * SNmassloss) * dx/r * SphP[j].Volume / ngbvolume;
-              SphP[j].StarMomentumFeed[1] += sqrt(2 * SNenergyinject * SNmassloss) * dy/r * SphP[j].Volume / ngbvolume;
-              SphP[j].StarMomentumFeed[2] += sqrt(2 * SNenergyinject * SNmassloss) * dz/r * SphP[j].Volume / ngbvolume;   
-              All.StarFeedbackLocal[2] += sqrt(2 * SNenergyinject * SNmassloss) * SphP[j].Volume / ngbvolume;
 
-              SphP[j].StarEnergyFeed += SNenergyinject * SphP[j].Volume / ngbvolume;
-              All.StarFeedbackLocal[3] += SNenergyinject * SphP[j].Volume / ngbvolume;
+              double pSN = sqrt(2.0 * SNenergyinject * SNmassloss);  // |p| in star frame
+              double vsq = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
+              double vdotp = vel[0]*(dx/r) + vel[1]*(dy/r) + vel[2]*(dz/r);
+
+              SphP[j].StarMomentumFeed[0] += (pSN * dx/r + SNmassloss * vel[0]) * factor;
+              SphP[j].StarMomentumFeed[1] += (pSN * dy/r + SNmassloss * vel[1]) * factor;
+              SphP[j].StarMomentumFeed[2] += (pSN * dz/r + SNmassloss * vel[2]) * factor;
+              All.StarFeedbackLocal[2] += sqrt(2 * SNenergyinject * SNmassloss) * factor; // need to update
+
+              SphP[j].StarEnergyFeed += (SNenergyinject        // thermal/KE in star frame
+                                     + 0.5 * SNmassloss * vsq  // bulk KE
+                                     + pSN * vdotp) * factor;     // cross
+              All.StarFeedbackLocal[3] += (SNenergyinject       
+                                       + 0.5 * SNmassloss * vsq  
+                                       + pSN * vdotp) * factor;     
             }
 #endif
         }
