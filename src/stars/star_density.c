@@ -172,15 +172,16 @@ void star_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
-  Left      = (MyFloat *)mymalloc("Left", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
-  Right     = (MyFloat *)mymalloc("Right", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
+  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", NumStars * sizeof(MyFloat));
+  Left      = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
+  Right     = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
 
-  for(i = 0; i < TimeBinsStar.NActiveParticles; i++)
+  for(i = 0; i < NumStars; i++)
     {
       Left[i] = Right[i] = 0;
-      SP[i].DensityFlag = 1;
       StarNumNgb[i] = 0;
+
+      SP[i].DensityFlag = 1;
       
       if(SP[i].Hsml == 0)
         SP[i].Hsml = cbrt((3.0*All.MeanVolume)/(4.0*M_PI));
