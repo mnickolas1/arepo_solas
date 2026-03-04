@@ -233,6 +233,15 @@ void perform_end_of_step_star_physics(void)
     }
   else
     pvd.atime = pvd.hubble_a = pvd.a3inv = 1.0;
+
+
+/*#if defined(WINDS) || defined(SUPERNOVAE)
+  for(idx=0, npleft=0; idx<TimeBinsStar.NActiveParticles; idx++)
+    {
+      i = TimeBinsStar.ActiveParticleList[idx];
+    }
+#endif*/
+
     
   // Inject feedback to ngb cells
   if(All.Time >= All.FeedbackTime)
@@ -332,8 +341,8 @@ void perform_end_of_step_star_physics(void)
                All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[4]);
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",
                All.StarFeedbackGlobal[1], All.StarFeedbackGlobal[5]);
-    mpi_printf("STARS: Momentum given by StarParts = %e, Momentum taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[2] * All.cf_atime, All.StarFeedbackGlobal[6] * All.cf_atime);
+    //mpi_printf("STARS: Momentum given by StarParts = %e, Momentum taken up by gas particles = %e \n",
+               //All.StarFeedbackGlobal[2] * All.cf_atime, All.StarFeedbackGlobal[6] * All.cf_atime);
     mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n",
                All.StarFeedbackGlobal[3] * All.cf_atime * All.cf_atime, All.StarFeedbackGlobal[7] * All.cf_atime * All.cf_atime);   
 } 
