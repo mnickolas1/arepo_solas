@@ -234,7 +234,6 @@ void perform_end_of_step_star_physics(void)
   else
     pvd.atime = pvd.hubble_a = pvd.a3inv = 1.0;
 
-
 /*#if defined(WINDS) || defined(SUPERNOVAE)
   for(idx=0, npleft=0; idx<TimeBinsStar.NActiveParticles; idx++)
     {
@@ -242,7 +241,6 @@ void perform_end_of_step_star_physics(void)
     }
 #endif*/
 
-    
   // Inject feedback to ngb cells
   if(All.Time >= All.FeedbackTime)
     {        
@@ -251,47 +249,6 @@ void perform_end_of_step_star_physics(void)
           i = TimeBinsHydro.ActiveParticleList[idx];
           if(i < 0)
             continue;
-
-#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-          if(SphP[i].StarMassDrain > 0)
-            {
-              if(P[i].Mass - SphP[i].StarMassDrain < 0.1*P[i].Mass)
-                {
-                  terminate("STAR FORMATION DRAIN");
-                  //double M_old = P[j].Mass;
-                  //double requested = SphP[j].StarMassDrain;
-
-                  //double drained = 0.9 * M_old;
-
-                  //P[j].Mass = 0.1 * M_old;
-
-                  //SP[i].MassToDrain += requested - drained;
-
-                  // We're also losing thermal and kinetic energy & momentum 
-      
-                  // Update total energy 
-                  //SphP[j].Energy *= 0.1;
-                    
-                  // Update momentum 
-                  //SphP[j].Momentum[0] *= 0.1;
-                  //SphP[j].Momentum[1] *= 0.1;
-                  //SphP[j].Momentum[2] *= 0.1;
-                }
-              else
-                {
-                  P[i].Mass -= SphP[i].StarMassDrain;
-                    
-                  // Update total energy 
-                  SphP[i].Energy *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
-                    
-                  // Update momentum 
-                  SphP[i].Momentum[0] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
-                  SphP[i].Momentum[1] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
-                  SphP[i].Momentum[2] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
-                }
-              SphP[i].StarMassDrain = 0;
-            }
-#endif
 
           // Dump mass, momentum and energy injected by stars 
 #if defined(WINDS) || defined(SUPERNOVAE)

@@ -207,7 +207,7 @@ void sf_starbystar()
                     }
                 } 
 
-              if(SP[i].NgbMass < (10*SP[i].MassOfStar))
+              if(SP[i].NgbMass < (5*SP[i].MassOfStar))
                 Left[i] = dmax(SP[i].Hsml, Left[i]);
               else
                 {

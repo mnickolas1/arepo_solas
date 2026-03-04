@@ -194,7 +194,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   int j, n, numnodes, *firstnode; 
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble *pos, massofstar, ngbmass;
+  MyDouble *pos, massofstar, ngbmass, factor;
   MyDouble cm[3], vm[3];
 
   data_in local, *target_data;
@@ -277,18 +277,20 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          // compute the mass drain
-          SphP[j].StarMassDrain += massofstar * P[j].Mass * wk / ngbmass;
-          // compute center of mass and velocity
-          cm[0] += P[j].Pos[0] * P[j].Mass * wk / ngbmass;
-          cm[1] += P[j].Pos[1] * P[j].Mass * wk / ngbmass;
-          cm[2] += P[j].Pos[2] * P[j].Mass * wk / ngbmass;
+          factor = P[j].Mass * wk / ngbmass;
 
-          vm[0] += P[j].Vel[0] * P[j].Mass * wk / ngbmass;
-          vm[1] += P[j].Vel[1] * P[j].Mass * wk / ngbmass;
-          vm[2] += P[j].Vel[2] * P[j].Mass * wk / ngbmass;
+          // compute the mass drain
+          SphP[j].StarMassDrain += massofstar * factor;
+          // compute center of mass and velocity
+          cm[0] += P[j].Pos[0] * factor;
+          cm[1] += P[j].Pos[1] * factor;
+          cm[2] += P[j].Pos[2] * factor;
+
+          vm[0] += P[j].Vel[0] * factor;
+          vm[1] += P[j].Vel[1] * factor;
+          vm[2] += P[j].Vel[2] * factor;
 #ifdef METALS
-          metals += SphP[j].Metallicity * P[j].Mass * P[j].Mass * wk / ngbmass;
+          metals += SphP[j].Metallicity * P[j].Mass * factor;
 #endif
         }
     }

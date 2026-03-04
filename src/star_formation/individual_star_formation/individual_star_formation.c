@@ -72,7 +72,7 @@ void individual_starbystar_formation(void)
 {
   TIMER_START(CPU_COOLINGSFR);
 
-  int idx, i, bin;
+  int idx, i;
   double dt, dtff, u;
   MyDouble mass_of_star;
   double p = 0, prob, p_decide;
@@ -129,7 +129,6 @@ void individual_starbystar_formation(void)
         }
     } /* end of main loop over active gas particles */
 
-#ifdef STARS
   /* Check if we are overflowing the stars array based on stars actually formed this step */
   int local_star_load = NumStars;
   int global_star_load;
@@ -147,7 +146,6 @@ void individual_starbystar_formation(void)
       if(All.MaxPartStars != old_alloc)
         reallocate_memory_maxpartstars();
     }
-#endif /* #ifdef STARS */
 
   MPI_Allreduce(&stars_spawned, &tot_stars_spawned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
@@ -190,9 +188,7 @@ void individual_starbystar_formation(void)
       All.TotNumPart += tot_stars_spawned;
       NumPart += stars_spawned;
 
-#ifdef STARS 
       All.TotNumStars += tot_stars_spawned;
-#endif
     }
 
   MPI_Reduce(&local_stars_mass, &global_stars_mass, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -209,6 +205,48 @@ void individual_starbystar_formation(void)
 
       fprintf(FdSfr, "%14e %14e %14e\n", All.Time, global_stars_mass, rate);
       myflush(FdSfr);
+    }
+
+  sf_starbystar();
+  sf_massdrain();
+
+  /* apply drain and finalize heavy stars */
+  for(i = 0; i < NumStars; i++)
+    {
+      if(SP[i].MassOfStar > 0 && P[SP[i].PID].Mass == 0) /* heavy star */
+        PPS(i).Mass = SP[i].MassOfStar;
+    }
+      
+  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+    {
+      i = TimeBinsHydro.ActiveParticleList[idx];
+      if(i < 0)
+        continue;
+
+      if(SphP[i].StarMassDrain > 0)
+        {
+          if(P[i].Mass - SphP[i].StarMassDrain < 0.1*P[i].Mass)
+              terminate("STAR FORMATION DRAIN ERROR!");
+          else
+            {
+              double factor = (P[i].Mass - SphP[i].StarMassDrain) / P[i].Mass;
+                  
+              P[i].Mass -= SphP[i].StarMassDrain;
+                    
+              // Update total energy 
+              SphP[i].Energy *= factor;
+                    
+              // Update momentum 
+              SphP[i].Momentum[0] *= factor;
+              SphP[i].Momentum[1] *= factor;
+              SphP[i].Momentum[2] *= factor;
+#ifdef MAXSCALARS
+              for(int s = 0; s < N_Scalar; s++) /* Note, the changes in MATERIALS, HIGHRESGASMASS, etc., are treated as part of the Scalars */
+              *(MyFloat *)(((char *)(&SphP[i])) + scalar_elements[s].offset_mass) *= factor;
+#endif /* #ifdef MAXSCALARS */
+            }
+          SphP[i].StarMassDrain = 0;
+        }
     }
 
   TIMER_STOP(CPU_COOLINGSFR);
@@ -231,21 +269,11 @@ void individual_starbystar_formation(void)
  *  \return void
  */
 static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
-{
-  /* assign star_ids */
-  P[istar].SID = NumStars;
-  SP[NumStars].PID = istar;
-  
-  /* prepare for star forming loop */
-  P[istar].Mass = 0;
-  SP[NumStars].MassOfStar = mass_of_star;
-  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
-  
-  sf_starbystar();
-
+{  
+  P[istar] = P[igas];
   P[istar].Type = 4;
-  P[istar].Mass = mass_of_star;
-  
+  P[istar].Mass = 0;
+
   P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
@@ -253,14 +281,20 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
 #endif /* #ifdef INDIVIDUAL_GRAVITY_SOFTENING */
 
   timebin_add_particle(&TimeBinsGravity, istar, igas, P[istar].TimeBinGrav, TimeBinSynchronized[P[istar].TimeBinGrav]);
-
+  
+  /* assign star_ids */
+  P[istar].SID = NumStars;
+  SP[NumStars].PID = istar;
+  
+  /* prepare for star forming loop */
+  SP[NumStars].MassOfStar = mass_of_star;
+  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+  
 #ifdef STAR_FEEDBACK_ACTIVE
   /* set timebin */
   SP[NumStars].Active = 0;
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 #endif
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
@@ -288,22 +322,11 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
  */
 static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
-  P[istar]               = P[igas];
-  P[istar].Type          = 4;
-  P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
-  P[istar].Mass          = mass_of_star;
+  P[istar] = P[igas];
+  P[istar].Type = 4;
+  P[istar].Mass = mass_of_star;
 
-  // give star small random displacement
-  //double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
-
-  //double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
-  //double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
-  //double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
-
-  //P[istar].Pos[0] += rx;
-  //P[istar].Pos[1] += ry;
-  //P[istar].Pos[2] += rz;
-
+P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
     P[istar].SofteningType = get_softening_type_from_mass(P[istar].Mass);
@@ -326,13 +349,13 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   SphP[igas].Momentum[1] *= fac;
   SphP[igas].Momentum[2] *= fac;
 
-//#ifdef METALS
-//  SphP[igas].Metals *= fac;
-//#endif /* ifdef Metals */
-
 //#ifdef MHD
 //  SphP[igas].Energy += Emag;
 //#endif /* #ifdef MHD */
+
+//#ifdef METALS
+//  SphP[igas].Metals *= fac;
+//#endif /* ifdef Metals */
 
 #ifdef MAXSCALARS
   for(int s = 0; s < N_Scalar; s++) /* Note, the changes in MATERIALS, HIGHRESGASMASS, etc., are treated as part of the Scalars */
@@ -352,12 +375,8 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
   SP[NumStars].Active = 0;
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
-  
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 #endif
 
   NumStars++;
