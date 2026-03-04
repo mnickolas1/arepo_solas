@@ -35,6 +35,12 @@ typedef struct
   int capacity; /* allocated capacity */
 } RayExportBuffer;
 
+extern struct rad_resultsactiveimported_data
+{
+  double RAD_Ionizing;
+  int index; /* local SphP index on home task */
+} *Rad_ResultsActiveImported;
+
 /* Wavebands */
 typedef enum
 {
@@ -46,7 +52,7 @@ typedef enum
 } Waveband;
 
 /* Opacity coefficients */
-double Kappa[WB_COUNT] = {
+extern double Kappa[WB_COUNT] = {
   1.0,  // LW
   1.0,  // UV
   1.0,  // OP

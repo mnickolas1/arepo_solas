@@ -9,6 +9,14 @@
 double HealpixDirs[MAX_RAYS][3];
 int NRays; // 12 * NSIDE^2
 
+/* Opacity coefficients */
+double Kappa[WB_COUNT] = {
+  1.0,  // LW
+  1.0,  // UV
+  1.0,  // OP
+  1.0   // IR
+};
+
 void init_healpix_rays(int nside) //run this inside init()
 {
     NRays = 12 * nside * nside;
@@ -155,6 +163,8 @@ void radiation(void)
         /* check if anyone still has rays in flight */
         MPI_Allreduce(&export_buf->n, &n_exports_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       } while(n_exports_global > 0);
+    
+    send_results_home();
 
     free_export_buffer(export_buf);
     myfree(rays);
@@ -199,4 +209,75 @@ void exchange_rays(RayExportBuffer *send, RayData **recv, int *n_recv)
 
     /* exchange ray data */
     MPI_Alltoallv(send->rays, send_count, send_offset, MPI_BYTE, *recv, recv_count, recv_offset, MPI_BYTE, MPI_COMM_WORLD);
+}
+
+void send_results_home(void)
+{
+  int i, j, n, k, ncount;
+  int *Recv_count = malloc(NTask * sizeof(int));
+  int *Send_count = malloc(NTask * sizeof(int));
+  int *Recv_offset = malloc(NTask * sizeof(int));
+  int *Send_offset = malloc(NTask * sizeof(int));
+
+  /* count gas cells among imported particles */
+  for(i = 0, ncount = 0; i < Tree_NumPartImported; i++)
+    if(Tree_Points[i].Type == 0)
+      ncount++;
+
+  Rad_ResultsActiveImported = mymalloc("Rad_ResultsActiveImported", ncount * sizeof(struct rad_resultsactiveimported_data));
+
+  /* pack gas cell results, count per task */
+  for(j = 0; j < NTask; j++)
+    Recv_count[j] = 0;
+
+  for(i = 0, n = 0, k = 0; i < NTask; i++)
+    for(j = 0; j < Force_Recv_count[i]; j++, n++)
+      if(Tree_Points[n].Type == 0)
+        {
+          Rad_ResultsActiveImported[k].RAD_Ionizing = Tree_Points[n].RAD_Ionizing;
+          Rad_ResultsActiveImported[k].index        = Tree_Points[n].index;
+          Recv_count[i]++;
+          k++;
+        }
+
+  MPI_Alltoall(Recv_count, 1, MPI_INT, Send_count, 1, MPI_INT, MPI_COMM_WORLD);
+
+  int Nexport = 0, Nimport = 0;
+  Send_offset[0] = Recv_offset[0] = 0;
+  for(j = 0; j < NTask; j++)
+    {
+      Nexport += Send_count[j];
+      Nimport += Recv_count[j];
+      if(j > 0)
+        {
+          Send_offset[j] = Send_offset[j-1] + Send_count[j-1];
+          Recv_offset[j] = Recv_offset[j-1] + Recv_count[j-1];
+        }
+    }
+
+  struct rad_resultsactiveimported_data *tmp_results =
+    mymalloc("tmp_results", Nexport * sizeof(struct rad_resultsactiveimported_data));
+
+  /* exchange results back to home ranks */
+  for(int ngrp = 1; ngrp < (1 << PTask); ngrp++)
+    {
+      int recvTask = ThisTask ^ ngrp;
+      if(recvTask < NTask)
+        if(Send_count[recvTask] > 0 || Recv_count[recvTask] > 0)
+          MPI_Sendrecv(&Rad_ResultsActiveImported[Recv_offset[recvTask]],
+                       Recv_count[recvTask] * sizeof(struct rad_resultsactiveimported_data), MPI_BYTE, recvTask, TAG_RAD,
+                       &tmp_results[Send_offset[recvTask]],
+                       Send_count[recvTask] * sizeof(struct rad_resultsactiveimported_data), MPI_BYTE, recvTask, TAG_RAD,
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+  /* apply results to local particles */
+  for(i = 0; i < Nexport; i++)
+    SphP[tmp_results[i].index].RAD_Ionizing += tmp_results[i].RAD_Ionizing;
+
+  /* free in reverse allocation order */
+  myfree(tmp_results);
+  myfree(Rad_ResultsActiveImported);
+  free(Send_offset); free(Recv_offset);
+  free(Send_count);  free(Recv_count);
 }

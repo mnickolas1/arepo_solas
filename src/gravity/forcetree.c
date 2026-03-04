@@ -717,6 +717,7 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
               export_Tree_Points[n].Density = SphP[i].Density;
               export_Tree_Points[n].Volume = SphP[i].Volume;
               export_Tree_Points[n].Metals = SphP[i].Metals;
+              export_Tree_Points[n].RAD_Ionizing = 0;
             }
           if(P[i].Type == 4)
             export_Tree_Points[n].RAD_Ionizing = SPP(i).RAD_Ionizing;
@@ -1396,12 +1397,18 @@ unsigned char maxsofttype;
                   s[2] += Tree_Points[n].Mass * Tree_Points[n].Pos[2];
 
 #ifdef STAR_RADIATION_ACTIVE
-                  density += Tree_Points[n].Mass * Tree_Points[n].Density;
-                  metallicity += Tree_Points[n].Metals;
-                  luminosity += Tree_Points[n].RAD_Ionizing;
-                  l[0] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[0];
-                  l[1] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[1];
-                  l[2] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[2];
+                  if(Tree_Points[n].Type == 0)  
+                    {
+                      density += Tree_Points[n].Mass * Tree_Points[n].Density;
+                      metallicity += Tree_Points[n].Metals;
+                    }
+                  if(Tree_Points[n].Type == 4)
+                    {
+                      luminosity += Tree_Points[n].RAD_Ionizing;
+                      l[0] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[0];
+                      l[1] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[1];
+                      l[2] += Tree_Points[n].RAD_Ionizing * Tree_Points[n].Pos[2];
+                    }  
 #endif              
 
                   /* Might not need the following routine */
