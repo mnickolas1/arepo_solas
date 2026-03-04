@@ -104,24 +104,6 @@ void sfr_create_star_particles(void)
   double rate_in_msunperyear;
   double sfrrate, totsfrrate;
 
-#ifdef STARS
-//Check if we are overflowing the stars array
-int need_realloc_local = 0;
-if (NumStars == All.MaxPartStars)
-    need_realloc_local = 1;
-
-//Determine if any mpi rank needs more memory 
-int need_realloc_global;
-MPI_Allreduce(&need_realloc_local, &need_realloc_global, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
-
-if(need_realloc_global)
-  {
-    //Determine the new MaxPartStars
-    All.MaxPartStars = 1.25*All.MaxPartStars + 1;
-    reallocate_memory_maxpartstars();
-  }
-#endif
-
   stars_spawned = stars_converted = 0;
   sum_sm = sum_mass_stars = 0;
 
@@ -216,9 +198,29 @@ if(need_realloc_global)
         }
     } /* end of main loop over active gas particles */
 
+#ifdef STARS
+  /* Check if we are overflowing the stars array based on stars actually formed this step */
+  int local_star_load = NumStars;
+  int global_star_load;
+
+  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
+    {
+      int old_alloc = All.MaxPartStars;
+      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
+
+      if(All.MaxPartStars < ALLOC_STAR_ROOM)
+        All.MaxPartStars = ALLOC_STAR_ROOM;
+
+      if(All.MaxPartStars != old_alloc)
+        reallocate_memory_maxpartstars();
+    }
+#endif /* #ifdef STARS */
+
 #if STAR_PARTICLES == 1
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
-    sample_star_particle(PPS(i).Mass * (All.UnitMass_in_g / SOLAR_MASS), SP[i].NumOfStarsInBins);
+    sample_star_particle(PPS(i).Mass * All.UnitMass_in_g / SOLAR_MASS, SP[i].NumOfStarsInBins);
 #endif
 
   int in[4], out[4], cnt = 2;
@@ -272,6 +274,10 @@ if(need_realloc_global)
       All.TotNumPart += tot_stars_spawned;
       All.TotNumGas -= tot_stars_converted;
       NumPart += stars_spawned;
+
+#ifdef STARS 
+      All.TotNumStars += tot_stars_spawned + tot_stars_converted;
+#endif
     }
 
   for(bin = 0, sfrrate = 0; bin < TIMEBINS; bin++)
@@ -348,18 +354,19 @@ void convert_cell_into_star(int i, double birthtime)
   SP[NumStars].PID = i;
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI));
+  SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI)); //need to check that this works!
   /* set timebin */
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
+  SP[NumStars].Active = 0;
+  SP[NumStars].NgbMaxBin = P[i].TimeBinHydro; //need to check that this works!
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
+
+  //SP[NumStars].Birthtime = birthtime;
+
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[i].Metals;
+  SP[NumStars].Metals = SphP[i].Metallicity * P[i].Mass;
 #endif 
 #endif 
 
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
- 
   NumStars++;
 #endif /* STARS */
 
@@ -431,9 +438,9 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SphP[igas].Momentum[1] *= fac;
   SphP[igas].Momentum[2] *= fac;
 
-#ifdef METALS
-  SphP[igas].Metals *= fac;
-#endif /* ifdef Metals */
+//#ifdef METALS
+  //SphP[igas].Metallicity *= fac;
+//#endif /* ifdef Metals */
 
 //#ifdef MHD
 //  SphP[igas].Energy += Emag;
@@ -452,15 +459,16 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
-#ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
-#endif
-#endif
+  SP[NumStars].Active = 0;
+  SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+  //SP[NumStars].Birthtime = birthtime;
+
+#ifdef METALS 
+  SP[NumStars].Metals = SphP[igas].Metallicity * P[istar].Mass;
+#endif
+#endif
 
   NumStars++;
 #endif

@@ -399,10 +399,6 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
         All.NextTimeOfHaloFinding*=All.TimeBetweenHaloFinding;
     }
 #endif
-    
-#if defined(COOLING) && defined(USE_SFR)
-  sfr_create_star_particles();
-#endif /* #if defined(COOLING) && defined(USE_SFR) */
 
 #ifdef BH_ACCRETION_ACTIVE
   bh_density();
@@ -410,12 +406,6 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   update_bh_accretion_rate();
 #endif
   update_bh_timesteps();
-#endif
-
-#ifdef STAR_FEEDBACK_ACTIVE  
-  update_star_timesteps();
-  star_density();
-  star_prep();
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
@@ -428,7 +418,20 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
     }
 #endif
 
+#if defined(COOLING) && defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+  sfr_create_star_particles();
+#endif 
+
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  individual_starbystar_formation();
+#endif
+
 #ifdef STAR_FEEDBACK_ACTIVE
+  star_density();  
+  
+  update_star_timesteps();
+  star_prep();
+
    if(All.Time >= All.FeedbackTime)
     {   
       star_feedback();

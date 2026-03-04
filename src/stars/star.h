@@ -3,7 +3,7 @@
 
 #include "../main/allvars.h"
 
-#define ALLOC_STAR_ROOM 16
+#define ALLOC_STAR_ROOM 64
 extern int NumStars;
 
 #ifdef STAR_FEEDBACK
@@ -55,13 +55,12 @@ extern int NumStars;
 extern struct TimeBinData TimeBinsStar;
 #endif
 
-
 extern struct star_particle_data
 {
   MyIDType PID;
 
 #ifdef METALS
- MyDouble Metals;
+  MyDouble Metals;
 #endif
 
 #if STAR_PARTICLES == 1
@@ -72,11 +71,20 @@ extern struct star_particle_data
   MyDouble MassOfStar;
 #endif
 
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  MyDouble MassToDrain;
+#endif
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  MyDouble TimeSN;
+#endif
+
 #ifdef STAR_FEEDBACK_ACTIVE
+  int Active;
   MyDouble Hsml;
   MyDouble NgbMass;
   MyDouble NgbVolume;
-  integertime NgbMinStep;
+  int NgbMaxBin;
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble Birthtime;
@@ -157,6 +165,10 @@ struct star_interpolate
 
 struct star_feedback
 {
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  double TimeSN;
+#endif
+  
   int Stage; // 0:preSN, 1:SN, 2:postSN
 
 #ifdef WINDS

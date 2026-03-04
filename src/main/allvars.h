@@ -1242,6 +1242,8 @@ extern struct global_data_all_processes
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+  double NumberDensThreshold;
+  double TemperatureThreshold;
   double StarFormationEfficiency;
 #endif
 
@@ -1514,6 +1516,9 @@ extern struct sph_particle_data
 #ifdef TREE_BASED_TIMESTEPS
   MySingle CurrentMaxTiStep;
   MySingle Csnd;
+#ifdef SUPERNOVAE
+  MyDouble Csn;
+#endif
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
 #if defined(REFINEMENT_HIGH_RES_GAS)
@@ -1552,12 +1557,21 @@ extern struct sph_particle_data
                  indirectly ionization state and mean molecular weight. */
 #endif        /* #if defined(COOLING) */
 
+#ifdef USE_GRACKLE
+  MyDouble grHI;
+  MyDouble grHII;
+  MyDouble grH2I;
+  MyDouble grHeI;
+  MyDouble grHeII;
+  MyDouble grHeIII;
+#endif
+
 #ifdef USE_SFR
   MySingle Sfr;
 #endif /* #ifdef USE_SFR */
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-  StarMassDrain;
+  MyDouble StarMassDrain;
 #endif
 
 #ifdef OUTPUT_COOLHEAT
@@ -1588,7 +1602,8 @@ extern struct sph_particle_data
 #endif /* #ifdef ADDBACKGROUNDGRID */
 
 #ifdef METALS
-#define Metals PScalars[METALLICITY_INDEX]
+#define Metallicity PScalars[METALLICITY_INDEX]
+//#define Metals PConservedScalars[METALLICITY_INDEX]
 #endif 
     
 #ifdef BLACKHOLES_ACCRETION_ACTIVE

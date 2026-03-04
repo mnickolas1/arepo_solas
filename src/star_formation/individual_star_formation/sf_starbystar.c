@@ -1,12 +1,11 @@
 #include <stdlib.h>       
-#include <math.h>
-#include <gsl/gsl_math.h>              
+#include <math.h>         
 #include <mpi.h>            
   
-#include "../main/allvars.h"
-#include "../main/proto.h"
+#include "../../main/allvars.h"
+#include "../../main/proto.h"
 
-#include "../domain/domain.h"
+#include "../../domain/domain.h"
 
 static int sf_starbystar_evaluate(int target, int mode, int threadid);
 static int sf_starbystar_isactive(int n);
@@ -72,15 +71,15 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      SP[i].StarNgbMass = out->NgbMass;
+      SP[i].NgbMass = out->NgbMass;
     }
   else /* combine */
     {
-      SP[i].StarNgbMass += out->NgbMass;
+      SP[i].NgbMass += out->NgbMass;
     }
 }
 
-#include "../utils/generic_comm_helpers2.h"
+#include "../../utils/generic_comm_helpers2.h"
 
 /*! \brief Routine that defines what to do with local particles.
  *
@@ -171,7 +170,6 @@ void sf_starbystar()
     {
       Left[i] = Right[i] = 0;
       SP[i].DensityFlag = 1;
-      StarMassDrain[i] = 0;
       
       if(SP[i].Hsml == 0)
         SP[i].Hsml = cbrt((3.0*All.MeanVolume)/(4.0*M_PI));
@@ -264,7 +262,6 @@ void sf_starbystar()
 
   myfree(Right);
   myfree(Left);
-  myfree(StarMassDrain);
 
   /* mark as active again */
   for(i = 0; i < NumStars; i++)

@@ -53,7 +53,7 @@ typedef struct
   MyDouble NumNgb;
   MyDouble NgbMass;
   MyDouble NgbVolume;
-  integertime NgbMinStep;
+  int NgbMaxBin;
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -76,15 +76,15 @@ static void out2particle(data_out *out, int i, int mode)
       StarNumNgb[i]                   = out->NumNgb;
       SP[i].NgbMass                   = out->NgbMass;
       SP[i].NgbVolume                 = out->NgbVolume;
-      SP[i].NgbMinStep                = out->NgbMinStep;
+      SP[i].NgbMaxBin                = out->NgbMaxBin;
     }
   else /* combine */
     {
       StarNumNgb[i]                   += out->NumNgb;
       SP[i].NgbMass                   += out->NgbMass;
       SP[i].NgbVolume                 += out->NgbVolume;
-      if(out->NgbMinStep < SP[i].NgbMinStep)
-        SP[i].NgbMinStep               = out->NgbMinStep;
+      if(out->NgbMaxBin > SP[i].NgbMaxBin)
+        SP[i].NgbMaxBin               = out->NgbMaxBin;
     }
 }
 
@@ -172,15 +172,16 @@ void star_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
-  Left      = (MyFloat *)mymalloc("Left", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
-  Right     = (MyFloat *)mymalloc("Right", TimeBinsStar.NActiveParticles * sizeof(MyFloat));
+  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", NumStars * sizeof(MyFloat));
+  Left      = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
+  Right     = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
 
-  for(i = 0; i < TimeBinsStar.NActiveParticles; i++)
+  for(i = 0; i < NumStars; i++)
     {
       Left[i] = Right[i] = 0;
-      SP[i].DensityFlag = 1;
       StarNumNgb[i] = 0;
+
+      SP[i].DensityFlag = 1;
       
       if(SP[i].Hsml == 0)
         SP[i].Hsml = cbrt((3.0*All.MeanVolume)/(4.0*M_PI));
@@ -295,11 +296,10 @@ void star_density(void)
 static int star_density_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
-  int numngb, bin = TIMEBINS; 
+  int numngb, ngbmaxbin = 0; 
   double h, h2, hinv, hinv3, hinv4; 
   double dx, dy, dz, r, r2, u, wk, dwk;
   MyDouble *pos, ngbmass, ngbvolume;
-  integertime ngb_min_step;
 
   data_in local, *target_data;
   data_out out;
@@ -379,22 +379,16 @@ static int star_density_evaluate(int target, int mode, int threadid)
           ngbmass += P[j].Mass;
           // compute the star-ngb-volume
           ngbvolume += SphP[j].Volume;
-          // compute the min hydro step for neighbors   
-          if(bin > P[j].TimeBinHydro)
-            bin = P[j].TimeBinHydro;
+          // compute the max hydro bin for neighbors   
+          if(ngbmaxbin < P[j].TimeBinHydro)
+            ngbmaxbin = P[j].TimeBinHydro;
         }
     }
 
-/* compute star timestep based on min ngb timestep */
-  if(bin == 0)
-    ngb_min_step = 0;
-  else
-    ngb_min_step   = (((integertime)1) << bin);
-  
   out.NumNgb = numngb;
   out.NgbMass = ngbmass;
   out.NgbVolume = ngbvolume;
-  out.NgbMinStep  = ngb_min_step;
+  out.NgbMaxBin = ngbmaxbin;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)

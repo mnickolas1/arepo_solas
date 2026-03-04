@@ -493,7 +493,7 @@ int init(void)
  * */
 #ifdef METALS
   for(i=0; i<NumGas; i++)
-      SphP[i].Metals = All.InitMetallicityinSolar * SOLAR_ABUNDANCE;
+      SphP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_ABUNDANCE;
 #endif /* ifdef METALS */
 
 #ifdef PASSIVE_SCALARS
@@ -524,7 +524,7 @@ int init(void)
   sfr_init();
 #endif /* #if defined(USE_SFR) */
 
-#if defined(USE_SFR)
+#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
   for(i = 0; i < NumGas; i++)
     SphP[i].Sfr = get_starformation_rate(i);
 #endif /* #if defined(USE_SFR) */
@@ -579,7 +579,8 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   double *sfg = All.StarFeedbackGlobal;
   sfg = malloc(8 * sizeof(double));
 
-  load_stellar_tables(All.StarTablesFile);
+  mpi_printf("Loading star evolution tables\n");
+  load_star_tables(All.StarTablesFile);
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

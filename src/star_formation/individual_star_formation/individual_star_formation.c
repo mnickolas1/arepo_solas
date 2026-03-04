@@ -43,18 +43,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../main/allvars.h"
-#include "../main/proto.h"
+#include "../../main/allvars.h"
+#include "../../main/proto.h"
 
-#include "../gravity/forcetree.h"
+#include "../../stars/star_particle.h"
 
-#include "../stars/star_particle.h"
+static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star);
+static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star);
+static void make_individual_star(int i, MyDouble mass_of_star, double *local_stars_mass);
 
-static int stars_spawned;           /*!< local number of star particles spawned in the time step */
-static int tot_stars_spawned;       /*!< global number of star paricles spawned in the time step */
-static int altogether_spawned;      /*!< local number of particles spawned in the time step */
-static int tot_altogether_spawned;  /*!< global number of particles spawned in the time step */
-static double cum_mass_stars = 0.0; /*!< cumulative mass of stars created in the time step (global value) */
+static int stars_spawned;      /*!< local number of star particles spawned in the time step */
+static int tot_stars_spawned;  /*!< global number of star paricles spawned in the time step */
 
 
 /*! \brief This routine creates star particles according to their
@@ -74,33 +73,12 @@ void individual_starbystar_formation(void)
   TIMER_START(CPU_COOLINGSFR);
 
   int idx, i, bin;
-  double dt, dtime;
+  double dt, dtff, u;
   MyDouble mass_of_star;
-  double sum_sm, total_sm, rate, sum_mass_stars, total_sum_mass_stars;
   double p = 0, prob, p_decide;
-  double rate_in_msunperyear;
-  double sfrrate, totsfrrate;
+  double rate, local_stars_mass, global_stars_mass;
 
-#ifdef STARS
-//Check if we are overflowing the stars array
-int need_realloc_local = 0;
-if (NumStars == All.MaxPartStars)
-    need_realloc_local = 1;
-
-//Determine if any mpi rank needs more memory 
-int need_realloc_global;
-MPI_Allreduce(&need_realloc_local, &need_realloc_global, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
-
-if(need_realloc_global)
-  {
-    //Determine the new MaxPartStars
-    All.MaxPartStars = 1.25*All.MaxPartStars + 1;
-    reallocate_memory_maxpartstars();
-  }
-#endif
-
-  stars_spawned = stars_converted = 0;
-  sum_sm = sum_mass_stars = 0;
+  stars_spawned = local_stars_mass = 0;
 
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
@@ -121,10 +99,11 @@ if(need_realloc_global)
     
           if(SphP[i].Sfr > 0)
             {
-              p = All.Epsilon * dt / dtff;
+              p = All.StarFormationEfficiency * dt / dtff;
                
               u = get_random_number_aux();
               mass_of_star = sample_imf(u);
+              mass_of_star /= All.UnitMass_in_g / SOLAR_MASS;
 
               prob = (1 - exp(-p));
             }
@@ -146,9 +125,29 @@ if(need_realloc_global)
           p_decide = get_random_number();
 
           if(p_decide < prob) /* ok, it is decided to consider star formation */
-            make_star(i, mass_of_star, &sum_mass_stars);
+            make_individual_star(i, mass_of_star, &local_stars_mass);
         }
     } /* end of main loop over active gas particles */
+
+#ifdef STARS
+  /* Check if we are overflowing the stars array based on stars actually formed this step */
+  int local_star_load = NumStars;
+  int global_star_load;
+
+  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
+    {
+      int old_alloc = All.MaxPartStars;
+      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
+
+      if(All.MaxPartStars < ALLOC_STAR_ROOM)
+        All.MaxPartStars = ALLOC_STAR_ROOM;
+
+      if(All.MaxPartStars != old_alloc)
+        reallocate_memory_maxpartstars();
+    }
+#endif /* #ifdef STARS */
 
   MPI_Allreduce(&stars_spawned, &tot_stars_spawned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
@@ -190,35 +189,25 @@ if(need_realloc_global)
     {
       All.TotNumPart += tot_stars_spawned;
       NumPart += stars_spawned;
+
+#ifdef STARS 
+      All.TotNumStars += tot_stars_spawned;
+#endif
     }
 
-  for(bin = 0, sfrrate = 0; bin < TIMEBINS; bin++)
-    if(TimeBinsHydro.TimeBinCount[bin])
-      sfrrate += TimeBinSfr[bin];
-
-  double din[3] = {sfrrate, sum_sm, sum_mass_stars}, dout[3];
-
-  MPI_Reduce(din, dout, 3, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&local_stars_mass, &global_stars_mass, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
   if(ThisTask == 0)
     {
-      totsfrrate           = dout[0];
-      total_sm             = dout[1];
-      total_sum_mass_stars = dout[2];
-
       if(All.TimeStep > 0)
-        rate = total_sm / (All.TimeStep / All.cf_time_hubble_a);
+        rate = global_stars_mass / (All.TimeStep / All.cf_time_hubble_a);
       else
         rate = 0;
 
-      /* compute the cumulative mass of stars */
-      cum_mass_stars += total_sum_mass_stars;
-
       /* convert to solar masses per yr */
-      rate_in_msunperyear = rate * (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
+      rate *= (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
 
-      fprintf(FdSfr, "%14e %14e %14e %14e %14e %14e\n", All.Time, total_sm, totsfrrate, rate_in_msunperyear, total_sum_mass_stars,
-              cum_mass_stars);
+      fprintf(FdSfr, "%14e %14e %14e\n", All.Time, global_stars_mass, rate);
       myflush(FdSfr);
     }
 
@@ -241,7 +230,7 @@ if(need_realloc_global)
  *
  *  \return void
  */
-void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
+static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
   /* assign star_ids */
   P[istar].SID = NumStars;
@@ -267,9 +256,11 @@ void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   /* set timebin */
+  SP[NumStars].Active = 0;
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
+  SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
 #endif
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
@@ -295,7 +286,7 @@ void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star)
  *
  *  \return void
  */
-void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
+static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
   P[istar]               = P[igas];
   P[istar].Type          = 4;
@@ -335,9 +326,9 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
   SphP[igas].Momentum[1] *= fac;
   SphP[igas].Momentum[2] *= fac;
 
-#ifdef METALS
-  SphP[igas].Metals *= fac;
-#endif /* ifdef Metals */
+//#ifdef METALS
+//  SphP[igas].Metals *= fac;
+//#endif /* ifdef Metals */
 
 //#ifdef MHD
 //  SphP[igas].Energy += Emag;
@@ -353,17 +344,19 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
   SP[NumStars].PID = istar;
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
+  SP[NumStars].Metals = SphP[igas].Metallicity * P[istar].Mass;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
+  SP[NumStars].Active = 0;
   SP[NumStars].TimeBinStar = 0;
   /* set SN properties */
   SP[NumStars].Birthtime = birthtime;
-
+  
+  SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 #endif
 
@@ -388,13 +381,13 @@ void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star)
  *
  *  \return void
  */
-void make_star(int i, MyDouble mass_of_star, double *sum_mass_stars)
+static void make_individual_star(int i, MyDouble mass_of_star, double *local_stars_mass)
 {
   if(NumPart + stars_spawned >= All.MaxPart)
     terminate("NumPart=%d spwawn %d particles no space left (All.MaxPart=%d)\n", NumPart, stars_spawned, All.MaxPart);
 
   int j = NumPart + stars_spawned;
-  *sum_mass_stars += mass_of_star;
+  *local_stars_mass += mass_of_star;
   stars_spawned++;
 
   if(mass_of_star < P[i].Mass)

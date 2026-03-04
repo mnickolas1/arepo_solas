@@ -47,7 +47,7 @@ print COUTF2 "H5Tset_size(atype, 1);\n";
 
 while($line=<FILE>)
 {
-    chop $line;
+    chomp $line;
 
     @fields = split ' ' , $line;
 

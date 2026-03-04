@@ -391,7 +391,7 @@ integertime get_timestep_hydro(int p)
 
   dt = dt_courant;
 
-#if defined(USE_SFR)
+#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
 
   if(P[p].Type == 0) /* to protect using a particle that has been turned into a star */
     {

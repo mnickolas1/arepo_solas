@@ -35,90 +35,52 @@ void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
   *wk  *= K_norm * hinv3;
 }
 
-/* Compute feedback properties of active stars */
-void star_prep(void)
-{
-  int i, idx;
-  
-  for(idx=0; idx<TimeBinsStar.NActiveParticles; idx++)
-    {
-      i = TimeBinsStar.ActiveParticleList[idx];
-      
-      MyDouble star_timestep = All.TimeStep;
-      MyDouble star_age = All.Time - SP[i].Birthtime;
-      MyDouble star_mass = PPS(i).Mass;
-#ifdef METALS 
-      MyDouble star_metals = SP[i].Metals;
-#else 
-      MyDouble star_metals = 0;
-#endif
-      MyDouble star_metallicity = star_metals/star_mass;
-    
-      // Convert units (-> solar masses and years)
-      star_timestep *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
-      star_age *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
-      star_mass *= (All.UnitMass_in_g / SOLAR_MASS);
-
-      struct star_feedback star_feedback;
-
-#if STAR_PARTICLES == 1
-      star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, star_age));
-#elif STAR_PARTICLES == 2     
-      star_feedback = units_for_feedback(star_feedback_compute(star_mass, star_timestep, star_metallicity, star_age));
-#endif
-
-#ifdef WINDS
-      SP[i].MassLoss = star_feedback.MassLoss;
-#ifdef METALS
-      SP[i].MetalsLoss = star_feedback.MetalsLoss;
-#endif
-      SP[i].WindMomentum = star_feedback.WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-      SP[i].SN_MassLoss = star_feedback.SN_MassLoss;
-#ifdef METALS
-      SP[i].SN_MetalsLoss = star_feedback.SN_MetalsLoss;
-#endif
-      SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
-#endif
-
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-      SP[i].RAD_IonizingHPhotons = star_feedback.RAD_IonizingHPhotons;
-      SP[i].RAD_Ionizing = star_feedback.RAD_Ionizing;
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-      SP[i].RAD_UVLymanWerner = star_feedback.RAD_UVLymanWerner;
-      SP[i].RAD_Ultraviolet = star_feedback.RAD_Ultraviolet;
-#endif
-#if defined(RADIATION_PRESSURE)
-      SP[i].RAD_Optical = star_feedback.RAD_Optical;
-      SP[i].RAD_Infrared = star_feedback.RAD_Infrared;
-#endif
-    }
-}
-
-/* Get timestep for star based on smallest between ngbs */
-integertime get_timestep_star(int p)
+int get_timestep_star(int p)
 { 
-  // Star particles always active for winds
-  return 0;
+  double dt_grav = (PPS(p).TimeBinGrav ? (((integertime)1) << PPS(p).TimeBinGrav) : 0) * All.Timebase_interval;
+  double dt_ngbmax = (SP[p].NgbMaxBin ? (((integertime)1) << SP[p].NgbMaxBin) : 0) * All.Timebase_interval;
+  double dt_star = pow(10,4) * SEC_PER_YEAR / All.UnitTime_in_s;
+
+  double dt = dt_grav;
+
+  if(dt_ngbmax < dt)
+    dt = dt_ngbmax;
+
+  if(dt_star < dt)
+    dt = dt_star;
+
+  dt *= All.cf_hubble_a;
+
+  if(dt >= All.MaxSizeTimestep)
+    dt = All.MaxSizeTimestep;
+
+  if(dt < All.MinSizeTimestep)
+    {
+#ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP
+      dt = All.MinSizeTimestep;
+#else  /* #ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP */
+      print_particle_info(p);
+      terminate("Timestep dt=%g below All.MinSizeTimestep=%g", dt, All.MinSizeTimestep);
+#endif /* #ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP #else */
+    }
+
+  integertime ti_step = (integertime)(dt / All.Timebase_interval);
+
+  validate_timestep(dt, ti_step, p);
   
-  // return (integertime)(1e-2 / All.Timebase_interval);
+  return ti_step;
 }
 
 void update_star_timesteps(void)
 {
-  int i, bin;
+  int i;
   integertime ti_step;
 
   for(i = 0; i < NumStars; i++)
     { 
       ti_step = get_timestep_star(i);
     
-      bin = get_timestep_bin(ti_step);
-
-      SP[i].TimeBinStar = bin;
+      SP[i].TimeBinStar = get_timestep_bin(ti_step);
     }
   reconstruct_star_timebins();
   update_list_of_active_star_particles();
@@ -159,7 +121,7 @@ void reconstruct_star_timebins(void)
     }
 }
 
-/* Call this function after updating the star-timebin to the ngb condition */
+/* Call this function after updating the star-timebin */
 void update_list_of_active_star_particles(void)
 {
   int i, n;
@@ -177,6 +139,73 @@ void update_list_of_active_star_particles(void)
     }
 
     mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
+}
+
+/* Compute feedback properties of active stars */
+void star_prep(void)
+{
+  int i, idx;
+  
+  for(idx=0; idx<TimeBinsStar.NActiveParticles; idx++)
+    {
+      i = TimeBinsStar.ActiveParticleList[idx];
+      
+      MyDouble star_timestep = All.TimeStep;
+      MyDouble star_age = All.Time - SP[i].Birthtime;
+      MyDouble star_mass = PPS(i).Mass;
+#ifdef METALS 
+      MyDouble star_metals = SP[i].Metals;
+#else 
+      MyDouble star_metals = 0;
+#endif
+      MyDouble star_metallicity = star_metals/star_mass;
+    
+      // Convert units (-> solar masses and years)
+      star_timestep *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
+      star_age *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
+      star_mass *= (All.UnitMass_in_g / SOLAR_MASS);
+
+      struct star_feedback star_feedback;
+
+#if STAR_PARTICLES == 1
+      star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, star_age));
+#elif STAR_PARTICLES == 2     
+      star_feedback = units_for_feedback(star_feedback_compute(star_mass, star_timestep, star_metallicity, star_age));
+#endif
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+     SP[i].TimeSN = star_feedback.TimeSN;
+#endif
+
+#ifdef WINDS
+      SP[i].MassLoss = star_feedback.MassLoss;
+#ifdef METALS
+      SP[i].MetalsLoss = star_feedback.MetalsLoss;
+#endif
+      SP[i].WindMomentum = star_feedback.WindMomentum;
+#endif
+
+#ifdef SUPERNOVAE
+      SP[i].SN_MassLoss = star_feedback.SN_MassLoss;
+#ifdef METALS
+      SP[i].SN_MetalsLoss = star_feedback.SN_MetalsLoss;
+#endif
+      SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
+#endif
+
+#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
+      SP[i].RAD_IonizingHPhotons = star_feedback.RAD_IonizingHPhotons;
+      SP[i].RAD_Ionizing = star_feedback.RAD_Ionizing;
+#endif
+#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
+      SP[i].RAD_UVLymanWerner = star_feedback.RAD_UVLymanWerner;
+      SP[i].RAD_Ultraviolet = star_feedback.RAD_Ultraviolet;
+#endif
+#if defined(RADIATION_PRESSURE)
+      SP[i].RAD_Optical = star_feedback.RAD_Optical;
+      SP[i].RAD_Infrared = star_feedback.RAD_Infrared;
+#endif
+    }
 }
 
 void perform_end_of_step_star_physics(void)
@@ -201,16 +230,59 @@ void perform_end_of_step_star_physics(void)
           i = TimeBinsHydro.ActiveParticleList[idx];
           if(i < 0)
             continue;
-            
+
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+          if(SphP[i].StarMassDrain > 0)
+            {
+              if(P[i].Mass - SphP[i].StarMassDrain < 0.1*P[i].Mass)
+                {
+                  terminate("STAR FORMATION DRAIN");
+                  //double M_old = P[j].Mass;
+                  //double requested = SphP[j].StarMassDrain;
+
+                  //double drained = 0.9 * M_old;
+
+                  //P[j].Mass = 0.1 * M_old;
+
+                  //SP[i].MassToDrain += requested - drained;
+
+                  // We're also losing thermal and kinetic energy & momentum 
+      
+                  // Update total energy 
+                  //SphP[j].Energy *= 0.1;
+                    
+                  // Update momentum 
+                  //SphP[j].Momentum[0] *= 0.1;
+                  //SphP[j].Momentum[1] *= 0.1;
+                  //SphP[j].Momentum[2] *= 0.1;
+                }
+              else
+                {
+                  P[i].Mass -= SphP[i].StarMassDrain;
+                    
+                  // Update total energy 
+                  SphP[i].Energy *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
+                    
+                  // Update momentum 
+                  SphP[i].Momentum[0] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
+                  SphP[i].Momentum[1] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
+                  SphP[i].Momentum[2] *= (P[i].Mass)/(P[i].Mass + SphP[i].StarMassDrain);
+                }
+              SphP[i].StarMassDrain = 0;
+            }
+#endif
+
           // Dump mass, momentum and energy injected by stars 
 #if defined(WINDS) || defined(SUPERNOVAE)
           // Add mass 
+          double Mold = P[i].Mass;
+
           P[i].Mass += SphP[i].StarMassFeed;
           All.StarFeedbackLocal[4] += SphP[i].StarMassFeed;
           SphP[i].StarMassFeed = 0;
 #ifdef METALS
           // Add metals
-          SphP[i].Metals += SphP[i].StarMetalsFeed;
+          SphP[i].Metallicity = (Mold * SphP[i].Metallicity + SphP[i].StarMetalsFeed)/(P[i].Mass);
           All.StarFeedbackLocal[5] += SphP[i].StarMetalsFeed;
           SphP[i].StarMetalsFeed = 0;
 #endif
@@ -242,7 +314,8 @@ void perform_end_of_step_star_physics(void)
 
     MPI_Allreduce(&All.StarFeedbackLocal, &All.StarFeedbackGlobal, 8, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
-  
+
+    mpi_printf("STARS: Number of StarParts = %d \n", All.TotNumStars);
     mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n",
                All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[4]);
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",

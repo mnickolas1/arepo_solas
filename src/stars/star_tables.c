@@ -206,7 +206,7 @@ void free_stellar_tables(void)
     }
 }
 
-void load_stellar_tables(const char *filename)
+void load_star_tables(const char *filename)
 { 
   hid_t file_id = -1;
 
