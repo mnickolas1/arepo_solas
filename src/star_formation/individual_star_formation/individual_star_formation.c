@@ -226,7 +226,9 @@ void individual_starbystar_formation(void)
       if(SphP[i].StarMassDrain > 0)
         {
           if(P[i].Mass - SphP[i].StarMassDrain < 0.1*P[i].Mass)
+            {
               terminate("STAR FORMATION DRAIN ERROR!");
+            }
           else
             {
               double factor = (P[i].Mass - SphP[i].StarMassDrain) / P[i].Mass;
