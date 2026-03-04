@@ -149,6 +149,18 @@ void star_prep(void)
   for(idx=0; idx<TimeBinsStar.NActiveParticles; idx++)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
+
+      if(SP[i].Active == 0)
+        if(TimeBinSynchronized[SP[i].NgbMaxBin])
+          {
+            SP[i].Active = 1;
+            
+            // need to reset the age to when star first starts injecting feedback
+            SP[i].Birthtime = All.Time; 
+          }
+      
+      if(SP[i].Active == 0)
+        continue;
       
       MyDouble star_timestep = All.TimeStep;
       MyDouble star_age = All.Time - SP[i].Birthtime;

@@ -24,6 +24,7 @@ typedef struct
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble TimeSN;
+  MyDouble Birthtime;
 #endif  
 
 #ifdef WINDS
@@ -68,6 +69,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   in->TimeSN         = SP[i].TimeSN;
+  in->Birthtime      = SP[i].Birthtime;
 #endif  
 
 #ifdef WINDS
@@ -153,15 +155,6 @@ static void kernel_local(void)
         break;
 
       i = TimeBinsStar.ActiveParticleList[idx];
-
-      if(SP[i].Active == 0)
-        if(TimeBinSynchronized[SP[i].NgbMaxBin])
-          {
-            SP[i].Active = 1;
-            
-            // need to reset the age to when star first starts injecting feedback
-            SP[i].Birthtime = All.Time; 
-          }
       
       if(SP[i].Active == 1)    
         star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
@@ -233,6 +226,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble timesn = target_data->TimeSN;
+  MyDouble birthtime = target_data->Birthtime;
 #endif
 
 #ifdef WINDS
@@ -304,10 +298,13 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
           star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-          double unew = (SphP[j].Utherm * P[j].Mass + 1e51 * SphP[j].Volume / ngbvolume) / (P[j].Mass /*+dm_inject*/);
+          double unew = (SphP[j].Utherm * P[j].Mass + (1e51 / All.UnitEnergy_in_cgs) * SphP[j].Volume / ngbvolume) / (P[j].Mass /*+dm_inject*/);
+
+          double t_frac = (All.Time - birthtime) / (timesn - birthtime);
+          t_frac = fmin(fmax(t_frac, 0.0), 1.0);
 
           if(timesn < MAX_REAL_NUMBER)
-            SphP[j].Csn = SphP[j].Csnd + ((sqrt(GAMMA*GAMMA_MINUS1*unew)) - SphP[j].Csnd) * All.Time / timesn;
+            SphP[j].Csn = SphP[j].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[j].Csnd) * t_frac;
 #endif
               
 #ifdef WINDS
