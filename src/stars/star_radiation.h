@@ -52,9 +52,4 @@ typedef enum
 } Waveband;
 
 /* Opacity coefficients */
-extern double Kappa[WB_COUNT] = {
-  1.0,  // LW
-  1.0,  // UV
-  1.0,  // OP
-  1.0   // IR
-};
+extern double Kappa[WB_COUNT];
