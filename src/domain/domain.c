@@ -175,10 +175,6 @@ void domain_Decomposition(void)
     }
 
   reconstruct_timebins();
- 
-  /*#ifdef BLACKHOLES
-  reconstruct_bh_timebins();
-  #endif */
 
 #ifdef BLACKHOLES
   update_bh_timesteps();

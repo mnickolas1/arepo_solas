@@ -98,7 +98,7 @@ static void out2particle(data_out *out, int i, int mode)
  */
 static void kernel_local(void)
 {
-  int i, idx, j;
+  int idx, i, j;
 
   int threadid = get_thread_num();
 
@@ -172,9 +172,9 @@ void star_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", NumStars * sizeof(MyFloat));
-  Left      = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
-  Right     = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
+  StarNumNgb = (MyFloat *)mymalloc("StarNumNgb", NumStars * sizeof(MyFloat));
+  Left = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
+  Right = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
 
   for(i = 0; i < NumStars; i++)
     {
@@ -196,7 +196,7 @@ void star_density(void)
 
       generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
 
-      for(idx=0, npleft=0; idx<TimeBinsStar.NActiveParticles; idx++)
+      for(idx = 0, npleft = 0; idx < TimeBinsStar.NActiveParticles; idx++)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
 

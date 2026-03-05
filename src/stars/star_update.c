@@ -80,15 +80,18 @@ int get_timestep_star(int p)
 
 void update_star_timesteps(void)
 {
-  int i;
+  int idx, i;
   integertime ti_step;
 
-  for(i = 0; i < NumStars; i++)
-    { 
+for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
+    {
+      i = TimeBinsStar.ActiveParticleList[idx];
+
       ti_step = get_timestep_star(i);
     
       SP[i].TimeBinStar = get_timestep_bin(ti_step);
     }
+    
   reconstruct_star_timebins();
   update_list_of_active_star_particles();
 }
@@ -151,9 +154,9 @@ void update_list_of_active_star_particles(void)
 /* Compute feedback properties of active stars */
 void star_prep(void)
 {
-  int i, idx;
+  int idx, i;
   
-  for(idx=0; idx<TimeBinsStar.NActiveParticles; idx++)
+  for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
 

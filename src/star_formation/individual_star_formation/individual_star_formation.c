@@ -297,10 +297,10 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
   if(mass_of_star * (All.UnitMass_in_g / SOLAR_MASS) > 2)
-    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
+  else
+    SP[NumStars].TimeBinStar = TIMEBINS;  
 #endif
-
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
   NumStars++;
 
@@ -380,7 +380,9 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
   if(mass_of_star * (All.UnitMass_in_g / SOLAR_MASS) > 2)
-    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
+  else
+    SP[NumStars].TimeBinStar = TIMEBINS;   
 #endif
 
   NumStars++;

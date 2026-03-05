@@ -134,7 +134,7 @@ static void out2particle(data_out *out, int i, int mode)
  */
 static void kernel_local(void)
 {
-  int i, idx, j;
+  int idx, i, j;
 
   int threadid = get_thread_num();
 
