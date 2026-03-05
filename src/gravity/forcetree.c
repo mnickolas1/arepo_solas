@@ -714,9 +714,9 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
 #ifdef STAR_RADIATION_ACTIVE
           if(P[i].Type == 0)
             {
-              export_Tree_Points[n].Density = SphP[i].Density;
               export_Tree_Points[n].Volume = SphP[i].Volume;
-              export_Tree_Points[n].Metals = SphP[i].Metals;
+              export_Tree_Points[n].Density = SphP[i].Density;
+              export_Tree_Points[n].Metallicity = SphP[i].Metallicity;
               export_Tree_Points[n].RAD_Ionizing = 0;
             }
           if(P[i].Type == 4)
@@ -1319,7 +1319,7 @@ unsigned char maxsofttype;
                   if(P[p].Type == 0)  
                     {
                       density += P[p].Mass * SphP[p].Density;
-                      metallicity += SphP[p].Metals; 
+                      metallicity += P[p].Mass * SphP[p].Metallicity; 
                     }
                   if(P[p].Type == 4)  
                     {
@@ -1355,8 +1355,8 @@ unsigned char maxsofttype;
                   s[2] += Nodes[p].u.d.mass * Nodes[p].u.d.s[2];
 
 #ifdef STAR_RADIATION_ACTIVE
-                  density += Nodes[p].u.d.density;
-                  metallicity += Nodes[p].u.d.metallicity; 
+                  density += Nodes[p].u.d.mass * Nodes[p].u.d.density;
+                  metallicity += Nodes[p].u.d.mass * Nodes[p].u.d.metallicity;
                   luminosity += Nodes[p].u.d.luminosity;
                   l[0] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[0];
                   l[1] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[1];
@@ -1400,7 +1400,7 @@ unsigned char maxsofttype;
                   if(Tree_Points[n].Type == 0)  
                     {
                       density += Tree_Points[n].Mass * Tree_Points[n].Density;
-                      metallicity += Tree_Points[n].Metals;
+                      metallicity += Tree_Points[n].Mass * Tree_Points[n].Metallicity;
                     }
                   if(Tree_Points[n].Type == 4)
                     {
@@ -1745,8 +1745,8 @@ unsigned char maxsofttype;
               s[2] += Nodes[p].u.d.mass * Nodes[p].u.d.s[2];
 
 #ifdef STAR_RADIATION_ACTIVE
-              density += Nodes[p].u.d.density;
-              metallicity += Nodes[p].u.d.metallicity;
+              density += Nodes[p].u.d.mass * Nodes[p].u.d.density;
+              metallicity += Nodes[p].u.d.mass * Nodes[p].u.d.metallicity;
               luminosity += Nodes[p].u.d.luminosity;
               l[0] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[0];
               l[1] += Nodes[p].u.d.luminosity * Nodes[p].u.d.l[1];
@@ -1786,6 +1786,11 @@ unsigned char maxsofttype;
         }
 
 #ifdef STAR_RADIATION_ACTIVE
+      if(mass)
+        {
+          density /= mass;
+          metallicity /= mass;
+        }
       if(luminosity)
         {
           l[0] /= luminosity;
@@ -1806,6 +1811,8 @@ unsigned char maxsofttype;
       Nodes[no].u.d.mass        = mass;
 
 #ifdef STAR_RADIATION_ACTIVE
+      Nodes[no].u.d.density = density;
+      Nodes[no].u.d.metallicity = metallicity;
       Nodes[no].u.d.luminosity = luminosity;
       Nodes[no].u.d.l[0] = l[0];
       Nodes[no].u.d.l[1] = l[1];
