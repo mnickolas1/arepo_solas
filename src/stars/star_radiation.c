@@ -2,6 +2,7 @@
 
 #include "../main/allvars.h"
 #include "../main/proto.h"
+#include "../utils/tags.h"
 
 #include "../extern/chealpix.h"
 #include "../stars/star_radiation.h"

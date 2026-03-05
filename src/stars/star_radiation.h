@@ -1,3 +1,6 @@
+#ifndef STAR_RADIATION_H
+#define STAR_RADIATION_H
+
 #define RAD_BACKGROUND 1 
 #define MAX_RAYS 12288 
 #define RAY_STACK_SIZE 64
@@ -53,3 +56,5 @@ typedef enum
 
 /* Opacity coefficients */
 extern double Kappa[WB_COUNT];
+
+#endif

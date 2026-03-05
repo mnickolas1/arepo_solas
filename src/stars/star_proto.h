@@ -1,3 +1,6 @@
+#ifndef STAR_PROTO_H
+#define STAR_PROTO_H
+
 /* star functions */
 
 /* Memory allocation */
@@ -49,8 +52,12 @@ void star_feedback(void);
 void perform_end_of_step_star_physics(void);
 double gaussian_weight(double r, double h);
 //void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
+#endif
 
+#ifdef STAR_RADIATION_ACTIVE
 /* Radiation */
+#include "../stars/star_radiation.h"
+
 void init_healpix_rays(int nside);
 RayData *init_rays_from_stars(int *n_rays_local);
 void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer *export_buf);
@@ -59,6 +66,6 @@ void free_export_buffer(RayExportBuffer *buf);
 void radiation(void);
 void exchange_rays(RayExportBuffer *send, RayData **recv, int *n_recv);
 void send_results_home(void);
-
+#endif
 
 #endif
