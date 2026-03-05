@@ -213,7 +213,7 @@ void individual_starbystar_formation(void)
   /* apply drain and finalize heavy stars */
   for(i = 0; i < NumStars; i++)
     {
-      if(SP[i].MassOfStar > 0 && P[SP[i].PID].Mass == 0) /* heavy star */
+      if(PPS(i).Mass == 0 && SP[i].MassOfStar > 0) /* heavy star */
         PPS(i).Mass = SP[i].MassOfStar;
     }
       

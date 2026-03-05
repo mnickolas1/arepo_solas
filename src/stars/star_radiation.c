@@ -22,7 +22,10 @@ double Kappa[WB_COUNT] = {
 static void sort_by_task(RayExportBuffer *buf)
 {
   /* build index array */
-  int *idx = malloc(buf->n * sizeof(int));
+  int *idx = mymalloc("idx", buf->n * sizeof(int));
+  RayData *sorted_rays = mymalloc("sorted_rays", buf->n * sizeof(RayData));
+  int *sorted_task = mymalloc("sorted_task", buf->n * sizeof(int));
+  
   for(int i = 0; i < buf->n; i++)
     idx[i] = i;
 
@@ -40,8 +43,6 @@ static void sort_by_task(RayExportBuffer *buf)
     }
 
   /* apply permutation to both arrays */
-  RayData *sorted_rays = malloc(buf->n * sizeof(RayData));
-  int     *sorted_task = malloc(buf->n * sizeof(int));
 
   for(int i = 0; i < buf->n; i++)
     {
@@ -52,9 +53,9 @@ static void sort_by_task(RayExportBuffer *buf)
   memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayData));
   memcpy(buf->task, sorted_task, buf->n * sizeof(int));
 
-  free(sorted_rays);
-  free(sorted_task);
-  free(idx);
+  myfree(sorted_task); 
+  myfree(sorted_rays);
+  myfree(idx);
 }
 
 void init_healpix_rays(int nside) //run this inside init()
@@ -72,13 +73,7 @@ RayData *init_rays_from_stars(int *n_rays_local)
   int total_rays = n_stars * NRays;
     
   // Allocate memory for all rays
-  RayData *rays = (RayData *)malloc(total_rays * sizeof(RayData));
-    
-  if(rays == NULL) 
-    {
-      fprintf(stderr, "Error: malloc failed for rays\n");
-      return NULL;
-    }
+  RayData *rays = mymalloc("rays", total_rays * sizeof(RayData));
     
   *n_rays_local = total_rays;
     
@@ -115,9 +110,9 @@ RayData *init_rays_from_stars(int *n_rays_local)
 
 RayExportBuffer *init_export_buffer(int capacity)
 {
-  RayExportBuffer *buf = malloc(sizeof(RayExportBuffer));
-  buf->rays = malloc(capacity * sizeof(RayData));
-  buf->task = malloc(capacity * sizeof(int));
+  RayExportBuffer *buf = mymalloc("export_buf", sizeof(RayExportBuffer));
+  buf->rays = mymalloc("export_buf_rays", capacity * sizeof(RayData));
+  buf->task = mymalloc("export_buf_task", capacity * sizeof(int));
   buf->n = 0;
   buf->capacity = capacity;
   return buf;
@@ -125,9 +120,9 @@ RayExportBuffer *init_export_buffer(int capacity)
 
 void free_export_buffer(RayExportBuffer *buf)
 {
-  free(buf->rays);
-  free(buf->task);
-  free(buf);
+  myfree(buf->task);
+  myfree(buf->rays);
+  myfree(buf);
 }
 
 void radiation(void)
@@ -216,10 +211,10 @@ void exchange_rays(RayExportBuffer *send, RayData **recv, int *n_recv)
 void send_results_home(void)
 {
   int i, j, n, k, ncount;
-  int *Recv_count = malloc(NTask * sizeof(int));
-  int *Send_count = malloc(NTask * sizeof(int));
-  int *Recv_offset = malloc(NTask * sizeof(int));
-  int *Send_offset = malloc(NTask * sizeof(int));
+  int *Recv_count = mymalloc("Recv_count", NTask * sizeof(int));
+  int *Send_count = mymalloc("Send_count", NTask * sizeof(int));
+  int *Recv_offset = mymalloc("Recv_offset", NTask * sizeof(int));
+  int *Send_offset = mymalloc("Send_offset", NTask * sizeof(int));
 
   /* count gas cells among imported particles */
   for(i = 0, ncount = 0; i < Tree_NumPartImported; i++)
@@ -280,6 +275,6 @@ void send_results_home(void)
   /* free in reverse allocation order */
   myfree(tmp_results);
   myfree(Rad_ResultsActiveImported);
-  free(Send_offset); free(Recv_offset);
-  free(Send_count);  free(Recv_count);
+  myfree(Send_offset); myfree(Recv_offset);
+  myfree(Send_count);  myfree(Recv_count);
 }

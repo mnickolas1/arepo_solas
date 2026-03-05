@@ -189,7 +189,7 @@ void star_prep(void)
 #if STAR_PARTICLES == 1
       star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, star_age));
 #elif STAR_PARTICLES == 2     
-      star_feedback = units_for_feedback(star_feedback_compute(star_mass, star_timestep, star_metallicity, star_age));
+      star_feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, star_age));
 #endif
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
