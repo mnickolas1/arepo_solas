@@ -39,7 +39,7 @@
 #ifdef STARS
 #define TAG_STARDATA 16
 #endif
-#ifdef RADIATION_FEEDBACK_ACTIVE
+#ifdef STAR_RADIATION_ACTIVE
 #define TAG_RAD 18
 #endif
 #define TAG_GRAV_B 19
