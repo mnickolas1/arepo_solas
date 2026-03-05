@@ -297,8 +297,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
   int numngb, ngbmaxbin = 0; 
-  double h, h2, hinv, hinv3, hinv4; 
-  double dx, dy, dz, r, r2, u, wk, dwk;
+  double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, ngbmass, ngbvolume;
 
   data_in local, *target_data;
@@ -322,13 +321,6 @@ static int star_density_evaluate(int target, int mode, int threadid)
   pos  = target_data->Pos;
   h    = target_data->Hsml;
   h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
 
   numngb = ngbmass = ngbvolume = 0;
 
@@ -368,13 +360,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
       if(r2 < h2)
         {
           numngb++;
-
-          r = sqrt(r2);
-
-          u = r * hinv;
-
-          star_kernel(u, hinv3, hinv4, &wk, &dwk);
-
+          
           // compute the star-ngb-mass 
           ngbmass += P[j].Mass;
           // compute the star-ngb-volume

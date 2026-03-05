@@ -200,8 +200,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
   int bin;
-  double h, h2, hinv, hinv3, hinv4; 
-  double dx, dy, dz, r, r2, u, wk, dwk;
+  double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, *vel, ngbmass, ngbvolume, factor;
   
   data_in local, *target_data;
@@ -225,6 +224,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   pos = target_data->Pos;
   vel = target_data->Vel;
   h = target_data->Hsml;
+  h2   = h * h;
   
   ngbmass = target_data->NgbMass;
   ngbvolume = target_data->NgbVolume;
@@ -249,16 +249,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #endif
   MyDouble SNenergyinject = target_data->SN_EnergyInject;
 #endif  
-
-  h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
- 
+  
 /* star timestep */
   double dt = (bin ? (((integertime)1) << bin) : 0) * All.Timebase_interval;
   dt *= All.cf_atime / All.cf_time_hubble_a;
@@ -297,10 +288,6 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
       if(r2 < h2)
         {
           r = sqrt(r2);
-
-          u = r * hinv;
-
-          star_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           factor = SphP[j].Volume / ngbvolume;
 
