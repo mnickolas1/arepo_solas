@@ -267,7 +267,7 @@ void perform_end_of_step_star_physics(void)
           SphP[i].StarMassFeed = 0;
 #ifdef METALS
           // Add metals
-          SphP[i].Metallicity = (Mold * SphP[i].Metallicity + SphP[i].StarMetalsFeed)/(P[i].Mass);
+          SphP[i].GasMetallicity = (Mold * SphP[i].GasMetallicity + SphP[i].StarMetalsFeed)/(P[i].Mass);
           All.StarFeedbackLocal[5] += SphP[i].StarMetalsFeed;
           SphP[i].StarMetalsFeed = 0;
 #endif

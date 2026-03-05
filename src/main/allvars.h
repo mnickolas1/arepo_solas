@@ -1602,7 +1602,7 @@ extern struct sph_particle_data
 #endif /* #ifdef ADDBACKGROUNDGRID */
 
 #ifdef METALS
-#define Metallicity PScalars[METALLICITY_INDEX]
+#define GasMetallicity PScalars[METALLICITY_INDEX]
 //#define Metals PConservedScalars[METALLICITY_INDEX]
 #endif 
     

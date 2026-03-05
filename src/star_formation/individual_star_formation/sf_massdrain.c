@@ -279,7 +279,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
           vm[1] += P[j].Vel[1] * factor;
           vm[2] += P[j].Vel[2] * factor;
 #ifdef METALS
-          metals += SphP[j].Metallicity * P[j].Mass * factor;
+          metals += SphP[j].GasMetallicity * P[j].Mass * factor;
 #endif
         }
     }

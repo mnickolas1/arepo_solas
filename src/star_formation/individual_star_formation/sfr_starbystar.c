@@ -17,11 +17,10 @@ static double compute_mu(int i)
 
     /* Optional: include metals if desired (usually negligible) */
 #ifdef METALS    
-    double Z = SphP[i].Metallicity;
+    double Z = SphP[i].GasMetallicity;
 #else
     double Z = 0;
 #endif    
-    double A_Z = 16.0 * PROTONMASS; // metals, approx oxygen
 
     /* Compute mean molecular weight: g per particle */
     /* 1 H atom = m_H, 1 He atom = 4*m_H, electrons = m_H (counted as particles for n) */

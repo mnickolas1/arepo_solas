@@ -369,7 +369,7 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   SP[NumStars].PID = istar;
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].Metallicity * P[istar].Mass;
+  SP[NumStars].Metals = SphP[igas].GasMetallicity * P[istar].Mass;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE

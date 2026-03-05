@@ -110,7 +110,7 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
                   double chord_length = 2.0 * sqrt(r2 - b2); /* path through sphere */
 
                   double density = SphP[no].Density;
-                  double metallicity = SphP[no].Metallicity;
+                  double metallicity = SphP[no].GasMetallicity;
                   double kappa = Kappa[LYMAN_WERNER]; 
 
                   /* optical depth */

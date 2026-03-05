@@ -363,7 +363,7 @@ void convert_cell_into_star(int i, double birthtime)
   //SP[NumStars].Birthtime = birthtime;
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[i].Metallicity * P[i].Mass;
+  SP[NumStars].Metals = SphP[i].GasMetallicity * P[i].Mass;
 #endif 
 #endif 
 
@@ -439,7 +439,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SphP[igas].Momentum[2] *= fac;
 
 //#ifdef METALS
-  //SphP[igas].Metallicity *= fac;
+  //SphP[igas].GasMetallicity *= fac;
 //#endif /* ifdef Metals */
 
 //#ifdef MHD
@@ -466,7 +466,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   //SP[NumStars].Birthtime = birthtime;
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].Metallicity * P[istar].Mass;
+  SP[NumStars].Metals = SphP[igas].GasMetallicity * P[istar].Mass;
 #endif
 #endif
 

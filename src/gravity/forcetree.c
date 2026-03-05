@@ -716,7 +716,7 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
             {
               export_Tree_Points[n].Volume = SphP[i].Volume;
               export_Tree_Points[n].Density = SphP[i].Density;
-              export_Tree_Points[n].Metallicity = SphP[i].Metallicity;
+              export_Tree_Points[n].Metallicity = SphP[i].GasMetallicity;
               export_Tree_Points[n].RAD_Ionizing = 0;
             }
           if(P[i].Type == 4)
@@ -1319,7 +1319,7 @@ unsigned char maxsofttype;
                   if(P[p].Type == 0)  
                     {
                       density += P[p].Mass * SphP[p].Density;
-                      metallicity += P[p].Mass * SphP[p].Metallicity; 
+                      metallicity += P[p].Mass * SphP[p].GasMetallicity; 
                     }
                   if(P[p].Type == 4)  
                     {
