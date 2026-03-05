@@ -57,6 +57,10 @@
 #include "../stars/star_tables.h"
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+#include "../stars/star_radiation.h"
+#endif
+
 /*! \brief Prepares the loaded initial conditions for the run.
  *
  *  It is only called if RestartFlag !=1. Various counters and variables are
@@ -581,6 +585,10 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
   mpi_printf("Loading star evolution tables\n");
   load_star_tables(All.StarTablesFile);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+init_healpix_rays(2);
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

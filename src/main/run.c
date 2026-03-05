@@ -435,6 +435,10 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
    if(All.Time >= All.FeedbackTime)
     {   
       star_feedback();
+
+#ifdef STAR_RADIATION_ACTIVE
+      radiation();
+#endif
     }
 #endif
 }

@@ -273,7 +273,7 @@ void perform_end_of_step_star_physics(void)
 #endif
 #endif
             
-#if defined(WINDS) || defined(SUPERNOVAE) || defined (RADIATION_PRESSURE)
+#if defined(WINDS) || defined(SUPERNOVAE)
           // Update momentum 
           SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0] * All.cf_atime;
           SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1] * All.cf_atime;

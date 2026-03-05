@@ -17,6 +17,44 @@ double Kappa[WB_COUNT] = {
   1.0   // IR
 };
 
+static void sort_by_task(RayExportBuffer *buf)
+{
+  /* build index array */
+  int *idx = malloc(buf->n * sizeof(int));
+  for(int i = 0; i < buf->n; i++)
+    idx[i] = i;
+
+  /* insertion sort on idx by task */
+  for(int i = 1; i < buf->n; i++)
+    {
+      int key = idx[i];
+      int j = i - 1;
+      while(j >= 0 && buf->task[idx[j]] > buf->task[key])
+        {
+          idx[j+1] = idx[j];
+          j--;
+        }
+      idx[j+1] = key;
+    }
+
+  /* apply permutation to both arrays */
+  RayData *sorted_rays = malloc(buf->n * sizeof(RayData));
+  int     *sorted_task = malloc(buf->n * sizeof(int));
+
+  for(int i = 0; i < buf->n; i++)
+    {
+      sorted_rays[i] = buf->rays[idx[i]];
+      sorted_task[i] = buf->task[idx[i]];
+    }
+
+  memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayData));
+  memcpy(buf->task, sorted_task, buf->n * sizeof(int));
+
+  free(sorted_rays);
+  free(sorted_task);
+  free(idx);
+}
+
 void init_healpix_rays(int nside) //run this inside init()
 {
     NRays = 12 * nside * nside;
@@ -88,44 +126,6 @@ void free_export_buffer(RayExportBuffer *buf)
   free(buf->rays);
   free(buf->task);
   free(buf);
-}
-
-void sort_by_task(RayExportBuffer *buf)
-{
-  /* build index array */
-  int *idx = malloc(buf->n * sizeof(int));
-  for(int i = 0; i < buf->n; i++)
-    idx[i] = i;
-
-  /* insertion sort on idx by task */
-  for(int i = 1; i < buf->n; i++)
-    {
-      int key = idx[i];
-      int j = i - 1;
-      while(j >= 0 && buf->task[idx[j]] > buf->task[key])
-        {
-          idx[j+1] = idx[j];
-          j--;
-        }
-      idx[j+1] = key;
-    }
-
-  /* apply permutation to both arrays */
-  RayData *sorted_rays = malloc(buf->n * sizeof(RayData));
-  int     *sorted_task = malloc(buf->n * sizeof(int));
-
-  for(int i = 0; i < buf->n; i++)
-    {
-      sorted_rays[i] = buf->rays[idx[i]];
-      sorted_task[i] = buf->task[idx[i]];
-    }
-
-  memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayData));
-  memcpy(buf->task, sorted_task, buf->n * sizeof(int));
-
-  free(sorted_rays);
-  free(sorted_task);
-  free(idx);
 }
 
 void radiation(void)
