@@ -181,7 +181,8 @@ void domain_Decomposition(void)
 #endif
     
 #ifdef STAR_FEEDBACK_ACTIVE
-  update_star_timesteps();
+  reconstruct_star_timebins();
+  update_list_of_active_star_particles();;
 #endif
 
   for(int i = 0; i < GRAVCOSTLEVELS; i++)
