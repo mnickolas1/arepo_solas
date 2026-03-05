@@ -169,7 +169,7 @@ void star_prep(void)
       if(SP[i].Active == 0)
         continue;
       
-      MyDouble star_timestep = All.TimeStep;
+      MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
       MyDouble star_age = All.Time - SP[i].Birthtime;
       MyDouble star_mass = PPS(i).Mass;
 #ifdef METALS 

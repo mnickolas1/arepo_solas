@@ -16,7 +16,6 @@ static int star_feedback_evaluate(int target, int mode, int threadid);
  */
 typedef struct
 {
-  int Bin;  
   MyDouble Pos[3];
   MyDouble Vel[3];
   MyFloat Hsml;
@@ -60,7 +59,6 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Bin            = SP[i].TimeBinStar;
   in->Pos[0]         = PPS(i).Pos[0];
   in->Pos[1]         = PPS(i).Pos[1];
   in->Pos[2]         = PPS(i).Pos[2];
@@ -199,7 +197,6 @@ void star_feedback(void)
 static int star_feedback_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
-  int bin;
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, *vel, ngbmass, ngbvolume, factor;
   
@@ -220,7 +217,6 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
       generic_get_numnodes(target, &numnodes, &firstnode);
     }
   
-  bin = target_data->Bin;
   pos = target_data->Pos;
   vel = target_data->Vel;
   h = target_data->Hsml;
@@ -249,10 +245,6 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #endif
   MyDouble SNenergyinject = target_data->SN_EnergyInject;
 #endif  
-  
-/* star timestep */
-  double dt = (bin ? (((integertime)1) << bin) : 0) * All.Timebase_interval;
-  dt *= All.cf_atime / All.cf_time_hubble_a;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
   for(n = 0; n < nfound; n++)
