@@ -36,7 +36,7 @@ void cooling_and_starformation(void)
 {
   TIMER_START(CPU_COOLINGSFR);
 
-  int idx, i, flag;
+  int idx, i;
   double dt, du, unew;
   double number_dens, temp;
 
@@ -62,44 +62,28 @@ void cooling_and_starformation(void)
       SphP[i].Utherm += du;
       SphP[i].Energy += All.cf_atime * All.cf_atime * du * P[i].Mass;
 
-      cool_cell(i);
+      cool_cell(i); //do we need another temp floor?
       
       //double mu = compute_mu(i); 
       double mu = 2.33; // molecular H
 
       number_dens = (SphP[i].Density * All.UnitDensity_in_cgs) / mu / PROTONMASS;
-      number_dens /= All.cf_a3inv;
+      //number_dens /= All.cf_a3inv; //need to figure out a factors
       
       double u_to_temp_fac = mu * PROTONMASS / BOLTZMANN * GAMMA_MINUS1;
-
       temp = (SphP[i].Utherm * All.UnitEnergy_in_cgs / All.UnitMass_in_g) * u_to_temp_fac;
-     
-      /* check whether conditions for star formation are fulfilled.
-       * f=1  normal cooling
-       * f=0  star formation
-       */
+      
+      /* default is just cooling */
+      SphP[i].Sfr = 0; 
 
-      flag = 1; /* default is normal cooling */
-
-      /* enable star formation if gas is above SF density threshold */
+      /* star formation if gas is dense and cold */
       if(number_dens >= All.NumberDensThreshold && temp < All.TemperatureThreshold)
         if(All.Time > 0)  
-          flag = 0;
+          SphP[i].Sfr = 1;
 
       /* tracer particles don't form stars */    
       if(P[i].Mass == 0) 
-        flag = 1;
-      
-      /* inactive star formation */
-      if(flag == 1)
-          SphP[i].Sfr = 0;
-
-      /* active star formation */
-      if(flag == 0)
-        {
-          SphP[i].Sfr = 1;
-        }
-
+        SphP[i].Sfr = 0;
     }
   TIMER_STOP(CPU_COOLINGSFR);
 }

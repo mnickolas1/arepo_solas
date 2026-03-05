@@ -301,7 +301,6 @@ void perform_end_of_step_star_physics(void)
     } // if(All.Time >= All.FeedbackTime)
 
     MPI_Allreduce(&All.StarFeedbackLocal, &All.StarFeedbackGlobal, 8, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
 
     mpi_printf("STARS: Number of StarParts = %d \n", All.TotNumStars);
     mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n",
