@@ -103,7 +103,7 @@ void individual_starbystar_formation(void)
                
               u = get_random_number_aux();
               mass_of_star = sample_imf(u);
-              mass_of_star /= All.UnitMass_in_g / SOLAR_MASS;
+              mass_of_star /= (All.UnitMass_in_g / SOLAR_MASS);
 
               prob = (1 - exp(-p));
             }
@@ -296,7 +296,8 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
-  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+  if(mass_of_star * (All.UnitMass_in_g / SOLAR_MASS) > 2)
+    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 #endif
 
   //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
@@ -378,7 +379,8 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
-  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
+  if(mass_of_star * (All.UnitMass_in_g / SOLAR_MASS) > 2)
+    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 #endif
 
   NumStars++;
