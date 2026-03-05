@@ -15,7 +15,9 @@ void star_density(void);
 void star_prep(void);
 void star_feedback(void);
 void perform_end_of_step_star_physics(void);
-void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
+double gaussian_weight(double r, double h);
+//void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
+
 
 /* Feedback tables interpolation */
 void load_star_tables(const char *filename);

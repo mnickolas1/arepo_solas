@@ -8,10 +8,16 @@
 
 static int int_compare(const void *a, const void *b);
 
-/* Sph loop kernel function */
-void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
+double gaussian_weight(double r, double h)
 {
-  // Cubic spline
+  double sigma = h / 2.0; 
+  double x = r / sigma;
+  return exp(-0.5 * x * x);
+}
+
+/* Sph loop kernel function */
+/*void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
+{
   double K_norm = 8.0 / M_PI;
 
   if(u < 0.5)
@@ -33,7 +39,8 @@ void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
   *dwk *= K_norm * hinv4;
   
   *wk  *= K_norm * hinv3;
-}
+}*/
+
 
 int get_timestep_star(int p)
 { 

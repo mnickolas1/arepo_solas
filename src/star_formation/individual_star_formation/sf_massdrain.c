@@ -192,8 +192,7 @@ void sf_massdrain()
 static int sf_massdrain_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
-  double h, h2, hinv, hinv3, hinv4; 
-  double dx, dy, dz, r, r2, u, wk, dwk;
+  double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, massofstar, ngbmass, factor;
   MyDouble cm[3], vm[3];
 
@@ -217,6 +216,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 
   pos = target_data->Pos;
   h = target_data->Hsml;
+  h2 = h * h;
   
   massofstar = target_data->MassOfStar;
   ngbmass = target_data->NgbMass;
@@ -226,15 +226,6 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 #ifdef METALS
   MyDouble metals = 0;
 #endif
-
-  h2 = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -273,9 +264,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
         {
           r = sqrt(r2);
 
-          u = r * hinv;
-
-          star_kernel(u, hinv3, hinv4, &wk, &dwk);
+          wk = gaussian_weight(r, h);
 
           factor = P[j].Mass * wk / ngbmass;
 

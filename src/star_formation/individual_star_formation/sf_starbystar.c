@@ -105,13 +105,6 @@ static void kernel_local(void)
 
       if(i >= NumStars)
         break;
-        
-      //idx = NextParticle++;
-
-      //if(idx >= TimeBinsStar.NActiveParticles)
-      //  break;
-
-      //i = TimeBinsStar.ActiveParticleList[idx];
 
       if((PPS(i).Mass == 0) && (sf_starbystar_isactive(i)))
         sf_starbystar_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
@@ -186,7 +179,8 @@ void sf_starbystar()
 
       for(i = 0, npleft = 0; i < NumStars; i++)
         {
-          //i = TimeBinsStar.ActiveParticleList[idx];
+          if(PPS(i).Mass != 0)
+            continue;
           
           if(SP[i].Hsml > 10*cbrt((3.0*All.MeanVolume)/(4.0*M_PI)))
             terminate("Star formation radius too large!");
@@ -286,8 +280,7 @@ void sf_starbystar()
 static int sf_starbystar_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
-  double h, h2, hinv, hinv3, hinv4; 
-  double dx, dy, dz, r, r2, u, wk, dwk;
+  double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, ngbmass;
 
   data_in local, *target_data;
@@ -310,14 +303,7 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
 
   pos  = target_data->Pos;
   h    = target_data->Hsml;
-  h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
+  h2 = h * h;
 
   ngbmass = 0;
 
@@ -358,9 +344,7 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
         {
           r = sqrt(r2);
 
-          u = r * hinv;
-
-          star_kernel(u, hinv3, hinv4, &wk, &dwk);
+          wk = gaussian_weight(r, h);
 
           // compute the star-ngb-mass 
           ngbmass += P[j].Mass * wk;
