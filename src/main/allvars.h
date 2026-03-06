@@ -1247,7 +1247,7 @@ extern struct global_data_all_processes
   double StarFormationEfficiency;
 #endif
 
-#ifdef STAR_FEEDBACK_ACTIVE
+#ifdef STAR_PARTICLES
   int IMF;
 #endif
 
