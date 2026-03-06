@@ -70,7 +70,7 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
   else
     {
       /* restore whatever was pending from previous rank */
-      if(ray->n_pending > RAY_STACK_SIZE)
+      if(ray->n_pending >= RAY_STACK_SIZE)
         terminate("Pending stack too large to restore!");
 
       memcpy(stack, ray->pending, ray->n_pending * sizeof(StackEntry));
@@ -137,8 +137,8 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
       else if(no < Tree_MaxPart + Tree_MaxNodes)
         {
           /* mode==1 guard: don't escape back into top-level tree */
-          if(mode == 1 && no < Tree_FirstNonTopLevelNode)
-            terminate("Should not happen!");
+          //if(mode == 1 && no < Tree_FirstNonTopLevelNode)
+          //  terminate("Should not happen!");
 
           struct NODE *nop = &Nodes[no];
 
@@ -271,7 +271,7 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
           /* push in reverse so smallest t_enter is popped first */
           for(int i = nchildren - 1; i >= 0; i--)
             {
-              if(stack_top >= RAY_STACK_SIZE)
+              if(stack_top > RAY_STACK_SIZE)
               terminate("Ray stack overflow!");
 
               stack[stack_top++] = children[i];
@@ -333,8 +333,8 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
           int remote_node = DomainNodeIndex[no - (Tree_MaxPart + Tree_MaxNodes)];
 
           /* pack pending */
-          //if(stack_top > RAY_PENDING_SIZE) 
-          //  terminate("Too many pending entries to export!");
+          if(stack_top > RAY_STACK_SIZE) 
+            terminate("Too many pending entries to export!");
 
           ray->n_pending = stack_top;
           memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));

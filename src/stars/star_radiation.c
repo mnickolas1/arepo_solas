@@ -125,48 +125,6 @@ void free_export_buffer(RayExportBuffer *buf)
   myfree(buf);
 }
 
-void radiation(void)
-{
-    /* 1. initialize rays from active star particles */
-    int n_rays_local = 0;
-    RayData *rays = init_rays_from_stars(&n_rays_local);
-
-    /* 2. do initial local walk (mode=0) for all rays */
-    RayExportBuffer *export_buf = init_export_buffer(MAX_RAYS_EXCHANGE);
-
-    for(int i = 0; i < n_rays_local; i++)
-      raytrace_treewalk(&rays[i], 0, -1, export_buf);
-
-    /* 3. iterate until no more exports globally */
-    int n_exports_global;
-    do
-      {
-        /* send rays to remote ranks, receive rays from remote ranks */
-        RayData *imported_rays;
-        int n_imported;
-        exchange_rays(export_buf, &imported_rays, &n_imported);
-
-        /* reset export buffer for this round */
-        export_buf->n = 0;
-
-        /* walk imported rays in mode=1 */
-        for(int i = 0; i < n_imported; i++)
-            raytrace_treewalk(&imported_rays[i], 1, 
-                              imported_rays[i].target_node, 
-                              export_buf);
-
-        myfree(imported_rays);
-
-        /* check if anyone still has rays in flight */
-        MPI_Allreduce(&export_buf->n, &n_exports_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      } while(n_exports_global > 0);
-    
-    send_results_home();
-
-    free_export_buffer(export_buf);
-    myfree(rays);
-}
-
 void exchange_rays(RayExportBuffer *send, RayData **recv, int *n_recv)
 {
     int send_count[NTask], recv_count[NTask];
@@ -277,4 +235,46 @@ void send_results_home(void)
   myfree(Rad_ResultsActiveImported);
   myfree(Send_offset); myfree(Recv_offset);
   myfree(Send_count);  myfree(Recv_count);
+}
+
+void radiation(void)
+{
+    /* 1. initialize rays from active star particles */
+    int n_rays_local = 0;
+    RayData *rays = init_rays_from_stars(&n_rays_local);
+
+    /* 2. do initial local walk (mode=0) for all rays */
+    RayExportBuffer *export_buf = init_export_buffer(MAX_RAYS_EXCHANGE);
+
+    for(int i = 0; i < n_rays_local; i++)
+      raytrace_treewalk(&rays[i], 0, -1, export_buf);
+
+    /* 3. iterate until no more exports globally */
+    int n_exports_global;
+    do
+      {
+        /* send rays to remote ranks, receive rays from remote ranks */
+        RayData *imported_rays;
+        int n_imported;
+        exchange_rays(export_buf, &imported_rays, &n_imported);
+
+        /* reset export buffer for this round */
+        export_buf->n = 0;
+
+        /* walk imported rays in mode=1 */
+        for(int i = 0; i < n_imported; i++)
+            raytrace_treewalk(&imported_rays[i], 1, 
+                              imported_rays[i].target_node, 
+                              export_buf);
+
+        myfree(imported_rays);
+
+        /* check if anyone still has rays in flight */
+        MPI_Allreduce(&export_buf->n, &n_exports_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      } while(n_exports_global > 0);
+    
+    send_results_home();
+
+    free_export_buffer(export_buf);
+    myfree(rays);
 }

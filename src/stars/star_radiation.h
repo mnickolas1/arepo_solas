@@ -24,7 +24,7 @@ typedef struct
   int home_task;
   
   /* pending top-level nodes still to traverse after current domain */
-  StackEntry pending[RAY_STACK_SIZE];
+  StackEntry pending[RAY_STACK_SIZE + 1];
   int n_pending;
   int target_node;
   double t;
