@@ -216,15 +216,15 @@ void star_prep(void)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-      double RAD[WAVEBANDS];
-      RAD[0] = star_feedback.RAD_Ionizing;
-      RAD[1] = star_feedback.RAD_UVLymanWerner;
-      RAD[2] = star_feedback.RAD_Ultraviolet;
-      RAD[3] = star_feedback.RAD_Optical;
-      RAD[4] = star_feedback.RAD_Infrared;
+      double LUM[WAVEBANDS];
+      LUM[0] = star_feedback.RAD_Ionizing;
+      LUM[1] = star_feedback.RAD_UVLymanWerner;
+      LUM[2] = star_feedback.RAD_Ultraviolet;
+      LUM[3] = star_feedback.RAD_Optical;
+      LUM[4] = star_feedback.RAD_Infrared;
       
       for(int w = 0; w < WAVEBANDS; w++)
-        SP[i].RAD[w] = RAD[w];
+        SP[i].LUM[w] = LUM[w];
 #endif
     }
 }

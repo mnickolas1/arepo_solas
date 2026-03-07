@@ -55,7 +55,7 @@ void update_kappa(void)
 
 struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
 
-void init_healpix_rays() 
+void init_healpix_rays(void) 
 {
   int nside = All.Nside;
   NRays = 12 * nside * nside;
@@ -96,9 +96,9 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
-              rays[ray_idx].RAD[w] = SP[i].RAD[w] / NRays;
+              rays[ray_idx].RAD[w] = SP[i].LUM[w] / NRays;
 
-              rays[ray_idx].RAD_Initial[w] = SP[i].RAD[w] / NRays;
+              rays[ray_idx].RAD_Initial[w] = SP[i].LUM[w] / NRays;
             }
   
           rays[ray_idx].active_bands = ALL_BANDS_ACTIVE;

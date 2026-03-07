@@ -58,7 +58,7 @@ double gaussian_weight(double r, double h);
 /* Radiation */
 #include "../stars/star_radiation.h"
 
-void init_healpix_rays(int nside);
+void init_healpix_rays(void);
 RayPacket *init_rays_from_stars(int *n_rays_local);
 void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffer *export_buf);
 RayExportBuffer *init_export_buffer(int capacity);

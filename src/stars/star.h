@@ -98,19 +98,8 @@ extern struct star_particle_data
   MyDouble WindMomentum;
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_IonizingHPhotons;
-  MyDouble RAD_Ionizing;
-#endif
-
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_UVLymanWerner;
-  MyDouble RAD_Ultraviolet;
-#endif
-  
-#if defined(RADIATION_PRESSURE)
-  MyDouble RAD_Optical;
-  MyDouble RAD_Infrared;
+#ifdef STAR_RADIATION_ACTIVE
+  MyDouble LUM[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE

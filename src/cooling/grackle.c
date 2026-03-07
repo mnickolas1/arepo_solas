@@ -384,7 +384,8 @@ void InitGrackle(void)
      * in grackle per particle but also allows
      * the possibility of using a background radiation
      * */
-    my_grackle_data->use_radiative_transfer            = 0;
+    my_grackle_data->use_radiative_transfer = 1;
+    my_grackle_data->radiative_transfer_hydrogen_only  = 1;
 
     /* For both UV bkgd and RT; options for length scale:
      *     1: Sobolev-like (from WG11)

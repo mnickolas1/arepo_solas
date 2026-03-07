@@ -728,7 +728,7 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
                   export_Tree_Points[n].RAD[w] = 0;
                 }
               if(P[i].Type == 4)
-                export_Tree_Points[n].LUM[w] = SPP(i).RAD_Ionizing; /* FIX */
+                export_Tree_Points[n].LUM[w] = SPP(i).LUM[w];
             }
 #endif
 
@@ -1336,10 +1336,10 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
                         kappa[w] += P[p].Mass * SphP[p].Kappa[w];
                       if(P[p].Type == 4)
                         {
-                          luminosity[w] += SPP(p).RAD_Ionizing; /* FIX */
-                          l[w][0] += SPP(p).RAD_Ionizing * pos[0];
-                          l[w][1] += SPP(p).RAD_Ionizing * pos[1];
-                          l[w][2] += SPP(p).RAD_Ionizing * pos[2];
+                          luminosity[w] += SPP(p).LUM[w];
+                          l[w][0] += SPP(p).LUM[w] * pos[0];
+                          l[w][1] += SPP(p).LUM[w] * pos[1];
+                          l[w][2] += SPP(p).LUM[w] * pos[2];
                         }
                     }
 #endif

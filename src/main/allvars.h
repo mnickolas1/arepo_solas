@@ -59,6 +59,10 @@
 #include "../stars/star.h"
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+#include "../stars/star_radiation.h"
+#endif
+
 #define AREPO_VERSION "Arepo public 1.0" /* code version string */
 
 /* default values for unspecified config options */
