@@ -64,6 +64,7 @@ typedef struct
 extern struct rad_resultsactiveimported_data
 {
   double RAD[WAVEBANDS];
+  double StarMomentumFeed[3];
   int index; /* local SphP index on home task */
 } *Rad_ResultsActiveImported;
 

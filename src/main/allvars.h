@@ -849,8 +849,10 @@ extern struct treepoint_data
 #ifdef STAR_RADIATION_ACTIVE
   MyDouble Volume;
   MyDouble Density;
-  MyDouble Metallicity;
+  MyDouble StarMomentumFeed[3];
+  MyDouble Kappa[WAVEBANDS];
   MyDouble RAD[WAVEBANDS];
+  MyDouble LUM[WAVEBANDS];
 #endif
 
 #ifndef HIERARCHICAL_GRAVITY
@@ -1636,6 +1638,10 @@ MyDouble StarMomentumFeed[3];
   MyDouble StarEnergyFeed;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+ MyDouble Kappa[WAVEBANDS];
+#endif
+
 #ifdef PHOTOIONIZATION
   MyDouble PI_Balance;
 #endif 
@@ -2104,9 +2110,9 @@ extern struct NODE
 
 #ifdef STAR_RADIATION_ACTIVE
       MyDouble density;
-      MyDouble metallicity; 
-      MyDouble luminosity; /*!< luminosity of node */
-      MyDouble l[3]; /*!< center of luminosity of node */
+      MyDouble kappa[WAVEBANDS]; 
+      MyDouble luminosity[WAVEBANDS]; /*!< luminosity of node */
+      MyDouble l[WAVEBANDS][3]; /*!< center of luminosity of node */
 #endif
 
       /*! The next node in the tree walk in case the current node does

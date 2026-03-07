@@ -8,7 +8,7 @@
 static inline int ray_box_intersect(double *ray_pos, double *ray_dir, double *center, double len, double *t_enter, double *t_exit)
 {
     double half = 0.5 * len;
-    double tmin = -1e30, tmax = 1e30;
+    double tmin = -MAX_REAL_NUMBER, tmax = MAX_REAL_NUMBER;
 
     for(int i = 0; i < 3; i++)
     {
@@ -44,25 +44,41 @@ static inline int ray_box_intersect(double *ray_pos, double *ray_dir, double *ce
 
 static inline int ray_sphere_intersect(const double dx, const double dy, const double dz, const double *dir, const double r2, double *t_enter, double *t_exit)
 {
+  /* Check if ray origin is inside the sphere first.
+   * dx/dy/dz = sphere_centre - ray_origin */
+  double dist2 = dx*dx + dy*dy + dz*dz;
+  if(dist2 < r2)
+    {
+      /* Origin is inside — find the single forward exit point.
+       * Project centre onto ray, then offset by half-chord. */
+      double t_closest = dx*dir[0] + dy*dir[1] + dz*dir[2];
+      double cx = dx - t_closest*dir[0];
+      double cy = dy - t_closest*dir[1];
+      double cz = dz - t_closest*dir[2];
+      double b2 = cx*cx + cy*cy + cz*cz;
+      double dt = sqrt(r2 - b2);
+      *t_enter = 0.0;           /* clamp: we start inside */
+      *t_exit  = t_closest + dt;
+      return 1;
+    }
+
+  /* Sphere centre is outside and ahead */
   double t_closest = dx*dir[0] + dy*dir[1] + dz*dir[2];
-  
   if(t_closest <= 0) return 0;
 
   double cx = dx - t_closest*dir[0];
   double cy = dy - t_closest*dir[1];
   double cz = dz - t_closest*dir[2];
   double b2 = cx*cx + cy*cy + cz*cz;
-  
   if(b2 >= r2) return 0;
 
   double dt = sqrt(r2 - b2);
   *t_enter = t_closest - dt;
   *t_exit  = t_closest + dt;
-  
   return 1;
 }
 
-static inline int ray_absorb(RayPacket *ray, double chord_length, double density, double metallicity, double absorbed_RAD[WAVEBANDS])
+static inline int ray_absorb(RayPacket *ray, double chord_length, double density, double kappa[WAVEBANDS], double absorbed_RAD[WAVEBANDS])
 {
   for(int w = 0; w < WAVEBANDS; w++)
     {
@@ -71,7 +87,7 @@ static inline int ray_absorb(RayPacket *ray, double chord_length, double density
       if(!(ray->active_bands & (1u << w)))
         continue;
 
-      double dtau = Kappa[w] * density * metallicity * chord_length;
+      double dtau = kappa[w] * density * chord_length;
       double absorbed = ray->RAD[w] * (1.0 - __builtin_exp(-dtau));
 
       absorbed_RAD[w] += absorbed;
@@ -149,14 +165,25 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
               
           double chord_length = t_exit - t_enter;
           double density = SphP[no].Density;
-          double metallicity = SphP[no].GasMetallicity;
               
+          double kappa[WAVEBANDS];
+          for(int w = 0; w < WAVEBANDS; w++)
+            kappa[w] = SphP[no].Kappa[w];
+          
           double absorbed[WAVEBANDS];
-          int still_alive = ray_absorb(ray, chord_length, density, metallicity, absorbed);
+
+          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
 
           /* deposit absorbed energy into cell, one band at a time */
           for(int w = 0; w < WAVEBANDS; w++)
-            SphP[no].RAD[w] += absorbed[w];
+            {  
+              double dp = absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              SphP[no].StarMomentumFeed[0] += dp * ray->dir[0];
+              SphP[no].StarMomentumFeed[1] += dp * ray->dir[1];
+              SphP[no].StarMomentumFeed[2] += dp * ray->dir[2];
+              
+              SphP[no].RAD[w] += absorbed[w];
+            }
 
           if(!still_alive) return; /* all bands are exhausted */     
         }
@@ -175,7 +202,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
             terminate("Should not happen!");
           
           // Approx. barnes hut like criterion -> might need for expensive sims 
-          //double dtau_node = Kappa[0] * nop->u.d.density * nop->u.d.metallicity * nop->len;
+          //double dtau_node = Kappa * nop->u.d.density * nop->len;
           //if(dtau_node < TAU_OPEN_CRITERION)
           //  {
           //  }
@@ -291,13 +318,24 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
               
           double chord_length = t_exit - t_enter;
           double density = Tree_Points[n].Density;
-          double metallicity = Tree_Points[n].Metallicity;
-              
+          
+          double kappa[WAVEBANDS];
+          for(int w = 0; w < WAVEBANDS; w++)
+            kappa[w] = Tree_Points[n].Kappa[w];
+          
           double absorbed[WAVEBANDS];
-          int still_alive = ray_absorb(ray, chord_length, density, metallicity, absorbed);
+
+          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
 
           for(int w = 0; w < WAVEBANDS; w++)
-            Tree_Points[n].RAD[w] += absorbed[w];
+            {  
+              double dp = absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              Tree_Points[n].StarMomentumFeed[0] += dp * ray->dir[0];
+              Tree_Points[n].StarMomentumFeed[1] += dp * ray->dir[1];
+              Tree_Points[n].StarMomentumFeed[2] += dp * ray->dir[2];
+              
+              Tree_Points[n].RAD[w] += absorbed[w];
+            }
 
           if(!still_alive) return;  
         }

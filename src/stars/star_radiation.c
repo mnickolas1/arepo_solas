@@ -9,14 +9,49 @@
 double HealpixDirs[MAX_NUM_RAYS][3];
 int NRays; // 12 * NSIDE^2
 
-/* Opacity coefficients */
+/* Reference opacity coefficients [cm² g⁻¹ of gas] at solar metallicity.
+ *
+ * IONIZING:     sigma_HI / m_H — not actually used directly since
+ *               SphP[i].Kappa[IONIZING] is computed from x_HI in update_kappa.
+ *               Stored here for reference only.
+ *               Ref: Osterbrock & Ferland (2006)
+ *
+ * LYMAN_WERNER: FUV dust opacity (~912-2000 Å), dust-to-gas = 0.01 at solar Z.
+ *               Ref: Draine (2003), Weingartner & Draine (2001)
+ *
+ * ULTRAVIOLET:  NUV dust opacity (~2000-4000 Å).
+ *               Ref: Draine (2003)
+ *
+ * OPTICAL:      Visual band (~4000-8000 Å), close to standard V-band extinction.
+ *               Ref: Cardelli, Clayton & Mathis (1989)
+ *
+ * INFRARED:     Modified blackbody at T_DUST_REF = 20 K, beta = 2.
+ *               Ref: Semenov et al. (2003), Planck Collaboration XI (2014)
+                 
+                 Need to check references!
+ */
 double Kappa[WAVEBANDS] = {
-  1.0,  // IO
-  1.0,  // LW
-  1.0,  // UV
-  1.0,  // OP
-  1.0   // IR
+  3.8e3,   /* IONIZING     [cm² g⁻¹] — sigma_HI/m_H, reference only        */
+  1.0e2,   /* LYMAN_WERNER [cm² g⁻¹] — FUV dust at solar Z                  */
+  5.0e1,   /* ULTRAVIOLET  [cm² g⁻¹] — NUV dust at solar Z                  */
+  1.0e1,   /* OPTICAL      [cm² g⁻¹] — V-band dust at solar Z               */
+  1.0e-1,  /* INFRARED     [cm² g⁻¹] — IR dust at T_ref=20K, beta=2, solar Z */ 
 };
+
+void update_kappa(void)
+{
+  for(int i = 0; i < NumGas; i++)
+    {
+      double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
+      double units = All.UnitLength_in_cm * All.UnitLength_in_cm / All.UnitMass_in_g;
+
+      SphP[i].Kappa[IONIZING] = (Kappa[IONIZING] / units) * Z;  
+      SphP[i].Kappa[LYMAN_WERNER] = (Kappa[LYMAN_WERNER] / units) * Z; 
+      SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;  
+      SphP[i].Kappa[OPTICAL] = (Kappa[OPTICAL] / units) * Z;  
+      SphP[i].Kappa[INFRARED] = (Kappa[INFRARED] / units) * Z;  
+    }
+}
 
 struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
 
@@ -200,6 +235,10 @@ void send_results_home(void)
     for(j = 0; j < Force_Recv_count[i]; j++, n++)
       if(Tree_Points[n].Type == 0)
         {
+          Rad_ResultsActiveImported[k].StarMomentumFeed[0] = Tree_Points[n].StarMomentumFeed[0];
+          Rad_ResultsActiveImported[k].StarMomentumFeed[1] = Tree_Points[n].StarMomentumFeed[1];
+          Rad_ResultsActiveImported[k].StarMomentumFeed[2] = Tree_Points[n].StarMomentumFeed[2];
+
           for(int w = 0; w < WAVEBANDS; w++)
             Rad_ResultsActiveImported[k].RAD[w] = Tree_Points[n].RAD[w];
 
@@ -241,8 +280,14 @@ void send_results_home(void)
 
   /* apply results to local particles */
   for(i = 0; i < Nexport; i++)
-    for(int w = 0; w < WAVEBANDS; w++)
-    SphP[tmp_results[i].index].RAD[w] += tmp_results[i].RAD[w];
+    {  
+      SphP[tmp_results[i].index].StarMomentumFeed[0] += tmp_results[i].StarMomentumFeed[0];
+      SphP[tmp_results[i].index].StarMomentumFeed[1] += tmp_results[i].StarMomentumFeed[1];
+      SphP[tmp_results[i].index].StarMomentumFeed[2] += tmp_results[i].StarMomentumFeed[2];
+      
+      for(int w = 0; w < WAVEBANDS; w++)
+        SphP[tmp_results[i].index].RAD[w] += tmp_results[i].RAD[w];
+    }
 
   /* free in reverse allocation order */
   myfree(tmp_results);
@@ -253,42 +298,44 @@ void send_results_home(void)
 
 void radiation(void)
 {
-    /* 1. initialize rays from active star particles */
-    int n_rays_local = 0;
-    RayPacket *rays = init_rays_from_stars(&n_rays_local);
+  /* 0. update cell opacities -> maybe we need to do this earlier in the hydro loop */
+  update_kappa();
 
-    /* 2. do initial local walk (mode=0) for all rays */
-    RayExportBuffer *export_buf = init_export_buffer(MAX_NUM_RAYS_TO_EXCHANGE);
+  /* 1. initialize rays from active star particles */
+  int n_rays_local = 0;
+  RayPacket *rays = init_rays_from_stars(&n_rays_local);
 
-    for(int i = 0; i < n_rays_local; i++)
-      raytrace_treewalk(&rays[i], 0, -1, export_buf);
+  /* 2. do initial local walk (mode=0) for all rays */
+  RayExportBuffer *export_buf = init_export_buffer(MAX_NUM_RAYS_TO_EXCHANGE);
 
-    /* 3. iterate until no more exports globally */
-    int n_exports_global;
-    do
-      {
-        /* send rays to remote ranks, receive rays from remote ranks */
-        RayPacket *imported_rays;
-        int n_imported;
-        exchange_rays(export_buf, &imported_rays, &n_imported);
+  for(int i = 0; i < n_rays_local; i++)
+    raytrace_treewalk(&rays[i], 0, -1, export_buf);
 
-        /* reset export buffer for this round */
-        export_buf->n = 0;
+  /* 3. iterate until no more exports globally */
+  int n_exports_global;
+  do
+    {
+      /* send rays to remote ranks, receive rays from remote ranks */
+      RayPacket *imported_rays;
+      int n_imported;
+      exchange_rays(export_buf, &imported_rays, &n_imported);
 
-        /* walk imported rays in mode=1 */
-        for(int i = 0; i < n_imported; i++)
-            raytrace_treewalk(&imported_rays[i], 1, 
-                              imported_rays[i].target_node, 
-                              export_buf);
+      /* reset export buffer for this round */
+      export_buf->n = 0;
 
-        myfree(imported_rays);
+      /* walk imported rays in mode=1 */
+      for(int i = 0; i < n_imported; i++)
+        raytrace_treewalk(&imported_rays[i], 1, imported_rays[i].target_node, export_buf);
 
-        /* check if anyone still has rays in flight */
-        MPI_Allreduce(&export_buf->n, &n_exports_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      } while(n_exports_global > 0);
+      myfree(imported_rays);
+
+      /* check if anyone still has rays in flight */
+      MPI_Allreduce(&export_buf->n, &n_exports_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      
+    } while(n_exports_global > 0);
     
-    send_results_home();
+  send_results_home();
 
-    free_export_buffer(export_buf);
-    myfree(rays);
+  free_export_buffer(export_buf);
+  myfree(rays);
 }
