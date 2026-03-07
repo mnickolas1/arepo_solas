@@ -15,7 +15,8 @@ extern double HealpixDirs[MAX_NUM_RAYS][3];
 extern int NRays; // 12 * NSIDE^2
 
 typedef enum
-{ IONIZING = 0,
+{ IONIZING_H_PHOTONS = 0,
+  IONIZING,
   LYMAN_WERNER,
   ULTRAVIOLET,
   OPTICAL,

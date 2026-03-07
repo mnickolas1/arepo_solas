@@ -44,7 +44,8 @@ void update_kappa(void)
     {
       double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
       double units = All.UnitLength_in_cm * All.UnitLength_in_cm / All.UnitMass_in_g;
-
+      
+      SphP[i].Kappa[IONIZING_H_PHOTONS] = (Kappa[IONIZING_H_PHOTONS] / units) * Z; 
       SphP[i].Kappa[IONIZING] = (Kappa[IONIZING] / units) * Z;  
       SphP[i].Kappa[LYMAN_WERNER] = (Kappa[LYMAN_WERNER] / units) * Z; 
       SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;  
