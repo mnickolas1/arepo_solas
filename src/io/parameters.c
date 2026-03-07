@@ -606,6 +606,12 @@ void read_parameter_file(char *fname)
       id[nt++] = STRING;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      strcpy(tag[nt], "Nside");
+      addr[nt] = &All.Nside;
+      id[nt++] = INT;
+#endif  
+
 #ifdef SUPERNOVAE      
       //strcpy(tag[nt], "Ftherm");
       //addr[nt] = &All.Ftherm;

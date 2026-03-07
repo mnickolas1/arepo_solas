@@ -6,74 +6,38 @@
 #include "../extern/chealpix.h"
 #include "../stars/star_radiation.h"
 
-double HealpixDirs[MAX_RAYS][3];
+double HealpixDirs[MAX_NUM_RAYS][3];
 int NRays; // 12 * NSIDE^2
 
-struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
-
 /* Opacity coefficients */
-double Kappa[WB_COUNT] = {
+double Kappa[WAVEBANDS] = {
+  1.0,  // IO
   1.0,  // LW
   1.0,  // UV
   1.0,  // OP
   1.0   // IR
 };
 
-static void sort_by_task(RayExportBuffer *buf)
+struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
+
+void init_healpix_rays() 
 {
-  /* build index array */
-  int *idx = mymalloc("idx", buf->n * sizeof(int));
-  RayData *sorted_rays = mymalloc("sorted_rays", buf->n * sizeof(RayData));
-  int *sorted_task = mymalloc("sorted_task", buf->n * sizeof(int));
-  
-  for(int i = 0; i < buf->n; i++)
-    idx[i] = i;
+  int nside = All.Nside;
+  NRays = 12 * nside * nside;
 
-  /* insertion sort on idx by task */
-  for(int i = 1; i < buf->n; i++)
+  for(int ipix = 0; ipix < NRays; ipix++)
     {
-      int key = idx[i];
-      int j = i - 1;
-      while(j >= 0 && buf->task[idx[j]] > buf->task[key])
-        {
-          idx[j+1] = idx[j];
-          j--;
-        }
-      idx[j+1] = key;
-    }
-
-  /* apply permutation to both arrays */
-
-  for(int i = 0; i < buf->n; i++)
-    {
-      sorted_rays[i] = buf->rays[idx[i]];
-      sorted_task[i] = buf->task[idx[i]];
-    }
-
-  memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayData));
-  memcpy(buf->task, sorted_task, buf->n * sizeof(int));
-
-  myfree(sorted_task); 
-  myfree(sorted_rays);
-  myfree(idx);
-}
-
-void init_healpix_rays(int nside) //run this inside init()
-{
-    NRays = 12 * nside * nside;
-    for(int ipix=0; ipix<NRays; ipix++)
-    {
-        pix2vec_nest(nside, ipix, HealpixDirs[ipix]);
+      pix2vec_nest(All.Nside, ipix, HealpixDirs[ipix]);
     }
 }
 
-RayData *init_rays_from_stars(int *n_rays_local)
+RayPacket *init_rays_from_stars(int *n_rays_local)
 {
   int n_stars = TimeBinsStar.NActiveParticles;
   int total_rays = n_stars * NRays;
     
   // Allocate memory for all rays
-  RayData *rays = mymalloc("rays", total_rays * sizeof(RayData));
+  RayPacket *rays = mymalloc("rays", total_rays * sizeof(RayPacket));
     
   *n_rays_local = total_rays;
     
@@ -94,7 +58,16 @@ RayData *init_rays_from_stars(int *n_rays_local)
           rays[ray_idx].dir[0] = HealpixDirs[iray][0];        
           rays[ray_idx].dir[1] = HealpixDirs[iray][1];
           rays[ray_idx].dir[2] = HealpixDirs[iray][2];
-          rays[ray_idx].RAD_Ionizing = SP[i].RAD_Ionizing;
+
+          for(int w = 0; w < WAVEBANDS; w++)
+            { 
+              rays[ray_idx].RAD[w] = SP[i].RAD[w] / NRays;
+
+              rays[ray_idx].RAD_Initial[w] = SP[i].RAD[w] / NRays;
+            }
+  
+          rays[ray_idx].active_bands = ALL_BANDS_ACTIVE;
+          
           rays[ray_idx].ray_id = ray_idx;
           rays[ray_idx].home_task = ThisTask;
           
@@ -111,7 +84,7 @@ RayData *init_rays_from_stars(int *n_rays_local)
 RayExportBuffer *init_export_buffer(int capacity)
 {
   RayExportBuffer *buf = mymalloc("export_buf", sizeof(RayExportBuffer));
-  buf->rays = mymalloc("export_buf_rays", capacity * sizeof(RayData));
+  buf->rays = mymalloc("export_buf_rays", capacity * sizeof(RayPacket));
   buf->task = mymalloc("export_buf_task", capacity * sizeof(int));
   buf->n = 0;
   buf->capacity = capacity;
@@ -125,7 +98,45 @@ void free_export_buffer(RayExportBuffer *buf)
   myfree(buf);
 }
 
-void exchange_rays(RayExportBuffer *send, RayData **recv, int *n_recv)
+static void sort_by_task(RayExportBuffer *buf)
+{
+  /* build index array */
+  int *idx = mymalloc("idx", buf->n * sizeof(int));
+  RayPacket *sorted_rays = mymalloc("sorted_rays", buf->n * sizeof(RayPacket));
+  int *sorted_task = mymalloc("sorted_task", buf->n * sizeof(int));
+  
+  for(int i = 0; i < buf->n; i++)
+    idx[i] = i;
+
+  /* insertion sort on idx by task */
+  for(int i = 1; i < buf->n; i++)
+    {
+      int key = idx[i];
+      int j = i - 1;
+      while(j >= 0 && buf->task[idx[j]] > buf->task[key])
+        {
+          idx[j+1] = idx[j];
+          j--;
+        }
+      idx[j+1] = key;
+    }
+
+  /* apply permutation to both arrays */
+  for(int i = 0; i < buf->n; i++)
+    {
+      sorted_rays[i] = buf->rays[idx[i]];
+      sorted_task[i] = buf->task[idx[i]];
+    }
+
+  memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayPacket));
+  memcpy(buf->task, sorted_task, buf->n * sizeof(int));
+
+  myfree(sorted_task); 
+  myfree(sorted_rays);
+  myfree(idx);
+}
+
+void exchange_rays(RayExportBuffer *send, RayPacket **recv, int *n_recv)
 {
     int send_count[NTask], recv_count[NTask];
     int send_offset[NTask], recv_offset[NTask];
@@ -150,16 +161,16 @@ void exchange_rays(RayExportBuffer *send, RayData **recv, int *n_recv)
 
     for(int i = 0; i < NTask; i++) 
       {
-       send_count[i] *= sizeof(RayData);
-       recv_count[i] *= sizeof(RayData);
-       send_offset[i] *= sizeof(RayData);
-       recv_offset[i] *= sizeof(RayData);
+       send_count[i] *= sizeof(RayPacket);
+       recv_count[i] *= sizeof(RayPacket);
+       send_offset[i] *= sizeof(RayPacket);
+       recv_offset[i] *= sizeof(RayPacket);
       }
 
     /* sort send buffer by task */
     sort_by_task(send);
 
-    *recv = mymalloc("imported_rays", total_recv * sizeof(RayData));
+    *recv = mymalloc("imported_rays", total_recv * sizeof(RayPacket));
     *n_recv = total_recv;
 
     /* exchange ray data */
@@ -189,8 +200,10 @@ void send_results_home(void)
     for(j = 0; j < Force_Recv_count[i]; j++, n++)
       if(Tree_Points[n].Type == 0)
         {
-          Rad_ResultsActiveImported[k].RAD_Ionizing = Tree_Points[n].RAD_Ionizing;
-          Rad_ResultsActiveImported[k].index        = Tree_Points[n].index;
+          for(int w = 0; w < WAVEBANDS; w++)
+            Rad_ResultsActiveImported[k].RAD[w] = Tree_Points[n].RAD[w];
+
+          Rad_ResultsActiveImported[k].index = Tree_Points[n].index;
           Recv_count[i]++;
           k++;
         }
@@ -228,7 +241,8 @@ void send_results_home(void)
 
   /* apply results to local particles */
   for(i = 0; i < Nexport; i++)
-    SphP[tmp_results[i].index].RAD_Ionizing += tmp_results[i].RAD_Ionizing;
+    for(int w = 0; w < WAVEBANDS; w++)
+    SphP[tmp_results[i].index].RAD[w] += tmp_results[i].RAD[w];
 
   /* free in reverse allocation order */
   myfree(tmp_results);
@@ -241,10 +255,10 @@ void radiation(void)
 {
     /* 1. initialize rays from active star particles */
     int n_rays_local = 0;
-    RayData *rays = init_rays_from_stars(&n_rays_local);
+    RayPacket *rays = init_rays_from_stars(&n_rays_local);
 
     /* 2. do initial local walk (mode=0) for all rays */
-    RayExportBuffer *export_buf = init_export_buffer(MAX_RAYS_EXCHANGE);
+    RayExportBuffer *export_buf = init_export_buffer(MAX_NUM_RAYS_TO_EXCHANGE);
 
     for(int i = 0; i < n_rays_local; i++)
       raytrace_treewalk(&rays[i], 0, -1, export_buf);
@@ -254,7 +268,7 @@ void radiation(void)
     do
       {
         /* send rays to remote ranks, receive rays from remote ranks */
-        RayData *imported_rays;
+        RayPacket *imported_rays;
         int n_imported;
         exchange_rays(export_buf, &imported_rays, &n_imported);
 

@@ -5,7 +5,7 @@
 
 #include "../stars/star_radiation.h"
 
-static int ray_box_intersect(double *ray_pos, double *ray_dir, double *center, double len, double *t_enter, double *t_exit)
+static inline int ray_box_intersect(double *ray_pos, double *ray_dir, double *center, double len, double *t_enter, double *t_exit)
 {
     double half = 0.5 * len;
     double tmin = -1e30, tmax = 1e30;
@@ -42,6 +42,49 @@ static int ray_box_intersect(double *ray_pos, double *ray_dir, double *center, d
     return 1;
 }
 
+static inline int ray_sphere_intersect(const double dx, const double dy, const double dz, const double *dir, const double r2, double *t_enter, double *t_exit)
+{
+  double t_closest = dx*dir[0] + dy*dir[1] + dz*dir[2];
+  
+  if(t_closest <= 0) return 0;
+
+  double cx = dx - t_closest*dir[0];
+  double cy = dy - t_closest*dir[1];
+  double cz = dz - t_closest*dir[2];
+  double b2 = cx*cx + cy*cy + cz*cz;
+  
+  if(b2 >= r2) return 0;
+
+  double dt = sqrt(r2 - b2);
+  *t_enter = t_closest - dt;
+  *t_exit  = t_closest + dt;
+  
+  return 1;
+}
+
+static inline int ray_absorb(RayPacket *ray, double chord_length, double density, double metallicity, double absorbed_RAD[WAVEBANDS])
+{
+  for(int w = 0; w < WAVEBANDS; w++)
+    {
+      absorbed_RAD[w] = 0.0;
+
+      if(!(ray->active_bands & (1u << w)))
+        continue;
+
+      double dtau = Kappa[w] * density * metallicity * chord_length;
+      double absorbed = ray->RAD[w] * (1.0 - __builtin_exp(-dtau));
+
+      absorbed_RAD[w] += absorbed;
+      ray->RAD[w] -= absorbed;  
+
+      /* deactivate band if it has fallen below the dead-fraction threshold */
+      if(ray->RAD[w] < RAD_TRUNC_FRAC * ray->RAD_Initial[w])
+        ray->active_bands &= (uint8_t)(~(1u << w));
+    }
+
+  return ray->active_bands != 0;
+}
+
 /* 
 Tree indices are organized as follows:
 
@@ -58,7 +101,7 @@ Tree indices are organized as follows:
 [Tree_MaxPart+Tree_MaxNodes+NTopleaves ... ] -> imported points (Tree_ImportedNodeOffset = Tree_MaxPart + Tree_MaxNodes + NTopleaves)
 */
 
-void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer *export_buf)
+void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffer *export_buf)
 {
   /* local stack for ordering within this domain */
   StackEntry stack[RAY_STACK_SIZE];
@@ -88,57 +131,42 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
       /* ---- real particle ---- */
       if(no < Tree_MaxPart)
         { 
-          if(P[no].Type == 0)
-            {
-              double px = Tree_Pos_list[3 * no + 0] - ray->pos[0];
-              double py = Tree_Pos_list[3 * no + 1] - ray->pos[1];
-              double pz = Tree_Pos_list[3 * no + 2] - ray->pos[2];
-                  
-              /* assume cell is a sphere */
-              /* project onto ray for closest approach */
-              double t_closest = px*ray->dir[0] + py*ray->dir[1] + pz*ray->dir[2];
+          //if(P[no].Type != 0) // this shouldn't really happen on the stack
+          //  continue; 
+              
+          double px = Tree_Pos_list[3 * no + 0] - ray->pos[0];
+          double py = Tree_Pos_list[3 * no + 1] - ray->pos[1];
+          double pz = Tree_Pos_list[3 * no + 2] - ray->pos[2];
+              
+          /* assume cell is spherical */
+          double r = cbrt((3.0 * SphP[no].Volume) / (4.0 * M_PI));
+          double r2 = r * r;
+              
+          /* project onto ray for closest approach */
+          double t_enter, t_exit;
+          if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
+            terminate("Should not happen!");
+              
+          double chord_length = t_exit - t_enter;
+          double density = SphP[no].Density;
+          double metallicity = SphP[no].GasMetallicity;
+              
+          double absorbed[WAVEBANDS];
+          int still_alive = ray_absorb(ray, chord_length, density, metallicity, absorbed);
 
-              /* perpendicular distance squared from ray to sphere center */
-              double cx = px - t_closest*ray->dir[0];
-              double cy = py - t_closest*ray->dir[1];
-              double cz = pz - t_closest*ray->dir[2];
-              double b2 = cx*cx + cy*cy + cz*cz;
+          /* deposit absorbed energy into cell, one band at a time */
+          for(int w = 0; w < WAVEBANDS; w++)
+            SphP[no].RAD[w] += absorbed[w];
 
-              double r  = cbrt((3.0*SphP[no].Volume)/(4.0*M_PI)); 
-              double r2 = r * r;
-
-              if(b2 < r2 && t_closest > 0)
-                {
-                  /* ray intersects sphere */
-                  double chord_length = 2.0 * sqrt(r2 - b2); /* path through sphere */
-
-                  double density = SphP[no].Density;
-                  double metallicity = SphP[no].GasMetallicity;
-                  double kappa = Kappa[LYMAN_WERNER]; 
-
-                  /* optical depth */
-                  double dtau = kappa * density * metallicity * chord_length;
-
-                  /* absorption */
-                  SphP[no].RAD_Ionizing += ray->RAD_Ionizing * (1 - exp(-dtau));
-
-                  /* attenuation */
-                  ray->RAD_Ionizing *= exp(-dtau);
-
-                  /* early termination */
-                  if(ray->RAD_Ionizing < RAD_BACKGROUND)
-                    return;
-                }
-              else
-                terminate("Should not happen!");
-            }
+          if(!still_alive) return; /* all bands are exhausted */     
         }
       /* ---- internal node ---- */
       else if(no < Tree_MaxPart + Tree_MaxNodes)
         {
+          // Do we want this? 
           /* mode==1 guard: don't escape back into top-level tree */
           //if(mode == 1 && no < Tree_FirstNonTopLevelNode)
-          //  terminate("Should not happen!");
+          //  terminate("Should not happen!"); 
 
           struct NODE *nop = &Nodes[no];
 
@@ -146,12 +174,10 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
           if(!ray_box_intersect(ray->pos, ray->dir, nop->center, nop->len, &t_enter, &t_exit))
             terminate("Should not happen!");
           
-          //double dtau_node = Kappa[LYMAN_WERNER] * nop->u.d.density * nop->u.d.metallicity * nop->len;
+          // Approx. barnes hut like criterion -> might need for expensive sims 
+          //double dtau_node = Kappa[0] * nop->u.d.density * nop->u.d.metallicity * nop->len;
           //if(dtau_node < TAU_OPEN_CRITERION)
           //  {
-          //    /* treat node as single absorber, don't open */
-          //    ray->RAD_Ionizing *= exp(-dtau_node);
-          //    continue;
           //  }
 
           /* enumerate direct children, sort by t_enter, push */
@@ -172,70 +198,40 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
                       double py = Tree_Pos_list[3 * child + 1] - ray->pos[1];
                       double pz = Tree_Pos_list[3 * child + 2] - ray->pos[2];
                   
-                      /* assume cell is a sphere */
-                      /* project onto ray for closest approach */
-                      double t_closest = px*ray->dir[0] + py*ray->dir[1] + pz*ray->dir[2];
-
-                      /* perpendicular distance squared from ray to sphere center */
-                      double cx = px - t_closest*ray->dir[0];
-                      double cy = py - t_closest*ray->dir[1];
-                      double cz = pz - t_closest*ray->dir[2];
-                      double b2 = cx*cx + cy*cy + cz*cz;
-
-                      double r  = cbrt((3.0*SphP[child].Volume)/(4.0*M_PI)); 
+                      double r  = cbrt((3.0 * SphP[child].Volume) / (4.0 * M_PI));
                       double r2 = r * r;
-
-                      if(b2 < r2 && t_closest > 0)
-                        {
-                          /* ray intersects sphere */
-                          double dt = sqrt(r2 - b2); /* half chord length */
-                          ct_enter = t_closest - dt;
-                          ct_exit = t_closest + dt;
-                          hit = 1;
-                        }
-                      else
-                        hit = 0;
-                    }
+                      
+                      hit = ray_sphere_intersect(px, py, pz, ray->dir, r2, &ct_enter, &ct_exit);
+                    }               
                 }
               else if(child < Tree_MaxPart + Tree_MaxNodes) /* internal node */
                 {
-                  hit = ray_box_intersect(ray->pos, ray->dir, Nodes[child].center, Nodes[child].len, &ct_enter, &ct_exit);
+                  if(Nodes[child].density > 0)
+                    hit = ray_box_intersect(ray->pos, ray->dir, Nodes[child].center, Nodes[child].len, &ct_enter, &ct_exit);
                 }
               else if(child >= Tree_ImportedNodeOffset) /* imported point */
                 {
                   int n = child - Tree_ImportedNodeOffset;
+
                   if(Tree_Points[n].Type == 0)
-                    {
+                    {    
                       double px = Tree_Points[n].Pos[0] - ray->pos[0];
                       double py = Tree_Points[n].Pos[1] - ray->pos[1];
                       double pz = Tree_Points[n].Pos[2] - ray->pos[2];
 
-                      double t_closest = px*ray->dir[0] + py*ray->dir[1] + pz*ray->dir[2];
-
-                      double cx = px - t_closest*ray->dir[0];
-                      double cy = py - t_closest*ray->dir[1];
-                      double cz = pz - t_closest*ray->dir[2];
-                      double b2 = cx*cx + cy*cy + cz*cz;
-
                       double r = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
                       double r2 = r * r;
 
-                      if(b2 < r2 && t_closest > 0)
-                        {
-                          /* ray intersects sphere */
-                          double dt = sqrt(r2 - b2); /* half chord length */
-                          ct_enter = t_closest - dt;
-                          ct_exit = t_closest + dt;
-                          hit = 1;
-                        }
-                    } 
+                      hit = ray_sphere_intersect(px, py, pz, ray->dir, r2, &ct_enter, &ct_exit);
+                    }
                 }
               else /* pseudo-particle - requires export */
                 {
                   int pseudo_idx = child - (Tree_MaxPart + Tree_MaxNodes);
                   int top_node = DomainNodeIndex[pseudo_idx];
 
-                  hit = ray_box_intersect(ray->pos, ray->dir, Nodes[top_node].center, Nodes[top_node].len, &ct_enter, &ct_exit);
+                  if(Nodes[top_node].density > 0)
+                    hit = ray_box_intersect(ray->pos, ray->dir, Nodes[top_node].center, Nodes[top_node].len, &ct_enter, &ct_exit);
                 }
 
               if(hit)
@@ -271,7 +267,7 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
           /* push in reverse so smallest t_enter is popped first */
           for(int i = nchildren - 1; i >= 0; i--)
             {
-              if(stack_top > RAY_STACK_SIZE)
+              if(stack_top >= RAY_STACK_SIZE)
               terminate("Ray stack overflow!");
 
               stack[stack_top++] = children[i];
@@ -281,50 +277,29 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
       else if(no >= Tree_ImportedNodeOffset) 
         {
           int n = no - Tree_ImportedNodeOffset;
-          if(Tree_Points[n].Type == 0)
-            {
-              double px = Tree_Points[n].Pos[0] - ray->pos[0];
-              double py = Tree_Points[n].Pos[1] - ray->pos[1];
-              double pz = Tree_Points[n].Pos[2] - ray->pos[2];
-        
-              /* assume cell is a sphere */
-              /* project onto ray for closest approach */
-              double t_closest = px*ray->dir[0] + py*ray->dir[1] + pz*ray->dir[2];
+              
+          double px = Tree_Points[n].Pos[0] - ray->pos[0];
+          double py = Tree_Points[n].Pos[1] - ray->pos[1];
+          double pz = Tree_Points[n].Pos[2] - ray->pos[2];
 
-              /* perpendicular distance squared from ray to sphere center */
-              double cx = px - t_closest*ray->dir[0];
-              double cy = py - t_closest*ray->dir[1];
-              double cz = pz - t_closest*ray->dir[2];
-              double b2 = cx*cx + cy*cy + cz*cz;
+          double r  = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
+          double r2 = r * r;
+          
+          double t_enter, t_exit;
+          if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
+            terminate("Should not happen!");
+              
+          double chord_length = t_exit - t_enter;
+          double density = Tree_Points[n].Density;
+          double metallicity = Tree_Points[n].Metallicity;
+              
+          double absorbed[WAVEBANDS];
+          int still_alive = ray_absorb(ray, chord_length, density, metallicity, absorbed);
 
-              double r  = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
-              double r2 = r * r;
+          for(int w = 0; w < WAVEBANDS; w++)
+            Tree_Points[n].RAD[w] += absorbed[w];
 
-              if(b2 < r2 && t_closest > 0)
-                {
-                  /* ray intersects sphere */
-                  double chord_length = 2.0 * sqrt(r2 - b2); /* path through sphere */
-
-                  double density = Tree_Points[n].Density;
-                  double metallicity = Tree_Points[n].Metallicity;
-                  double kappa = Kappa[LYMAN_WERNER]; 
-
-                  /* optical depth */
-                  double dtau = kappa * density * metallicity * chord_length;
-
-                  /* absorption */
-                  Tree_Points[n].RAD_Ionizing += ray->RAD_Ionizing * (1 - exp(-dtau));
-
-                  /* attenuation */
-                  ray->RAD_Ionizing *= exp(-dtau);
-
-                  /* early termination */
-                  if(ray->RAD_Ionizing < RAD_BACKGROUND)
-                    return;
-                }
-              else
-                terminate("Should not happen!");
-            }   
+          if(!still_alive) return;  
         }
       /* ---- pseudo-particle: remote domain ---- */  
       else
@@ -333,7 +308,7 @@ void raytrace_treewalk(RayData *ray, int mode, int target_node, RayExportBuffer 
           int remote_node = DomainNodeIndex[no - (Tree_MaxPart + Tree_MaxNodes)];
 
           /* pack pending */
-          if(stack_top > RAY_STACK_SIZE) 
+          if(stack_top >= RAY_STACK_SIZE) 
             terminate("Too many pending entries to export!");
 
           ray->n_pending = stack_top;

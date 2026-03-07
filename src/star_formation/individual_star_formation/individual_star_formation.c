@@ -382,7 +382,22 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   if(mass_of_star * (All.UnitMass_in_g / SOLAR_MASS) > 2)
     timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
   else
-    SP[NumStars].TimeBinStar = TIMEBINS;   
+    SP[NumStars].TimeBinStar = TIMEBINS;  
+
+  // This is needed for lower res star by star simulations
+  // Give star small random displacement
+  if(mass_of_star > 2)
+    {
+      double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+
+      double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+      double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
+      double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+
+      P[istar].Pos[0] += rx;
+      P[istar].Pos[1] += ry;
+      P[istar].Pos[2] += rz;
+    }
 #endif
 
   NumStars++;

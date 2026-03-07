@@ -215,17 +215,16 @@ void star_prep(void)
       SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-      SP[i].RAD_IonizingHPhotons = star_feedback.RAD_IonizingHPhotons;
-      SP[i].RAD_Ionizing = star_feedback.RAD_Ionizing;
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-      SP[i].RAD_UVLymanWerner = star_feedback.RAD_UVLymanWerner;
-      SP[i].RAD_Ultraviolet = star_feedback.RAD_Ultraviolet;
-#endif
-#if defined(RADIATION_PRESSURE)
-      SP[i].RAD_Optical = star_feedback.RAD_Optical;
-      SP[i].RAD_Infrared = star_feedback.RAD_Infrared;
+#ifdef STAR_RADIATION_ACTIVE
+      double RAD[WAVEBANDS];
+      RAD[0] = star_feedback.RAD_Ionizing;
+      RAD[1] = star_feedback.RAD_UVLymanWerner;
+      RAD[2] = star_feedback.RAD_Ultraviolet;
+      RAD[3] = star_feedback.RAD_Optical;
+      RAD[4] = star_feedback.RAD_Infrared;
+      
+      for(int w = 0; w < WAVEBANDS; w++)
+        SP[i].RAD[w] = RAD[w];
 #endif
     }
 }

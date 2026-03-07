@@ -588,7 +588,7 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-init_healpix_rays(2);
+init_healpix_rays();
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

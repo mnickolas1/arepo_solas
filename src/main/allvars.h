@@ -850,7 +850,7 @@ extern struct treepoint_data
   MyDouble Volume;
   MyDouble Density;
   MyDouble Metallicity;
-  MyDouble RAD_Ionizing;
+  MyDouble RAD[WAVEBANDS];
 #endif
 
 #ifndef HIERARCHICAL_GRAVITY
@@ -1351,11 +1351,15 @@ double ConstantMetallicityYield;
   double StarDesDev;
   char StarTablesFile[MAXLEN_PATH];
 #endif  
+
+#ifdef STAR_RADIATION_ACTIVE
+ int Nside;
+#endif
   
-#ifdef SUPERNOVAE
+/*#ifdef SUPERNOVAE
   double Ftherm;
   double Fsn;
-#endif
+endif*/
 } All;
 
 /*****************************************************************************
@@ -1641,11 +1645,7 @@ MyDouble StarMomentumFeed[3];
 #endif
 
 #ifdef RADIATION_PRESSURE
-  MyDouble RAD_Ionizing; 
-  MyDouble RAD_UVLymanWerner;
-  MyDouble RAD_Ultraviolet;
-  MyDouble RAD_Optical;
-  MyDouble RAD_Infrared;
+MyDouble RAD[WAVEBANDS];
 #endif
 
 } * SphP,          /*!< holds SPH particle data on local processor */

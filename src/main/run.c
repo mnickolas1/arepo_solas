@@ -382,7 +382,13 @@ void calculate_non_standard_physics_with_valid_gravity_tree(void) {}
  *
  *  \return void
  */
-void calculate_non_standard_physics_with_valid_gravity_tree_always(void) {}
+void calculate_non_standard_physics_with_valid_gravity_tree_always(void) 
+{
+#ifdef STAR_RADIATION_ACTIVE
+  if(All.Time >= All.FeedbackTime)
+    radiation();
+#endif
+}
 
 /*! \brief Calls extra modules before the Voronoi mesh is built.
  *
@@ -432,14 +438,8 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   update_star_timesteps();
   star_prep();
 
-   if(All.Time >= All.FeedbackTime)
-    {   
-      star_feedback();
-
-#ifdef STAR_RADIATION_ACTIVE
-      radiation();
-#endif
-    }
+  if(All.Time >= All.FeedbackTime)
+    star_feedback();
 #endif
 }
 
