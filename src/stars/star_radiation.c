@@ -42,7 +42,7 @@ void update_kappa(void)
 {
   for(int i = 0; i < NumGas; i++)
     {
-      double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
+      double Z = SphP[i].GasMetallicity / SOLAR_ABUNDANCE;
       double units = All.UnitLength_in_cm * All.UnitLength_in_cm / All.UnitMass_in_g;
       
       SphP[i].Kappa[IONIZING_H_PHOTONS] = (Kappa[IONIZING_H_PHOTONS] / units) * Z; 

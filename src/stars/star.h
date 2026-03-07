@@ -55,6 +55,10 @@ extern int NumStars;
 extern struct TimeBinData TimeBinsStar;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+#include "../stars/star_radiation.h"
+#endif
+
 extern struct star_particle_data
 {
   MyIDType PID;

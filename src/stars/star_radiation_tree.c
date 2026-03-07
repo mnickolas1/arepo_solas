@@ -233,7 +233,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
                 }
               else if(child < Tree_MaxPart + Tree_MaxNodes) /* internal node */
                 {
-                  if(Nodes[child].density > 0)
+                  if(Nodes[child].u.d.density > 0)
                     hit = ray_box_intersect(ray->pos, ray->dir, Nodes[child].center, Nodes[child].len, &ct_enter, &ct_exit);
                 }
               else if(child >= Tree_ImportedNodeOffset) /* imported point */
@@ -257,7 +257,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
                   int pseudo_idx = child - (Tree_MaxPart + Tree_MaxNodes);
                   int top_node = DomainNodeIndex[pseudo_idx];
 
-                  if(Nodes[top_node].density > 0)
+                  if(Nodes[top_node].u.d.density > 0)
                     hit = ray_box_intersect(ray->pos, ray->dir, Nodes[top_node].center, Nodes[top_node].len, &ct_enter, &ct_exit);
                 }
 
