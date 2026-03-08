@@ -7,7 +7,6 @@
 #define RAD_TRUNC_FRAC 0.01 
 #define MAX_NUM_RAYS 12288 
 #define RAY_STACK_SIZE 64
-#define MAX_NUM_RAYS_TO_EXCHANGE 10000
 
 #define ALL_BANDS_ACTIVE  ((uint8_t)((1u << WAVEBANDS) - 1u))
 
@@ -48,7 +47,7 @@ typedef struct
   int home_task;
   
   /* pending top-level nodes still to traverse after current domain */
-  StackEntry pending[RAY_STACK_SIZE + 1];
+  StackEntry pending[RAY_STACK_SIZE];
   int n_pending;
   int target_node;
   double t;

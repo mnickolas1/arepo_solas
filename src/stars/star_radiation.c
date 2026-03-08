@@ -304,7 +304,7 @@ void radiation(void)
   RayPacket *rays = init_rays_from_stars(&n_rays_local);
 
   /* 2. do initial local walk (mode=0) for all rays */
-  RayExportBuffer *export_buf = init_export_buffer(MAX_NUM_RAYS_TO_EXCHANGE);
+  RayExportBuffer *export_buf = init_export_buffer(n_rays_local);
 
   for(int i = 0; i < n_rays_local; i++)
     raytrace_treewalk(&rays[i], 0, -1, export_buf);
