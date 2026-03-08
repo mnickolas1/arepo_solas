@@ -497,7 +497,7 @@ int init(void)
  * */
 #ifdef METALS
   for(i=0; i<NumGas; i++)
-      SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_ABUNDANCE;
+      SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY
 #endif /* ifdef METALS */
 
 #ifdef PASSIVE_SCALARS

@@ -473,7 +473,7 @@ typedef unsigned long long peano1D;
 * present photospheric abundances from Asplund et al. 2009 (Z=0.0134, proto-solar=0.0142)
 * Anders+Grevesse 1989 (Z=0.0201, proto-solar=0.0213)
 */
-#define SOLAR_ABUNDANCE 0.0134
+#define SOLAR_METALLICITY 0.0134
 #endif // defined(METALS) || defined(USE_GRACKLE)
 
 #ifndef FOF_PRIMARY_LINK_TYPES
@@ -1574,6 +1574,9 @@ extern struct sph_particle_data
   MyDouble grHeI;
   MyDouble grHeII;
   MyDouble grHeIII;
+  MyDouble grH2I;
+  MyDouble grH2II;
+  MyDouble grHM;
 #endif
 
 #ifdef USE_SFR
@@ -1647,15 +1650,16 @@ MyDouble StarMomentumFeed[3];
 #endif
 
 #ifdef PHOTOIONIZATION
-  MyDouble PI_Balance;
+  MyDouble HI_IonizationRate;
+  MyDouble PI_VolHeatingRate;
 #endif 
 
 #ifdef PHOTOELECTRIC_HEATING
-  MyDouble PE_Energy;
+  MyDouble PE_VolHeatingRate;
 #endif
 
 #ifdef RADIATION_PRESSURE
-MyDouble RAD[WAVEBANDS];
+  MyDouble RAD[WAVEBANDS];
 #endif
 
 } * SphP,          /*!< holds SPH particle data on local processor */

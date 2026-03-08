@@ -11,11 +11,6 @@ int NRays; // 12 * NSIDE^2
 
 /* Reference opacity coefficients [cm² g⁻¹ of gas] at solar metallicity.
  *
- * IONIZING:     sigma_HI / m_H — not actually used directly since
- *               SphP[i].Kappa[IONIZING] is computed from x_HI in update_kappa.
- *               Stored here for reference only.
- *               Ref: Osterbrock & Ferland (2006)
- *
  * LYMAN_WERNER: FUV dust opacity (~912-2000 Å), dust-to-gas = 0.01 at solar Z.
  *               Ref: Draine (2003), Weingartner & Draine (2001)
  *
@@ -31,7 +26,8 @@ int NRays; // 12 * NSIDE^2
                  Need to check references!
  */
 double Kappa[WAVEBANDS] = {
-  3.8e3,   /* IONIZING     [cm² g⁻¹] — sigma_HI/m_H, reference only        */
+  0,       /* IONIZING_H_PHOTONS     Computed directly from HI              */
+  0,       /* IONIZING               Computed directly from HI              */
   1.0e2,   /* LYMAN_WERNER [cm² g⁻¹] — FUV dust at solar Z                  */
   5.0e1,   /* ULTRAVIOLET  [cm² g⁻¹] — NUV dust at solar Z                  */
   1.0e1,   /* OPTICAL      [cm² g⁻¹] — V-band dust at solar Z               */
@@ -41,12 +37,13 @@ double Kappa[WAVEBANDS] = {
 void update_kappa(void)
 {
   for(int i = 0; i < NumGas; i++)
-    {
-      double Z = SphP[i].GasMetallicity / SOLAR_ABUNDANCE;
+    { 
+      double sigma_H = 6.3e-18; // at at Lyman limit
+      double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
       double units = All.UnitLength_in_cm * All.UnitLength_in_cm / All.UnitMass_in_g;
       
-      SphP[i].Kappa[IONIZING_H_PHOTONS] = (Kappa[IONIZING_H_PHOTONS] / units) * Z; 
-      SphP[i].Kappa[IONIZING] = (Kappa[IONIZING] / units) * Z;  
+      SphP[i].Kappa[IONIZING_H_PHOTONS] = (sigma_H / PROTONMASS / units) * SphP[i].grHI; 
+      SphP[i].Kappa[IONIZING] = (sigma_H / PROTONMASS / units) * SphP[i].grHI;   
       SphP[i].Kappa[LYMAN_WERNER] = (Kappa[LYMAN_WERNER] / units) * Z; 
       SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;  
       SphP[i].Kappa[OPTICAL] = (Kappa[OPTICAL] / units) * Z;  
@@ -339,4 +336,43 @@ void radiation(void)
 
   free_export_buffer(export_buf);
   myfree(rays);
+}
+
+void radiation_feedback(void)
+{
+  /* Photoionization and photoelectric heating here -> we do rad pressure inside the tree walk */
+  int i, w;
+  
+  for(i = 0; i < NumGas; i++)
+    {
+      double epsilon_pe = 0.05;
+      double energy_thresh = 13.6 * ELECTRONVOLT_IN_ERGS;
+      double volume = SphP[i].Volume;
+      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+      //dt *= All.cf_atime / All.cf_time_hubble_a;
+
+      /* in cgs */
+      double V_cgs = volume * (All.UnitLength_in_cm * All.UnitLength_in_cm * All.UnitLength_in_cm);
+      double dt_cgs = dt * All.UnitTime_in_s;
+
+      double N_abs = SphP[i].RAD[0];
+      
+      double E_abs = SphP[i].RAD[1] * All.UnitEnergy_in_cgs;
+      double E_pe = (SphP[i].RAD[2] + SphP[i].RAD[3]) * epsilon_pe * All.UnitEnergy_in_cgs; // LW + Ultraviolet
+
+      /* RT_ionization_rate */
+      double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
+
+      SphP[i].HI_IonizationRate = (N_abs / dt / volume) / n_HI;   // 1 / (time units)
+
+      /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
+      double E_threshold = N_abs * energy_thresh;                
+      SphP[i].PI_VolHeatingRate = ((E_abs - E_threshold) / dt_cgs / V_cgs);
+
+      /* volumetric_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
+       SphP[i].PE_VolHeatingRate =  E_pe / dt_cgs / V_cgs;
+
+      for(w = 0; w < WAVEBANDS; w++)
+        SphP[i].RAD[w] = 0;
+    }
 }
