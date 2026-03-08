@@ -1570,7 +1570,6 @@ extern struct sph_particle_data
 #ifdef USE_GRACKLE
   MyDouble grHI;
   MyDouble grHII;
-  MyDouble grH2I;
   MyDouble grHeI;
   MyDouble grHeII;
   MyDouble grHeIII;

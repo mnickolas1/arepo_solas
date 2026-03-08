@@ -491,13 +491,32 @@ int init(void)
       mass += P[i].Mass;
     }
 
+#ifdef GRACKLE // -> need to set flags properly
+int i;
+  for(i = 0; i < NumGas; i++)
+    {
+      /* Fully neutral initial conditions -> might want to set different ones */
+      SphP[i].grHI    = HYDROGEN_MASSFRAC;          // all H is neutral
+      SphP[i].grHII   = 0.0;
+      SphP[i].grHeI   = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
+      SphP[i].grHeII  = 0.0;
+      SphP[i].grHeIII = 0.0;
+      SphP[i].Ne      = 0.0;
+
+      /* RT and heating rates start at zero — filled by radiation_feedback() */
+      SphP[i].HI_IonizationRate = 0.0;
+      SphP[i].PI_VolHeatingRate = 0.0;
+      SphP[i].PE_VolHeatingRate = 0.0;
+}
+#endif
+
 /* NOTE: The metals have to be initialised before the PASSIVE_SCALARS.
  * The value in the PScalars are set to zero during reading ICs. If PConservedScalars are set to zero,
  * this the same as no advection!
  * */
 #ifdef METALS
   for(i=0; i<NumGas; i++)
-      SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY
+      SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
 #endif /* ifdef METALS */
 
 #ifdef PASSIVE_SCALARS
