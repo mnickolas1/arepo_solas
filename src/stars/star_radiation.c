@@ -299,12 +299,15 @@ void radiation(void)
   /* 0. update cell opacities -> maybe we need to do this earlier in the hydro loop */
   update_kappa();
 
-  /* 1. initialize rays from active star particles */
+/* 1. initialize rays from active star particles */
   int n_rays_local = 0;
+  int n_rays_global = 0;
   RayPacket *rays = init_rays_from_stars(&n_rays_local);
 
+  MPI_Allreduce(&n_rays_local, &n_rays_global, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);  
+
   /* 2. do initial local walk (mode=0) for all rays */
-  RayExportBuffer *export_buf = init_export_buffer(n_rays_local);
+  RayExportBuffer *export_buf = init_export_buffer(n_rays_global);
 
   for(int i = 0; i < n_rays_local; i++)
     raytrace_treewalk(&rays[i], 0, -1, export_buf);
