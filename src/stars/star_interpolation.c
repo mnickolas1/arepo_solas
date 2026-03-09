@@ -444,18 +444,21 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
 #endif
       star.WindMomentum = star.MassLoss * feedback.WindVelocity;
 #endif
+      
+      double dt_rad = dt * SEC_PER_YEAR;
+      double flux_to_luminosity = 4 * M_PI * feedback.Radius * feedback.Radius;  
 
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-      star.RAD_IonizingHPhotons = feedback.RAD_IonizingRate * dt;
-      star.RAD_Ionizing = feedback.RAD_IonizingLuminosity * dt;
+      star.RAD_IonizingHPhotons = feedback.RAD_IonizingRate * flux_to_luminosity * dt_rad;
+      star.RAD_Ionizing = feedback.RAD_IonizingLuminosity * flux_to_luminosity * dt_rad;
 #endif
 #if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-      star.RAD_UVLymanWerner = feedback.RAD_UVLymanWernerLuminosity * dt;
-      star.RAD_Ultraviolet = feedback.RAD_UltravioletLuminosity * dt;
+      star.RAD_UVLymanWerner = feedback.RAD_UVLymanWernerLuminosity * flux_to_luminosity * dt_rad;
+      star.RAD_Ultraviolet = feedback.RAD_UltravioletLuminosity * flux_to_luminosity * dt_rad;
 #endif
 #if defined(RADIATION_PRESSURE)
-      star.RAD_Optical = feedback.RAD_OpticalLuminosity * dt;
-      star.RAD_Infrared = feedback.RAD_InfraredLuminosity * dt;
+      star.RAD_Optical = feedback.RAD_OpticalLuminosity * flux_to_luminosity * dt_rad;
+      star.RAD_Infrared = feedback.RAD_InfraredLuminosity * flux_to_luminosity * dt_rad;
 #endif
 #endif
 

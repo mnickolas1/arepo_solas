@@ -686,7 +686,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
 void make_star(int idx, int i, double prob, MyDouble mass_of_star, double *sum_mass_stars);
 #endif /* #ifdef USE_SFR */
 
-#ifdef GRACKLE
+#ifdef USE_GRACKLE
 void init_state(void);
 double compute_mu(int i);
 #endif

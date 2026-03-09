@@ -492,7 +492,7 @@ int init(void)
     }
 
 #ifdef USE_GRACKLE // -> need to set flags properly
-  init_state(void);
+  init_state();
 #endif
 
 /* NOTE: The metals have to be initialised before the PASSIVE_SCALARS.
