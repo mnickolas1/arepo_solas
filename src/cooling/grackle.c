@@ -465,8 +465,8 @@ void init_state(void)
 double compute_mu(int i)
 {
     /* Grab mass fractions from Grackle */
-    double XH  = SphP[i].grHI + SphP[i].grHII; // atomic hydrogen fraction
-    double XH2 = SphP[i].grH2I; // molecular hydrogen fraction 
+    double XH  = SphP[i].grHI + SphP[i].grHII + SphP[i].grHM; // atomic hydrogen fraction
+    double XH2 = SphP[i].grH2I + SphP[i].grH2II; // molecular hydrogen fraction 
     double XHe = SphP[i].grHeI + SphP[i].grHeII + SphP[i].grHeIII; // helium fraction
     double Xe  = SphP[i].Ne; // electron fraction
 

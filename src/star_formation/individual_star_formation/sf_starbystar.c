@@ -342,8 +342,8 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
 
       if(r2 < h2)
         {
-          //double mu = compute_mu(i); 
-          double mu = 2.33; // molecular H
+          double mu = compute_mu(j); 
+          //double mu = 2.33; // molecular H
 
           double number_dens = (SphP[j].Density * All.UnitDensity_in_cgs) / mu / PROTONMASS;
           //number_dens /= All.cf_a3inv;

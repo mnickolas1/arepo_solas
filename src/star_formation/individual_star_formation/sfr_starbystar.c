@@ -44,8 +44,8 @@ void cooling_and_starformation(void)
 
       cool_cell(i); //do we need another temp floor?
       
-      //double mu = compute_mu(i); 
-      double mu = 2.33; // molecular H
+      double mu = compute_mu(i); 
+      //double mu = 2.33; // molecular H
 
       number_dens = (SphP[i].Density * All.UnitDensity_in_cgs) / mu / PROTONMASS;
       //number_dens /= All.cf_a3inv; //need to figure out a factors
