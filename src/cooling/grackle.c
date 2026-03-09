@@ -124,10 +124,12 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
     *All.GrackleFieldData.RT_HeII_ionization_rate       = 0.0;
     *All.GrackleFieldData.RT_H2_dissociation_rate       = 0.0; 
     //*All.GrackleFieldData.volumetric_heating_rate       = 0.0;
-    
+ 
+#ifdef STAR_RADIATION_ACTIVE   
     *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].HI_IonizationRate);
     *All.GrackleFieldData.RT_heating_rate = (gr_float)(SphP[target].PI_VolHeatingRate);
     *All.GrackleFieldData.volumetric_heating_rate = (gr_float)(SphP[target].PE_VolHeatingRate);
+#endif
 
 #if (GRACKLE_CHEMISTRY >= 2)      /* Atomic+(H2I+H2II+HM) */
      *All.GrackleFieldData.H2I_density                   = *All.GrackleFieldData.density * SphP[target].grH2I;
@@ -457,11 +459,6 @@ void init_state(void)
       SphP[i].grHeII  = 0.0;
       SphP[i].grHeIII = 0.0;
       SphP[i].Ne      = 0.0;
-
-      /* RT and heating rates start at zero — filled by radiation_feedback() */
-      SphP[i].HI_IonizationRate = 0.0;
-      SphP[i].PI_VolHeatingRate = 0.0;
-      SphP[i].PE_VolHeatingRate = 0.0;
     }
 }
 

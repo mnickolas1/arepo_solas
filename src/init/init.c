@@ -491,7 +491,7 @@ int init(void)
       mass += P[i].Mass;
     }
 
-#ifdef GRACKLE // -> need to set flags properly
+#ifdef USE_GRACKLE // -> need to set flags properly
   init_state(void);
 #endif
 
