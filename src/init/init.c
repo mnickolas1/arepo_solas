@@ -492,22 +492,7 @@ int init(void)
     }
 
 #ifdef GRACKLE // -> need to set flags properly
-int i;
-  for(i = 0; i < NumGas; i++)
-    {
-      /* Fully neutral initial conditions -> might want to set different ones */
-      SphP[i].grHI    = HYDROGEN_MASSFRAC;          // all H is neutral
-      SphP[i].grHII   = 0.0;
-      SphP[i].grHeI   = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
-      SphP[i].grHeII  = 0.0;
-      SphP[i].grHeIII = 0.0;
-      SphP[i].Ne      = 0.0;
-
-      /* RT and heating rates start at zero — filled by radiation_feedback() */
-      SphP[i].HI_IonizationRate = 0.0;
-      SphP[i].PI_VolHeatingRate = 0.0;
-      SphP[i].PE_VolHeatingRate = 0.0;
-}
+  init_state(void);
 #endif
 
 /* NOTE: The metals have to be initialised before the PASSIVE_SCALARS.
@@ -607,7 +592,7 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-init_healpix_rays();
+  init_healpix_rays();
 #endif
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

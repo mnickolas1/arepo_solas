@@ -385,7 +385,7 @@ void calculate_non_standard_physics_with_valid_gravity_tree(void) {}
 void calculate_non_standard_physics_with_valid_gravity_tree_always(void) 
 {
 #ifdef STAR_RADIATION_ACTIVE
-  if(All.Time >= All.FeedbackTime)
+  if(All.Time > All.FeedbackTime)
     radiation();
 #endif
 }
@@ -433,13 +433,16 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  star_density();  
+if(All.Time > All.FeedbackTime) 
+  {
+    star_density();  
   
-  update_star_timesteps();
-  star_prep();
+    update_star_timesteps();
+    star_prep();
 
-  if(All.Time >= All.FeedbackTime)
-    star_feedback();
+    if(All.Time >= All.FeedbackTime)
+      star_feedback();
+  }
 #endif
 }
 

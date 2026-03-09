@@ -444,4 +444,45 @@ void InitGrackle(void)
         printf("GRACKLE: Grackle Initialized\n");
 }
 
+void init_state(void)
+{
+  // We run this inside init()  
+  int i;
+  for(i = 0; i < NumGas; i++)
+    {
+      /* Fully neutral initial conditions -> might want to set different ones */
+      SphP[i].grHI    = HYDROGEN_MASSFRAC;          // all H is neutral
+      SphP[i].grHII   = 0.0;
+      SphP[i].grHeI   = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
+      SphP[i].grHeII  = 0.0;
+      SphP[i].grHeIII = 0.0;
+      SphP[i].Ne      = 0.0;
+
+      /* RT and heating rates start at zero — filled by radiation_feedback() */
+      SphP[i].HI_IonizationRate = 0.0;
+      SphP[i].PI_VolHeatingRate = 0.0;
+      SphP[i].PE_VolHeatingRate = 0.0;
+    }
+}
+
+double compute_mu(int i)
+{
+    /* Grab mass fractions from Grackle */
+    double XH  = SphP[i].grHI + SphP[i].grHII; // atomic hydrogen fraction
+    double XH2 = SphP[i].grH2I; // molecular hydrogen fraction 
+    double XHe = SphP[i].grHeI + SphP[i].grHeII + SphP[i].grHeIII; // helium fraction
+    double Xe  = SphP[i].Ne; // electron fraction
+
+    /* Optional: include metals if desired (usually negligible) */
+#ifdef METALS    
+    double Z = SphP[i].GasMetallicity;
+#else
+    double Z = 0;
+#endif    
+
+    /* Compute mean molecular weight: g per particle */
+    /* 1 H atom = m_H, 1 He atom = 4*m_H, electrons = m_H (counted as particles for n) */
+    return 1.0 / (XH + XH2/2.0 + XHe/4.0 + Xe + Z/16.0); // -> Dimensionless mu
+}
+
 #endif  /* USE_GRACKLE */

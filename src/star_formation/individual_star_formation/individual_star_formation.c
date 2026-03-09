@@ -83,49 +83,49 @@ void individual_starbystar_formation(void)
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
       i = TimeBinsHydro.ActiveParticleList[idx];
-      if(i >= 0)
-        {
-          if(P[i].Mass == 0 && P[i].ID == 0)
-            continue; /* skip cells that have been swallowed or eliminated */
+      if(i < 0)
+        continue;
 
-          dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
-          dt *= All.cf_atime / All.cf_time_hubble_a;
+      if(P[i].Mass == 0 && P[i].ID == 0)
+        continue; /* skip cells that have been swallowed or eliminated */
 
-          dtff = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density);
+      dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+      dt *= All.cf_atime / All.cf_time_hubble_a;
+
+      dtff = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density);
           
-          p = 0;
-          prob = 0;
-          mass_of_star = 0;
+      p = 0;
+      prob = 0;
+      mass_of_star = 0;
     
-          if(SphP[i].Sfr > 0)
-            {
-              p = All.StarFormationEfficiency * dt / dtff;
-               
-              u = get_random_number_aux();
-              mass_of_star = sample_imf(u);
-              mass_of_star /= (All.UnitMass_in_g / SOLAR_MASS);
+      if(SphP[i].Sfr > 0)
+        {
+          p = All.StarFormationEfficiency * dt / dtff;
+          prob = (1 - exp(-p));
+        }
 
-              prob = (1 - exp(-p));
-            }
+      if(prob == 0)
+        continue;
 
-          if(prob == 0)
-            continue;
+      if(prob < 0)
+        terminate("SFR: prob < 0");
 
-          if(prob < 0)
-            terminate("SFR: prob < 0");
+      if(prob > 1)
+        {
+          terminate(
+          "Individual Star Formation: need to make a heavier star than desired. Task=%d prob=%g P[i].Mass=%g mass_of_star=%g",
+          ThisTask, prob, P[i].Mass, mass_of_star);
+        }
 
-          if(prob > 1)
-            {
-              terminate(
-              "Individual Star Formation: need to make a heavier star than desired. Task=%d prob=%g P[i].Mass=%g mass_of_star=%g",
-              ThisTask, prob, P[i].Mass, mass_of_star);
-            }
+      /* decide what process to consider */
+      p_decide = get_random_number();
 
-          /* decide what process to consider */
-          p_decide = get_random_number();
-
-          if(p_decide < prob) /* ok, it is decided to consider star formation */
-            make_individual_star(i, mass_of_star, &local_stars_mass);
+      if(p_decide < prob) /* ok, it is decided to consider star formation */
+        {
+          u = get_random_number_aux();
+          mass_of_star = sample_imf(u);
+          mass_of_star /= (All.UnitMass_in_g / SOLAR_MASS);
+          make_individual_star(i, mass_of_star, &local_stars_mass);
         }
     } /* end of main loop over active gas particles */
 
