@@ -88,7 +88,7 @@ static inline int ray_absorb(RayPacket *ray, double chord_length, double density
         continue;
 
       double dtau = kappa[w] * density * chord_length;
-      double absorbed = ray->RAD[w] * (1.0 - __builtin_exp(-dtau));
+      double absorbed = ray->RAD[w] * (1.0 - exp(-dtau));
 
       absorbed_RAD[w] += absorbed;
       ray->RAD[w] -= absorbed;  
@@ -175,7 +175,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
 
           /* deposit absorbed energy into cell, one band at a time */
-          for(int w = 0; w < WAVEBANDS; w++)
+          for(int w = 1; w < WAVEBANDS; w++)
             {  
               double dp = absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
               SphP[no].StarMomentumFeed[0] += dp * ray->dir[0];
@@ -327,7 +327,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
           int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
 
-          for(int w = 0; w < WAVEBANDS; w++)
+          for(int w = 1; w < WAVEBANDS; w++)
             {  
               double dp = absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
               Tree_Points[n].StarMomentumFeed[0] += dp * ray->dir[0];

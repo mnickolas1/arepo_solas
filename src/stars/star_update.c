@@ -285,13 +285,13 @@ void perform_end_of_step_star_physics(void)
           pow(SphP[i].StarMomentumFeed[1],2) + pow(SphP[i].StarMomentumFeed[2],2));   
           // Update velocities 
           update_primitive_variables_single(P, SphP, i, &pvd);   
- #if !defined(WINDS) && !defined(SUPERNOVAE)
+#if !defined(WINDS) && !defined(SUPERNOVAE)
           // Update total energy
           double Eold = SphP[i].Energy;
           SphP[i].Energy = 0.5*P[i].Mass*(P[i].Vel[0]*P[i].Vel[0] + P[i].Vel[1]*P[i].Vel[1] + P[i].Vel[2]*P[i].Vel[2])
           + P[i].Mass * SphP[i].Utherm;
           All.StarFeedbackLocal[7] += SphP[i].Energy - Eold;
- #else      
+#else      
           // Update total energy
           SphP[i].Energy += SphP[i].StarEnergyFeed * All.cf_atime * All.cf_atime;
           All.StarFeedbackLocal[7] += SphP[i].StarEnergyFeed;
