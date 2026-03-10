@@ -470,6 +470,10 @@ void calculate_non_standard_physics_end_of_step(void)
   cooling_only();
 #endif /* #ifdef USE_SFR #else */
 #endif /* #ifdef COOLING */
+
+#ifdef STAR_RADIATION_ACTIVE
+  update_ionization();
+#endif
 }
 
 /*! \brief Checks whether the run must interrupted.

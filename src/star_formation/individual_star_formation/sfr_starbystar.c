@@ -66,6 +66,4 @@ void cooling_and_starformation(void)
         SphP[i].Sfr = 0;
     }
   TIMER_STOP(CPU_COOLINGSFR);
-
-  update_ionization();
 }

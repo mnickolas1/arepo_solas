@@ -428,7 +428,7 @@ static inline double photo_equilibrium(double HI_IonizationRate, double nH, doub
 }
 
 /* Update ionization state for all cells after RT and cooling */
-void update_ionization()
+void update_ionization(void)
 {
   for(int i = 0; i < NumGas; i++)
     {
