@@ -901,6 +901,8 @@ void cooling_only(void) /* normal cooling routine when star formation is disable
         }
     }
   CPU_Step[CPU_COOLINGSFR] += measure_time();
+
+  update_ionization();
 }
 
 /*! \brief Apply the isochoric cooling to a given gas cell.
