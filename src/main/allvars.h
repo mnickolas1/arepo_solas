@@ -1649,6 +1649,7 @@ MyDouble StarMomentumFeed[3];
 #endif
 
 #ifdef PHOTOIONIZATION
+  MyDouble grHI;
   MyDouble HI_IonizationRate;
   MyDouble PI_VolHeatingRate;
 #endif 

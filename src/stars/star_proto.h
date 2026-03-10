@@ -66,6 +66,8 @@ void free_export_buffer(RayExportBuffer *buf);
 void radiation(void);
 void exchange_rays(RayExportBuffer *send, RayPacket **recv, int *n_recv);
 void send_results_home(void);
+
+double compute_mu(int i);
 #endif
 
 #endif

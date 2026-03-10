@@ -316,17 +316,30 @@ void radiation_feedback(void)
       double E_abs = SphP[i].RAD[1] * All.UnitEnergy_in_cgs;
       double E_pe = (SphP[i].RAD[2] + SphP[i].RAD[3]) * epsilon_pe * All.UnitEnergy_in_cgs; // LW + Ultraviolet
 
-      /* RT_ionization_rate */
-      double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
-
-      SphP[i].HI_IonizationRate = (N_abs / dt / volume) / n_HI;   // 1 / (time units)
+      /* RT_ionization_rate:  1 / (time units) */
+      //double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
+      //SphP[i].HI_IonizationRate = n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0;
 
       /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
-      double E_threshold = N_abs * energy_thresh;                
-      SphP[i].PI_VolHeatingRate = ((E_abs - E_threshold) / dt_cgs / V_cgs);
+      //double E_threshold = N_abs * energy_thresh; 
+      //SphP[i].PI_VolHeatingRate = (E_abs - E_threshold) > 0 ? (E_abs - E_threshold) / dt_cgs / V_cgs : 0.0;
 
       /* volumetric_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
-       SphP[i].PE_VolHeatingRate =  E_pe / dt_cgs / V_cgs;
+      // SphP[i].PE_VolHeatingRate =  E_pe / dt_cgs / V_cgs;
+
+      /* No grackle RT for now */ 
+      
+      double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
+      SphP[i].HI_IonizationRate = n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0;
+      SphP[i].HI_IonizationRate *= (1 / All.UnitTime_in_s);
+      
+      /* Actually pure heating (dont want to rename the variable) */
+      double E_threshold = N_abs * energy_thresh; 
+      SphP[i].PI_VolHeatingRate = (E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0;
+      SphP[i].PI_VolHeatingRate /= All.UnitEnergy_in_cgs;
+
+      /* Actually pure heating (dont want to rename the variable) */
+      SphP[i].PE_VolHeatingRate =  E_pe / All.UnitEnergy_in_cgs;
 
       for(w = 0; w < WAVEBANDS; w++)
         SphP[i].RAD[w] = 0;
@@ -336,7 +349,7 @@ void radiation_feedback(void)
 void radiation(void)
 {
   /* 0. update cell opacities -> maybe we need to do this earlier in the hydro loop */
-  update_kappa();
+  //update_kappa(); -> We call this after cooling now
 
 /* 1. initialize rays from active star particles */
   int n_rays_local = 0;
@@ -380,4 +393,67 @@ void radiation(void)
 
   free_export_buffer(export_buf);
   myfree(rays);
+}
+
+
+/* These function reside here for now */
+double compute_mu(int i)
+{
+  double X_H = HYDROGEN_MASSFRAC;    
+  double X_He  = 1.0 - X_H;
+  double X_HI  = SphP[i].grHI;   
+  double X_HII = X_H - X_HI;
+  
+  double mu = 1.0 / (X_HI + 2.0*X_HII + 0.25*X_He);
+
+  return mu;
+}
+
+/* Recombination coefficient alpha_B (case B) in cm^3/s, Hummer 1994 fit */
+static inline double alpha_B(double T)
+{
+  return 2.6e-13 * pow(T / 1e4, -0.7);
+}
+
+/* Solve photoionization equilibrium for X_HI given Gamma_ion and T.
+   Solves: (X_H - X_HI) * Gamma = X_HI_comp^2 * nH * alpha_B
+   where X_HI_comp = X_H - X_HI is the ionized fraction */
+static inline double photo_equilibrium(double HI_IonizationRate, double nH, double T)
+{
+  double alpha = alpha_B(T);
+  double b = HI_IonizationRate / (nH * alpha);
+  double x_HII = 0.5 * (-b + sqrt(b*b + 4.0*b));   /* quadratic solution */
+  x_HII = fmin(fmax(x_HII, 0.0), 1.0);              /* clamp to [0,1] */
+  return HYDROGEN_MASSFRAC * (1.0 - x_HII);          /* return X_HI */
+}
+
+/* Update ionization state for all cells after RT and cooling */
+void update_ionization()
+{
+  for(int i = 0; i < NumGas; i++)
+    {
+      double rho_cgs = SphP[i].Density * All.UnitDensity_in_cgs;
+      double nH = HYDROGEN_MASSFRAC * rho_cgs / PROTONMASS;
+
+      /* Temperature from internal energy using current mu */
+      double mu = compute_mu(i);
+      double u_to_temp_fac = mu * PROTONMASS / BOLTZMANN * GAMMA_MINUS1;
+      double temp = (SphP[i].Utherm * All.UnitEnergy_in_cgs / All.UnitMass_in_g) * u_to_temp_fac;
+
+      double X_HI;
+      if(temp > 1e4)
+        {
+          /* Collisionally ionized — assume fully ionized */
+          X_HI = 0.0;
+        }
+      else
+        {
+          X_HI = photo_equilibrium(SphP[i].HI_IonizationRate, nH, temp);
+        }
+
+      SphP[i].grHI = X_HI;
+    }
+
+  /* Kappa depends on grHI so must come after ionization update */
+  update_kappa();
 }
