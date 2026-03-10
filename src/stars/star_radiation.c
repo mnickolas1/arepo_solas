@@ -318,28 +318,26 @@ void radiation_feedback(void)
 
       /* RT_ionization_rate:  1 / (time units) */
       //double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
-      //SphP[i].HI_IonizationRate = n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0;
+      //SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0;
 
       /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
       //double E_threshold = N_abs * energy_thresh; 
-      //SphP[i].PI_VolHeatingRate = (E_abs - E_threshold) > 0 ? (E_abs - E_threshold) / dt_cgs / V_cgs : 0.0;
+      //SphP[i].PI_VolHeatingRate += (E_abs - E_threshold) > 0 ? (E_abs - E_threshold) / dt_cgs / V_cgs : 0.0;
 
       /* volumetric_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
-      // SphP[i].PE_VolHeatingRate =  E_pe / dt_cgs / V_cgs;
+      // SphP[i].PE_VolHeatingRate +=  E_pe / dt_cgs / V_cgs;
 
       /* No grackle RT for now */ 
       
       double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
-      SphP[i].HI_IonizationRate = n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0;
-      SphP[i].HI_IonizationRate *= (1 / All.UnitTime_in_s);
+      SphP[i].HI_IonizationRate += (n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0) * (1 / All.UnitTime_in_s);
       
       /* Actually pure heating (dont want to rename the variable) */
       double E_threshold = N_abs * energy_thresh; 
-      SphP[i].PI_VolHeatingRate = (E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0;
-      SphP[i].PI_VolHeatingRate /= All.UnitEnergy_in_cgs;
+      SphP[i].PI_VolHeatingRate += ((E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0) /= (All.UnitEnergy_in_cgs);
 
       /* Actually pure heating (dont want to rename the variable) */
-      SphP[i].PE_VolHeatingRate =  E_pe / All.UnitEnergy_in_cgs;
+      SphP[i].PE_VolHeatingRate +=  E_pe / All.UnitEnergy_in_cgs;
 
       for(w = 0; w < WAVEBANDS; w++)
         SphP[i].RAD[w] = 0;

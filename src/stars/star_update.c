@@ -285,7 +285,7 @@ void perform_end_of_step_star_physics(void)
           pow(SphP[i].StarMomentumFeed[1],2) + pow(SphP[i].StarMomentumFeed[2],2));   
           // Update velocities 
           update_primitive_variables_single(P, SphP, i, &pvd);   
-#if !defined(WINDS) && !defined(SUPERNOVAE)
+/*#if !defined(WINDS) && !defined(SUPERNOVAE)
           // Update total energy
           double Eold = SphP[i].Energy;
           SphP[i].Energy = 0.5*P[i].Mass*(P[i].Vel[0]*P[i].Vel[0] + P[i].Vel[1]*P[i].Vel[1] + P[i].Vel[2]*P[i].Vel[2])
@@ -296,13 +296,17 @@ void perform_end_of_step_star_physics(void)
           SphP[i].Energy += SphP[i].StarEnergyFeed * All.cf_atime * All.cf_atime;
           All.StarFeedbackLocal[7] += SphP[i].StarEnergyFeed;
           SphP[i].StarEnergyFeed = 0;
-#endif
+#endif*/
+         // Update total energy
+          SphP[i].Energy = SphP[i].StarEnergyFeed + SphP[i].PI_VolHeatingRate + SphP[i].PE_VolHeatingRate;
+          All.StarFeedbackLocal[7] += SphP[i].StarEnergyFeed + SphP[i].PI_VolHeatingRate + SphP[i].PE_VolHeatingRate;
           // Update internal energy 
           update_internal_energy(P, SphP, i, &pvd);
           // Update pressure
           set_pressure_of_cell_internal(P, SphP, i);
           // Set feed flags to zero
           SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
+          SphP[i].StarEnergyFeed = SphP[i].PI_VolHeatingRate = SphP[i].PE_VolHeatingRate = 0;
 #endif
         } // for(idx...
         
