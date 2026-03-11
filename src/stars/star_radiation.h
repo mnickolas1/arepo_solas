@@ -9,6 +9,7 @@
 #define RAY_STACK_SIZE 64
 
 #define ALL_BANDS_ACTIVE  ((uint8_t)((1u << WAVEBANDS) - 1u))
+#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_H_PHOTONS) & ~(1u << IONIZING)))
 
 extern double HealpixDirs[MAX_NUM_RAYS][3];
 extern int NRays; // 12 * NSIDE^2

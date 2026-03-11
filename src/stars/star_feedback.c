@@ -357,11 +357,10 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #endif
               double vsq = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
 
-              // Momentum in sim frame = bulk motion of ejected mass only (no r̂ term)
+              // Momentum in sim frame = bulk motion of ejected mass only 
               SphP[j].StarMomentumFeed[0] += SNmassloss * vel[0] * factor;
               SphP[j].StarMomentumFeed[1] += SNmassloss * vel[1] * factor;
               SphP[j].StarMomentumFeed[2] += SNmassloss * vel[2] * factor;
-              All.StarFeedbackLocal[2] += 0.0; // zero momentum injected in star frame
 
               // Energy = thermal (in star frame) + bulk KE of ejected mass (no cross term)
               SphP[j].StarEnergyFeed += (SNenergyinject
