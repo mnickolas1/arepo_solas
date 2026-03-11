@@ -26,12 +26,21 @@ int NRays; // 12 * NSIDE^2
                  Need to check references!
  */
 double Kappa[WAVEBANDS] = {
-  0,       /* IONIZING_H_PHOTONS     Computed directly from HI              */
-  0,       /* IONIZING               Computed directly from HI              */
-  1.0e2,   /* LYMAN_WERNER [cm² g⁻¹] — FUV dust at solar Z                  */
-  5.0e1,   /* ULTRAVIOLET  [cm² g⁻¹] — NUV dust at solar Z                  */
-  1.0e1,   /* OPTICAL      [cm² g⁻¹] — V-band dust at solar Z               */
-  1.0e-1,  /* INFRARED     [cm² g⁻¹] — IR dust at T_ref=20K, beta=2, solar Z */ 
+  [IONIZING_H_PHOTONS] = 0.0,     /* IONIZING_H_PHOTONS     Computed directly from HI              */
+  [IONIZING]           = 0.0,     /* IONIZING               Computed directly from HI              */
+  [LYMAN_WERNER]       = 1.0e2,   /* LYMAN_WERNER [cm² g⁻¹] — FUV dust at solar Z                  */
+  [ULTRAVIOLET]        = 5.0e1,   /* ULTRAVIOLET  [cm² g⁻¹] — NUV dust at solar Z                  */
+  [OPTICAL]            = 1.0e1,   /* OPTICAL      [cm² g⁻¹] — V-band dust at solar Z               */
+  [INFRARED]           = 1.0e-1,  /* INFRARED     [cm² g⁻¹] — IR dust at T_ref=20K, beta=2, solar Z */ 
+};
+
+double ReradiatedFraction[WAVEBANDS] = {
+  [IONIZING_H_PHOTONS] = 0.0,     /* No momentum contribution */
+  [IONIZING]           = 0.0,     /* No reradiation->photoheating instead */
+  [LYMAN_WERNER]       = 0.95,    /* 5% goes to pe heating */
+  [ULTRAVIOLET]        = 0.95,    /* 5% goes to pe heating */
+  [OPTICAL]            = 1.0,
+  [INFRARED]           = 1.0,
 };
 
 void update_kappa(void)

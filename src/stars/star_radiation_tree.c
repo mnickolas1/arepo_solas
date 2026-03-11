@@ -193,7 +193,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           for(int w = 2; w < WAVEBANDS; w++)
             {
               SphP[no].RAD[w] += absorbed[w];
-              dp_rerad += absorbed[w] * (1 + dtau_IR) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              dp_rerad += absorbed[w] * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
             }
          
           SphP[no].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];
@@ -358,13 +358,13 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           for(int w = 2; w < WAVEBANDS; w++)
             {
               Tree_Points[n].RAD[w] += absorbed[w];
-              dp_rerad += absorbed[w] * (1 + dtau_IR) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              dp_rerad += absorbed[w] * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
             }
          
           Tree_Points[n].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];
           Tree_Points[n].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
           Tree_Points[n].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
-          
+
           if(!still_alive) return;  
         }
       /* ---- pseudo-particle: remote domain ---- */  

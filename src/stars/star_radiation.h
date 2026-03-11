@@ -27,6 +27,8 @@ typedef enum
 
 extern double Kappa[WAVEBANDS];
 
+extern double ReradiatedFraction[WAVEBANDS];
+
 typedef struct 
 {
   double t_enter;
