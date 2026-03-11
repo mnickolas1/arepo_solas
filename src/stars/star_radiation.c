@@ -338,8 +338,10 @@ void radiation_feedback(void)
       
       double E_threshold = N_abs * energy_thresh; 
       SphP[i].StarEnergyFeed += ((E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0) / (All.UnitEnergy_in_cgs);
+      All.StarFeedbackLocal[3] += ((E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0) / (All.UnitEnergy_in_cgs);
 
       SphP[i].StarEnergyFeed +=  E_pe / All.UnitEnergy_in_cgs;
+      All.StarFeedbackLocal[3] += E_pe / All.UnitEnergy_in_cgs;
 
       for(w = 0; w < WAVEBANDS; w++)
         SphP[i].RAD[w] = 0;
