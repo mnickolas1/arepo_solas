@@ -361,7 +361,7 @@ void radiation(void)
   MPI_Allreduce(&n_rays_local, &n_rays_global, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);  
 
   /* 2. do initial local walk (mode=0) for all rays */
-  RayExportBuffer *export_buf = init_export_buffer(n_rays_global);
+  RayExportBuffer *export_buf = init_export_buffer(4. * n_rays_global);
 
   for(int i = 0; i < n_rays_local; i++)
     raytrace_treewalk(&rays[i], 0, -1, export_buf);
