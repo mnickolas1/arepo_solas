@@ -78,7 +78,7 @@ static inline int ray_sphere_intersect(const double dx, const double dy, const d
   return 1;
 }
 
-static inline int ray_absorb(RayPacket *ray, double chord_length, double density, double kappa[WAVEBANDS], double absorbed_RAD[WAVEBANDS])
+static inline int ray_absorb(RayPacket *ray, double chord_length, double density, double kappa[WAVEBANDS], double absorbed_RAD[WAVEBANDS], double *dtau_IR)
 {
   for(int w = 0; w < WAVEBANDS; w++)
     {
@@ -97,6 +97,9 @@ static inline int ray_absorb(RayPacket *ray, double chord_length, double density
       if(ray->RAD[w] < RAD_TRUNC_FRAC * ray->RAD_Initial[w])
         ray->active_bands &= (uint8_t)(~(1u << w));
     }
+    
+    // IR re-absorption tau
+    *dtau_IR = kappa[INFRARED] * density * chord_length;
 
   return ray->active_bands != 0;
 }
@@ -172,21 +175,30 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           
           double absorbed[WAVEBANDS];
 
-          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
+          double dtau_IR;
+
+          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed, &dtau_IR);
 
           /* deposit absorbed energy into cell, one band at a time */
+
+          // Ionizing Photons
           SphP[no].RAD[0] += absorbed[0];
           
+          // Ionizing Energy
           double dp = 0.0;
-          for(int w = 1; w < WAVEBANDS; w++)
+          SphP[no].RAD[1] += absorbed[1];
+          dp += absorbed[1] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              
+          double dp_rerad = 0.0;
+          for(int w = 2; w < WAVEBANDS; w++)
             {
               SphP[no].RAD[w] += absorbed[w];
-              dp += absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              dp_rerad += absorbed[w] * (1 + dtau_IR) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
             }
          
-          SphP[no].StarMomentumFeed[0] += dp * ray->dir[0];
-          SphP[no].StarMomentumFeed[1] += dp * ray->dir[1];
-          SphP[no].StarMomentumFeed[2] += dp * ray->dir[2];
+          SphP[no].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];
+          SphP[no].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
+          SphP[no].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
 
           if(!still_alive) return; /* all bands are exhausted */     
         }
@@ -328,20 +340,30 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           
           double absorbed[WAVEBANDS];
 
-          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
+          double dtau_IR;
 
+          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed, &dtau_IR);
+
+          /* deposit absorbed energy into cell, one band at a time */
+
+          // Ionizing Photons
           Tree_Points[n].RAD[0] += absorbed[0];
           
-          double dp = 0;
-          for(int w = 1; w < WAVEBANDS; w++)
+          // Ionizing Energy
+          double dp = 0.0;
+          Tree_Points[n].RAD[1] += absorbed[1];
+          dp += absorbed[1] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              
+          double dp_rerad = 0.0;
+          for(int w = 2; w < WAVEBANDS; w++)
             {
               Tree_Points[n].RAD[w] += absorbed[w];
-              dp += absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
-            }  
-             
-          Tree_Points[n].StarMomentumFeed[0] += dp * ray->dir[0];
-          Tree_Points[n].StarMomentumFeed[1] += dp * ray->dir[1];
-          Tree_Points[n].StarMomentumFeed[2] += dp * ray->dir[2];
+              dp_rerad += absorbed[w] * (1 + dtau_IR) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+            }
+         
+          Tree_Points[n].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];
+          Tree_Points[n].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
+          Tree_Points[n].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
           
           if(!still_alive) return;  
         }
