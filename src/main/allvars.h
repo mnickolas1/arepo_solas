@@ -468,13 +468,11 @@ typedef unsigned long long peano1D;
 #define SEC_PER_MEGAYEAR 3.15576e13
 #define SEC_PER_YEAR 3.15576e7
 
-#if defined(METALS) || defined(USE_GRACKLE)
 /*! All metals (by mass). 
 * present photospheric abundances from Asplund et al. 2009 (Z=0.0134, proto-solar=0.0142)
 * Anders+Grevesse 1989 (Z=0.0201, proto-solar=0.0213)
 */
 #define SOLAR_METALLICITY 0.0134
-#endif // defined(METALS) || defined(USE_GRACKLE)
 
 #ifndef FOF_PRIMARY_LINK_TYPES
 #define FOF_PRIMARY_LINK_TYPES 2
@@ -1322,7 +1320,7 @@ extern struct global_data_all_processes
 
 #ifdef METALS
 double InitMetallicityinSolar; 
-double ConstantMetallicityYield;
+//double ConstantMetallicityYield;
 #endif 
 
 #if defined(BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)

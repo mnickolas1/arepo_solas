@@ -492,8 +492,7 @@ int init(void)
     }
 
 #ifdef STAR_RADIATION_ACTIVE
-  for(i = 0; i < NumGas; i++)
-    SphP[i].grHI = HYDROGEN_MASSFRAC;
+  init_state();
 #endif
 
 #ifdef USE_GRACKLE // -> need to set flags properly
@@ -508,6 +507,8 @@ int init(void)
   for(i=0; i<NumGas; i++)
       SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
 #endif /* ifdef METALS */
+
+
 
 #ifdef PASSIVE_SCALARS
   for(i = 0; i < NumGas; i++)

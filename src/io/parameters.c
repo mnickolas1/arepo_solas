@@ -554,11 +554,11 @@ void read_parameter_file(char *fname)
         id[nt++] = REAL;
 #endif
         
-#if defined(METALS)
-        strcpy(tag[nt], "ConstantMetallicityYield");
-        addr[nt] = &All.ConstantMetallicityYield;
-        id[nt++] = REAL;
-#endif
+//#if defined(METALS)
+//        strcpy(tag[nt], "ConstantMetallicityYield");
+//        addr[nt] = &All.ConstantMetallicityYield;
+//        id[nt++] = REAL;
+//#endif
         
 #if defined(BLACKHOLE_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
       strcpy(tag[nt], "FeedbackTime");

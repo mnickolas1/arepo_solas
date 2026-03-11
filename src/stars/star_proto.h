@@ -67,6 +67,7 @@ void radiation(void);
 void exchange_rays(RayExportBuffer *send, RayPacket **recv, int *n_recv);
 void send_results_home(void);
 
+void init_state(void);
 double compute_mu(int i);
 void update_ionization(void);
 #endif

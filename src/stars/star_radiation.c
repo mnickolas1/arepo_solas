@@ -39,7 +39,11 @@ void update_kappa(void)
   for(int i = 0; i < NumGas; i++)
     { 
       double sigma_H = 6.3e-18; // at at Lyman limit
+#ifdef METALS
       double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
+#else
+      double Z = 0;
+#endif
       double units = All.UnitLength_in_cm * All.UnitLength_in_cm / All.UnitMass_in_g;
       
       SphP[i].Kappa[IONIZING_H_PHOTONS] = (sigma_H / PROTONMASS / units) * SphP[i].grHI; 
@@ -332,12 +336,10 @@ void radiation_feedback(void)
       double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
       SphP[i].HI_IonizationRate += (n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0) * (1 / All.UnitTime_in_s);
       
-      /* Actually pure heating (dont want to rename the variable) */
       double E_threshold = N_abs * energy_thresh; 
-      SphP[i].PI_VolHeatingRate += ((E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0) / (All.UnitEnergy_in_cgs);
+      SphP[i].StarEnergyFeed += ((E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0) / (All.UnitEnergy_in_cgs);
 
-      /* Actually pure heating (dont want to rename the variable) */
-      SphP[i].PE_VolHeatingRate +=  E_pe / All.UnitEnergy_in_cgs;
+      SphP[i].StarEnergyFeed +=  E_pe / All.UnitEnergy_in_cgs;
 
       for(w = 0; w < WAVEBANDS; w++)
         SphP[i].RAD[w] = 0;
@@ -393,6 +395,21 @@ void radiation(void)
   myfree(rays);
 }
 
+void init_state(void)
+{
+  // We run this inside init()  
+  int i;
+  for(i = 0; i < NumGas; i++)
+    {
+      /* Fully neutral initial conditions -> might want to set different ones */
+      SphP[i].grHI = HYDROGEN_MASSFRAC;           // all H is neutral
+      SphP[i].grHII = 0.0;
+      SphP[i].grHeI = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
+      SphP[i].grHeII = 0.0;
+      SphP[i].grHeIII = 0.0;
+      SphP[i].Ne = 0.0;
+    }
+}
 
 /* These function reside here for now */
 double compute_mu(int i)
@@ -422,6 +439,7 @@ static inline double photo_equilibrium(double HI_IonizationRate, double nH, doub
   double b = HI_IonizationRate / (nH * alpha);
   double x_HII = 0.5 * (-b + sqrt(b*b + 4.0*b));   /* quadratic solution */
   x_HII = fmin(fmax(x_HII, 0.0), 1.0);              /* clamp to [0,1] */
+  
   return HYDROGEN_MASSFRAC * (1.0 - x_HII);          /* return X_HI */
 }
 
@@ -435,7 +453,7 @@ void update_ionization(void)
       i = TimeBinsHydro.ActiveParticleList[idx];
       if(i < 0)
         continue;
-      
+
       double rho_cgs = SphP[i].Density * All.UnitDensity_in_cgs;
       double nH = HYDROGEN_MASSFRAC * rho_cgs / PROTONMASS;
 
