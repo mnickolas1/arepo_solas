@@ -1638,7 +1638,7 @@ extern struct sph_particle_data
 MyDouble StarMomentumFeed[3]; 
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
+#if defined(WINDS) || defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(SUPERNOVAE)
   MyDouble StarEnergyFeed;
 #endif
 

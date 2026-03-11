@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#define TAG_RAD 18
 #define RAD_BACKGROUND 0
 #define RAD_TRUNC_FRAC 0.01 
 #define MAX_NUM_RAYS 12288 

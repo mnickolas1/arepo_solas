@@ -39,9 +39,6 @@
 #ifdef STARS
 #define TAG_STARDATA 16
 #endif
-#ifdef STAR_RADIATION_ACTIVE
-#define TAG_RAD 18
-#endif
 #define TAG_GRAV_B 19
 #define TAG_HYDRO_A 22
 #define TAG_HYDRO_B 23
