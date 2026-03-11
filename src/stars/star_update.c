@@ -298,7 +298,7 @@ void perform_end_of_step_star_physics(void)
           SphP[i].StarEnergyFeed = 0;
 #endif*/
          // Update total energy
-          SphP[i].Energy = SphP[i].StarEnergyFeed + SphP[i].PI_VolHeatingRate + SphP[i].PE_VolHeatingRate;
+          SphP[i].Energy += SphP[i].StarEnergyFeed + SphP[i].PI_VolHeatingRate + SphP[i].PE_VolHeatingRate;
           All.StarFeedbackLocal[7] += SphP[i].StarEnergyFeed + SphP[i].PI_VolHeatingRate + SphP[i].PE_VolHeatingRate;
           // Update internal energy 
           update_internal_energy(P, SphP, i, &pvd);

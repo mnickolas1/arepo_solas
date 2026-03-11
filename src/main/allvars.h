@@ -2003,6 +2003,9 @@ enum iofields
   IO_STARHSML,
   IO_STAR_NGBMASS,
 #endif
+#ifdef STAR_RADIATION_ACTIVE
+  IO_HI_RADIATION,
+#endif
   IO_LASTENTRY /* This should be kept - it signals the end of the list */
 };
 

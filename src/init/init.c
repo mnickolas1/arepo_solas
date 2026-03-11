@@ -491,6 +491,11 @@ int init(void)
       mass += P[i].Mass;
     }
 
+#ifdef STAR_RADIATION_ACTIVE
+  for(i = 0; i < NumGas; i++)
+    SphP[i].grHI = HYDROGEN_MASSFRAC;
+#endif
+
 #ifdef USE_GRACKLE // -> need to set flags properly
   init_state();
 #endif

@@ -842,7 +842,8 @@ void init_io_fields()
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  init_field(IO_HI, "IOHI", "NeutralHydrogen", MEM_MY_DOUBLE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_SPHP, &SphP[0].grHI, 0, GAS_ONLY);
-  init_units(IO_HI, 0., 0., 0., 0., 0., 0.0);
+  init_field(IO_HI_RADIATION, "IOHI", "NeutralHydrogen", MEM_MY_DOUBLE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_SPHP, &SphP[0].grHI, 0, GAS_ONLY);
+  init_units(IO_HI_RADIATION, 0., 0., 0., 0., 0., 0.0);
+  init_snapshot_type(IO_HI_RADIATION, SN_MINI);
 #endif
 }

@@ -147,7 +147,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
       /* ---- real particle ---- */
       if(no < Tree_MaxPart)
         { 
-          //if(P[no].Type != 0) // this shouldn't really happen on the stack
+          //if(P[no].Type != 0) // this shouldn't really happen in the stack
           //  continue; 
               
           double px = Tree_Pos_list[3 * no + 0] - ray->pos[0];
@@ -175,15 +175,18 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
 
           /* deposit absorbed energy into cell, one band at a time */
+          SphP[no].RAD[0] += absorbed[0];
+          
+          double dp = 0.0;
           for(int w = 1; w < WAVEBANDS; w++)
-            {  
-              double dp = absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
-              SphP[no].StarMomentumFeed[0] += dp * ray->dir[0];
-              SphP[no].StarMomentumFeed[1] += dp * ray->dir[1];
-              SphP[no].StarMomentumFeed[2] += dp * ray->dir[2];
-              
+            {
               SphP[no].RAD[w] += absorbed[w];
+              dp += absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
             }
+         
+          SphP[no].StarMomentumFeed[0] += dp * ray->dir[0];
+          SphP[no].StarMomentumFeed[1] += dp * ray->dir[1];
+          SphP[no].StarMomentumFeed[2] += dp * ray->dir[2];
 
           if(!still_alive) return; /* all bands are exhausted */     
         }
@@ -327,16 +330,19 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
           int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed);
 
+          Tree_Points[n].RAD[0] += absorbed[0];
+          
+          double dp = 0;
           for(int w = 1; w < WAVEBANDS; w++)
-            {  
-              double dp = absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
-              Tree_Points[n].StarMomentumFeed[0] += dp * ray->dir[0];
-              Tree_Points[n].StarMomentumFeed[1] += dp * ray->dir[1];
-              Tree_Points[n].StarMomentumFeed[2] += dp * ray->dir[2];
-              
+            {
               Tree_Points[n].RAD[w] += absorbed[w];
-            }
-
+              dp += absorbed[w] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+            }  
+             
+          Tree_Points[n].StarMomentumFeed[0] += dp * ray->dir[0];
+          Tree_Points[n].StarMomentumFeed[1] += dp * ray->dir[1];
+          Tree_Points[n].StarMomentumFeed[2] += dp * ray->dir[2];
+          
           if(!still_alive) return;  
         }
       /* ---- pseudo-particle: remote domain ---- */  

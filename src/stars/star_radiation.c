@@ -334,7 +334,7 @@ void radiation_feedback(void)
       
       /* Actually pure heating (dont want to rename the variable) */
       double E_threshold = N_abs * energy_thresh; 
-      SphP[i].PI_VolHeatingRate += ((E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0) /= (All.UnitEnergy_in_cgs);
+      SphP[i].PI_VolHeatingRate += ((E_abs - E_threshold) > 0 ? (E_abs - E_threshold) : 0.0) / (All.UnitEnergy_in_cgs);
 
       /* Actually pure heating (dont want to rename the variable) */
       SphP[i].PE_VolHeatingRate +=  E_pe / All.UnitEnergy_in_cgs;
@@ -428,8 +428,14 @@ static inline double photo_equilibrium(double HI_IonizationRate, double nH, doub
 /* Update ionization state for all cells after RT and cooling */
 void update_ionization(void)
 {
-  for(int i = 0; i < NumGas; i++)
+  int idx, i;
+   
+  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
+      i = TimeBinsHydro.ActiveParticleList[idx];
+      if(i < 0)
+        continue;
+      
       double rho_cgs = SphP[i].Density * All.UnitDensity_in_cgs;
       double nH = HYDROGEN_MASSFRAC * rho_cgs / PROTONMASS;
 
@@ -450,6 +456,8 @@ void update_ionization(void)
         }
 
       SphP[i].grHI = X_HI;
+
+      SphP[i].HI_IonizationRate = 0;
     }
 
   /* Kappa depends on grHI so must come after ionization update */
