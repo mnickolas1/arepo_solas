@@ -284,13 +284,18 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
           factor = SphP[j].Volume / ngbvolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-          double unew = (SphP[j].Utherm * P[j].Mass + (1e51 / All.UnitEnergy_in_cgs) * factor) / (P[j].Mass /*+dm_inject*/);
-
-          double t_frac = (All.Time - birthtime) / (timesn - birthtime);
-          t_frac = fmin(fmax(t_frac, 0.0), 1.0);
-
           if(timesn < MAX_REAL_NUMBER)
-            SphP[j].Csn = SphP[j].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[j].Csnd) * t_frac;
+            {
+              double unew = (SphP[j].Utherm * P[j].Mass + (1e51 / All.UnitEnergy_in_cgs) * factor) / (P[j].Mass);
+
+              double t_frac = (All.Time - birthtime) / (timesn - birthtime);
+              t_frac = fmin(fmax(t_frac, 0.0), 1.0);
+
+              double Csn = SphP[j].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[j].Csnd) * t_frac;
+          
+              if(Csn > SphP[j].Csn)
+                SphP[j].Csn = Csn;
+            }
 #endif
               
 #ifdef WINDS

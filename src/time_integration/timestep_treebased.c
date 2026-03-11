@@ -469,6 +469,8 @@ void tree_based_timesteps_setsoundspeeds(void)
 #ifdef SUPERNOVAE
       if(SphP[i].Csn > csnd)
         csnd = SphP[i].Csn;
+      
+      SphP[i].Csn = 0;
 #endif
 
       if(csnd <= 1.0e-30)
