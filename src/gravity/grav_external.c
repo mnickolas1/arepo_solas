@@ -221,8 +221,8 @@ static void gravity_external_get_force(double pos[3], int type, MyIDType ID, dou
 
     r = sqrt(dx * dx + dy * dy + dz * dz);
 
-    a = pow(All.G * HQ_M200 / (100 * All.Hubble * All.Hubble), 1.0 / 3) / HQ_C * sqrt(2 * (log(1 + HQ_C) - HQ_C / (1 + HQ_C)));
-
+    //a = pow(All.G * HQ_M200 / (100 * All.Hubble * All.Hubble), 1.0 / 3) / HQ_C * sqrt(2 * (log(1 + HQ_C) - HQ_C / (1 + HQ_C)));
+    a = HQ_C; //this will set a
     m = HQ_M200 * pow(r / (r + a), 2);
 #ifdef HQ_DARKFRACTION
     m *= HQ_DARKFRACTION;
