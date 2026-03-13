@@ -182,12 +182,12 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           /* deposit absorbed energy into cell, one band at a time */
 
           // Ionizing Photons
-          SphP[no].RAD[0] += absorbed[0];
+          SphP[no].RAD[IONIZING_H_PHOTONS] += absorbed[IONIZING_H_PHOTONS];
           
           // Ionizing Energy
           double dp = 0.0;
-          SphP[no].RAD[1] += absorbed[1];
-          dp += absorbed[1] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+          SphP[no].RAD[IONIZING] += absorbed[IONIZING];
+          dp += absorbed[IONIZING] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
               
           double dp_rerad = 0.0;
           for(int w = 2; w < WAVEBANDS; w++)
@@ -347,12 +347,12 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           /* deposit absorbed energy into cell, one band at a time */
 
           // Ionizing Photons
-          Tree_Points[n].RAD[0] += absorbed[0];
+          Tree_Points[n].RAD[IONIZING_H_PHOTONS] += absorbed[IONIZING_H_PHOTONS];
           
           // Ionizing Energy
           double dp = 0.0;
-          Tree_Points[n].RAD[1] += absorbed[1];
-          dp += absorbed[1] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+          Tree_Points[n].RAD[IONIZING] += absorbed[IONIZING];
+          dp += absorbed[IONIZING] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
               
           double dp_rerad = 0.0;
           for(int w = 2; w < WAVEBANDS; w++)

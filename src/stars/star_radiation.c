@@ -317,6 +317,7 @@ void radiation_feedback(void)
       double epsilon_pe = 0.05;
       double energy_thresh = 13.6 * ELECTRONVOLT_IN_ERGS;
       double volume = SphP[i].Volume;
+      //do we want the particle dt?
       double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
       //dt *= All.cf_atime / All.cf_time_hubble_a;
 
@@ -324,10 +325,10 @@ void radiation_feedback(void)
       double V_cgs = volume * (All.UnitLength_in_cm * All.UnitLength_in_cm * All.UnitLength_in_cm);
       double dt_cgs = dt * All.UnitTime_in_s;
 
-      double N_abs = SphP[i].RAD[0];
+      double N_abs = SphP[i].RAD[IONIZING_H_PHOTONS];
       
-      double E_abs = SphP[i].RAD[1] * All.UnitEnergy_in_cgs;
-      double E_pe = (SphP[i].RAD[2] + SphP[i].RAD[3]) * epsilon_pe * All.UnitEnergy_in_cgs; // LW + Ultraviolet
+      double E_abs = SphP[i].RAD[IONIZING] * All.UnitEnergy_in_cgs;
+      double E_pe = (SphP[i].RAD[LYMAN_WERNER] + SphP[i].RAD[ULTRAVIOLET]) * epsilon_pe * All.UnitEnergy_in_cgs; // LW + Ultraviolet
 
       /* RT_ionization_rate:  1 / (time units) */
       //double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
@@ -360,7 +361,7 @@ void radiation_feedback(void)
 void radiation(void)
 {
   /* 0. update cell opacities -> maybe we need to do this earlier in the hydro loop */
-  //update_kappa(); -> We call this after cooling now
+  //update_kappa(); -> We call this after cooling now (careful with Tree_Points!!)
 
 /* 1. initialize rays from active star particles */
   int n_rays_local = 0;
