@@ -588,7 +588,7 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #if STAR_PARTICLES == 2
   for(i = 0; i < NumStars; i++)
     {
-      double star_mass = PPS(i).Mass * (All.UnitMass_in_g / SOLAR_MASS)
+      double star_mass = PPS(i).Mass * (All.UnitMass_in_g / SOLAR_MASS);
       if(star_mass < 2)
         SP[i].TimeBinStar = TIMEBINS;
     }
