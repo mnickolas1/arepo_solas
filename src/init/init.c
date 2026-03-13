@@ -429,8 +429,8 @@ int init(void)
       mpi_printf("Finding smoothing lengths on local processor %d\n", ThisTask);
       setup_smoothinglengths();
 #if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-      mpi_printf("Finding smoothing lengths for stars and black holes on local processor %d\n", ThisTask);
-      setup_smoothinglengths_particles();
+      //mpi_printf("Finding smoothing lengths for stars and black holes on local processor %d\n", ThisTask);
+      //setup_smoothinglengths_particles();
 #endif 
   }
 
@@ -508,8 +508,6 @@ int init(void)
       SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
 #endif /* ifdef METALS */
 
-
-
 #ifdef PASSIVE_SCALARS
   for(i = 0; i < NumGas; i++)
       for(j = 0; j < PASSIVE_SCALARS; j++)
@@ -583,6 +581,17 @@ MPI_Bcast(cdf_values, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 #if STAR_PARTICLES == 1
 MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+#if STAR_PARTICLES == 2
+  for(i = 0; i < NumStars; i++)
+    {
+      double star_mass = PPS(i).Mass * (All.UnitMass_in_g / SOLAR_MASS)
+      if(star_mass < 2)
+        SP[i].TimeBinStar = TIMEBINS;
+    }
 #endif
 #endif
 
