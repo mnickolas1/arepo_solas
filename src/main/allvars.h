@@ -329,10 +329,6 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #define ALLOC_TOLERANCE 0.1
 #endif /* #ifdef ONEDIMS #else */
 
-#ifdef BLACKHOLES
-#define ALLOC_BH_ROOM 4
-#endif
-
 #ifdef TOLERATE_WRITE_ERROR
 #define IO_TRIALS 20
 #define IO_SLEEP_TIME 10
@@ -690,9 +686,6 @@ extern MyDouble boxSize_Z, boxHalf_Z;
 
 extern int TimeBinSynchronized[TIMEBINS];
 extern struct TimeBinData TimeBinsHydro, TimeBinsGravity;
-#ifdef BLACKHOLES
-extern struct TimeBinData TimeBinsBh;
-#endif
 
 #ifdef USE_SFR
 extern double TimeBinSfr[TIMEBINS];
@@ -740,9 +733,6 @@ extern int FlagNyt;
 
 extern int NumPart; /*!< number of particles on the LOCAL processor */
 extern int NumGas;  /*!< number of gas particles on the LOCAL processor  */
-#ifdef BLACKHOLES
-extern int NumBhs;
-#endif
 
 extern gsl_rng *random_generator;     /*!< a random number generator  */
 extern gsl_rng *random_generator_aux; /*!< an auxialiary random number generator for use if one doesn't want to influence the main
@@ -925,23 +915,26 @@ extern struct global_data_all_processes
 {
   long long TotNumPart; /*!<  total particle numbers (global value) */
   long long TotNumGas;  /*!<  total gas particle number (global value) */
-#ifdef BLACKHOLES
-  long long TotNumBhs;
-#endif
+
 #ifdef STARS
   long long TotNumStars;
+#endif
+
+#ifdef BLACKHOLES
+  long long TotNumBhs;
 #endif
 
   int MaxPart;    /*!< This gives the maxmimum number of particles that can be stored on one
                      processor. */
   int MaxPartSph; /*!< This gives the maxmimum number of SPH particles that can be stored on one
                      processor. */
-#ifdef BLACKHOLES
-  int MaxPartBhs;
-#endif
 
 #ifdef STARS
   int MaxPartStars;
+#endif
+      
+#ifdef BLACKHOLES
+  int MaxPartBhs;
 #endif
 
 #if defined(COOLING)
@@ -1431,11 +1424,13 @@ extern struct particle_data
   unsigned char SofteningType;
   signed char TimeBinGrav;
   signed char TimeBinHydro;
-#ifdef BLACKHOLES
-  MyIDType BhID;
-#endif
+
 #ifdef STARS
   MyIDType SID;
+#endif
+
+#ifdef BLACKHOLES
+  MyIDType BhID;
 #endif
 } * P,              /*!< holds particle data on local processor */
     *DomainPartBuf; /*!< buffer for particle data used in domain decomposition */
@@ -1484,7 +1479,7 @@ extern struct subfind_data
  */
 extern struct sph_particle_data
 {
-  /* conserved variables */
+  /* conserved variables */ 
   MyFloat Energy;
   MyFloat Momentum[3];
   MyFloat Volume;
@@ -1492,78 +1487,98 @@ extern struct sph_particle_data
 
   /* primitive variables */
   MyFloat Density;
-  MyFloat Pressure; /*!< current pressure */
+  MyFloat Pressure; 
   MySingle Utherm;
 
 #ifdef HIERARCHICAL_GRAVITY
   MySingle FullGravAccel[3];
-#endif /* #ifdef HIERARCHICAL_GRAVITY */
+#endif 
 
-  /* variables for mesh  */
-  MyDouble Center[3];    /*!< center of mass of cell */
-  MySingle VelVertex[3]; /*!< current vertex velocity (primitive variable) */
+  /* mesh variables  */
+  MyDouble Center[3];    
+  MySingle VelVertex[3]; 
 
   MySingle MaxDelaunayRadius;
-  MySingle Hsml; /* auxiliary search radius for points around a delaunay triangle */
+  MySingle Hsml; 
   MySingle SurfaceArea;
 
 #if defined(REGULARIZE_MESH_FACE_ANGLE) || defined(OUTPUT_MESH_FACE_ANGLE)
   MySingle MaxFaceAngle;
-#endif /* #if defined(REGULARIZE_MESH_FACE_ANGLE) || defined(OUTPUT_MESH_FACE_ANGLE) */
+#endif 
   
   MySingle ActiveArea;
 
+#ifdef OUTPUT_SURFACE_AREA
+  int CountFaces;
+#endif 
+
+  struct grad_data Grad;
+
+  int first_connection;
+  int last_connection;
+
+  double TimeLastPrimUpdate;
+
 #if defined(OUTPUT_DIVVEL)
-  MyFloat DivVel; /*!< divergence of the velocity field */
-#endif            /* #if defined(OUTPUT_DIVVEL) */
+  MyFloat DivVel; 
+#endif       
 
 #if defined(REGULARIZE_MESH_CM_DRIFT_USE_SOUNDSPEED) || defined(OUTPUT_CURLVEL)
-  MySingle CurlVel; /*!< magnitude of the curl of the velocity field */
-#endif              /* #if defined(REGULARIZE_MESH_CM_DRIFT_USE_SOUNDSPEED) || defined(OUTPUT_CURLVEL) */
+  MySingle CurlVel; 
+#endif            
 
+/* timesteps */
 #ifdef TREE_BASED_TIMESTEPS
   MySingle CurrentMaxTiStep;
   MySingle Csnd;
 #ifdef SUPERNOVAE
   MyDouble Csn;
 #endif
-#endif /* #ifdef TREE_BASED_TIMESTEPS */
+#endif 
 
-#if defined(REFINEMENT_HIGH_RES_GAS)
+/* refinement */
+#ifdef REFINEMENT_HIGH_RES_GAS
+  int AllowRefinement;
   MyFloat HighResMass;
   MyFloat HighResDensity;
-#endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
+#endif 
+ 
+#ifdef REFINEMENT_SPLIT_CELLS
+  MySingle MinimumEdgeDistance;
+  MySingle SepVector[3];
+#endif
+
+#ifdef REFINEMENT_VOLUME_LIMIT
+  MyFloat MinNgbVolume;
+#endif 
 
 #ifdef REFINEMENT_AROUND_BH
   char RefBHFlag;
   MyFloat RefBHMaxRad;
 #endif
 
+#ifdef ADDBACKGROUNDGRID
+  MyFloat Weight;
+#endif 
+
+/* magnetic field */
 #ifdef MHD
   MyFloat B[3];
   MyFloat BConserved[3];
   MyFloat DivB;
   MyFloat CurlB[3];
-#endif /* #ifdef MHD */
+#endif 
 
-#ifdef PASSIVE_SCALARS
-  MyFloat PScalars[PASSIVE_SCALARS];
-  MyFloat PConservedScalars[PASSIVE_SCALARS];
-#endif /* #ifdef PASSIVE_SCALARS */
-
-#ifdef OUTPUT_SURFACE_AREA
-  int CountFaces;
-#endif /* #ifdef OUTPUT_SURFACE_AREA */
-
-#if defined(REFINEMENT_SPLIT_CELLS)
-  MySingle MinimumEdgeDistance;
-#endif /* #if defined(REFINEMENT_SPLIT_CELLS) */
-
+/* cooling */
 #if defined(COOLING)
   MyFloat Ne; /* electron fraction, expressed as local electron number
                  density normalized to the hydrogen number density. Gives
                  indirectly ionization state and mean molecular weight. */
-#endif        /* #if defined(COOLING) */
+#endif       
+
+#ifdef OUTPUT_COOLHEAT
+  MyFloat CoolHeat;
+#endif 
 
 #ifdef USE_GRACKLE
   MyDouble grHI;
@@ -1576,57 +1591,28 @@ extern struct sph_particle_data
   MyDouble grHM;
 #endif
 
+/* star formation */
 #ifdef USE_SFR
   MySingle Sfr;
-#endif /* #ifdef USE_SFR */
+#endif 
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
   MyDouble StarMassDrain;
 #endif
 
-#ifdef OUTPUT_COOLHEAT
-  MyFloat CoolHeat;
-#endif /* #ifdef OUTPUT_COOLHEAT */
+/* passive scalars */
+#ifdef PASSIVE_SCALARS
+  MyFloat PScalars[PASSIVE_SCALARS];
+  MyFloat PConservedScalars[PASSIVE_SCALARS];
+#endif 
 
-  struct grad_data Grad;
-
-  int first_connection;
-  int last_connection;
-
-#ifdef REFINEMENT_HIGH_RES_GAS
-  int AllowRefinement;
-#endif /* #ifdef REFINEMENT_HIGH_RES_GAS */
- 
-#ifdef REFINEMENT_SPLIT_CELLS
-  MySingle SepVector[3];
-#endif /* #ifdef REFINEMENT_SPLIT_CELLS */
-
-#ifdef REFINEMENT_VOLUME_LIMIT
-  MyFloat MinNgbVolume;
-#endif /* #ifdef REFINEMENT_VOLUME_LIMIT */
-
-  double TimeLastPrimUpdate;
-
-#ifdef ADDBACKGROUNDGRID
-  MyFloat Weight;
-#endif /* #ifdef ADDBACKGROUNDGRID */
-
+/* metallicity */
 #ifdef METALS
 #define GasMetallicity PScalars[METALLICITY_INDEX]
-//#define Metals PConservedScalars[METALLICITY_INDEX]
-#endif 
-    
-#ifdef BLACKHOLES_ACCRETION_ACTIVE
-  MyDouble BhMassDrain;
+#define GasMetals PConservedScalars[METALLICITY_INDEX]
 #endif
 
-#ifdef BLACKHOLES_FEEDBACK_ACTIVE
-  MyDouble BhMassFeed;
-  MyDouble BhThermalFeed;
-  MyDouble BhKineticFeed;
-  MyDouble BhMomentumFeed[3];
-#endif
-
+/* stars */
 #if defined(WINDS) || defined(SUPERNOVAE)
   MyDouble StarMassFeed;
 #ifdef METALS
@@ -1634,20 +1620,20 @@ extern struct sph_particle_data
 #endif
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE) || defined(RADIATION_PRESSURE)
+#if defined(WINDS) || || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
 MyDouble StarMomentumFeed[3]; 
 #endif
 
-#if defined(WINDS) || defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(SUPERNOVAE)
+#if defined(WINDS) || defined(SUPERNOVAE)
   MyDouble StarEnergyFeed;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
  MyDouble Kappa[WAVEBANDS];
+  MyDouble RAD[WAVEBANDS];
 #endif
 
 #ifdef PHOTOIONIZATION
-  MyDouble grHI;
   MyDouble HI_IonizationRate;
   MyDouble PI_VolHeatingRate;
 #endif 
@@ -1656,40 +1642,19 @@ MyDouble StarMomentumFeed[3];
   MyDouble PE_VolHeatingRate;
 #endif
 
-#ifdef RADIATION_PRESSURE
-  MyDouble RAD[WAVEBANDS];
+/* blackholes */    
+#ifdef BH_ACCRETION_ACTIVE
+  MyDouble BhMassDrain;
 #endif
 
+#ifdef BH_FEEDBACK_ACTIVE
+  MyDouble BhMassFeed;
+  MyDouble BhThermalFeed;
+  MyDouble BhKineticFeed;
+  MyDouble BhMomentumFeed[3];
+#endif
 } * SphP,          /*!< holds SPH particle data on local processor */
     *DomainSphBuf; /*!< buffer for SPH particle data in domain decomposition */
-
-#ifdef BLACKHOLES
-extern struct bh_particle_data
-{
-  MyIDType PID;
-  MyDouble Hsml;
-  MyDouble Density;
-  MyDouble NgbMass;
-  MyDouble NgbMassFeed;
-#ifdef BONDI_ACCRETION
-  MyDouble VelocityGas[3];
-  MyDouble VelocityGasCircular[3];
-  MyDouble InternalEnergyGas;
-  MyDouble AccretionRate;
-  MyDouble MassToDrain;
-  MyDouble AngularMomentum[3];
-#endif
-#ifdef INFALL_ACCRETION
-  MyDouble Accretion;
-#endif
-  integertime NgbMinStep;
-  int DensityFlag;
-  signed char TimeBinBh;
-}  *BhP;
-
-#define BPP(i) BhP[P[i].BhID]
-#define PPB(i) P[BhP[i].PID]
-#endif 
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
 extern struct special_particle_data

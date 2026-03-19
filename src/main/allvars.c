@@ -104,9 +104,6 @@ int TagOffset;
 
 int TimeBinSynchronized[TIMEBINS];
 struct TimeBinData TimeBinsHydro, TimeBinsGravity;
-#ifdef BLACKHOLES
-struct TimeBinData TimeBinsBh;
-#endif
 
 #ifdef USE_SFR
 double TimeBinSfr[TIMEBINS];
@@ -127,9 +124,6 @@ double EgyInjection;
 
 int NumPart; /*!< number of particles on the LOCAL processor */
 int NumGas;  /*!< number of gas particles on the LOCAL processor  */
-#ifdef BLACKHOLES
-int NumBhs;
-#endif
 
 gsl_rng *random_generator;     /*!< a random number generator  */
 gsl_rng *random_generator_aux; /*!< an auxialiary random number generator for use if one doesn't want to influence the main code's
@@ -200,9 +194,6 @@ FILE *FdRestartTest;
 FILE *FdSfr; /*!< file handle for sfr.txt log-file. */
 #endif
 
-#ifdef BLACKHOLES   
-FILE *FdBlackHoles; /*!< file handle for blackholes.txt log-file. */
-#endif
 struct pair_data *Pairlist;
 
 #ifdef FORCETEST
@@ -233,10 +224,6 @@ struct subfind_data *PS;
  */
 struct sph_particle_data *SphP, /*!< holds SPH particle data on local processor */
     *DomainSphBuf;              /*!< buffer for SPH particle data in domain decomposition */
-
-#ifdef BLACKHOLES
-struct bh_particle_data *BhP;
-#endif 
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
 struct special_particle_data *PartSpecialListGlobal;

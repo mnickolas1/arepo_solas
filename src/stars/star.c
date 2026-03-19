@@ -2,8 +2,8 @@
 
 int NumStars;
 
-struct star_particle_data *SP;
-
 #ifdef STAR_FEEDBACK_ACTIVE
 struct TimeBinData TimeBinsStar;
 #endif
+
+struct star_particle_data *SP;
