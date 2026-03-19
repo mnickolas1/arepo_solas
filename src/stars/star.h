@@ -46,6 +46,12 @@ extern int NumStars;
 #endif
 #endif
 
+#if defined(STAR_RADIATION_ACTIVE)
+#ifndef USE_GRACKLE
+#error "We cannot run star radiation simulations without GRACKLE!"
+#endif
+#endif
+
 #ifdef STAR_PARTICLES
 #include "../stars/star_particle.h"
 #endif

@@ -352,6 +352,12 @@ $(error STAR_PARTICLES requires USE_SFR or STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
+ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
+ifeq (,$(filter USE_GRACKLE,$(CONFIGVARS)))
+$(error STAR_RADIATION_ACTIVE requires USE_GRACKLE)
+endif
+endif
+
 ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
 OBJS    += stars/star_particle.o
 INCL    += stars/star_particle.h  

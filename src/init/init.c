@@ -491,10 +491,6 @@ int init(void)
       mass += P[i].Mass;
     }
 
-#ifdef STAR_RADIATION_ACTIVE
-  init_state();
-#endif
-
 #ifdef USE_GRACKLE // -> need to set flags properly
   init_state();
 #endif
@@ -556,17 +552,6 @@ int init(void)
 
   free_mesh();
 
-#ifdef BH_FEEDBACK_ACTIVE 
-  srand((unsigned int)time(NULL));
-  All.FeedbackFlag = 1;
-
-  for(i=0; i < 8; i++)
-    All.BhFeedbackLocal[i] = 0;
-  
-  double *bfg = All.BhFeedbackGlobal;
-  bfg = malloc(8 * sizeof(double));
-#endif 
-
 #ifdef STAR_PARTICLES
 if(ThisTask == 0)
   {
@@ -609,6 +594,17 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #ifdef STAR_RADIATION_ACTIVE
   init_healpix_rays();
 #endif
+
+#ifdef BH_FEEDBACK_ACTIVE 
+  srand((unsigned int)time(NULL));
+  All.FeedbackFlag = 1;
+
+  for(i=0; i < 8; i++)
+    All.BhFeedbackLocal[i] = 0;
+  
+  double *bfg = All.BhFeedbackGlobal;
+  bfg = malloc(8 * sizeof(double));
+#endif 
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
 }
