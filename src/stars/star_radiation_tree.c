@@ -57,7 +57,7 @@ static inline int ray_sphere_intersect(const double dx, const double dy, const d
       double cz = dz - t_closest*dir[2];
       double b2 = cx*cx + cy*cy + cz*cz;
       double dt = sqrt(r2 - b2);
-      *t_enter = 0.0;           /* clamp: we start inside */
+      *t_enter = 0.0;         
       *t_exit  = t_closest + dt;
       return 1;
     }
@@ -128,18 +128,18 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
   /* push entry point */
   if(mode == 0)
-    stack[stack_top++] = (StackEntry){0.0, Tree_MaxPart}; /* root */
+    stack[stack_top++] = (StackEntry){0.0, MAX_REAL_NUMBER, Tree_MaxPart}; /* root */
   else
     {
       /* restore whatever was pending from previous rank */
-      if(ray->n_pending >= RAY_STACK_SIZE)
-        terminate("Pending stack too large to restore!");
+      //if(ray->n_pending >= RAY_STACK_SIZE - 1)
+      //  terminate("Pending stack too large to restore!");
 
       memcpy(stack, ray->pending, ray->n_pending * sizeof(StackEntry));
       stack_top = ray->n_pending;
       ray->n_pending = 0;
       /* push the target node on top - it goes first */
-      stack[stack_top++] = (StackEntry){ray->t, target_node};
+      stack[stack_top++] = (StackEntry){ray->t_enter, ray->t_exit, target_node};
     }
   
   while(stack_top > 0)
@@ -153,20 +153,20 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           //if(P[no].Type != 0) // this shouldn't really happen in the stack
           //  continue; 
               
-          double px = Tree_Pos_list[3 * no + 0] - ray->pos[0];
-          double py = Tree_Pos_list[3 * no + 1] - ray->pos[1];
-          double pz = Tree_Pos_list[3 * no + 2] - ray->pos[2];
+          //double px = Tree_Pos_list[3 * no + 0] - ray->pos[0];
+          //double py = Tree_Pos_list[3 * no + 1] - ray->pos[1];
+          //double pz = Tree_Pos_list[3 * no + 2] - ray->pos[2];
               
           /* assume cell is spherical */
-          double r = cbrt((3.0 * SphP[no].Volume) / (4.0 * M_PI));
-          double r2 = r * r;
+          //double r = cbrt((3.0 * SphP[no].Volume) / (4.0 * M_PI));
+          //double r2 = r * r;
               
           /* project onto ray for closest approach */
-          double t_enter, t_exit;
-          if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
-            terminate("Should not happen!");
+          //double t_enter, t_exit;
+          //if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
+          //  terminate("Should not happen!");
               
-          double chord_length = t_exit - t_enter;
+          double chord_length = cur.t_exit - cur.t_enter;;
           double density = SphP[no].Density;
               
           double kappa[WAVEBANDS];
@@ -205,16 +205,11 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
       /* ---- internal node ---- */
       else if(no < Tree_MaxPart + Tree_MaxNodes)
         {
-          // Do we want this? 
-          /* mode==1 guard: don't escape back into top-level tree */
-          //if(mode == 1 && no < Tree_FirstNonTopLevelNode)
-          //  terminate("Should not happen!"); 
-
           struct NODE *nop = &Nodes[no];
 
-          double t_enter, t_exit;
-          if(!ray_box_intersect(ray->pos, ray->dir, nop->center, nop->len, &t_enter, &t_exit))
-            terminate("Should not happen!");
+          //double t_enter, t_exit;
+          //if(!ray_box_intersect(ray->pos, ray->dir, nop->center, nop->len, &t_enter, &t_exit))
+          //  terminate("Should not happen!");
           
           // Approx. barnes hut like criterion -> might need for expensive sims 
           //double dtau_node = Kappa * nop->u.d.density * nop->len;
@@ -279,9 +274,9 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
               if(hit)
                 {
                   if(nchildren >= 8)
-                  terminate("Too many children!");
-                
-                  children[nchildren++] = (StackEntry){ct_enter, child};
+                    terminate("Too many children!");
+
+                  children[nchildren++] = (StackEntry){ct_enter, ct_exit, child};
                 }
 
               /* advance to next direct child via sibling */
@@ -320,18 +315,18 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
         {
           int n = no - Tree_ImportedNodeOffset;
               
-          double px = Tree_Points[n].Pos[0] - ray->pos[0];
-          double py = Tree_Points[n].Pos[1] - ray->pos[1];
-          double pz = Tree_Points[n].Pos[2] - ray->pos[2];
+          //double px = Tree_Points[n].Pos[0] - ray->pos[0];
+          //double py = Tree_Points[n].Pos[1] - ray->pos[1];
+          //double pz = Tree_Points[n].Pos[2] - ray->pos[2];
 
-          double r  = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
-          double r2 = r * r;
+          //double r  = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
+          //double r2 = r * r;
           
-          double t_enter, t_exit;
-          if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
-            terminate("Should not happen!");
+          //double t_enter, t_exit;
+          //if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
+          //  terminate("Should not happen!");
               
-          double chord_length = t_exit - t_enter;
+          double chord_length = cur.t_exit - cur.t_enter;
           double density = Tree_Points[n].Density;
           
           double kappa[WAVEBANDS];
@@ -374,14 +369,15 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           int remote_node = DomainNodeIndex[no - (Tree_MaxPart + Tree_MaxNodes)];
 
           /* pack pending */
-          if(stack_top >= RAY_STACK_SIZE) 
+          if(stack_top >= RAY_STACK_SIZE - 1) 
             terminate("Too many pending entries to export!");
 
           ray->n_pending = stack_top;
           memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
 
-          ray->t = cur.t_enter;
-          ray->target_node = remote_node;  /* store for mode=1 */
+          ray->t_enter = cur.t_enter;
+          ray->t_exit = cur.t_exit;
+          ray->target_node = remote_node;  /* store for mode==1 */
 
           /* add to export buffer */
           if(export_buf->n < export_buf->capacity)

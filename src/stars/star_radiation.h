@@ -34,6 +34,7 @@ extern double ReradiatedFraction[WAVEBANDS];
 typedef struct 
 {
   double t_enter;
+  double t_exit;
   int node;
 } StackEntry;
 
@@ -56,7 +57,8 @@ typedef struct
   StackEntry pending[RAY_STACK_SIZE];
   int n_pending;
   int target_node;
-  double t;
+  double t_enter;
+  double t_exit;
 } RayPacket;
 
 typedef struct 

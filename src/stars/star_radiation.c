@@ -119,7 +119,8 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
           
           rays[ray_idx].n_pending = 0;
           rays[ray_idx].target_node = -1;
-          rays[ray_idx].t = 0.0;   
+          rays[ray_idx].t_enter = 0.0;
+          rays[ray_idx].t_exit = MAX_REAL_NUMBER;
             
           ray_idx++;
         }
