@@ -47,7 +47,7 @@ void update_kappa(void)
 {
   for(int i = 0; i < NumGas; i++)
     { 
-      double sigma_H = 6.3e-18; // at at Lyman limit
+      double sigma_H = 6.3e-18; // at Lyman limit
 #ifdef METALS
       double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
 #else

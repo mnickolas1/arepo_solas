@@ -139,9 +139,6 @@ char AlternativeOutputDir[MAXLEN_PATH];
 
 double TimeOfLastDomainConstruction; /*!< holds what it says */
 
-int *Ngblist; /*!< Buffer to hold indices of neighbours retrieved by the neighbour search
-                 routines */
-
 double DomainCorner[3], DomainCenter[3], DomainLen, DomainFac;
 double DomainInverseLen, DomainBigFac;
 int *DomainStartList, *DomainEndList;
@@ -287,29 +284,6 @@ struct ExtNODE *ExtNodes;
 #endif /* #ifdef MULTIPLE_NODE_SOFTENING */
 
 float *Nodes_GravCost;
-
-/*! Variables for neighbor tree
- * -----------------
- */
-int Ngb_MaxPart;
-int Ngb_NumNodes;
-int Ngb_MaxNodes;
-int Ngb_FirstNonTopLevelNode;
-int Ngb_NextFreeNode;
-int *Ngb_Father;
-int *Ngb_Marker;
-int Ngb_MarkerValue;
-
-int *Ngb_DomainNodeIndex;
-int *DomainListOfLocalTopleaves;
-int *DomainNLocalTopleave;
-int *DomainFirstLocTopleave;
-int *Ngb_Nextnode;
-
-/*! The ngb-tree data structure
- */
-struct NgbNODE *Ngb_Nodes;
-struct ExtNgbNODE *ExtNgb_Nodes;
 
 #ifdef STATICNFW
 double Rs, R200;

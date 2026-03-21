@@ -60,6 +60,33 @@
 #include "../domain/domain.h"
 #include "../gravity/forcetree.h"
 
+/*! Variables for neighbor tree
+ * -----------------
+ */
+int Ngb_MaxPart;
+int Ngb_NumNodes;
+int Ngb_MaxNodes;
+int Ngb_FirstNonTopLevelNode;
+int Ngb_NextFreeNode;
+int *Ngb_Father;
+int *Ngb_Marker;
+int Ngb_MarkerValue;
+
+int *Ngb_DomainNodeIndex;
+int *DomainListOfLocalTopleaves;
+int *DomainNLocalTopleave;
+int *DomainFirstLocTopleave;
+int *Ngb_Nextnode;
+
+/*! The ngb-tree data structure
+ */
+struct NgbNODE *Ngb_Nodes;
+struct RtNgbNODE *RtNgb_Nodes;
+struct ExtNgbNODE *ExtNgb_Nodes;
+
+
+int *Ngblist; /*!< Buffer to hold indices of neighbours retrieved by the neighbour search routines */
+
 static void ngb_record_topnode_siblings(int no, int sib);
 static int ngb_treebuild_construct(int npart);
 static void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode);
