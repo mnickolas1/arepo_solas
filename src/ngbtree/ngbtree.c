@@ -60,6 +60,8 @@
 #include "../domain/domain.h"
 #include "../gravity/forcetree.h"
 
+#include "../ngbtree/ngbtree.h"
+
 /*! Variables for neighbor tree
  * -----------------
  */
@@ -737,6 +739,12 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
 
           for(int w = 0; w < WAVEBANDS; w++)
             RtNgb_Nodes[no].u.d.density_kappa[w] = density_kappa[w];
+
+          /* count direct children */
+          int nchildren = 0;
+          for(int j = 0; j < 8; j++)
+            if(suns[j] >= 0) nchildren++;
+              RtNgb_Nodes[no].nchildren = nchildren;
 #endif
 
           Ngb_Nodes[no].u.d.sibling = sib;

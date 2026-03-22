@@ -1275,6 +1275,7 @@ static void contents_restart_file(int modus)
       /* Star-Particle data  */
       byten(&SP[0], NumStars * sizeof(struct star_particle_data), modus);
     }
+#endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
   in(&TimeBinsStar.NActiveParticles, modus);
@@ -1284,7 +1285,6 @@ static void contents_restart_file(int modus)
   byten(TimeBinsStar.TimeBinCount, TIMEBINS * sizeof(int), modus);
   byten(TimeBinsStar.FirstInTimeBin, TIMEBINS * sizeof(int), modus);
   byten(TimeBinsStar.LastInTimeBin, TIMEBINS * sizeof(int), modus);
-#endif
 #endif
 
   polling(modus);
@@ -1310,6 +1310,10 @@ static void contents_restart_file(int modus)
 
   if(All.TotNumGas > 0)
     {
+#ifdef STAR_RADIATION_ACTIVE
+      byten(RtNgb_Nodes + Ngb_MaxPart, Ngb_NumNodes * sizeof(struct RtNgbNODE), modus);
+#endif
+
 #ifdef TREE_BASED_TIMESTEPS
       byten(ExtNgb_Nodes + Ngb_MaxPart, Ngb_NumNodes * sizeof(struct ExtNgbNODE), modus);
 #endif /* #ifdef TREE_BASED_TIMESTEPS */

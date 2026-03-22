@@ -1,6 +1,8 @@
 #ifndef NGBTREE_H
 #define NGBTREE_H
 
+#include "../utils/dtypes.h"
+
 /*! Variables for neighbor tree */
 extern int Ngb_MaxPart;
 extern int Ngb_NumNodes;
@@ -52,14 +54,18 @@ extern struct ExtNgbNODE
 extern struct RtNgbNODE
 {
     /* geometric cell bounds — opening angle + intersection */
-    float center[3];
-    float len;
-
-    /* RT quantities — volume-weighted, accumulated bottom-up */
+    //float center[3];
+    //float len;
+    
+    /* number of children */
     int nchildren;
 
+    /* RT quantities - volume-weighted, accumulated during tree build */
     float volume;
     float density_kappa[WAVEBANDS];
+    
+    /* RT quantities - accumulated during tree walk */
+    float RAD[WAVEBANDS];
 } * RtNgb_Nodes;
 #endif
 
