@@ -450,15 +450,16 @@ void init_state(void)
 {
   // We run this inside init()  
   int i;
+  double tiny = 1e-20;
   for(i = 0; i < NumGas; i++)
     {
       /* Fully neutral initial conditions -> might want to set different ones */
       SphP[i].grHI    = HYDROGEN_MASSFRAC;          // all H is neutral
-      SphP[i].grHII   = 0.0;
+      SphP[i].grHII   = tiny;
       SphP[i].grHeI   = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
-      SphP[i].grHeII  = 0.0;
-      SphP[i].grHeIII = 0.0;
-      SphP[i].Ne      = 0.0;
+      SphP[i].grHeII  = tiny;
+      SphP[i].grHeIII = tiny;
+      SphP[i].Ne      = tiny;
     }
 }
 

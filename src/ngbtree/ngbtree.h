@@ -39,22 +39,7 @@ extern struct NgbNODE
   int father;
 
   integertime Ti_Current;
-
 } * Ngb_Nodes;
-
-extern struct RtNgbNODE
-{
-    /* geometric cell bounds — needed for opening angle + intersection */
-    float center[3];
-    float len;
-
-    /* RT quantities — volume-weighted, accumulated bottom-up */
-    float density;
-    float volume;
-    float kappa[WAVEBANDS];
-    int   nchildren;
-
-} * RtNgb_Nodes;
 
 extern struct ExtNgbNODE
 {
@@ -62,5 +47,20 @@ extern struct ExtNgbNODE
   float vmax[3];
   float MaxCsnd;
 } * ExtNgb_Nodes;
+
+#ifdef STAR_RADIATION_ACTIVE
+extern struct RtNgbNODE
+{
+    /* geometric cell bounds — opening angle + intersection */
+    float center[3];
+    float len;
+
+    /* RT quantities — volume-weighted, accumulated bottom-up */
+    int nchildren;
+
+    float volume;
+    float density_kappa[WAVEBANDS];
+} * RtNgb_Nodes;
+#endif
 
 #endif

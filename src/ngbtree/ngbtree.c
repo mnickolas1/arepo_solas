@@ -81,9 +81,11 @@ int *Ngb_Nextnode;
 /*! The ngb-tree data structure
  */
 struct NgbNODE *Ngb_Nodes;
-struct RtNgbNODE *RtNgb_Nodes;
 struct ExtNgbNODE *ExtNgb_Nodes;
 
+#ifdef STAR_RADIATION_ACTIVE
+struct RtNgbNODE *RtNgb_Nodes;
+#endif
 
 int *Ngblist; /*!< Buffer to hold indices of neighbours retrieved by the neighbour search routines */
 
@@ -523,6 +525,15 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
   MyNgbTreeFloat vmin[3], vmax[3], maxcsnd;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
+#ifdef STAR_RADIATION_ACTIVE
+  MyNgbTreeFloat volume, density_kappa[WAVEBANDS];
+
+  volume = 0;
+  
+  for(int w = 0; w < WAVEBANDS; w++)
+    density_kappa[w] = 0;
+#endif
+
   if(no >= Ngb_MaxPart && no < Ngb_MaxPart + Ngb_MaxNodes) /* internal node */
     {
       if(*last >= 0)
@@ -650,6 +661,12 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
                                 vmax[k] = ExtNgb_Nodes[p].vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
                             }
+#ifdef STAR_RADIATION_ACTIVE  
+                          volume += RtNgb_Nodes[p].u.d.volume;
+                          
+                          for(int w = 0; w < WAVEBANDS; w++)
+                            density_kappa[w] += RtNgb_Nodes[p].u.d.volume * RtNgb_Nodes[p].u.d.density_kappa[w];
+#endif
                         }
                     }
                   else /* a particle */
@@ -682,7 +699,14 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
                           if(vmax[k] < P[p].Vel[k])
                             vmax[k] = P[p].Vel[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+
                         }
+#ifdef STAR_RADIATION_ACTIVE  
+                      volume += SphP[p].Volume;
+                      
+                      for(int w = 0; w < WAVEBANDS; w++)
+                        density_kappa[w] += SphP[p].Volume * SphP[p].Density * SphP[p].Kappa[w];
+#endif
                     }
                 }
             }
@@ -702,6 +726,18 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
               ExtNgb_Nodes[no].vmax[k] = vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
+#ifdef STAR_RADIATION_ACTIVE  
+          RtNgb_Nodes[no].u.d.volume = volume;
+          
+          if(volume > 0)
+            {
+              for(int w = 0; w < WAVEBANDS; w++)
+                density_kappa[w] /= volume;
+            }
+
+          for(int w = 0; w < WAVEBANDS; w++)
+            RtNgb_Nodes[no].u.d.density_kappa[w] = density_kappa[w];
+#endif
 
           Ngb_Nodes[no].u.d.sibling = sib;
           Ngb_Nodes[no].father      = father;
@@ -786,6 +822,10 @@ void ngb_exchange_topleafdata(void)
 #ifdef TREE_BASED_TIMESTEPS
     MyNgbTreeFloat MaxCsnd, vmin[3], vmax[3];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+
+#ifdef STAR_RADIATION_ACTIVE
+    MyNgbTreeFloat volume, density_kappa[WAVEBANDS];
+#endif
   };
 
   struct DomainNODE *DomainMoment = (struct DomainNODE *)mymalloc("DomainMoment", NTopleaves * sizeof(struct DomainNODE));
@@ -837,6 +877,13 @@ void ngb_exchange_topleafdata(void)
               loc_DomainMoment[idx].vmax[k] = ExtNgb_Nodes[no].vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
+#ifdef STAR_RADIATION_ACTIVE
+          loc_DomainMoment[idx].volume = RtNgb_Nodes[no].u.d.volume;
+          
+          for(int w = 0; w < WAVEBANDS; w++)
+            loc_DomainMoment[idx].density_kappa[w] = RtNgb_Nodes[no].u.d.density_kappa[w];
+#endif
+
           idx++;
         }
     }
@@ -868,6 +915,13 @@ void ngb_exchange_topleafdata(void)
               ExtNgb_Nodes[no].vmax[k] = DomainMoment[idx].vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
+#ifdef STAR_RADIATION_ACTIVE
+          RtNgb_Nodes[no].u.d.volume = DomainMoment[idx].volume;
+          
+          for(int w = 0; w < WAVEBANDS; w++)
+            RtNgb_Nodes[no].u.d.density_kappa[w] = DomainMoment[idx].density_kappa[w];
+#endif
+
           Ngb_Nodes[no].Ti_Current = All.Ti_Current;
         }
     }
@@ -1347,6 +1401,10 @@ void ngb_treemodifylength(int delta_NgbMaxPart)
   ExtNgb_Nodes -= delta_NgbMaxPart;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
+#ifdef STAR_RADIATION_ACTIVE
+  RtNgb_Nodes -= delta_NgbMaxPart;
+#endif
+
   Ngb_Father = (int *)myrealloc_movable(Ngb_Father, Ngb_MaxPart * sizeof(int));
 
   Ngb_Marker = (int *)myrealloc_movable(Ngb_Marker, (Ngb_MaxNodes + Ngb_MaxPart) * sizeof(int));
@@ -1381,6 +1439,12 @@ void ngb_treeallocate(void)
   ExtNgb_Nodes = (struct ExtNgbNODE *)mymalloc_movable(&ExtNgb_Nodes, "ExtNgb_Nodes", (Ngb_MaxNodes + 1) * sizeof(struct ExtNgbNODE));
   ExtNgb_Nodes -= Ngb_MaxPart;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+
+#ifdef STAR_RADIATION_ACTIVE
+  RtNgb_Nodes = (struct RtNgbNODE *)mymalloc_movable(&RtNgb_Nodes, "RtNgb_Nodes", (Ngb_MaxNodes + 1) * sizeof(struct RtNgbNODE));
+  RtNgb_Nodes -= Ngb_MaxPart;
+#endif
+
   Ngb_Nextnode = (int *)mymalloc_movable(&Ngb_Nextnode, "Ngb_Nextnode", (Ngb_MaxPart + NTopleaves) * sizeof(int));
   Ngb_Father   = (int *)mymalloc_movable(&Ngb_Father, "Ngb_Father", Ngb_MaxPart * sizeof(int));
 
@@ -1401,10 +1465,17 @@ void ngb_treefree(void)
       myfree_movable(Ngb_Marker);
       myfree_movable(Ngb_Father);
       myfree_movable(Ngb_Nextnode);
+
+#ifdef STAR_RADIATION_ACTIVE
+      myfree_movable(RtNgb_Nodes + Ngb_MaxPart);
+      RtNgb_Nodes = NULL;
+#endif
+
 #ifdef TREE_BASED_TIMESTEPS
       myfree_movable(ExtNgb_Nodes + Ngb_MaxPart);
       ExtNgb_Nodes = NULL;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+      
       myfree_movable(Ngb_Nodes + Ngb_MaxPart);
       myfree_movable(Ngb_DomainNodeIndex);
 
