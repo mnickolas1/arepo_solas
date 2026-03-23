@@ -711,7 +711,7 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
           export_Tree_Points[n].th            = th_list[i];
           export_Tree_Points[n].level         = level_list[i];
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
           if(P[i].Type == 0)
             {
               export_Tree_Points[n].Volume = SphP[i].Volume;
@@ -720,6 +720,7 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
               export_Tree_Points[n].StarMomentumFeed[1] = 0;
               export_Tree_Points[n].StarMomentumFeed[2] = 0;
             }
+
           for(int w = 0; w < WAVEBANDS; w++)
             {
               if(P[i].Type == 0)
@@ -727,6 +728,7 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
                   export_Tree_Points[n].Kappa[w] = SphP[i].Kappa[w];
                   export_Tree_Points[n].RAD[w] = 0;
                 }
+
               if(P[i].Type == 4)
                 export_Tree_Points[n].LUM[w] = SPP(i).LUM[w];
             }
@@ -1241,7 +1243,7 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
   int j, jj, p, pp, nextsib, suns[8];
   double s[3], mass;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
   double density, kappa[WAVEBANDS];
   double luminosity[WAVEBANDS], l[WAVEBANDS][3];
 #endif
@@ -1280,8 +1282,9 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
       s[1] = 0;
       s[2] = 0;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
       density = 0;
+
       for(int w = 0; w < WAVEBANDS; w++)
         {
           kappa[w] = 0;
@@ -1327,13 +1330,15 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
                   s[1] += P[p].Mass * pos[1];
                   s[2] += P[p].Mass * pos[2];
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
                   if(P[p].Type == 0)
                     density += P[p].Mass * SphP[p].Density;
+
                   for(int w = 0; w < WAVEBANDS; w++)
                     {
                       if(P[p].Type == 0)
                         kappa[w] += P[p].Mass * SphP[p].Kappa[w];
+
                       if(P[p].Type == 4)
                         {
                           luminosity[w] += SPP(p).LUM[w];
@@ -1368,8 +1373,9 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
                   s[1] += Nodes[p].u.d.mass * Nodes[p].u.d.s[1];
                   s[2] += Nodes[p].u.d.mass * Nodes[p].u.d.s[2];
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
                   density += Nodes[p].u.d.mass * Nodes[p].u.d.density;
+
                   for(int w = 0; w < WAVEBANDS; w++)
                     {
                       kappa[w] += Nodes[p].u.d.mass * Nodes[p].u.d.kappa[w];
@@ -1413,13 +1419,15 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
                   s[1] += Tree_Points[n].Mass * Tree_Points[n].Pos[1];
                   s[2] += Tree_Points[n].Mass * Tree_Points[n].Pos[2];
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
                   if(Tree_Points[n].Type == 0)
                     density += Tree_Points[n].Mass * Tree_Points[n].Density;
+
                   for(int w = 0; w < WAVEBANDS; w++)
                     {
                       if(Tree_Points[n].Type == 0)
                         kappa[w] += Tree_Points[n].Mass * Tree_Points[n].Kappa[w];
+
                       if(Tree_Points[n].Type == 4)
                         {
                           luminosity[w] += Tree_Points[n].LUM[w];
@@ -1465,13 +1473,15 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
           s[2] = Nodes[no].center[2];
         }
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
       if(mass)
         density /= mass;
+
       for(int w = 0; w < WAVEBANDS; w++)
         {
           if(mass)
             kappa[w] /= mass;
+
           if(luminosity[w])
             {
               l[w][0] /= luminosity[w];
@@ -1492,8 +1502,9 @@ void force_update_node_recursive(int no, int sib, int father, int *last)
       Nodes[no].u.d.s[1] = s[1];
       Nodes[no].u.d.s[2] = s[2];
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
       Nodes[no].u.d.density = density;
+      
       for(int w = 0; w < WAVEBANDS; w++)
         {
           Nodes[no].u.d.kappa[w] = kappa[w];
@@ -1557,8 +1568,7 @@ void force_exchange_topleafdata(void)
     MyDouble s[3];
     MyDouble mass;
 
-#ifdef STAR_RADIATION_ACTIVE
-    MyDouble density, kappa[WAVEBANDS];       
+#ifdef TREECOLUMN       
     MyDouble luminosity[WAVEBANDS], l[WAVEBANDS][3];         
 #endif
 
@@ -1614,8 +1624,9 @@ void force_exchange_topleafdata(void)
           loc_DomainMoment[idx].s[2]  = Nodes[no].u.d.s[2];
           loc_DomainMoment[idx].mass  = Nodes[no].u.d.mass;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
           loc_DomainMoment[idx].density = Nodes[no].u.d.density;
+          
           for(int w = 0; w < WAVEBANDS; w++) 
             {
               loc_DomainMoment[idx].kappa[w] = Nodes[no].u.d.kappa[w];
@@ -1657,8 +1668,9 @@ void force_exchange_topleafdata(void)
           Nodes[no].u.d.s[2]  = DomainMoment[idx].s[2];
           Nodes[no].u.d.mass  = DomainMoment[idx].mass;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
           Nodes[no].u.d.density = DomainMoment[idx].density;
+          
           for(int w = 0; w < WAVEBANDS; w++) 
             {
               Nodes[no].u.d.kappa[w] = DomainMoment[idx].kappa[w];
@@ -1709,7 +1721,7 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
 {
   double s[3], mass;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
   double density, kappa[WAVEBANDS];
   double luminosity[WAVEBANDS], l[WAVEBANDS][3];
 #endif
@@ -1741,8 +1753,9 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
       s[1] = 0;
       s[2] = 0;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
       density = 0;
+      
       for(int w = 0; w < WAVEBANDS; w++)
         {
           kappa[w] = 0;
@@ -1774,8 +1787,9 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
               s[1] += Nodes[p].u.d.mass * Nodes[p].u.d.s[1];
               s[2] += Nodes[p].u.d.mass * Nodes[p].u.d.s[2];
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
               density += Nodes[p].u.d.mass * Nodes[p].u.d.density;
+              
               for(int w = 0; w < WAVEBANDS; w++)
                 {
                   kappa[w] += Nodes[p].u.d.mass * Nodes[p].u.d.kappa[w];
@@ -1818,14 +1832,16 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
           s[2] = Nodes[no].center[2];
         }
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
       if(mass)
         density /= mass;
+      
       for(int w = 0; w < WAVEBANDS; w++)
         {
           if(mass)
             kappa[w] /= mass;
-          if(luminosity[w])
+          
+            if(luminosity[w])
             {
               l[w][0] /= luminosity[w];
               l[w][1] /= luminosity[w];
@@ -1845,8 +1861,9 @@ void force_treeupdate_toplevel(int no, int topnode, int bits, int x, int y, int 
       Nodes[no].u.d.s[2]  = s[2];
       Nodes[no].u.d.mass  = mass;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
       Nodes[no].u.d.density = density;
+      
       for(int w = 0; w < WAVEBANDS; w++)
         {
           Nodes[no].u.d.kappa[w] = kappa[w];

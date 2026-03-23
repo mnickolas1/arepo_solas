@@ -838,7 +838,7 @@ extern struct treepoint_data
   unsigned char Type;
   unsigned char SofteningType : 7;
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
   MyDouble Volume;
   MyDouble Density;
   MyDouble StarMomentumFeed[3];
@@ -2082,7 +2082,7 @@ extern struct NODE
       MyDouble s[3]; /*!< center of mass of node */
       MyDouble mass; /*!< mass of node */
 
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef TREECOLUMN
       MyDouble density;
       MyDouble kappa[WAVEBANDS]; 
       MyDouble luminosity[WAVEBANDS]; /*!< luminosity of node */

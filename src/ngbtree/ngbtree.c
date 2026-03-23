@@ -732,19 +732,20 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
           RtNgb_Nodes[no].u.d.volume = volume;
           
           if(volume > 0)
-            {
-              for(int w = 0; w < WAVEBANDS; w++)
-                density_kappa[w] /= volume;
-            }
+            for(int w = 0; w < WAVEBANDS; w++)
+              density_kappa[w] /= volume;
 
           for(int w = 0; w < WAVEBANDS; w++)
             RtNgb_Nodes[no].u.d.density_kappa[w] = density_kappa[w];
 
           /* count direct children */
           int nchildren = 0;
+          
           for(int j = 0; j < 8; j++)
-            if(suns[j] >= 0) nchildren++;
-              RtNgb_Nodes[no].nchildren = nchildren;
+            if(suns[j] >= 0) 
+              nchildren++;
+              
+            RtNgb_Nodes[no].nchildren = nchildren;
 #endif
 
           Ngb_Nodes[no].u.d.sibling = sib;
