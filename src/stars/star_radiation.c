@@ -93,6 +93,8 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
   for(int idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       int i = TimeBinsStar.ActiveParticleList[idx];
+
+      double dt_rad = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
         
       // Loop over rays for this star
       for(int iray = 0; iray < NRays; iray++)
@@ -104,6 +106,9 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
           rays[ray_idx].dir[0] = HealpixDirs[iray][0];        
           rays[ray_idx].dir[1] = HealpixDirs[iray][1];
           rays[ray_idx].dir[2] = HealpixDirs[iray][2];
+          rays[ray_idx].t = 0.0;
+          rays[ray_idx].t_exit = MAX_REAL_NUMBER;
+          rays[ray_idx].t_maximum = fmin(CLIGHT * dt_rad, M_SQRT3 * All.BoxSize);
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
@@ -119,8 +124,6 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
           
           rays[ray_idx].n_pending = 0;
           rays[ray_idx].target_node = -1;
-          rays[ray_idx].t_enter = 0.0;
-          rays[ray_idx].t_exit = MAX_REAL_NUMBER;
             
           ray_idx++;
         }

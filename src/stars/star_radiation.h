@@ -42,6 +42,9 @@ typedef struct
 {
   double pos[3];
   double dir[3];
+  double t;
+  double t_exit;
+  double t_maximum;
   double RAD[WAVEBANDS];
   double RAD_Initial[WAVEBANDS];
 
@@ -57,8 +60,6 @@ typedef struct
   StackEntry pending[RAY_STACK_SIZE];
   int n_pending;
   int target_node;
-  double t_enter;
-  double t_exit;
 } RayPacket;
 
 typedef struct 

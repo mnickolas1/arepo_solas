@@ -107,17 +107,15 @@ static inline int ray_absorb(RayPacket *ray, double chord_length, double density
 /* 
 Tree indices are organized as follows:
 
-[0 ... Tree_MaxPart-1] -> real particles
+[0 ... Ngb_MaxPart-1] -> real particles
 
-[Tree_MaxPart ... Tree_MaxPart+Tree_MaxNodes-1] -> internal nodes
+[Ngb_MaxPart ... Ngb_MaxPart+Ngb_MaxNodes-1] -> internal nodes
 
-    └── [Tree_MaxPart ... Tree_FirstNonTopLevelNode-1] -> top-level nodes (replicated everywhere)
+    └── [Ngb_MaxPart ... Tree_FirstNonTopLevelNode-1] -> top-level nodes (replicated everywhere)
  
-                       └──  [Tree_FirstNonTopLevelNode ... Tree_MaxPart+Tree_MaxNodes-1] -> local branch nodes
+                       └──  [Tree_FirstNonTopLevelNode ... Ngb_MaxPart+Ngb_MaxNodes-1] -> local branch nodes
 
-[Tree_MaxPart+Tree_MaxNodes ... Tree_MaxPart+Tree_MaxNodes+NTopleaves-1] -> pseudo-particles
-
-[Tree_MaxPart+Tree_MaxNodes+NTopleaves ... ] -> imported points (Tree_ImportedNodeOffset = Tree_MaxPart + Tree_MaxNodes + NTopleaves)
+[Ngb_MaxPart+Ngb_MaxNodes ... Ngb_MaxPart+Ngb_MaxNodes+NTopleaves-1] -> pseudo-particles
 */
 
 void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffer *export_buf)
@@ -128,7 +126,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
   /* push entry point */
   if(mode == 0)
-    stack[stack_top++] = (StackEntry){0.0, MAX_REAL_NUMBER, Tree_MaxPart}; /* root */
+    stack[stack_top++] = (StackEntry){0.0, MAX_REAL_NUMBER, Ngb_MaxPart}; /* root */
   else
     {
       /* restore whatever was pending from previous rank */
@@ -139,7 +137,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
       stack_top = ray->n_pending;
       ray->n_pending = 0;
       /* push the target node on top - it goes first */
-      stack[stack_top++] = (StackEntry){ray->t_enter, ray->t_exit, target_node};
+      stack[stack_top++] = (StackEntry){ray->t, ray->t_exit, target_node};
     }
   
   while(stack_top > 0)
@@ -148,25 +146,9 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
       int no = cur.node;
 
       /* ---- real particle ---- */
-      if(no < Tree_MaxPart)
-        { 
-          //if(P[no].Type != 0) // this shouldn't really happen in the stack
-          //  continue; 
-              
-          //double px = Tree_Pos_list[3 * no + 0] - ray->pos[0];
-          //double py = Tree_Pos_list[3 * no + 1] - ray->pos[1];
-          //double pz = Tree_Pos_list[3 * no + 2] - ray->pos[2];
-              
-          /* assume cell is spherical */
-          //double r = cbrt((3.0 * SphP[no].Volume) / (4.0 * M_PI));
-          //double r2 = r * r;
-              
-          /* project onto ray for closest approach */
-          //double t_enter, t_exit;
-          //if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
-          //  terminate("Should not happen!");
-              
-          double chord_length = cur.t_exit - cur.t_enter;;
+      if(no < Ngb_MaxPart)
+        {     
+          double chord_length = cur.t_exit - cur.t;
           double density = SphP[no].Density;
               
           double kappa[WAVEBANDS];
@@ -203,19 +185,9 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           if(!still_alive) return; /* all bands are exhausted */     
         }
       /* ---- internal node ---- */
-      else if(no < Tree_MaxPart + Tree_MaxNodes)
+      else if(no < Ngb_MaxPart + Ngb_MaxNodes)
         {
-          struct NODE *nop = &Nodes[no];
-
-          //double t_enter, t_exit;
-          //if(!ray_box_intersect(ray->pos, ray->dir, nop->center, nop->len, &t_enter, &t_exit))
-          //  terminate("Should not happen!");
-          
-          // Approx. barnes hut like criterion -> might need for expensive sims 
-          //double dtau_node = Kappa * nop->u.d.density * nop->len;
-          //if(dtau_node < TAU_OPEN_CRITERION)
-          //  {
-          //  }
+          struct NODE *nop = &Ngb_Nodes[no];
 
           /* enumerate direct children, sort by t_enter, push */
           StackEntry children[8];
@@ -224,51 +196,29 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           int child = nop->u.d.nextnode;
           while(child != nop->u.d.sibling && child >= 0)
             {
-              double ct_enter, ct_exit;
+              double t_enter, t_exit;
               int hit = 0;
 
-              if(child < Tree_MaxPart) /* cell */
+              if(child < Ngb_MaxPart) /* cell */
                 {
-                  if(P[child].Type == 0)
-                    {
-                      double px = Tree_Pos_list[3 * child + 0] - ray->pos[0];
-                      double py = Tree_Pos_list[3 * child + 1] - ray->pos[1];
-                      double pz = Tree_Pos_list[3 * child + 2] - ray->pos[2];
+                  double px = Tree_Pos_list[3 * child + 0] - ray->pos[0];
+                  double py = Tree_Pos_list[3 * child + 1] - ray->pos[1];
+                  double pz = Tree_Pos_list[3 * child + 2] - ray->pos[2];
                   
-                      double r  = cbrt((3.0 * SphP[child].Volume) / (4.0 * M_PI));
-                      double r2 = r * r;
+                  double r  = cbrt((3.0 * SphP[child].Volume) / (4.0 * M_PI));
+                  double r2 = r * r;
                       
-                      hit = ray_sphere_intersect(px, py, pz, ray->dir, r2, &ct_enter, &ct_exit);
-                    }               
+                  hit = ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit);              
                 }
-              else if(child < Tree_MaxPart + Tree_MaxNodes) /* internal node */
-                {
-                  if(Nodes[child].u.d.density > 0)
-                    hit = ray_box_intersect(ray->pos, ray->dir, Nodes[child].center, Nodes[child].len, &ct_enter, &ct_exit);
-                }
-              else if(child >= Tree_ImportedNodeOffset) /* imported point */
-                {
-                  int n = child - Tree_ImportedNodeOffset;
-
-                  if(Tree_Points[n].Type == 0)
-                    {    
-                      double px = Tree_Points[n].Pos[0] - ray->pos[0];
-                      double py = Tree_Points[n].Pos[1] - ray->pos[1];
-                      double pz = Tree_Points[n].Pos[2] - ray->pos[2];
-
-                      double r = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
-                      double r2 = r * r;
-
-                      hit = ray_sphere_intersect(px, py, pz, ray->dir, r2, &ct_enter, &ct_exit);
-                    }
-                }
+              else if(child < Ngb_MaxPart + Ngb_MaxNodes) /* internal node */
+                hit = ray_box_intersect(ray->pos, ray->dir, Nodes[child].center, Nodes[child].len, &t_enter, &t_exit);
+            
               else /* pseudo-particle - requires export */
                 {
-                  int pseudo_idx = child - (Tree_MaxPart + Tree_MaxNodes);
+                  int pseudo_idx = child - (Ngb_MaxPart + Ngb_MaxNodes);
                   int top_node = DomainNodeIndex[pseudo_idx];
 
-                  if(Nodes[top_node].u.d.density > 0)
-                    hit = ray_box_intersect(ray->pos, ray->dir, Nodes[top_node].center, Nodes[top_node].len, &ct_enter, &ct_exit);
+                  hit = ray_box_intersect(ray->pos, ray->dir, Nodes[top_node].center, Nodes[top_node].len, &t_enter, &t_exit);
                 }
 
               if(hit)
@@ -276,16 +226,16 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
                   if(nchildren >= 8)
                     terminate("Too many children!");
 
-                  children[nchildren++] = (StackEntry){ct_enter, ct_exit, child};
+                  children[nchildren++] = (StackEntry){t_enter, t_exit, child};
                 }
 
               /* advance to next direct child via sibling */
-              if(child < Tree_MaxPart)
+              if(child < Ngb_MaxPart)
                 child = Nextnode[child];
-              else if(child < Tree_MaxPart + Tree_MaxNodes)
+              else if(child < Ngb_MaxPart + Ngb_MaxNodes)
                 child = Nodes[child].u.d.sibling;
               else
-                child = Nextnode[child - Tree_MaxNodes];
+                child = Nextnode[child - Ngb_MaxNodes];
             }
 
           /* sort ascending by t_enter */
@@ -310,63 +260,12 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
               stack[stack_top++] = children[i];
             }
         }
-      /* ---- imported particle: remote domain ---- */  
-      else if(no >= Tree_ImportedNodeOffset) 
-        {
-          int n = no - Tree_ImportedNodeOffset;
-              
-          //double px = Tree_Points[n].Pos[0] - ray->pos[0];
-          //double py = Tree_Points[n].Pos[1] - ray->pos[1];
-          //double pz = Tree_Points[n].Pos[2] - ray->pos[2];
-
-          //double r  = cbrt((3.0*Tree_Points[n].Volume)/(4.0*M_PI));
-          //double r2 = r * r;
-          
-          //double t_enter, t_exit;
-          //if(!ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit))
-          //  terminate("Should not happen!");
-              
-          double chord_length = cur.t_exit - cur.t_enter;
-          double density = Tree_Points[n].Density;
-          
-          double kappa[WAVEBANDS];
-          for(int w = 0; w < WAVEBANDS; w++)
-            kappa[w] = Tree_Points[n].Kappa[w];
-          
-          double absorbed[WAVEBANDS];
-
-          double dtau_IR;
-
-          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed, &dtau_IR);
-
-          /* deposit absorbed energy into cell, one band at a time */
-
-          // Ionizing Photons
-          Tree_Points[n].RAD[IONIZING_H_PHOTONS] += absorbed[IONIZING_H_PHOTONS];
-          
-          // Ionizing Energy
-          double dp = 0.0;
-          Tree_Points[n].RAD[IONIZING] += absorbed[IONIZING];
-          dp += absorbed[IONIZING] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
-              
-          double dp_rerad = 0.0;
-          for(int w = 2; w < WAVEBANDS; w++)
-            {
-              Tree_Points[n].RAD[w] += absorbed[w];
-              dp_rerad += absorbed[w] * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
-            }
-         
-          Tree_Points[n].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];
-          Tree_Points[n].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
-          Tree_Points[n].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
-
-          if(!still_alive) return;  
-        }
+      
       /* ---- pseudo-particle: remote domain ---- */  
       else
         {
-          int task = DomainNewTask[no - (Tree_MaxPart + Tree_MaxNodes)];
-          int remote_node = DomainNodeIndex[no - (Tree_MaxPart + Tree_MaxNodes)];
+          int task = DomainNewTask[no - (Ngb_MaxPart + Ngb_MaxNodes)];
+          int remote_node = DomainNodeIndex[no - (Ngb_MaxPart + Ngb_MaxNodes)];
 
           /* pack pending */
           if(stack_top >= RAY_STACK_SIZE - 1) 
@@ -375,7 +274,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           ray->n_pending = stack_top;
           memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
 
-          ray->t_enter = cur.t_enter;
+          ray->t = cur.t;
           ray->t_exit = cur.t_exit;
           ray->target_node = remote_node;  /* store for mode==1 */
 
