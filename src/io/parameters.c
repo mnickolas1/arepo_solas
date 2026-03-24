@@ -612,6 +612,12 @@ void read_parameter_file(char *fname)
       id[nt++] = INT;
 #endif  
 
+#ifdef RAD_OPENING_ANGLE
+      strcpy(tag[nt], "RadOpeningAngle");
+      addr[nt] = &All.RadOpeningAngle;
+      id[nt++] = REAL;
+#endif  
+
 #ifdef SUPERNOVAE      
       //strcpy(tag[nt], "Ftherm");
       //addr[nt] = &All.Ftherm;

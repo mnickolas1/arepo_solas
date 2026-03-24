@@ -76,7 +76,7 @@ static inline int ray_sphere_intersect(const double dx, const double dy, const d
   return 1;
 }
 
-static inline int ray_absorb(RayPacket *ray, double chord_length, double density, double kappa[WAVEBANDS], double absorbed_RAD[WAVEBANDS], double *dtau_IR)
+static inline int ray_absorb(RayPacket *ray, double chord_length, double density_kappa[WAVEBANDS], double absorbed_RAD[WAVEBANDS], double *dtau_IR)
 {
   for(int w = 0; w < WAVEBANDS; w++)
     {
@@ -85,7 +85,7 @@ static inline int ray_absorb(RayPacket *ray, double chord_length, double density
       if(!(ray->active_bands & (1u << w)))
         continue;
 
-      double dtau = kappa[w] * density * chord_length;
+      double dtau = density_kappa[w] * chord_length;
       double absorbed = ray->RAD[w] * (1.0 - exp(-dtau));
 
       absorbed_RAD[w] += absorbed;
@@ -97,7 +97,7 @@ static inline int ray_absorb(RayPacket *ray, double chord_length, double density
     }
     
     // IR re-absorption tau
-    *dtau_IR = kappa[INFRARED] * density * chord_length;
+    *dtau_IR = density_kappa[INFRARED] * chord_length;
 
   return ray->active_bands != 0;
 }
@@ -143,17 +143,15 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
       if(no < Ngb_MaxPart)
         {     
           double chord_length = cur.t_exit - cur.t_enter;
-          double density = SphP[no].Density;
               
-          double kappa[WAVEBANDS];
+          double density_kappa[WAVEBANDS];
           for(int w = 0; w < WAVEBANDS; w++)
-            kappa[w] = SphP[no].Kappa[w];
+            density_kappa[w] = SphP[no].Density * SphP[no].Kappa[w];
           
           double absorbed[WAVEBANDS];
-
           double dtau_IR;
 
-          int still_alive = ray_absorb(ray, chord_length, density, kappa, absorbed, &dtau_IR);
+          int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
 
           /* deposit absorbed energy into cell, one band at a time */
 
@@ -185,7 +183,48 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
         {
           struct NgbNODE *nop = &Ngb_Nodes[no];
 
-          /* enumerate direct children, sort by t_enter, push */
+#ifdef RAD_OPENING_ANGLE
+          /* --- Barnes-Hut opening criterion --- */
+          double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
+          double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
+          double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
+
+          double ddx = cx - ray->pos[0];
+          double ddy = cy - ray->pos[1];
+          double ddz = cz - ray->pos[2];
+          double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
+
+          double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
+          double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
+          double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
+          double len2 = dx*dx + dy*dy + dz*dz;
+          
+          /* node is far enough — treat as single slab */
+          if(dist2 > 0 && len2 / dist2 < All.RadOpeningAngle * All.RadOpeningAngle)
+            {
+              double chord_length = cur.t_exit - cur.t_enter;
+              
+              double density_kappa[WAVEBANDS];
+              for(int w = 0; w < WAVEBANDS; w++)
+                density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];  /* volume-weighted mean kappa * density */
+
+              double absorbed[WAVEBANDS];
+              double dtau_IR;
+
+              int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
+
+              /* accumulate for later distribution to children */
+              for(int w = 0; w < WAVEBANDS; w++)
+                RtNgb_Nodes[no].RAD[w] += absorbed[w];
+
+              ray->t = cur.t_exit;
+
+              if(!still_alive) return;
+                
+              continue;  /* don't open this node */
+            }
+#endif
+          /* open it and enumerate children -> sort by t_enter, push */
           StackEntry children[8];
           int nchildren = 0;
 

@@ -1351,7 +1351,11 @@ double InitMetallicityinSolar;
 #endif  
 
 #ifdef STAR_RADIATION_ACTIVE
- int Nside;
+  int Nside;
+#endif
+
+#ifdef RAD_OPENING_ANGLE
+  double RadOpeningAngle;
 #endif
   
 /*#ifdef SUPERNOVAE
