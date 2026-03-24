@@ -312,59 +312,67 @@ void send_results_home(void)
   myfree(Send_count);  myfree(Recv_count);
 }
 
+#ifdef RAD_OPENING_ANGLE
 void distribute_node_rad(int no)
 {
-  if(RtNgb_Nodes[no].RAD[0] == 0.0) /* quick check — skip empty nodes */
+  /* quick check — skip empty nodes */
+  int has_rad = 0;
+        
+  for(int w = 0; w < WAVEBANDS; w++)
+    if(RtNgb_Nodes[no].RAD[w] > 0) 
+      { 
+        has_rad = 1; 
+        break; 
+      }
+      
+  if(!has_rad) return;
+  
+  double node_tau[WAVEBANDS];
+  for(int w = 0; w < WAVEBANDS; w++)
+    node_tau[w] = RtNgb_Nodes[no].volume * RtNgb_Nodes[no].density_kappa[w];
+
+  int child = Ngb_Nodes[no].u.d.nextnode;
+  while(child != Ngb_Nodes[no].u.d.sibling && child >= 0)
     {
-        int has_rad = 0;
-        for(int w = 0; w < WAVEBANDS; w++)
-          if(RtNgb_Nodes[no].RAD[w] > 0) { has_rad = 1; break; }
-        if(!has_rad) return;
-      }
-
-    double node_tau[WAVEBANDS];
-    for(int w = 0; w < WAVEBANDS; w++)
-      node_tau[w] = RtNgb_Nodes[no].density_kappa[w] * RtNgb_Nodes[no].volume;
-
-    int child = Ngb_Nodes[no].u.d.nextnode;
-    while(child != Ngb_Nodes[no].u.d.sibling && child >= 0)
-      {
-        if(child < Ngb_MaxPart && P[child].Type == 0)
-          {
-            /* leaf particle — deposit directly */
-            for(int w = 0; w < WAVEBANDS; w++)
-              {
-                if(node_tau[w] > 0)
-                  {
-                    double child_tau = SphP[child].Kappa[w] * SphP[child].Density * SphP[child].Volume;
-                    double frac      = child_tau / node_tau[w];
-                    SphP[child].RAD[w] += frac * RtNgb_Nodes[no].RAD[w];
-                  }
-              }
-            child = Ngb_Nextnode[child];
-          }
-        else if(child < Ngb_MaxPart + Ngb_MaxNodes)
-          {
-            /* internal node — pass fraction down recursively */
-            for(int w = 0; w < WAVEBANDS; w++)
-              {
-                if(node_tau[w] > 0)
-                  {
-                    double child_tau = RtNgb_Nodes[child].density_kappa[w] * RtNgb_Nodes[child].volume;
-                    double frac      = child_tau / node_tau[w];
-                    RtNgb_Nodes[child].RAD[w] += frac * RtNgb_Nodes[no].RAD[w];
-                  }
-              }
-            distribute_node_rad(child);
-            child = Ngb_Nodes[child].u.d.sibling;
-          }
-        else
-          {
-            /* pseudo-particle — skip, handled by export */
-            child = Ngb_Nextnode[child - Ngb_MaxNodes];
-          }
-      }
+      if(child < Ngb_MaxPart)
+        {
+          /* leaf particle — deposit directly */
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              if(node_tau[w] > 0)
+                {
+                  double child_tau = SphP[child].Volume * SphP[child].Density * SphP[child].Kappa[w];
+                  double frac = child_tau / node_tau[w];
+                  SphP[child].RAD[w] += frac * RtNgb_Nodes[no].RAD[w];
+                }
+            }
+          child = Ngb_Nextnode[child];
+        }
+      else if(child < Ngb_MaxPart + Ngb_MaxNodes)
+        {
+          /* internal node — pass fraction down recursively */
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              if(node_tau[w] > 0)
+                {
+                  double child_tau = RtNgb_Nodes[child].volume * RtNgb_Nodes[child].density_kappa[w];
+                  double frac = child_tau / node_tau[w];
+                  RtNgb_Nodes[child].RAD[w] += frac * RtNgb_Nodes[no].RAD[w];
+                }
+            }
+          distribute_node_rad(child);
+          child = Ngb_Nodes[child].u.d.sibling;
+        }
+      else
+        {
+          /* pseudo-particle — skip, handled by export */
+          child = Ngb_Nextnode[child - Ngb_MaxNodes];
+        }
+    }
+  for(int w = 0; w < WAVEBANDS; w++)
+    RtNgb_Nodes[no].RAD[w] = 0.0;
 }
+#endif
 
 void radiation_feedback(void)
 {
@@ -411,13 +419,16 @@ void radiation(void)
   //update_kappa(); -> We call this after cooling now (careful with Tree_Points!!)
 
 #ifdef RAD_OPENING_ANGLE
-  /* zero RAD accumulator on all nodes before treewalk */
+  /* zero RAD accumulator on all nodes before treewalk -> importnant for top nodes! */
   for(int no = Ngb_MaxPart; no < Ngb_MaxPart + Ngb_NumNodes; no++)
-    {
-      for(int w = 0; w < WAVEBANDS; w++)
-        RtNgb_Nodes[no].RAD[w] = 0.0;
-    }
+    for(int w = 0; w < WAVEBANDS; w++)
+      RtNgb_Nodes[no].RAD[w] = 0.0;
 #endif
+
+  /* zero RAD accumulator on all leaves before treewalk */
+  for(int i = 0; i < NumGas; i++)
+     for(int w = 0; w < WAVEBANDS; w++)
+        SphP[i].RAD[w] = 0.0;
 
 /* 1. initialize rays from active star particles */
   int n_rays_local = 0;

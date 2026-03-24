@@ -389,7 +389,7 @@ integertime get_timestep_hydro(int p)
   if(All.ComovingIntegrationOn)
     dt_courant *= All.Time;
 
-  dt = dt_courant;
+  dt = dt_corant;
 
 #if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
 

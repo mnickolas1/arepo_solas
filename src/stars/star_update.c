@@ -59,11 +59,9 @@ int get_timestep_star(int p)
 #if STAR_PARTICLES == 2
   // This sets the timestep of less massive stars at 1 Myr
   double star_mass = PPS(p).Mass * (All.UnitMass_in_g / SOLAR_MASS);
-  if(star_mass < 2)
+  if(star_mass < 8)
     dt = pow(10,6) * SEC_PER_YEAR / All.UnitTime_in_s;
 #endif
-
-  dt *= All.cf_hubble_a;
 
   //if(dt >= All.MaxSizeTimestep)
     //dt = All.MaxSizeTimestep;

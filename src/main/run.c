@@ -382,13 +382,7 @@ void calculate_non_standard_physics_with_valid_gravity_tree(void) {}
  *
  *  \return void
  */
-void calculate_non_standard_physics_with_valid_gravity_tree_always(void) 
-{
-#ifdef STAR_RADIATION_ACTIVE
-  if(All.Time > All.FeedbackTime)
-    radiation();
-#endif
-}
+void calculate_non_standard_physics_with_valid_gravity_tree_always(void) {}
 
 /*! \brief Calls extra modules before the Voronoi mesh is built.
  *
@@ -396,31 +390,12 @@ void calculate_non_standard_physics_with_valid_gravity_tree_always(void)
  */
 void calculate_non_standard_physics_prior_mesh_construction(void)
 {
-  
 #ifdef FIND_HALOS
     if(All.Time>=All.NextTimeOfHaloFinding)
     {
         fof_seeding();
         mpi_printf("FOF_SEEDING: Found %d FOF groups at %g...\n",TotNgroups,All.Time);
         All.NextTimeOfHaloFinding*=All.TimeBetweenHaloFinding;
-    }
-#endif
-
-#ifdef BH_ACCRETION_ACTIVE
-  bh_density();
-#ifdef BONDI_ACCRETION
-  update_bh_accretion_rate();
-#endif
-  update_bh_timesteps();
-#endif
-
-#ifdef BH_FEEDBACK_ACTIVE
-   if(All.Time >= All.FeedbackTime)
-    {   
-      if(All.JetFeedback)
-        bh_jet_density();
-      
-      bh_ngb_feedback();
     }
 #endif
 
@@ -440,9 +415,30 @@ if(All.Time > All.FeedbackTime)
     update_star_timesteps();
     star_prep();
 
-    if(All.Time >= All.FeedbackTime)
-      star_feedback();
+    star_feedback();
+
+#ifdef STAR_RADIATION_ACTIVE
+    radiation();
+#endif
   }
+#endif
+
+#ifdef BH_ACCRETION_ACTIVE
+  bh_density();
+#ifdef BONDI_ACCRETION
+  update_bh_accretion_rate();
+#endif
+  update_bh_timesteps();
+#endif
+
+#ifdef BH_FEEDBACK_ACTIVE
+   if(All.Time >= All.FeedbackTime)
+    {   
+      if(All.JetFeedback)
+        bh_jet_density();
+      
+      bh_ngb_feedback();
+    }
 #endif
 }
 
@@ -455,13 +451,13 @@ if(All.Time > All.FeedbackTime)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
+#ifdef STAR_FEEDBACK_ACTIVE 
+  perform_end_of_step_star_physics();
+#endif
+
 #ifdef BH_FEEDBACK_ACTIVE
   perform_end_of_step_bh_physics();
 #endif
-
-#ifdef STAR_FEEDBACK_ACTIVE 
-  perform_end_of_step_star_physics();
-#endif 
 
 #ifdef COOLING
 #ifdef USE_SFR
@@ -470,10 +466,6 @@ void calculate_non_standard_physics_end_of_step(void)
   cooling_only();
 #endif /* #ifdef USE_SFR #else */
 #endif /* #ifdef COOLING */
-
-#ifdef STAR_RADIATION_ACTIVE
-  update_ionization();
-#endif
 }
 
 /*! \brief Checks whether the run must interrupted.
