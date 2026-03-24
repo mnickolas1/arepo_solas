@@ -81,6 +81,7 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
 {
   int n_stars = TimeBinsStar.NActiveParticles;
   int total_rays = n_stars * NRays;
+  double SQRT3 = sqrt(3);
     
   // Allocate memory for all rays
   RayPacket *rays = mymalloc("rays", total_rays * sizeof(RayPacket));
@@ -108,7 +109,7 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
           rays[ray_idx].dir[2] = HealpixDirs[iray][2];
           rays[ray_idx].t = 0.0;
           rays[ray_idx].t_exit = MAX_REAL_NUMBER;
-          rays[ray_idx].t_maximum = fmin(CLIGHT * dt_rad, M_SQRT3 * All.BoxSize);
+          rays[ray_idx].t_maximum = fmin(CLIGHT * dt_rad, SQRT3 * All.BoxSize);
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 

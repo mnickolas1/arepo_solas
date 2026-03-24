@@ -5,26 +5,24 @@
 
 #include "../stars/star_radiation.h"
 
-static inline int ray_box_intersect(double *ray_pos, double *ray_dir, double *center, double len, double *t_enter, double *t_exit)
+static inline int ray_box_intersect(double *ray_pos, double *ray_dir,
+                                            MyNgbTreeFloat *rmin, MyNgbTreeFloat *rmax,
+                                            double *t_enter, double *t_exit)
 {
-    double half = 0.5 * len;
     double tmin = -MAX_REAL_NUMBER, tmax = MAX_REAL_NUMBER;
 
     for(int i = 0; i < 3; i++)
     {
-        double lo = center[i] - half;
-        double hi = center[i] + half;
-
         if(fabs(ray_dir[i]) < 1e-12) /* ray parallel to this slab */
         {
-            if(ray_pos[i] < lo || ray_pos[i] > hi)
-                return 0; /* outside slab, no intersection */
+            if(ray_pos[i] < rmin[i] || ray_pos[i] > rmax[i])
+                return 0;
         }
         else
         {
             double inv_dir = 1.0 / ray_dir[i];
-            double t1 = (lo - ray_pos[i]) * inv_dir;
-            double t2 = (hi - ray_pos[i]) * inv_dir;
+            double t1 = (rmin[i] - ray_pos[i]) * inv_dir;
+            double t2 = (rmax[i] - ray_pos[i]) * inv_dir;
 
             if(t1 > t2) { double tmp = t1; t1 = t2; t2 = tmp; }
 
@@ -35,7 +33,7 @@ static inline int ray_box_intersect(double *ray_pos, double *ray_dir, double *ce
         }
     }
 
-    if(tmax < 0) return 0; /* box is behind the ray */
+    if(tmax < 0) return 0;
 
     *t_enter = tmin;
     *t_exit  = tmax;
@@ -129,10 +127,6 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
     stack[stack_top++] = (StackEntry){0.0, MAX_REAL_NUMBER, Ngb_MaxPart}; /* root */
   else
     {
-      /* restore whatever was pending from previous rank */
-      //if(ray->n_pending >= RAY_STACK_SIZE - 1)
-      //  terminate("Pending stack too large to restore!");
-
       memcpy(stack, ray->pending, ray->n_pending * sizeof(StackEntry));
       stack_top = ray->n_pending;
       ray->n_pending = 0;
@@ -148,7 +142,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
       /* ---- real particle ---- */
       if(no < Ngb_MaxPart)
         {     
-          double chord_length = cur.t_exit - cur.t;
+          double chord_length = cur.t_exit - cur.t_enter;
           double density = SphP[no].Density;
               
           double kappa[WAVEBANDS];
@@ -182,12 +176,14 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           SphP[no].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
           SphP[no].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
 
+          ray->t = cur.t_exit;
+
           if(!still_alive) return; /* all bands are exhausted */     
         }
       /* ---- internal node ---- */
       else if(no < Ngb_MaxPart + Ngb_MaxNodes)
         {
-          struct NODE *nop = &Ngb_Nodes[no];
+          struct NgbNODE *nop = &Ngb_Nodes[no];
 
           /* enumerate direct children, sort by t_enter, push */
           StackEntry children[8];
@@ -201,9 +197,9 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
               if(child < Ngb_MaxPart) /* cell */
                 {
-                  double px = Tree_Pos_list[3 * child + 0] - ray->pos[0];
-                  double py = Tree_Pos_list[3 * child + 1] - ray->pos[1];
-                  double pz = Tree_Pos_list[3 * child + 2] - ray->pos[2];
+                  double px = NEAREST_X(P[child].Pos[0] - ray->pos[0]);
+                  double py = NEAREST_Y(P[child].Pos[1] - ray->pos[1]);
+                  double pz = NEAREST_Z(P[child].Pos[2] - ray->pos[2]);
                   
                   double r  = cbrt((3.0 * SphP[child].Volume) / (4.0 * M_PI));
                   double r2 = r * r;
@@ -211,31 +207,38 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
                   hit = ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit);              
                 }
               else if(child < Ngb_MaxPart + Ngb_MaxNodes) /* internal node */
-                hit = ray_box_intersect(ray->pos, ray->dir, Nodes[child].center, Nodes[child].len, &t_enter, &t_exit);
+                hit = ray_box_intersect(ray->pos, ray->dir, Ngb_Nodes[child].u.d.range_min, Ngb_Nodes[child].u.d.range_max, &t_enter, &t_exit);
             
               else /* pseudo-particle - requires export */
                 {
                   int pseudo_idx = child - (Ngb_MaxPart + Ngb_MaxNodes);
-                  int top_node = DomainNodeIndex[pseudo_idx];
+                  int top_node = Ngb_DomainNodeIndex[pseudo_idx];
 
-                  hit = ray_box_intersect(ray->pos, ray->dir, Nodes[top_node].center, Nodes[top_node].len, &t_enter, &t_exit);
+                  hit = ray_box_intersect(ray->pos, ray->dir, Ngb_Nodes[top_node].u.d.range_min, Ngb_Nodes[top_node].u.d.range_max, &t_enter, &t_exit);
                 }
 
               if(hit)
                 {
-                  if(nchildren >= 8)
-                    terminate("Too many children!");
+                  if(t_enter >= ray->t_max)
+                  /* child is beyond max travel distance - skip entirely */;
+                  else
+                    {
+                      t_exit = fmin(t_exit, ray->t_max);  /* limit traversal distance */
+                  
+                      if(nchildren >= 8)
+                        terminate("Too many children!");
 
-                  children[nchildren++] = (StackEntry){t_enter, t_exit, child};
+                      children[nchildren++] = (StackEntry){t_enter, t_exit, child};
+                    }
                 }
 
               /* advance to next direct child via sibling */
               if(child < Ngb_MaxPart)
-                child = Nextnode[child];
+                child = Ngb_Nextnode[child];
               else if(child < Ngb_MaxPart + Ngb_MaxNodes)
-                child = Nodes[child].u.d.sibling;
+                child = Ngb_Nodes[child].u.d.sibling;
               else
-                child = Nextnode[child - Ngb_MaxNodes];
+                child = Ngb_Nextnode[child - Ngb_MaxNodes];
             }
 
           /* sort ascending by t_enter */
@@ -260,12 +263,12 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
               stack[stack_top++] = children[i];
             }
         }
-      
+    
       /* ---- pseudo-particle: remote domain ---- */  
       else
         {
-          int task = DomainNewTask[no - (Ngb_MaxPart + Ngb_MaxNodes)];
-          int remote_node = DomainNodeIndex[no - (Ngb_MaxPart + Ngb_MaxNodes)];
+          int task = DomainTask[no - (Ngb_MaxPart + Ngb_MaxNodes)];
+          int remote_node = Ngb_DomainNodeIndex[no - (Ngb_MaxPart + Ngb_MaxNodes)];
 
           /* pack pending */
           if(stack_top >= RAY_STACK_SIZE - 1) 
@@ -274,7 +277,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           ray->n_pending = stack_top;
           memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
 
-          ray->t = cur.t;
+          ray->t = cur.t_enter;
           ray->t_exit = cur.t_exit;
           ray->target_node = remote_node;  /* store for mode==1 */
 

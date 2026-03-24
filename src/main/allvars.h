@@ -48,6 +48,7 @@
 #endif /* #ifdef IMPOSE_PINNING */
 
 #include "../time_integration/timestep.h"
+#include "../ngbtree/ngbtree.h"
 #include "../utils/dtypes.h"
 #include "../utils/tags.h"
 
