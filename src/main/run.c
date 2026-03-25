@@ -408,19 +408,19 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-if(All.Time > All.FeedbackTime) 
-  {
-    star_density();  
+  if(All.Time > All.FeedbackTime) 
+    {
+      star_density();  
   
-    update_star_timesteps();
-    star_prep();
+      update_star_timesteps();
+      star_prep();
 
-    star_feedback();
+      star_feedback();
 
 #ifdef STAR_RADIATION_ACTIVE
-    radiation();
+      radiation();
 #endif
-  }
+    }
 #endif
 
 #ifdef BH_ACCRETION_ACTIVE
@@ -432,7 +432,7 @@ if(All.Time > All.FeedbackTime)
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
-   if(All.Time >= All.FeedbackTime)
+  if(All.Time > All.FeedbackTime)
     {   
       if(All.JetFeedback)
         bh_jet_density();
@@ -451,13 +451,16 @@ if(All.Time > All.FeedbackTime)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
+  if(All.Time > All.FeedbackTime)
+    {
 #ifdef STAR_FEEDBACK_ACTIVE 
-  perform_end_of_step_star_physics();
+    perform_end_of_step_star_physics();
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
-  perform_end_of_step_bh_physics();
+    perform_end_of_step_bh_physics();
 #endif
+    }
 
 #ifdef COOLING
 #ifdef USE_SFR

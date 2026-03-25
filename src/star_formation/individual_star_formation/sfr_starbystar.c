@@ -17,7 +17,7 @@ void cooling_and_starformation(void)
   TIMER_START(CPU_COOLINGSFR);
 
   int idx, i;
-  double dt, du, unew;
+  double du, unew;
   double number_dens, temp;
 
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
@@ -28,9 +28,6 @@ void cooling_and_starformation(void)
 
       if(P[i].Mass == 0 && P[i].ID == 0)
         continue; /* skip cells that have been swallowed or eliminated */
-
-      dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
-      dt *= All.cf_atime  / All.cf_time_hubble_a;
 
       /* apply the temperature floor */
       unew = dmax(All.MinEgySpec, SphP[i].Utherm);
@@ -45,13 +42,11 @@ void cooling_and_starformation(void)
       cool_cell(i); //do we need another temp floor?
       
       double mu = compute_mu(i); 
-      //double mu = 2.33; // molecular H
 
-      number_dens = (SphP[i].Density * All.UnitDensity_in_cgs) / mu / PROTONMASS;
-      //number_dens /= All.cf_a3inv; //need to figure out a factors
+      number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;;
       
       double u_to_temp_fac = mu * PROTONMASS / BOLTZMANN * GAMMA_MINUS1;
-      temp = (SphP[i].Utherm * All.UnitEnergy_in_cgs / All.UnitMass_in_g) * u_to_temp_fac;
+      temp = (SphP[i].Utherm * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s)* u_to_temp_fac;
       
       /* default is just cooling */
       SphP[i].Sfr = 0; 
