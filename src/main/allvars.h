@@ -1056,6 +1056,19 @@ extern struct global_data_all_processes
                                    constant G. */
       G;                        /*!< Gravity-constant in internal units */
 
+  /* cosmology units */
+  double cf_UnitTime_in_s,         /*!< factor to convert internal time units to seconds */
+      cf_UnitMass_in_g,            /*!< factor to convert internal mass units to grams */
+      cf_UnitVelocity_in_cm_per_s, /*!< factor to convert internal velocity units to cm/sec */
+      cf_UnitLength_in_cm,         /*!< factor to convert internal length units to cm */
+      cf_UnitDensity_in_cgs,       /*!< factor to convert internal density units to cgs units */
+      cf_UnitPressure_in_cgs,      /*!< factor to convert internal pressure units to cgs units */
+      cf_UnitMomentum_in_cgs       /*!< factor to convert internal momentum units to cgs units */
+      cf_UnitEnergy_in_cgs,        /*!< factor to convert internal energy units to cgs units */
+
+      cf_UnitTime_in_yr,
+      cf_UnitMass_in_Msun;
+
   /* Cosmology */
 
   double Hubble;   /*!< Hubble-constant in internal units */

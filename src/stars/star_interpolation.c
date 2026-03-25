@@ -493,35 +493,35 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
 struct star_feedback units_for_feedback(struct star_feedback star_feedback)
 {
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  star_feedback.TimeSN /= (All.UnitTime_in_s / SEC_PER_YEAR);
+  star_feedback.TimeSN /= All.cf_UnitTime_in_yr;
 #endif
 
 #ifdef WINDS
-  star_feedback.MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+  star_feedback.MassLoss /= All.cf_UnitMass_in_Msun;
 #ifdef METALS
-  star_feedback.MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+  star_feedback.MetalsLoss /= All.cf_UnitMass_in_Msun;
 #endif
-  star_feedback.WindMomentum /= ((All.UnitMass_in_g / SOLAR_MASS) * (All.UnitVelocity_in_cm_per_s / 1.e5));
+  star_feedback.WindMomentum *= SOLAR_MASS * 1e5 / All.cf_UnitMomentum_in_cgs;
 #endif
 
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  star_feedback.RAD_Ionizing /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_Ionizing /= All.cf_UnitEnergy_in_cgs;
 #endif
 #if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  star_feedback.RAD_UVLymanWerner /= (All.UnitEnergy_in_cgs);
-  star_feedback.RAD_Ultraviolet /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_UVLymanWerner /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RAD_Ultraviolet /= All.cf_UnitEnergy_in_cgs;
 #endif
 #if defined(RADIATION_PRESSURE)
-  star_feedback.RAD_Optical /= (All.UnitEnergy_in_cgs);
-  star_feedback.RAD_Infrared /= (All.UnitEnergy_in_cgs);
+  star_feedback.RAD_Optical /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RAD_Infrared /= All.cf_UnitEnergy_in_cgs;
 #endif
 
 #ifdef SUPERNOVAE
-  star_feedback.SN_MassLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+  star_feedback.SN_MassLoss /= All.cf_UnitMass_in_Msun;
 #ifdef METALS
-  star_feedback.SN_MetalsLoss /= (All.UnitMass_in_g / SOLAR_MASS);
+  star_feedback.SN_MetalsLoss /= All.cf_UnitMass_in_Msun;
 #endif
-  star_feedback.SN_EnergyInject /= (All.UnitEnergy_in_cgs);
+  star_feedback.SN_EnergyInject /= All.cf_UnitEnergy_in_cgs;
 #endif
 
   return star_feedback;

@@ -199,6 +199,8 @@ void find_next_sync_point(void)
 
   set_cosmo_factors_for_current_time();
 
+  set_cf_units();
+
   All.TimeStep = All.Time - timeold;
 
   mark_active_timebins();

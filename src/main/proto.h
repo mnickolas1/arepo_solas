@@ -103,6 +103,7 @@ void gravity_external(void);
 void gravity(int timebin, int fullflag);
 int my_ffsll(peanokey i);
 void set_cosmo_factors_for_current_time(void);
+void set_cf_units(void);
 void calc_exact_gravity_for_particle_type(void);
 void calculate_non_standard_physics_with_valid_gravity_tree(void);
 void calculate_non_standard_physics_with_valid_gravity_tree_always(void);

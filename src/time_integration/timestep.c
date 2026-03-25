@@ -105,6 +105,38 @@ void set_cosmo_factors_for_current_time(void)
     }
 }
 
+void set_cf_units(void)
+{
+  double a, H, h;
+
+  a = All.cf_atime;
+  H = All.cf_hubble_a;
+  h = All.HubbleParam;
+    
+  /* Multiply internal quantity by cf to get physical CGS.
+   * Length, mass, time all carry h^-1.
+   * Momentum and energy also absorb the canonical a factors
+   * so that feedback injections are just += feed_cgs / cf. */
+        
+  All.cf_UnitTime_in_s            = All.UnitTime_in_s / H / h;                  
+  All.cf_UnitMass_in_g            = All.UnitMass_in_g / h;                       
+  All.cf_UnitVelocity_in_cm_per_s = All.UnitVelocity_in_cm_s;
+  All.cf_UnitLength_in_cm         = a * All.UnitLength_in_cm / h;                       
+  All.cf_UnitDensity_in_cgs       = All.UnitDensity_in_cgs * h*h / (a*a*a);     
+  All.cf_UnitPressure_in_cgs      = All.UnitDensity_in_cgs * h*h / (a*a*a)
+                                    * All.UnitVelocity_in_cm_s
+                                    * All.UnitVelocity_in_cm_s;                  
+  All.cf_UnitMomentum_in_cgs      = (All.UnitMass_in_g / h) 
+                                    * All.UnitVelocity_in_cm_s / a;                    
+  All.cf_UnitEnergy_in_cgs        = (All.UnitMass_in_g / h)
+                                    * All.UnitVelocity_in_cm_s
+                                    * All.UnitVelocity_in_cm_s
+                                    / (a * a);  
+  
+  All.cf_UnitTime_in_yr   = All.cf_UnitTime_in_s / SEC_PER_YEAR;
+  All.cf_UnitMass_in_Msun = All.cf_UnitMass_in_g / SOLAR_MASS;                                 
+}
+
 /*! \brief Finds hydrodynamic timesteps for all particles.
  *
  *  Validates the timestep and moves particles to appropriate timebin/ linked

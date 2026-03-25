@@ -41,12 +41,11 @@ double gaussian_weight(double r, double h)
   *wk  *= K_norm * hinv3;
 }*/
 
-
 int get_timestep_star(int p)
 { 
   double dt_grav = (PPS(p).TimeBinGrav ? (((integertime)1) << PPS(p).TimeBinGrav) : 0) * All.Timebase_interval;
   double dt_ngbmax = (SP[p].NgbMaxBin ? (((integertime)1) << SP[p].NgbMaxBin) : 0) * All.Timebase_interval;
-  double dt_star = pow(10,4) * SEC_PER_YEAR / All.UnitTime_in_s;
+  double dt_star = pow(10,4) / All.cf_UnitTime_in_yr;
 
   double dt = dt_grav;
 
@@ -58,9 +57,9 @@ int get_timestep_star(int p)
 
 #if STAR_PARTICLES == 2
   // This sets the timestep of less massive stars at 1 Myr
-  double star_mass = PPS(p).Mass * (All.UnitMass_in_g / SOLAR_MASS);
+  double star_mass = PPS(p).Mass * All.cf_UnitMass_in_Msun;
   if(star_mass < 8)
-    dt = pow(10,6) * SEC_PER_YEAR / All.UnitTime_in_s;
+    dt = pow(10,6) / All.cf_UnitTime_in_yr;
 #endif
 
   //if(dt >= All.MaxSizeTimestep)
@@ -188,9 +187,9 @@ void star_prep(void)
       MyDouble star_metallicity = star_metals/star_mass;
     
       // Convert units (-> solar masses and years)
-      star_timestep *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
-      star_age *= (All.cf_atime / All.cf_time_hubble_a) * (All.UnitTime_in_s / SEC_PER_YEAR);
-      star_mass *= (All.UnitMass_in_g / SOLAR_MASS);
+      star_timestep *= All.cf_UnitTime_in_yr;
+      star_age *= All.cf_UnitTime_in_yr;
+      star_mass *= All.cf_UnitMass_in_Msun;
 
       struct star_feedback star_feedback;
 
@@ -242,9 +241,9 @@ void perform_end_of_step_star_physics(void)
   struct pv_update_data pvd;
   if(All.ComovingIntegrationOn)
     {
-      pvd.atime    = All.Time;
+      pvd.atime = All.Time;
       pvd.hubble_a = hubble_function(All.Time);
-      pvd.a3inv    = 1 / (All.Time * All.Time * All.Time);
+      pvd.a3inv = 1 / (All.Time * All.Time * All.Time);
     }
   else
     pvd.atime = pvd.hubble_a = pvd.a3inv = 1.0;
@@ -283,9 +282,9 @@ void perform_end_of_step_star_physics(void)
             
 #if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE) 
           // Update momentum 
-          SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0] * All.cf_atime;
-          SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1] * All.cf_atime;
-          SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2] * All.cf_atime;
+          SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0];
+          SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1];
+          SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2];
           All.StarFeedbackLocal[6] += sqrt(pow(SphP[i].StarMomentumFeed[0],2) + 
           pow(SphP[i].StarMomentumFeed[1],2) + pow(SphP[i].StarMomentumFeed[2],2));   
           // Update velocities 
@@ -294,7 +293,7 @@ void perform_end_of_step_star_physics(void)
           SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
 #endif
 
-#if defined(RADIATION_PRESSURE) && !defined(WINDS) && !defined(PHOTOIONIZATION) && !defined(PHOTOELECTRIC_HEATING) && !defined(SUPERNOVAE) 
+#if defined(RADIATION_PRESSURE) && !defined(WINDS) && !defined(SUPERNOVAE) 
           // Update total energy
           double Eold = SphP[i].Energy;
           SphP[i].Energy = 0.5*P[i].Mass*(P[i].Vel[0]*P[i].Vel[0] + P[i].Vel[1]*P[i].Vel[1] + P[i].Vel[2]*P[i].Vel[2])
@@ -302,7 +301,7 @@ void perform_end_of_step_star_physics(void)
           All.StarFeedbackLocal[7] += SphP[i].Energy - Eold;
 #else       
           // Update total energy
-          SphP[i].Energy += SphP[i].StarEnergyFeed * All.cf_atime * All.cf_atime;
+          SphP[i].Energy += SphP[i].StarEnergyFeed;
           All.StarFeedbackLocal[7] += SphP[i].StarEnergyFeed;
           // Set feed flags to zero
           SphP[i].StarEnergyFeed = 0;
@@ -326,7 +325,7 @@ void perform_end_of_step_star_physics(void)
     //mpi_printf("STARS: Momentum given by StarParts = %e, Momentum taken up by gas particles = %e \n",
                //All.StarFeedbackGlobal[2] * All.cf_atime, All.StarFeedbackGlobal[6] * All.cf_atime);
     mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[3] * All.cf_atime * All.cf_atime, All.StarFeedbackGlobal[7] * All.cf_atime * All.cf_atime);   
+               All.StarFeedbackGlobal[3], All.StarFeedbackGlobal[7]);   
 } 
 
 static int int_compare(const void *a, const void *b)

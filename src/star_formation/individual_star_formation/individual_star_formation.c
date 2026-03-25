@@ -90,7 +90,7 @@ void individual_starbystar_formation(void)
         continue; /* skip cells that have been swallowed or eliminated */
 
       dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
-      dt *= All.cf_atime / All.cf_time_hubble_a;
+      dt /= All.cf_time_hubble;
 
       dtff = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density);
           
@@ -124,7 +124,7 @@ void individual_starbystar_formation(void)
         {
           u = get_random_number_aux();
           mass_of_star = sample_imf(u);
-          mass_of_star /= (All.UnitMass_in_g / SOLAR_MASS);
+          mass_of_star /= All.cf_UnitMass_in_Msun;
           make_individual_star(i, mass_of_star, &local_stars_mass);
         }
     } /* end of main loop over active gas particles */
@@ -196,12 +196,12 @@ void individual_starbystar_formation(void)
   if(ThisTask == 0)
     {
       if(All.TimeStep > 0)
-        rate = global_stars_mass / (All.TimeStep / All.cf_time_hubble_a);
+        rate = global_stars_mass / All.TimeStep;
       else
         rate = 0;
 
       /* convert to solar masses per yr */
-      rate *= (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
+      rate *= All.cf_UnitMass_in_Msun / All.cf_UnitTime_in_yr;
 
       fprintf(FdSfr, "%14e %14e %14e\n", All.Time, global_stars_mass, rate);
       myflush(FdSfr);
@@ -296,7 +296,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
-  if(mass_of_star * (All.UnitMass_in_g / SOLAR_MASS) > 2)
+  if(mass_of_star * All.cf_UnitMass_in_Msun > 2)
     timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
   else
     SP[NumStars].TimeBinStar = TIMEBINS;  
@@ -379,14 +379,14 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
-  if(mass_of_star * (All.UnitMass_in_g / SOLAR_MASS) > 2)
+  if(mass_of_star * All.cf_UnitMass_in_Msun > 2)
     timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
   else
     SP[NumStars].TimeBinStar = TIMEBINS;  
 
   // This is needed for lower res star by star simulations
   // Give star small random displacement
-  if(mass_of_star > 2)
+  if(mass_of_star * All.cf_UnitMass_in_Msun > 2)
     {
       double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
 
