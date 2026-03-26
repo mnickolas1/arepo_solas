@@ -46,8 +46,6 @@
 #include "../../main/allvars.h"
 #include "../../main/proto.h"
 
-#include "../../stars/star_particle.h"
-
 static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_star);
 static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_star);
 static void make_individual_star(int i, MyDouble mass_of_star, double *local_stars_mass);

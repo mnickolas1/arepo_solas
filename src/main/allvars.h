@@ -48,24 +48,24 @@
 #endif /* #ifdef IMPOSE_PINNING */
 
 #include "../time_integration/timestep.h"
-#include "../ngbtree/ngbtree.h"
 #include "../utils/dtypes.h"
+#include "../ngbtree/ngbtree.h"
 #include "../utils/tags.h"
 
 #ifdef USE_GRACKLE
 #include <grackle.h>
 #endif // USE_GRACKLE //
-       
-#ifdef STARS
-#include "../stars/star.h"
-#endif
-
+      
 #ifdef STAR_PARTICLES
 #include "../stars/star_particle.h"
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
 #include "../stars/star_radiation.h"
+#endif
+
+#ifdef STARS
+#include "../stars/star.h"
 #endif
 
 #define AREPO_VERSION "Arepo public 1.0" /* code version string */
