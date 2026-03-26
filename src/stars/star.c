@@ -1,4 +1,4 @@
-#include "../stars/star.h"
+#include "../main/allvars.h"
 
 int NumStars;
 

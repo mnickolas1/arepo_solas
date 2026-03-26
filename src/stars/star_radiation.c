@@ -4,7 +4,6 @@
 #include "../main/proto.h"
 
 #include "../extern/chealpix.h"
-#include "../stars/star_radiation.h"
 
 double HealpixDirs[MAX_NUM_RAYS][3];
 int NRays; // 12 * NSIDE^2

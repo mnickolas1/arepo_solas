@@ -3,8 +3,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#include "../stars/star_radiation.h"
-
 static inline int ray_box_intersect(double *ray_pos, double *ray_dir,
                                             MyNgbTreeFloat *rmin, MyNgbTreeFloat *rmax,
                                             double *t_enter, double *t_exit)

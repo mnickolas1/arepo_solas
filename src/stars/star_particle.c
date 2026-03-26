@@ -3,8 +3,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#include "../stars/star_particle.h"
-
 /* Compute integral with the trapezoid method */
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
 {

@@ -60,6 +60,10 @@
 #include "../stars/star.h"
 #endif
 
+#ifdef STAR_PARTICLES
+#include "../stars/star_particle.h"
+#endif
+
 #ifdef STAR_RADIATION_ACTIVE
 #include "../stars/star_radiation.h"
 #endif
@@ -1063,7 +1067,7 @@ extern struct global_data_all_processes
       cf_UnitLength_in_cm,         /*!< factor to convert internal length units to cm */
       cf_UnitDensity_in_cgs,       /*!< factor to convert internal density units to cgs units */
       cf_UnitPressure_in_cgs,      /*!< factor to convert internal pressure units to cgs units */
-      cf_UnitMomentum_in_cgs       /*!< factor to convert internal momentum units to cgs units */
+      cf_UnitMomentum_in_cgs,      /*!< factor to convert internal momentum units to cgs units */
       cf_UnitEnergy_in_cgs,        /*!< factor to convert internal energy units to cgs units */
 
       cf_UnitTime_in_yr,
@@ -1638,7 +1642,7 @@ extern struct sph_particle_data
 #endif
 #endif
 
-#if defined(WINDS) || || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
+#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
 MyDouble StarMomentumFeed[3]; 
 #endif
 

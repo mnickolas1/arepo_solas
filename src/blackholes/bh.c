@@ -1,4 +1,4 @@
-#include "../stars/star.h"
+#include "../blackholes/bh.h"
 
 int NumBhs;
 

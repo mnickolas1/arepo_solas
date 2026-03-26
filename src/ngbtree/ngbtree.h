@@ -1,7 +1,7 @@
 #ifndef NGBTREE_H
 #define NGBTREE_H
 
-#include "../utils/dtypes.h"
+#include "../main/allvars.h"
 
 /*! Variables for neighbor tree */
 extern int Ngb_MaxPart;

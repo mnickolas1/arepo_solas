@@ -1,7 +1,7 @@
 #ifndef STAR_H
 #define STAR_H
 
-#include "../utils/dtypes.h"
+#include "../main/allvars.h"
 
 #define ALLOC_STAR_ROOM 64
 extern int NumStars;
@@ -52,17 +52,8 @@ extern int NumStars;
 #endif
 #endif
 
-#ifdef STAR_PARTICLES
-#include "../stars/star_particle.h"
-#endif
-
 #ifdef STAR_FEEDBACK_ACTIVE
-#include "../time_integration/timestep.h"
 extern struct TimeBinData TimeBinsStar;
-#endif
-
-#ifdef STAR_RADIATION_ACTIVE
-#include "../stars/star_radiation.h"
 #endif
 
 extern struct star_particle_data
