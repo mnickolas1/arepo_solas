@@ -294,10 +294,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
-  if(mass_of_star * All.cf_UnitMass_in_Msun > 2)
-    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
-  else
-    SP[NumStars].TimeBinStar = TIMEBINS;  
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 #endif
 
   NumStars++;
@@ -377,10 +374,7 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
-  if(mass_of_star * All.cf_UnitMass_in_Msun > 2)
-    timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
-  else
-    SP[NumStars].TimeBinStar = TIMEBINS;  
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 
   // This is needed for lower res star by star simulations
   // Give star small random displacement
