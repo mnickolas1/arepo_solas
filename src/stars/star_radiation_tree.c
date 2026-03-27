@@ -159,13 +159,13 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
           // Ionizing Energy
           double dp = 0.0;
           SphP[no].RAD[IONIZING] += absorbed[IONIZING];
-          dp += absorbed[IONIZING] / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+          dp += absorbed[IONIZING] / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
               
           double dp_rerad = 0.0;
           for(int w = 2; w < WAVEBANDS; w++)
             {
               SphP[no].RAD[w] += absorbed[w];
-              dp_rerad += absorbed[w] * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.UnitVelocity_in_cm_per_s);
+              dp_rerad += absorbed[w] * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
             }
          
           SphP[no].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];

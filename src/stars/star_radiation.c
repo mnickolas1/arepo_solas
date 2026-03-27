@@ -52,7 +52,7 @@ void update_kappa(void)
 #else
       double Z = 0;
 #endif
-      double units = All.UnitLength_in_cm * All.UnitLength_in_cm / All.UnitMass_in_g;
+      double units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
       
       SphP[i].Kappa[IONIZING_H_PHOTONS] = (sigma_H / PROTONMASS / units) * SphP[i].grHI; 
       SphP[i].Kappa[IONIZING] = (sigma_H / PROTONMASS / units) * SphP[i].grHI;   
@@ -108,7 +108,7 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
           rays[ray_idx].dir[2] = HealpixDirs[iray][2];
           rays[ray_idx].t = 0.0;
           rays[ray_idx].t_exit = MAX_REAL_NUMBER;
-          rays[ray_idx].t_maximum = fmin(CLIGHT * dt_rad, SQRT3 * All.BoxSize);
+          rays[ray_idx].t_maximum = fmin(CLIGHT/All.cf_UnitVelocity_in_cm_per_s * dt_rad/All.cf_time_hubble, SQRT3 * All.BoxSize);
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
@@ -382,23 +382,22 @@ void radiation_feedback(void)
     {
       double epsilon_pe = 0.05;
       double energy_thresh = 13.6 * ELECTRONVOLT_IN_ERGS;
+     
       double volume = SphP[i].Volume;
-      //do we want the particle dt?
-      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
-      //dt *= All.cf_atime / All.cf_time_hubble_a;
+      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval; //do we want the particle dt?
 
       /* in cgs */
-      double V_cgs = volume * (All.UnitLength_in_cm * All.UnitLength_in_cm * All.UnitLength_in_cm);
-      double dt_cgs = dt * All.UnitTime_in_s;
+      double V_cgs = volume * (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
+      double dt_cgs = dt * All.cf_UnitTime_in_s;
 
       double N_abs = SphP[i].RAD[IONIZING_H_PHOTONS];
       
-      double E_abs = SphP[i].RAD[IONIZING] * All.UnitEnergy_in_cgs;
-      double E_pe = (SphP[i].RAD[LYMAN_WERNER] + SphP[i].RAD[ULTRAVIOLET]) * epsilon_pe * All.UnitEnergy_in_cgs; // LW + Ultraviolet
+      double E_abs = SphP[i].RAD[IONIZING] * All.cf_UnitEnergy_in_cgs;
+      double E_pe = (SphP[i].RAD[LYMAN_WERNER] + SphP[i].RAD[ULTRAVIOLET]) * epsilon_pe * All.cf_UnitEnergy_in_cgs; // LW + Ultraviolet
 
       /* RT_ionization_rate:  1 / (time units) */
-      double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.UnitMass_in_g);
-      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs / dt / volume) / n_HI : 0.0;
+      double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
+      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs / dt/All.cf_time_hubble/All.HubbleParam / volume) / n_HI: 0.0;
 
       /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
       double E_threshold = N_abs * energy_thresh; 
