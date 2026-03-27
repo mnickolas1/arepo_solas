@@ -248,13 +248,6 @@ void perform_end_of_step_star_physics(void)
   else
     pvd.atime = pvd.hubble_a = pvd.a3inv = 1.0;
 
-/*#if defined(WINDS) || defined(SUPERNOVAE)
-  for(idx=0, npleft=0; idx<TimeBinsStar.NActiveParticles; idx++)
-    {
-      i = TimeBinsStar.ActiveParticleList[idx];
-    }
-#endif*/
-
   // Inject feedback to ngb cells
   if(All.Time >= All.FeedbackTime)
     {        

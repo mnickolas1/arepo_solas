@@ -451,16 +451,15 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
-  if(All.Time > All.FeedbackTime)
-    {
-#ifdef STAR_FEEDBACK_ACTIVE 
+#ifdef STAR_FEEDBACK_ACTIVE
+  if(All.Time > All.FeedbackTime) 
     perform_end_of_step_star_physics();
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
+  if(All.Time > All.FeedbackTime)
     perform_end_of_step_bh_physics();
 #endif
-    }
 
 #ifdef COOLING
 #ifdef USE_SFR
