@@ -7,8 +7,7 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#ifdef USE_GRACKLE
-#include <grackle.h>
+#define GRACKLE_TINY 1e-20
 
 /* 'mode' -- tells the routine what to do
  *
@@ -23,131 +22,130 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
     gr_initialize_field_data(&All.GrackleFieldData);
     
     /* this is the variable that is returned */
-    gr_float returnval                                  = 0.0;
+    gr_float returnval                         = 0.0;
 
-    int field_size                                      = 1;
-    gr_float tiny                                       = 1.0e-20;    /* just a very low number good for initialisation -> you may want to use i.e. initial values from Galli & Palla */
-
+    int field_size                             = 1;
+    
     /* set the right scale factor */
-    All.GrackleUnits.a_value                            = All.cf_atime;
+    All.GrackleUnits.a_value                   = All.cf_atime;
 
-    All.GrackleFieldData.grid_rank                      = 3;
-    All.GrackleFieldData.grid_dimension                 = malloc(3*sizeof(int));
-    All.GrackleFieldData.grid_start                     = malloc(3*sizeof(int));
-    All.GrackleFieldData.grid_end                       = malloc(3*sizeof(int));
-    int i;
-    for (i = 0;i < 3;i++) {
-        All.GrackleFieldData.grid_dimension[i]          = 1; /* the active dimension not including ghost zones; maybe this just means that the sim is 3D */
-        All.GrackleFieldData.grid_start[i]              = 0;
-        All.GrackleFieldData.grid_end[i]                = 0;
+    /* grid setup */
+    All.GrackleFieldData.grid_rank             = 3;
+    All.GrackleFieldData.grid_dimension        = malloc(3 * sizeof(int));
+    All.GrackleFieldData.grid_start            = malloc(3 * sizeof(int));
+    All.GrackleFieldData.grid_end              = malloc(3 * sizeof(int));
+ 
+    for (int i = 0; i < 3; i++) {
+        All.GrackleFieldData.grid_dimension[i] = 1;
+        All.GrackleFieldData.grid_start[i]     = 0;
+        All.GrackleFieldData.grid_end[i]       = 0;
     }
-    All.GrackleFieldData.grid_dimension[0]              = field_size;
-    All.GrackleFieldData.grid_end[0]                    = field_size - 1;
-
-    All.GrackleFieldData.x_velocity                     = malloc(sizeof(gr_float));
-    All.GrackleFieldData.y_velocity                     = malloc(sizeof(gr_float));
-    All.GrackleFieldData.z_velocity                     = malloc(sizeof(gr_float));
-    All.GrackleFieldData.density                        = malloc(sizeof(gr_float));
-    All.GrackleFieldData.internal_energy                = malloc(sizeof(gr_float));
-    All.GrackleFieldData.metal_density                  = malloc(sizeof(gr_float));
-
-    *All.GrackleFieldData.x_velocity                    = P[target].Vel[0];     /* currently not used */
-    *All.GrackleFieldData.y_velocity                    = P[target].Vel[1];     /* currently not used */
-    *All.GrackleFieldData.z_velocity                    = P[target].Vel[2];     /* currently not used */
-    *All.GrackleFieldData.density                       = rho;
-    *All.GrackleFieldData.internal_energy               = u_old;
-
-#ifdef METALS //TODO:
-    *All.GrackleFieldData.metal_density                 = *All.GrackleFieldData.density * SphP[target].GasMetallicity;
-#else
-    *All.GrackleFieldData.metal_density                 = *All.GrackleFieldData.density * SOLAR_METALLICITY; 
+    All.GrackleFieldData.grid_dimension[0]     = field_size;
+    All.GrackleFieldData.grid_end[0]           = field_size - 1;
+ 
+    /* basic allocations */
+    All.GrackleFieldData.x_velocity        = malloc(sizeof(gr_float));
+    All.GrackleFieldData.y_velocity        = malloc(sizeof(gr_float));
+    All.GrackleFieldData.z_velocity        = malloc(sizeof(gr_float));
+    All.GrackleFieldData.density           = malloc(sizeof(gr_float));
+    All.GrackleFieldData.internal_energy   = malloc(sizeof(gr_float));
+    All.GrackleFieldData.metal_density     = malloc(sizeof(gr_float));
+ 
+#if (GRACKLE_CHEMISTRY >= 1)
+    All.GrackleFieldData.e_density         = malloc(sizeof(gr_float));
+    All.GrackleFieldData.HI_density        = malloc(sizeof(gr_float));
+    All.GrackleFieldData.HII_density       = malloc(sizeof(gr_float));
+    All.GrackleFieldData.HeI_density       = malloc(sizeof(gr_float));
+    All.GrackleFieldData.HeII_density      = malloc(sizeof(gr_float));
+    All.GrackleFieldData.HeIII_density     = malloc(sizeof(gr_float));
+    All.GrackleFieldData.H2I_density       = malloc(sizeof(gr_float));
+    All.GrackleFieldData.H2II_density      = malloc(sizeof(gr_float));
+    All.GrackleFieldData.HM_density        = malloc(sizeof(gr_float));
+    All.GrackleFieldData.DI_density        = malloc(sizeof(gr_float));
+    All.GrackleFieldData.DII_density       = malloc(sizeof(gr_float));
+    All.GrackleFieldData.HDI_density       = malloc(sizeof(gr_float));
+ 
+  // volumetric heating rate (provide in units [erg s^-1 cm^-3])
+  All.GrackleFieldData.volumetric_heating_rate = malloc(sizeof(gr_float));
+  // specific heating rate (provide in units [egs s^-1 g^-1]
+  All.GrackleFieldData.specific_heating_rate = malloc(sizeof(gr_float));
+  // heating rate from radiative transfer calculations (provide in units [erg s^-1 cm^-3]
+  All.GrackleFieldData.RT_heating_rate = malloc(sizeof(gr_float));
+  // HI ionization rate from radiative transfer calculations (provide in units of [ 1/time_units ]
+  All.GrackleFieldData.RT_HI_ionization_rate = malloc(sizeof(gr_float));
+  // HeI ionization rate from radiative transfer calculations (provide in units of [1/time_units]
+  All.GrackleFieldData.RT_HeI_ionization_rate = malloc(sizeof(gr_float));
+  // HeII ionization rate from radiative transfer calculations (provide in units of [1/time_units]
+  All.GrackleFieldData.RT_HeII_ionization_rate = malloc(sizeof(gr_float));
+  // H2 dissociation rate from radiative transfer calculations (provide in units of [1/time_units]
+  All.GrackleFieldData.RT_H2_dissociation_rate = malloc(sizeof(gr_float));
 #endif
-
-    /* UNDEFINED MEMBERS OF THE STRUCT (USEFUL ONLY FOR UNUSED FLAGS)
-     * beware! they should be created with malloc(sizeof(..))
-     * also, most of them would be used only in non-eq run
-     *
-     * gr_float grid_dx;
-     *
-     * gr_float *volumetric_heating_rate;
-     * gr_float *specific_heating_rate;
-     *
-     * gr_float *RT_heating_rate;
-     * gr_float *RT_HI_ionization_rate;
-     * gr_float *RT_HeI_ionization_rate;
-     * gr_float *RT_HeII_ionization_rate;
-     * gr_float *RT_H2_dissociation_rate;
-     *
-     * gr_float *H2_self_shielding_length;
-     */
-
-
-/* non-equilibrium chemistry */ 
-#if (GRACKLE_CHEMISTRY >= 1)   /* atomic chemical network only */
-    All.GrackleFieldData.e_density                      = malloc(sizeof(gr_float));
-    All.GrackleFieldData.HI_density                     = malloc(sizeof(gr_float));
-    All.GrackleFieldData.HII_density                    = malloc(sizeof(gr_float));
-    All.GrackleFieldData.HeI_density                    = malloc(sizeof(gr_float));
-    All.GrackleFieldData.HeII_density                   = malloc(sizeof(gr_float));
-    All.GrackleFieldData.HeIII_density                  = malloc(sizeof(gr_float));
-    All.GrackleFieldData.H2I_density                    = malloc(sizeof(gr_float));
-    All.GrackleFieldData.H2II_density                   = malloc(sizeof(gr_float));
-    All.GrackleFieldData.HM_density                     = malloc(sizeof(gr_float));
-    All.GrackleFieldData.DI_density                     = malloc(sizeof(gr_float));
-    All.GrackleFieldData.DII_density                    = malloc(sizeof(gr_float));
-    All.GrackleFieldData.HDI_density                    = malloc(sizeof(gr_float));
+ 
+    /* basic values */
+    *All.GrackleFieldData.x_velocity       = P[target].Vel[0];
+    *All.GrackleFieldData.y_velocity       = P[target].Vel[1];    
+    *All.GrackleFieldData.z_velocity       = P[target].Vel[2];     
+    *All.GrackleFieldData.density          = rho;
+    *All.GrackleFieldData.internal_energy  = u_old;
+ 
+#ifdef METALS
+    *All.GrackleFieldData.metal_density    = *All.GrackleFieldData.density * SphP[target].GasMetallicity;
+#else
+    *All.GrackleFieldData.metal_density    = *All.GrackleFieldData.density * GRACKLE_TINY;
+#endif
+ 
+    /* non-eq. chemistry values */
+#if (GRACKLE_CHEMISTRY >= 1)
 
     /* electron density */
-    *All.GrackleFieldData.e_density                     = *All.GrackleFieldData.density * (*ne_guess);
-    /* H and He species */
-    *All.GrackleFieldData.HI_density                    = *All.GrackleFieldData.density * SphP[target].grHI;       /* initialized with HYDROGEN_MASSFRAC */
-    *All.GrackleFieldData.HII_density                   = *All.GrackleFieldData.density * SphP[target].grHII;
-    *All.GrackleFieldData.HeI_density                   = *All.GrackleFieldData.density * SphP[target].grHeI;
-    *All.GrackleFieldData.HeII_density                  = *All.GrackleFieldData.density * SphP[target].grHeII;
-    *All.GrackleFieldData.HeIII_density                 = *All.GrackleFieldData.density * SphP[target].grHeIII;
-
-    *All.GrackleFieldData.DI_density                    = *All.GrackleFieldData.density * tiny;
-    *All.GrackleFieldData.DII_density                   = *All.GrackleFieldData.density * tiny;
-    *All.GrackleFieldData.HDI_density                   = *All.GrackleFieldData.density * tiny;
-    
-    All.GrackleFieldData.RT_heating_rate                = malloc(sizeof(gr_float));
-    All.GrackleFieldData.RT_HI_ionization_rate          = malloc(sizeof(gr_float));
-    All.GrackleFieldData.RT_HeI_ionization_rate         = malloc(sizeof(gr_float));
-    All.GrackleFieldData.RT_HeII_ionization_rate        = malloc(sizeof(gr_float));
-    All.GrackleFieldData.RT_H2_dissociation_rate        = malloc(sizeof(gr_float));
-
-    All.GrackleFieldData.volumetric_heating_rate        = malloc(sizeof(gr_float));        
-    // Transform rates to code units
-    //*All.GrackleFieldData.RT_heating_rate               = 0.0;
-    //*All.GrackleFieldData.RT_HI_ionization_rate         = 0.0;
-    *All.GrackleFieldData.RT_HeI_ionization_rate        = 0.0;
-    *All.GrackleFieldData.RT_HeII_ionization_rate       = 0.0;
-    *All.GrackleFieldData.RT_H2_dissociation_rate       = 0.0; 
-    //*All.GrackleFieldData.volumetric_heating_rate       = 0.0;
+    *All.GrackleFieldData.e_density        = *All.GrackleFieldData.density * (*ne_guess);
  
-#ifdef STAR_RADIATION_ACTIVE   
-    *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].HI_IonizationRate);
-    *All.GrackleFieldData.RT_heating_rate = (gr_float)(SphP[target].PI_VolHeatingRate);
-    *All.GrackleFieldData.volumetric_heating_rate = (gr_float)(SphP[target].PE_VolHeatingRate);
+    /* H and He species */
+    *All.GrackleFieldData.HI_density       = *All.GrackleFieldData.density * SphP[target].grHI;
+    *All.GrackleFieldData.HII_density      = *All.GrackleFieldData.density * SphP[target].grHII;
+    *All.GrackleFieldData.HeI_density      = *All.GrackleFieldData.density * SphP[target].grHeI;
+    *All.GrackleFieldData.HeII_density     = *All.GrackleFieldData.density * SphP[target].grHeII;
+    *All.GrackleFieldData.HeIII_density    = *All.GrackleFieldData.density * SphP[target].grHeIII;
+ 
+    /* molecular H species */
+#if (GRACKLE_CHEMISTRY >= 2)
+    *All.GrackleFieldData.H2I_density      = *All.GrackleFieldData.density * SphP[target].grH2I;
+    *All.GrackleFieldData.H2II_density     = *All.GrackleFieldData.density * SphP[target].grH2II;
+    *All.GrackleFieldData.HM_density       = *All.GrackleFieldData.density * SphP[target].grHM;
+#else
+    *All.GrackleFieldData.H2I_density      = *All.GrackleFieldData.density * GRACKLE_TINY;
+    *All.GrackleFieldData.H2II_density     = *All.GrackleFieldData.density * GRACKLE_TINY;
+    *All.GrackleFieldData.HM_density       = *All.GrackleFieldData.density * GRACKLE_TINY;
 #endif
 
-#if (GRACKLE_CHEMISTRY >= 2)      /* Atomic+(H2I+H2II+HM) */
-     *All.GrackleFieldData.H2I_density                   = *All.GrackleFieldData.density * SphP[target].grH2I;
-     *All.GrackleFieldData.H2II_density                  = *All.GrackleFieldData.density * SphP[target].grH2II;
-     *All.GrackleFieldData.HM_density                    = *All.GrackleFieldData.density * SphP[target].grHM;
-#else 
-    *All.GrackleFieldData.H2I_density                   = *All.GrackleFieldData.density * tiny;
-    *All.GrackleFieldData.H2II_density                  = *All.GrackleFieldData.density * tiny;
-    *All.GrackleFieldData.HM_density                    = *All.GrackleFieldData.density * tiny;
-
-// #if (GRACKLE_CHEMISTRY >= 3)      /* Atomic+(H2I+H2II+HM)+(DI+DII+HD) */
-//     *All.GrackleFieldData.DI_density                    = *All.GrackleFieldData.density * SphP[target].grDI;
-//     *All.GrackleFieldData.DII_density                   = *All.GrackleFieldData.density * SphP[target].grDII;
-//     *All.GrackleFieldData.HDI_density                   = *All.GrackleFieldData.density * SphP[target].grHDI;
-// #endif
-// #endif
-#endif /* non-eq chemistry */
+    /* deuterium species */
+#if (GRACKLE_CHEMISTRY >= 3)
+    *All.GrackleFieldData.DI_density    = *All.GrackleFieldData.density * SphP[target].grDI;
+    *All.GrackleFieldData.DII_density   = *All.GrackleFieldData.density * SphP[target].grDII;
+    *All.GrackleFieldData.HDI_density   = *All.GrackleFieldData.density * SphP[target].grHDI;
+#else
+    *All.GrackleFieldData.DI_density    = *All.GrackleFieldData.density * GRACKLE_TINY;
+    *All.GrackleFieldData.DII_density   = *All.GrackleFieldData.density * GRACKLE_TINY;
+    *All.GrackleFieldData.HDI_density   = *All.GrackleFieldData.density * GRACKLE_TINY;
 #endif
+
+    /* radiation rates */
+#ifdef STAR_RADIATION_ACTIVE
+    *All.GrackleFieldData.volumetric_heating_rate   = (gr_float)(SphP[target].PE_VolHeatingRate);
+    *All.GrackleFieldData.RT_heating_rate           = (gr_float)(SphP[target].PI_VolHeatingRate);
+    *All.GrackleFieldData.RT_HI_ionization_rate     = (gr_float)(SphP[target].HI_IonizationRate);
+#else
+    *All.GrackleFieldData.volumetric_heating_rate   = 0.0;
+    *All.GrackleFieldData.RT_heating_rate           = 0.0;
+    *All.GrackleFieldData.RT_HI_ionization_rate     = 0.0;
+#endif
+     
+    *All.GrackleFieldData.specific_heating_rate   = 0.0;
+    *All.GrackleFieldData.RT_HeI_ionization_rate  = 0.0; // TODO
+    *All.GrackleFieldData.RT_HeII_ionization_rate = 0.0; // TODO
+    *All.GrackleFieldData.RT_H2_dissociation_rate = 0.0; // TODO
+
+#endif /* GRACKLE_CHEMISTRY >= 1 */
 
     /* call to the Grackle functions
      * remember: Grackle3 does not distinguish between non-equilibrium and tabulated version
@@ -163,28 +161,27 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
 
 /* if non-eq chemistry assign abundances back */
 #if (GRACKLE_CHEMISTRY >= 1)
-            SphP[target].Ne                             = *All.GrackleFieldData.e_density     / *All.GrackleFieldData.density;
-            SphP[target].grHI                           = *All.GrackleFieldData.HI_density    / *All.GrackleFieldData.density;
-            SphP[target].grHII                          = *All.GrackleFieldData.HII_density   / *All.GrackleFieldData.density;
-            SphP[target].grHeI                          = *All.GrackleFieldData.HeI_density   / *All.GrackleFieldData.density;
-            SphP[target].grHeII                         = *All.GrackleFieldData.HeII_density  / *All.GrackleFieldData.density;
-            SphP[target].grHeIII                        = *All.GrackleFieldData.HeIII_density / *All.GrackleFieldData.density;
+            SphP[target].Ne          = *All.GrackleFieldData.e_density     / *All.GrackleFieldData.density;
+            SphP[target].grHI        = *All.GrackleFieldData.HI_density    / *All.GrackleFieldData.density;
+            SphP[target].grHII       = *All.GrackleFieldData.HII_density   / *All.GrackleFieldData.density;
+            SphP[target].grHeI       = *All.GrackleFieldData.HeI_density   / *All.GrackleFieldData.density;
+            SphP[target].grHeII      = *All.GrackleFieldData.HeII_density  / *All.GrackleFieldData.density;
+            SphP[target].grHeIII     = *All.GrackleFieldData.HeIII_density / *All.GrackleFieldData.density;
+#endif
 
 #if (GRACKLE_CHEMISTRY >= 2)
-            SphP[target].grH2I                          = *All.GrackleFieldData.H2I_density   / *All.GrackleFieldData.density;
-            SphP[target].grH2II                         = *All.GrackleFieldData.H2II_density  / *All.GrackleFieldData.density;
-            SphP[target].grHM                           = *All.GrackleFieldData.HM_density    / *All.GrackleFieldData.density;
-
-// #if (COOL_GRACKLE_CHEMISTRY >= 3)
-//             SphP[target].grDI                           = *All.GrackleFieldData.DI_density    / *All.GrackleFieldData.density;
-//             SphP[target].grDII                          = *All.GrackleFieldData.DII_density   / *All.GrackleFieldData.density;
-//             SphP[target].grHDI                          = *All.GrackleFieldData.HDI_density   / *All.GrackleFieldData.density;
-// #endif
-// #endif
-#endif
+            SphP[target].grH2I       = *All.GrackleFieldData.H2I_density   / *All.GrackleFieldData.density;
+            SphP[target].grH2II      = *All.GrackleFieldData.H2II_density  / *All.GrackleFieldData.density;
+            SphP[target].grHM        = *All.GrackleFieldData.HM_density    / *All.GrackleFieldData.density;
 #endif
 
-          returnval                                   = *All.GrackleFieldData.internal_energy;
+#if (GRACKLE_CHEMISTRY >= 3)
+             SphP[target].grDI       = *All.GrackleFieldData.DI_density    / *All.GrackleFieldData.density;
+             SphP[target].grDII      = *All.GrackleFieldData.DII_density   / *All.GrackleFieldData.density;
+             SphP[target].grHDI      = *All.GrackleFieldData.HDI_density   / *All.GrackleFieldData.density;
+#endif
+
+          returnval = *All.GrackleFieldData.internal_energy;
           break;
         }
             
@@ -318,18 +315,29 @@ void InitGrackle(void)
     }
     
     /* Third, fill this chemistry object to set parameter values for chemistry & cooling. */    
+
+    /* main flags */
     
-    /* Flag to control which three-body H2 formation rate is used.
-     *    0: Abel, Bryan & Norman (2002),
-     *    1: Palla, Salpeter & Stahler (1983),
-     *    2: Cohen & Westberg (1983),
-     *    3: Flower & Harris (2007),
-     *    4: Glover (2008).
-     *    These are discussed in Turk et. al. (2011). Default: 0.
+    /* Flag to activate the grackle machinery */
+    my_grackle_data->use_grackle                       = 1;
+    /* Path to the data file containing the metal cooling and UV background tables (for non-eq mode) and metal and primordial cooling/heating (for equilibrium mode) */
+    my_grackle_data->grackle_data_file                 = All.GrackleDataFile;
+    /* Flag to include radiative cooling and actually update the thermal energy during the
+     * chemistry solver. If off, the chemistry species will still be updated. The most
+     * common reason to set this to off is to iterate the chemistry network to an equilibrium state. Default: 1.
      */
-    my_grackle_data->three_body_rate        = 0;
-   
-#ifdef METALS // TODO: 
+    my_grackle_data->with_radiative_cooling            = 1;
+
+    /* The ratio of specific heats for an ideal gas. A direct calculation for the molecular component is used if primordial_chemistry > 1. Default: 5/3. */
+    my_grackle_data->Gamma                             = GAMMA; /* our eos set in Config.sh */
+    /* Flag to control which primordial chemistry network is used (set by Config.sh) */
+#ifndef GRACKLE_CHEMISTRY
+    my_grackle_data->primordial_chemistry              = 0; /* if nothing is set assume fully tabulated cooling */
+#else
+    my_grackle_data->primordial_chemistry              = GRACKLE_CHEMISTRY;
+#endif
+
+#ifdef METALS: 
     /* Flag to enable metal cooling using the Cloudy tables. If enabled, the cooling table to be used must be specified with the grackle_data_file parameter. Default: 0. */
     my_grackle_data->metal_cooling                     = 1;
     /* Flag to enable H2 formation on dust grains, dust cooling, and dust-gas heat transfer follow Omukai (2000). This assumes that the dust to gas ratio scales with the metallicity. Default: 0. */
@@ -343,16 +351,21 @@ void InitGrackle(void)
     my_grackle_data->photoelectric_heating             = 0;  /* read above but DO NOT USE */
     my_grackle_data->photoelectric_heating_rate        = 8.5e-26;
 #else
-    my_grackle_data->metal_cooling                     = 1;
+    my_grackle_data->metal_cooling                     = 0;
     my_grackle_data->h2_on_dust                        = 0;
     my_grackle_data->photoelectric_heating             = 0;
     my_grackle_data->photoelectric_heating_rate        = 8.5e-26;
 #endif
-
-    /* Flags that are useful only if you provide an array of heating rates, so DO NOT USE
-     * my_grackle_data->use_specific_heating_rate      = 0;
-     * my_grackle_data->use_volumetric_heating_rate    = 0;
+    
+    /* Flag to control which three-body H2 formation rate is used.
+     *    0: Abel, Bryan & Norman (2002),
+     *    1: Palla, Salpeter & Stahler (1983),
+     *    2: Cohen & Westberg (1983),
+     *    3: Flower & Harris (2007),
+     *    4: Glover (2008).
+     *    These are discussed in Turk et. al. (2011). Default: 0.
      */
+    my_grackle_data->three_body_rate        = 0;
 
     /* Flag to enable an effective CMB temperature floor.
      * This is implemented by subtracting the value of the cooling rate at TCMB from the total METAL cooling rate. Default: 1.
@@ -377,7 +390,6 @@ void InitGrackle(void)
      */
     my_grackle_data->Compton_xray_heating              = 0;  /* read above but DO NOT USE */
     
-    
     /* Flag to enable H2 collision-induced emission cooling from Ripamonti & Abel (2004). Default: 0. */
     my_grackle_data->cie_cooling                       = 0;
     /* Flag to enable H2 cooling attenuation from Ripamonti & Abel (2004). Default: 0. */
@@ -392,17 +404,6 @@ void InitGrackle(void)
      */
     my_grackle_data->LWbackground_sawtooth_suppression = 0;
 
-
-    /* flag to include RT */
-    /* This enables H2I, HM, H2II rates corrections 
-     * in grackle per particle but also allows
-     * the possibility of using a background radiation
-     * */
-    my_grackle_data->use_radiative_transfer = 1;
-    my_grackle_data->radiative_transfer_hydrogen_only = 1;
-
-    my_grackle_data->use_volumetric_heating_rate = 1;
-
     /* For both UV bkgd and RT; options for length scale:
      *     1: Sobolev-like (from WG11)
      *     2: array of lengths
@@ -414,28 +415,18 @@ void InitGrackle(void)
     /* Flag for self-shielding from UV bkgd. Default: 0. */
     my_grackle_data->self_shielding_method             = 0;
 
+#ifdef STAR_RADIATION_ACTIVE
+    /* flag to include RT */
+    my_grackle_data->use_radiative_transfer = 1;
+    my_grackle_data->radiative_transfer_hydrogen_only = 1;
 
-    /* main flags */
-    
-    /* Flag to activate the grackle machinery */
-    my_grackle_data->use_grackle                       = 1;
-    /* Path to the data file containing the metal cooling and UV background tables (for non-eq mode) and metal and primordial cooling/heating (for equilibrium mode) */
-    my_grackle_data->grackle_data_file                  = All.GrackleDataFile;
-    /* Flag to include radiative cooling and actually update the thermal energy during the
-     * chemistry solver. If off, the chemistry species will still be updated. The most
-     * common reason to set this to off is to iterate the chemistry network to an equilibrium state. Default: 1.
-     */
-    my_grackle_data->with_radiative_cooling            = 1;
-
-    /* The ratio of specific heats for an ideal gas. A direct calculation for the molecular component is used if primordial_chemistry > 1. Default: 5/3. */
-    my_grackle_data->Gamma                             = GAMMA;              /* our eos set in Config.sh */
-    /* Flag to control which primordial chemistry network is used (set by Config.sh) */
-#ifndef GRACKLE_CHEMISTRY
-    my_grackle_data->primordial_chemistry              = 0;                          /* if nothing is set assume fully tabulated cooling */
+    my_grackle_data->use_volumetric_heating_rate = 1;
 #else
-    my_grackle_data->primordial_chemistry              = GRACKLE_CHEMISTRY;
-#endif
+    my_grackle_data->use_radiative_transfer = 0;
+    my_grackle_data->radiative_transfer_hydrogen_only = 0;
 
+    my_grackle_data->use_volumetric_heating_rate = 0;
+#endif
     
     /* Finally, initialize the chemistry object. This has to be the last step of the initialisation. */
     if (initialize_chemistry_data(&All.GrackleUnits) == 0) {
@@ -450,16 +441,15 @@ void init_state(void)
 {
   // We run this inside init()  
   int i;
-  double tiny = 1e-20;
   for(i = 0; i < NumGas; i++)
     {
       /* Fully neutral initial conditions -> might want to set different ones */
       SphP[i].grHI    = HYDROGEN_MASSFRAC;          // all H is neutral
-      SphP[i].grHII   = tiny;
+      SphP[i].grHII   = GRACKLE_TINY;
       SphP[i].grHeI   = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
-      SphP[i].grHeII  = tiny;
-      SphP[i].grHeIII = tiny;
-      SphP[i].Ne      = tiny;
+      SphP[i].grHeII  = GRACKLE_TINY;
+      SphP[i].grHeIII = GRACKLE_TINY;
+      SphP[i].Ne      = GRACKLE_TINY;
     }
 }
 
@@ -482,5 +472,3 @@ double compute_mu(int i)
     /* 1 H atom = m_H, 1 He atom = 4*m_H, electrons = m_H (counted as particles for n) */
     return 1.0 / (XH + XH2/2.0 + XHe/4.0 + Xe + Z/16.0); // -> Dimensionless mu
 }
-
-#endif  /* USE_GRACKLE */

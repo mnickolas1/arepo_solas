@@ -510,6 +510,11 @@ int init(void)
         SphP[i].PConservedScalars[j] = SphP[i].PScalars[j] * P[i].Mass;
 #endif /* #ifdef PASSIVE_SCALARS */
 
+//#ifdef STARS
+//  for(i=0; i<NumStars; i++)
+//      SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+//#endif
+
   if(RestartFlag == 17)
     {
       update_primitive_variables();
