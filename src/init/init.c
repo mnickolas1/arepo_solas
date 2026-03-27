@@ -569,20 +569,6 @@ MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 #endif
 
-#if STAR_PARTICLES == 2
-#ifdef STAR_FEEDBACK_ACTIVE
-  /* less massive stars always inactive - massive stars start active */
-  for(i = 0; i < NumStars; i++)
-    {
-      double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
-      if(star_mass > 2)
-        SP[i].TimeBinStar = 0;
-      else 
-        SP[i].TimeBinStar = TIMEBINS;
-    }
-#endif
-#endif
-
 #ifdef STAR_FEEDBACK_ACTIVE  
   for(i=0; i < 8; i++)
     All.StarFeedbackLocal[i] = 0;

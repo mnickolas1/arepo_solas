@@ -121,9 +121,12 @@ static void kernel_local(void)
         break;
 
       i = TimeBinsStar.ActiveParticleList[idx];
-
-      if(star_density_isactive(i))
-        star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+      
+      double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
+      
+      if(star_mass > 2)
+        if(star_density_isactive(i))
+          star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 

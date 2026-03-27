@@ -41,7 +41,7 @@ double gaussian_weight(double r, double h)
   *wk  *= K_norm * hinv3;
 }*/
 
-int get_timestep_star(int p)
+integertime get_timestep_star(int p)
 { 
 #ifdef SELFGRAVITY  
   double dt_grav = (PPS(p).TimeBinGrav ? (((integertime)1) << PPS(p).TimeBinGrav) : 0) * All.Timebase_interval;
@@ -60,12 +60,15 @@ int get_timestep_star(int p)
   if(dt_star < dt)
     dt = dt_star;
 
-//#if STAR_PARTICLES == 2
+  double star_mass = PPS(p).Mass * All.cf_UnitMass_in_Msun;
+
+  // This deactivates low mass stars
+  if (star_mass < 2)
+    dt = TIMEBASE * All.Timebase_interval;
+
   // This sets the timestep of less massive stars at 1 Myr
-//  double star_mass = PPS(p).Mass * All.cf_UnitMass_in_Msun;
-//  if(star_mass < 8)
-//    dt = pow(10,6) / All.cf_UnitTime_in_yr;
-//#endif
+  if(star_mass < 8)
+    dt = pow(10,6) / All.cf_UnitTime_in_yr;
 
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
   
