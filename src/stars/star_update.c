@@ -43,7 +43,12 @@ double gaussian_weight(double r, double h)
 
 int get_timestep_star(int p)
 { 
+#ifdef SELFGRAVITY  
   double dt_grav = (PPS(p).TimeBinGrav ? (((integertime)1) << PPS(p).TimeBinGrav) : 0) * All.Timebase_interval;
+#else 
+  double dt_grav = MAX_REAL_NUMBER;
+#endif
+
   double dt_ngbmax = (SP[p].NgbMaxBin ? (((integertime)1) << SP[p].NgbMaxBin) : 0) * All.Timebase_interval;
   double dt_star = pow(10,4) / All.cf_UnitTime_in_yr;
 
@@ -55,29 +60,14 @@ int get_timestep_star(int p)
   if(dt_star < dt)
     dt = dt_star;
 
-#if STAR_PARTICLES == 2
+//#if STAR_PARTICLES == 2
   // This sets the timestep of less massive stars at 1 Myr
-  double star_mass = PPS(p).Mass * All.cf_UnitMass_in_Msun;
-  if(star_mass < 8)
-    dt = pow(10,6) / All.cf_UnitTime_in_yr;
-#endif
-
-  //if(dt >= All.MaxSizeTimestep)
-    //dt = All.MaxSizeTimestep;
-
-  if(dt < All.MinSizeTimestep)
-    {
-#ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP
-      dt = All.MinSizeTimestep;
-#else  /* #ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP */
-      print_particle_info(p);
-      terminate("Timestep dt=%g below All.MinSizeTimestep=%g", dt, All.MinSizeTimestep);
-#endif /* #ifdef NOSTOP_WHEN_BELOW_MINTIMESTEP #else */
-    }
+//  double star_mass = PPS(p).Mass * All.cf_UnitMass_in_Msun;
+//  if(star_mass < 8)
+//    dt = pow(10,6) / All.cf_UnitTime_in_yr;
+//#endif
 
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
-
-  validate_timestep(dt, ti_step, p);
   
   return ti_step;
 }

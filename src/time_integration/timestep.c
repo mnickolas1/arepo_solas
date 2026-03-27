@@ -103,6 +103,9 @@ void set_cosmo_factors_for_current_time(void)
       All.cf_Hrate         = 0;
       All.cf_redshift      = 0;
     }
+
+  set_cf_units();
+  
 }
 
 void set_cf_units(void)
