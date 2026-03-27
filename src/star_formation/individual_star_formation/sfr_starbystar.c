@@ -51,7 +51,7 @@ void cooling_and_starformation(void)
       /* default is just cooling */
       SphP[i].Sfr = 0; 
 
-      /* star formation if gas is dense and cold */
+      /* star formation if gas is dense and cold */ //number dens without h factors!
       if(number_dens >= All.NumberDensThreshold && temp < All.TemperatureThreshold)
         if(All.Time > 0)  
           SphP[i].Sfr = 1;

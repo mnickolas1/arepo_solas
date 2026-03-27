@@ -220,7 +220,7 @@ void sfr_create_star_particles(void)
 
 #if STAR_PARTICLES == 1
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
-    sample_star_particle(PPS(i).Mass * All.UnitMass_in_g / SOLAR_MASS, SP[i].NumOfStarsInBins);
+    sample_star_particle(PPS(i).Mass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
 #endif
 
   int in[4], out[4], cnt = 2;
@@ -321,7 +321,7 @@ void sfr_create_star_particles(void)
  *  particle are initialized.
  *
  *  \param[in] i Index of the gas cell to be converted.
- *  \param[in] birthtime Time of birth (in code units) of the stellar particle.
+ *  \param[in] birthtime Time of birth of the stellar particle.
  *
  *  \return void
  */
@@ -383,7 +383,7 @@ void convert_cell_into_star(int i, double birthtime)
  *  to ensure conservation.
  *
  *  \param[in] igas Index of the gas cell from which the star is spawned.
- *  \param[in] birthtime Time of birth (in code units) of the stellar particle.
+ *  \param[in] birthtime Time of birth of the stellar particle.
  *  \param[in] istar Index of the spawned stellar particle.
  *  \param[in] mass_of_star The mass of the spawned stellar particle.
  *

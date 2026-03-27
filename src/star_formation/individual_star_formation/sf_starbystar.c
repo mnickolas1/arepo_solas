@@ -343,13 +343,11 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
       if(r2 < h2)
         {
           double mu = compute_mu(j); 
-          //double mu = 2.33; // molecular H
 
-          double number_dens = (SphP[j].Density * All.UnitDensity_in_cgs) / mu / PROTONMASS;
-          //number_dens /= All.cf_a3inv;
-
+          number_dens = (SphP[j].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;;
+      
           double u_to_temp_fac = mu * PROTONMASS / BOLTZMANN * GAMMA_MINUS1;
-          double temp = (SphP[j].Utherm * All.UnitEnergy_in_cgs / All.UnitMass_in_g) * u_to_temp_fac;
+          temp = (SphP[j].Utherm * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s)* u_to_temp_fac;
 
           if(number_dens < All.NumberDensThreshold / 10.0 || temp > All.TemperatureThreshold * 10)
             continue;
