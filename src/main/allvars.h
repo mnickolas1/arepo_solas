@@ -1611,6 +1611,9 @@ extern struct sph_particle_data
   MyDouble grH2I;
   MyDouble grH2II;
   MyDouble grHM;
+  MyDouble grDI;
+  MyDouble grDII;
+  MyDouble grHDI;
 #endif
 
 /* star formation */

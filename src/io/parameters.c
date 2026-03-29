@@ -483,10 +483,6 @@ void read_parameter_file(char *fname)
         strcpy(tag[nt], "TemperatureThresh");
         addr[nt] = &All.TemperatureThresh;
         id[nt++] = REAL;
-  
-        strcpy(tag[nt], "CritPhysDensity");
-        addr[nt] = &All.CritPhysDensity;
-        id[nt++] = REAL;
         
         strcpy(tag[nt], "FactorSN");
         addr[nt] = &All.FactorSN;
