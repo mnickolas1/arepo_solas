@@ -225,18 +225,35 @@ void sample_star_particle(double m, int *bins)
 /* Draw masses for a star particle of total mass M_particle */
 void sample_star_particle(double m, int *bins)
 {
-    /* Zero the bins */
-    for(int i = 0; i < NBINS; i++) bins[i] = 0;
+  /* Zero the bins */
+  for(int i = 0; i < NBINS; i++) bins[i] = 0;
 
-    double m_remaining = m;
+  double m_sampled = 0.0;
 
-    while(m_remaining > 0) 
-      {
-        double u = get_random_number_aux();
-        double mstar = sample_imf(u);
+  while(1)
+    {
+      double u = get_random_number_aux();
+      double mstar = sample_imf(u);
 
-        m_remaining -= mstar;
-        
+      /* Check if adding this star exceeds the target */
+      if(m_sampled + mstar > m)
+        {
+          /* Accept or reject based on which is closer to m */
+          double dist_without = m - m_sampled;
+          double dist_with = (m_sampled + mstar) - m;
+
+          if(dist_with < dist_without)
+            {
+              /* Accept: adding the star is closer to m */
+              int bin = 0;
+              while(bin < NBINS - 1 && StarMassBins[bin + 1] < mstar) bin++;
+              bins[bin]++;
+            }
+          break;
+        }
+
+        m_sampled += mstar;
+
         /* Find bin with linear search from bottom */
         int bin = 0;
         while(bin < NBINS - 1 && StarMassBins[bin + 1] < mstar) bin++;
