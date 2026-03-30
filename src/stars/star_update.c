@@ -186,7 +186,7 @@ void star_prep(void)
 
       struct star_feedback star_feedback;
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
       star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, star_age));
 #elif STAR_PARTICLES == 2     
       star_feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, star_age));

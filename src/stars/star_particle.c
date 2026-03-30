@@ -128,7 +128,7 @@ double sample_imf(double u)
     return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));;
 }
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
 double StarMassBins[NBINS + 1] = 
 {
   /* Region A */
@@ -186,7 +186,42 @@ void setup_mass_bins(void)
       StarMeanMassInBins[i] = numerator / denominator;
     }
 }
+#endif
 
+#if STAR_PARTICLES == 0
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+
+gsl_rng *rng;
+
+double norm;
+double bin_imf[NBINS];
+
+void setup_imf_integrals(void)
+{
+    norm = IntegralTrapezoidal(MMIN, MMAX, 1000, m_times_imf);
+
+    for(int i = 0; i < NBINS; i++)
+      {
+        double m1 = StarMassBins[i];
+        double m2 = StarMassBins[i + 1];
+        bin_imf[i] = IntegralTrapezoidal(m1, m2, 100, imf);
+      }
+}
+
+/* Draw masses for a star particle of total mass M_particle */
+void sample_star_particle(double m, int *bins)
+{
+    for(int i = 0; i < NBINS; i++)
+      {
+        double lambda = m * (bin_imf[i] / norm);
+        bins[i] = (int) gsl_ran_poisson(rng, lambda);
+      }
+}
+#endif
+
+#if STAR_PARTICLES == 1
 /* Draw masses for a star particle of total mass M_particle */
 void sample_star_particle(double m, int *bins)
 {

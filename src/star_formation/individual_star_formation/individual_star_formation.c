@@ -275,6 +275,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   P[istar].Mass = 0;
 
   P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
+  
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
     P[istar].SofteningType = get_softening_type_from_mass(P[istar].Mass);
@@ -325,6 +326,7 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   P[istar].Mass = mass_of_star;
 
 P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
+
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
     P[istar].SofteningType = get_softening_type_from_mass(P[istar].Mass);

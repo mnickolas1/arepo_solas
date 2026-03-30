@@ -18,10 +18,14 @@ void build_imf_cdf(void);
 double sample_imf(double u);
 #endif
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
 void setup_mass_bins(void);
 void sample_star_particle(double m, int *bins);
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a);
+#endif
+
+#if STAR_PARTICLES == 0 
+void setup_imf_integrals(void);
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION

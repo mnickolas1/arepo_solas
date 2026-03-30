@@ -64,7 +64,7 @@ extern struct star_particle_data
   MyDouble Metals;
 #endif
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
   int NumOfStarsInBins[NBINS];
 #endif
 

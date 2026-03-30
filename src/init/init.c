@@ -562,16 +562,31 @@ if(ThisTask == 0)
   {
     build_imf_cdf();
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
     setup_mass_bins();
+#endif
+
+#if STAR_PARTICLES == 0
+    setup_imf_integrals();
 #endif
   }
 MPI_Bcast(cdf_masses, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 MPI_Bcast(cdf_values, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
 MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
+
+#if STAR_PARTICLES == 0
+MPI_Bcast(&norm, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+MPI_Bcast(bin_imf, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#include <gsl/gsl_rng.h>
+
+rng = gsl_rng_alloc(gsl_rng_mt19937);
+gsl_rng_set(rng, ThisTask + 1);
+#endif
+
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE  

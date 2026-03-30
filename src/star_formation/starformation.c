@@ -48,7 +48,7 @@
 
 #include "../gravity/forcetree.h"
 
-#if STAR_PARTICLES == 1 
+#if STAR_PARTICLES < 2 
 #include "../stars/star_particle.h"
 #endif
 
@@ -218,7 +218,7 @@ void sfr_create_star_particles(void)
     }
 #endif /* #ifdef STARS */
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
     sample_star_particle(PPS(i).Mass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
 #endif
@@ -327,7 +327,8 @@ void sfr_create_star_particles(void)
  */
 void convert_cell_into_star(int i, double birthtime)
 {
-  P[i].Type          = 4;
+  P[i].Type = 4;
+  
   P[i].SofteningType = All.SofteningTypeOfPartType[P[i].Type];
 
 #if defined(REFINEMENT_HIGH_RES_GAS)
@@ -348,10 +349,16 @@ void convert_cell_into_star(int i, double birthtime)
 
   voronoi_remove_connection(i);
 
+#ifdef METALS 
+  SP[NumStars].Metals = SphP[i].GasMetallicity * P[i].Mass;
+#endif 
+
 #ifdef STARS
   /* assign star_ids */
   P[i].SID = NumStars;
   SP[NumStars].PID = i;
+#endif 
+
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI)); //need to check that this works!
@@ -359,16 +366,11 @@ void convert_cell_into_star(int i, double birthtime)
   SP[NumStars].Active = 0;
   SP[NumStars].NgbMaxBin = P[i].TimeBinHydro; //need to check that this works!
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
+#endif
 
-  //SP[NumStars].Birthtime = birthtime;
-
-#ifdef METALS 
-  SP[NumStars].Metals = SphP[i].GasMetallicity * P[i].Mass;
-#endif 
-#endif 
-
+#ifdef STARS
   NumStars++;
-#endif /* STARS */
+#endif
 
   return;
 }
@@ -391,23 +393,13 @@ void convert_cell_into_star(int i, double birthtime)
  */
 void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
-  P[istar]               = P[igas];
-  P[istar].Type          = 4;
+  P[istar] = P[igas];
+  P[istar].Type = 4;
+  P[istar].Mass = mass_of_star;
+  
   P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
-  P[istar].Mass          = mass_of_star;
 
-  // give star small random displacement
-  double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
-
-  double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
-  double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
-  double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
-
-  P[istar].Pos[0] += rx;
-  P[istar].Pos[1] += ry;
-  P[istar].Pos[2] += rz;
-
-#if defined(REFINEMENT_HIGH_RES_GAS)
+  #if defined(REFINEMENT_HIGH_RES_GAS)
   if(SphP[igas].HighResMass < HIGHRESMASSFAC * P[igas].Mass)
     {
       /* this cell does not appear to be in the high-res region.
@@ -438,10 +430,6 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SphP[igas].Momentum[1] *= fac;
   SphP[igas].Momentum[2] *= fac;
 
-//#ifdef METALS
-  //SphP[igas].GasMetallicity *= fac;
-//#endif /* ifdef Metals */
-
 //#ifdef MHD
 //  SphP[igas].Energy += Emag;
 //#endif /* #ifdef MHD */
@@ -451,10 +439,16 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
     *(MyFloat *)(((char *)(&SphP[igas])) + scalar_elements[s].offset_mass) *= fac;
 #endif /* #ifdef MAXSCALARS */
 
+#ifdef METALS 
+  SP[NumStars].Metals = SphP[igas].GasMetallicity * P[istar].Mass;
+#endif
+
 #ifdef STARS
   /* assign star_ids */
   P[istar].SID = NumStars;
   SP[NumStars].PID = istar;
+#endif
+
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
@@ -463,13 +457,19 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SP[NumStars].NgbMaxBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
-  //SP[NumStars].Birthtime = birthtime;
+  // give star small random displacement
+  double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
 
-#ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].GasMetallicity * P[istar].Mass;
-#endif
+  double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+  double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
+  double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+
+  P[istar].Pos[0] += rx;
+  P[istar].Pos[1] += ry;
+  P[istar].Pos[2] += rz;
 #endif
 
+#ifdef STARS
   NumStars++;
 #endif
 

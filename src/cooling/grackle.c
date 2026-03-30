@@ -256,12 +256,13 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
   free(All.GrackleFieldData.DI_density);
   free(All.GrackleFieldData.DII_density);
   free(All.GrackleFieldData.HDI_density);
+  free(All.GrackleFieldData.volumetric_heating_rate);
+  free(All.GrackleFieldData.specific_heating_rate);
   free(All.GrackleFieldData.RT_heating_rate);
   free(All.GrackleFieldData.RT_HI_ionization_rate);
   free(All.GrackleFieldData.RT_HeI_ionization_rate);
   free(All.GrackleFieldData.RT_HeII_ionization_rate);
   free(All.GrackleFieldData.RT_H2_dissociation_rate);
-  free(All.GrackleFieldData.volumetric_heating_rate);
 #endif
 
   return returnval;

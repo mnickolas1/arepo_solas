@@ -523,7 +523,7 @@ struct star_feedback units_for_feedback(struct star_feedback star_feedback)
   return star_feedback;
 }
 
-#if STAR_PARTICLES == 1
+#if STAR_PARTICLES < 2
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a)
 {  
   int i, Nstars;
