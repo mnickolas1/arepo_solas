@@ -36,7 +36,7 @@ extern int NumStars;
 
 #if defined(STAR_PARTICLES) || defined(STAR_FEEDBACK_ACTIVE)
 #ifndef STARS
-#error "We cannot run star feeedback simulations without stars!"
+#error "We cannot run star feedback simulations without stars!"
 #endif
 #endif
 
@@ -51,6 +51,19 @@ extern int NumStars;
 #error "We cannot run star radiation simulations without GRACKLE!"
 #endif
 #endif
+
+#ifdef STAR_PARTICLES
+#include "../stars/star_particle.h"
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+#include "../stars/star_tables.h"
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+#include "../stars/star_radiation.h"
+#endif
+
 
 #ifdef STAR_FEEDBACK_ACTIVE
 extern struct TimeBinData TimeBinsStar;
