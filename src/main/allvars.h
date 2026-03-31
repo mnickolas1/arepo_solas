@@ -55,13 +55,17 @@
 #ifdef USE_GRACKLE
 #include <grackle.h>
 #endif // USE_GRACKLE //
-      
-#ifdef STAR_PARTICLES
-#include "../stars/star_particle.h"
-#endif
 
 #ifdef STAR_RADIATION_ACTIVE
 #include "../stars/star_radiation.h"
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+#include "../stars/star_tables.h"
+#endif
+
+#ifdef STAR_PARTICLES
+#include "../stars/star_particle.h"
 #endif
 
 #ifdef STARS
