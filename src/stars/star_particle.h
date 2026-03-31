@@ -2,8 +2,8 @@
 #define STAR_PARTICLE_H
 
 #define NBINS 114
-#define MMIN 0.1
-#define MMAX 120
+#define MMIN 0.10
+#define MMAX 120.0
 
 #define N_CDF_BINS 10000
 

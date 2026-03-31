@@ -1,8 +1,6 @@
 #ifndef STAR_H
 #define STAR_H
 
-#include "../main/allvars.h"
-
 #define ALLOC_STAR_ROOM 64
 extern int NumStars;
 
@@ -51,6 +49,8 @@ extern int NumStars;
 #error "We cannot run star radiation simulations without GRACKLE!"
 #endif
 #endif
+
+#include "../main/allvars.h"
 
 #ifdef STAR_PARTICLES
 #include "../stars/star_particle.h"

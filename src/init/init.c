@@ -558,8 +558,8 @@ if(ThisTask == 0)
     setup_imf_integrals();
 #endif
   }
-MPI_Bcast(cdf_masses, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-MPI_Bcast(cdf_values, N_CDF_BINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+MPI_Bcast(cdf_masses, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+MPI_Bcast(cdf_values, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 #if STAR_PARTICLES < 2
 MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
