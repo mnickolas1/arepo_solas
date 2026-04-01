@@ -286,7 +286,10 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
           if(timesn < MAX_REAL_NUMBER)
             {
-              double unew = (SphP[j].Utherm * P[j].Mass + (1e51 / All.UnitEnergy_in_cgs) * factor) / (P[j].Mass);
+              double vel2 = All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s;
+              double E_inject_code = 1e51 / (All.cf_UnitMass_in_g * vel2);
+
+              double unew = SphP[j].Utherm + E_inject_code * factor / P[j].Mass;
 
               double t_frac = (All.Time - birthtime) / (timesn - birthtime);
               t_frac = fmin(fmax(t_frac, 0.0), 1.0);
