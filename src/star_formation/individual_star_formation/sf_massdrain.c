@@ -80,7 +80,7 @@ static void out2particle(data_out *out, int i, int mode)
           PPS(i).Vel[j] = out->VM[j];
         }
 #ifdef METALS
-      SP[i].Metals = out->Metals;
+      SP[i].Metallicity = out->Metals;
 #endif
     }
   else /* combine */
@@ -91,9 +91,12 @@ static void out2particle(data_out *out, int i, int mode)
           PPS(i).Vel[j] += out->VM[j];
         }
 #ifdef METALS
-      SP[i].Metals += out->Metals;
+      SP[i].Metallicity += out->Metals;
 #endif
     }
+
+  if(mode == MODE_IMPORTED_PARTICLES)
+    SP[i].Metallicity /= SP[i].MassOfStar; 
 }
 
 #include "../../utils/generic_comm_helpers2.h"

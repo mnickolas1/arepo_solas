@@ -346,7 +346,7 @@ void convert_cell_into_star(int i, double birthtime)
   voronoi_remove_connection(i);
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[i].GasMetallicity * P[i].Mass;
+  SP[NumStars].Metallicity = SphP[i].GasMetallicity;
 #endif 
 
 #ifdef STARS
@@ -436,7 +436,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
 #endif /* #ifdef MAXSCALARS */
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].GasMetallicity * P[istar].Mass;
+  SP[NumStars].Metallicity = SphP[igas].GasMetallicity;
 #endif
 
 #ifdef STARS

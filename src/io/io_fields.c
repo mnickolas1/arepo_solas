@@ -824,7 +824,7 @@ void init_io_fields()
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_STARID, SN_MINI);
 #ifdef METALS
-  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metals, 0, STARS_ONLY);
+  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metallicity, 0, STARS_ONLY);
   init_units(IO_STAR_METALS, 0., 0., 0., 0., 0., 0);
   init_snapshot_type(IO_STAR_METALS, SN_MINI);
 #endif

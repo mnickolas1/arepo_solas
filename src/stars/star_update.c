@@ -161,39 +161,38 @@ void star_prep(void)
         if(TimeBinSynchronized[SP[i].NgbMaxBin])
           {
             SP[i].Active = 1;
-            
-            // need to reset the age to when star first starts injecting feedback
-            SP[i].Birthtime = All.Time; 
+            SP[i].PhysicalAge_yr = 0.0;
           }
       
       if(SP[i].Active == 0)
         continue;
       
       MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
-      MyDouble star_age = All.Time - SP[i].Birthtime;
-      MyDouble star_mass = PPS(i).Mass;
+
 #ifdef METALS 
-      MyDouble star_metals = SP[i].Metals;
+      MyDouble star_metallicity = SP[i].Metallicity;
 #else 
-      MyDouble star_metals = 0;
+      MyDouble star_metallicity = 0;
 #endif
-      MyDouble star_metallicity = star_metals/star_mass;
+
+      MyDouble star_mass = PPS(i).Mass;
     
       // Convert units (-> solar masses and years)
       star_timestep *= All.cf_UnitTime_in_yr;
-      star_age *= All.cf_UnitTime_in_yr;
       star_mass *= All.cf_UnitMass_in_Msun;
+
+      SP[i].PhysicalAge_yr += star_timestep;
 
       struct star_feedback star_feedback;
 
 #if STAR_PARTICLES < 2
-      star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, star_age));
+      star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, SP[i].PhysicalAge_yr));
 #elif STAR_PARTICLES == 2     
-      star_feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, star_age));
+      star_feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, SP[i].PhysicalAge_yr));
 #endif
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-     SP[i].TimeSN = star_feedback.TimeSN;
+     SP[i].TimeSN_yr = star_feedback.TimeSN;
 #endif
 
 #ifdef WINDS

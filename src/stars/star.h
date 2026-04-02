@@ -74,7 +74,7 @@ extern struct star_particle_data
   MyIDType PID;
 
 #ifdef METALS
-  MyDouble Metals;
+  MyDouble Metallicity;
 #endif
 
 #if STAR_PARTICLES < 2
@@ -90,7 +90,7 @@ extern struct star_particle_data
 #endif
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  MyDouble TimeSN;
+  MyDouble TimeSN_yr;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
@@ -101,7 +101,7 @@ extern struct star_particle_data
   int NgbMaxBin;
   int DensityFlag;
   signed char TimeBinStar;
-  MyDouble Birthtime;
+  MyDouble PhysicalAge_yr;
 #endif
 
 #ifdef WINDS 

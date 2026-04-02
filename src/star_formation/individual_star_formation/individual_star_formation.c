@@ -353,10 +353,6 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
 //  SphP[igas].Energy += Emag;
 //#endif /* #ifdef MHD */
 
-//#ifdef METALS
-//  SphP[igas].Metals *= fac;
-//#endif /* ifdef Metals */
-
 #ifdef MAXSCALARS
   for(int s = 0; s < N_Scalar; s++) /* Note, the changes in MATERIALS, HIGHRESGASMASS, etc., are treated as part of the Scalars */
     *(MyFloat *)(((char *)(&SphP[igas])) + scalar_elements[s].offset_mass) *= fac;
@@ -367,7 +363,7 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   SP[NumStars].PID = istar;
 
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].GasMetallicity * P[istar].Mass;
+  SP[NumStars].Metallicity = SphP[igas].GasMetallicity;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE

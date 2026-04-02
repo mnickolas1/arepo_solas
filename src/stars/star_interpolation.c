@@ -486,10 +486,6 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
 
 struct star_feedback units_for_feedback(struct star_feedback star_feedback)
 {
-#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  star_feedback.TimeSN /= All.cf_UnitTime_in_yr;
-#endif
-
 #ifdef WINDS
   star_feedback.MassLoss /= All.cf_UnitMass_in_Msun;
 #ifdef METALS
