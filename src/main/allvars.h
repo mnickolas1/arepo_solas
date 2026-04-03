@@ -1324,27 +1324,9 @@ double InitMetallicityinSolar;
 //double ConstantMetallicityYield;
 #endif 
 
-#if defined(BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
+#if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
   /* for parameter file */
   double FeedbackTime;
-#endif
-
-#if defined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-  /* for parameter file */
-  double BhDesNgb;
-  double BhDesDev;
-
-#ifdef BH_FEEDBACK_ACTIVE
-  double BhFeedbackLocal[8];
-  double BhFeedbackGlobal[8];
-
-  int FeedbackFlag;
-
-  double JetFeedback;
-  double Epsilon_r;
-  double Epsilon_f;
-  double Mload;
-#endif
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
@@ -1364,11 +1346,37 @@ double InitMetallicityinSolar;
 #ifdef RAD_OPENING_ANGLE
   double RadOpeningAngle;
 #endif
-  
-/*#ifdef SUPERNOVAE
-  double Ftherm;
-  double Fsn;
-endif*/
+
+#if defined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  /* for parameter file */
+  double BhDesNgb;
+  double BhDesDev;
+#endif
+
+#ifdef TORQUE_ACCRETION
+  /* for parameter file */
+  double Epsilon_T;
+  //double TorqueR0; ??What is this??
+#endif
+
+#ifdef ADP_ACCRETION
+  double ADP_Racc;        /* capture radius (code length units)  ??Not used?? */
+  double ADP_tcap;        /* reservoir to disc transfer timescale (code time units); 0 = instant */
+  double ADP_tvisc;       /* disc viscous timescale (code time units) */
+  double ADP_EddFactor;   /* multiplier on Eddington cap (default 1) */
+#endif
+
+#ifdef BH_FEEDBACK_ACTIVE
+  double BhFeedbackLocal[8];
+  double BhFeedbackGlobal[8];
+
+  int FeedbackFlag;
+
+  double JetFeedback;
+  double Epsilon_r;
+  double Epsilon_f;
+  double Mload;
+#endif
 } All;
 
 /*****************************************************************************

@@ -38,14 +38,13 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Pos[0]        = PPB(i).Pos[0];
-  in->Pos[1]        = PPB(i).Pos[1];
-  in->Pos[2]        = PPB(i).Pos[2];
-  in->Vel[0]        = PPB(i).Vel[0];
-  in->Vel[1]        = PPB(i).Vel[1];
-  in->Vel[2]        = PPB(i).Vel[2];
-  in->Hsml          = BhP[i].Hsml;
-  in->Firstnode     = firstnode;
+  for(int j = 0; j < 3; j++)
+    {
+      in->Pos[j] = PPB(i).Pos[j];
+      in->Vel[j] = PPB(i).Vel[j];
+    }
+  in->Hsml = BhP[i].Hsml;
+  in->Firstnode = firstnode;
 }  
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -78,22 +77,22 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      BhNumNgb[i]                   = out->NumNgb;
-      BhP[i].NgbMass                = out->NgbMass;
-      BhP[i].NgbVolume              = out->NgbVolume;
+      BhNumNgb[i] = out->NumNgb;
+      BhP[i].NgbMass = out->NgbMass;
+      BhP[i].NgbVolume = out->NgbVolume;
       for(int j = 0; j < 3; j++)
-        BhP[i].AngularMomentum[j]   = out->AngularMomentum[j];
-      BhP[i].NgbMaxBin              = out->NgbMaxBin;
+        BhP[i].AngularMomentum[j] = out->AngularMomentum[j];
+      BhP[i].NgbMaxBin = out->NgbMaxBin;
     }
   else /* combine */
     {
-      BhNumNgb[i]                   += out->NumNgb;
-      BhP[i].NgbMass                += out->NgbMass;
-      BhP[i].NgbVolume              += out->NgbVolume;
+      BhNumNgb[i] += out->NumNgb;
+      BhP[i].NgbMass += out->NgbMass;
+      BhP[i].NgbVolume += out->NgbVolume;
       for(int j = 0; j < 3; j++)
-        BhP[i].AngularMomentum[j]   += out->AngularMomentum[j];
+        BhP[i].AngularMomentum[j] += out->AngularMomentum[j];
       if(out->NgbMaxBin > BhP[i].NgbMaxBin)
-        BhP[i].NgbMaxBin             = out->NgbMaxBin;
+        BhP[i].NgbMaxBin = out->NgbMaxBin;
     }
 }
 
@@ -201,7 +200,7 @@ void bh_density(void)
         {
           mpi_printf("BH_ACCRETION: WARNING! BH %d has invalid Hsml=%g, ... reinitializing\n", i, BhP[i].Hsml);
           // Use softening as fallback
-          BhP[i].Hsml = All.SofteningTable[P[BhP[i].PID].SofteningType];
+          BhP[i].Hsml = All.SofteningTable[PPB(i).SofteningType];
         }
     }
  
@@ -311,7 +310,7 @@ void bh_density(void)
  */
 static int bh_density_evaluate(int target, int mode, int threadid)
 {
-  int j, n, numnodes, *firstnode; 
+  int i, n, numnodes, *firstnode; 
   int numngb, ngbmaxbin = 0; 
   double h, h2, r, r2, wk;
   double dx, dy, dz, dvx, dvy, dvz; 
@@ -335,30 +334,30 @@ static int bh_density_evaluate(int target, int mode, int threadid)
       generic_get_numnodes(target, &numnodes, &firstnode);
     }
 
-  pos  = target_data->Pos;
-  vel  = target_data->Vel;
-  h    = target_data->Hsml;
-  h2   = h * h;
+  pos = target_data->Pos;
+  vel = target_data->Vel;
+  h = target_data->Hsml;
+  h2 = h * h;
 
   numngb = ngbmass = ngbvolume = 0;
-  for(j = 0; j < 3; j++)
+  for(int j = 0; j < 3; j++)
     angular_momentum[j] = 0; 
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
 /* compute bh->cell position vectors: posBhP-posSphP */
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      dx = pos[0] - P[i].Pos[0];
+      dy = pos[1] - P[i].Pos[1];
+      dz = pos[2] - P[i].Pos[2];
 
 /* compute bh->cell velocity vectors: posBhP-posSphP */
-      dvx = vel[0] - P[j].Vel[0];
-      dvy = vel[1] - P[j].Vel[1];
-      dvz = vel[2] - P[j].Vel[2];
+      dvx = vel[0] - P[i].Vel[0];
+      dvy = vel[1] - P[i].Vel[1];
+      dvz = vel[2] - P[i].Vel[2];
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -387,24 +386,24 @@ static int bh_density_evaluate(int target, int mode, int threadid)
           numngb++;
           
           // compute the bh-ngb-mass 
-          ngbmass += P[j].Mass;
+          ngbmass += P[i].Mass;
           // compute the bh-ngb-volume
-          ngbvolume += SphP[j].Volume;
+          ngbvolume += SphP[i].Volume;
            
-          angular_momentum[0] += P[j].Mass * (dy * dvz - dz * dvy);
-          angular_momentum[1] += P[j].Mass * (dz * dvx - dx * dvz);
-          angular_momentum[2] += P[j].Mass * (dx * dvy - dy * dvx);
+          angular_momentum[0] += P[i].Mass * (dy * dvz - dz * dvy);
+          angular_momentum[1] += P[i].Mass * (dz * dvx - dx * dvz);
+          angular_momentum[2] += P[i].Mass * (dx * dvy - dy * dvx);
 
           // compute the max hydro bin for neighbors   
-          if(ngbmaxbin < P[j].TimeBinHydro)
-            ngbmaxbin = P[j].TimeBinHydro;
+          if(ngbmaxbin < P[i].TimeBinHydro)
+            ngbmaxbin = P[i].TimeBinHydro;
         }
     }
 
   out.NumNgb = numngb;
   out.NgbMass = ngbmass;
   out.NgbVolume = ngbvolume;
-  for(j = 0; j < 3; j++)
+  for(int j = 0; j < 3; j++)
     out.AngularMomentum[j] = angular_momentum[j];   
   out.NgbMaxBin = ngbmaxbin;
 

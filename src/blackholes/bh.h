@@ -44,23 +44,17 @@ extern struct bh_particle_data
   MyDouble TorqueR0;
   MyDouble TorqueFd;
   MyDouble VelocityGasCircular[3];
-  MyDouble Epsilon_T;
-  MyDouble AngularMomentum[3];
   MyDouble InternalEnergyGas;
   MyDouble AccretionRate;
   MyDouble MassToDrain;
 #endif
 
 #ifdef ADP_ACCRETION
-  MyDouble ADP_Racc;
   MyDouble ADP_CapturedMass;   /* mass captured since last update (code mass) */
   MyDouble ADP_ReservoirMass;  /* reservoir mass waiting to enter disc (code mass) */
   MyDouble ADP_DiscMass;       /* disc mass available to accrete (code mass) */
-  MyDouble ADP_tcap;
-  MyDouble ADP_tvisc; 
   MyDouble VelocityGas[3];
   MyDouble VelocityGasCircular[3];
-  MyDouble ADP_EddFactor;
   MyDouble AccretionRate;
   MyDouble MassToDrain; 
 #endif

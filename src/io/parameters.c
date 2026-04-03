@@ -424,6 +424,53 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif /* #ifdef REFINEMENT_VOLUME_LIMIT */
 
+#ifdef REFINEMENT_AROUND_BH
+#if defined(REFINEMENT_AROUND_BH_FIXED)
+      strcpy(tag[nt], "RefBHRadius");
+      addr[nt] = &All.RefBHRadius;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RefBHMinCellRadius");
+      addr[nt] = &All.RefBHMinCellRadius;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RefBHMaxCellRadius");
+      addr[nt] = &All.RefBHMaxCellRadius;
+      id[nt++] = REAL;
+#elif defined(REFINEMENT_AROUND_BH_HYBRID)
+      strcpy(tag[nt], "RefBHRadiusHSML");
+      addr[nt] = &All.RefBHRadiusHSML;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RefBHMinCellRadius");
+      addr[nt] = &All.RefBHMinCellRadius;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RefBHMaxCellRadius");
+      addr[nt] = &All.RefBHMaxCellRadius;
+      id[nt++] = REAL;
+#else
+      strcpy(tag[nt], "RefBHRadiusHSML");
+      addr[nt] = &All.RefBHRadiusHSML;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RefBHMinCellRadiusRBondi");
+      addr[nt] = &All.RefBHMinCellRadiusRBondi;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RefBHMaxCellRadiusHSML");
+      addr[nt] = &All.RefBHMaxCellRadiusHSML;
+      id[nt++] = REAL;
+#endif
+      strcpy(tag[nt], "RefBHMinCellMass");
+      addr[nt] = &All.RefBHMinCellMass;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RefBHLowerFactorC");
+      addr[nt] = &All.RefBHLowerFactorC;
+      id[nt++] = REAL;
+#endif
+
 #ifdef TILE_ICS
       strcpy(tag[nt], "TileICsFactor");
       addr[nt] = &All.TileICsFactor;
@@ -526,12 +573,6 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.StarFormationEfficiency;
         id[nt++] = REAL;
 #endif
-
-#ifdef STAR_PARTICLES
-      strcpy(tag[nt], "IMF");
-      addr[nt] = &All.IMF;
-      id[nt++] = INT;
-#endif
         
 /* Metallicity */
 #ifdef METALS
@@ -539,42 +580,16 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.InitMetallicityinSolar;
         id[nt++] = REAL;
 #endif
+
+#ifdef STAR_PARTICLES
+      strcpy(tag[nt], "IMF");
+      addr[nt] = &All.IMF;
+      id[nt++] = INT;
+#endif
         
-//#if defined(METALS)
-//        strcpy(tag[nt], "ConstantMetallicityYield");
-//        addr[nt] = &All.ConstantMetallicityYield;
-//        id[nt++] = REAL;
-//#endif
-        
-#if defined(BLACKHOLE_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
+#if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
       strcpy(tag[nt], "FeedbackTime");
       addr[nt] = &All.FeedbackTime;
-      id[nt++] = REAL;
-#endif
-
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-      strcpy(tag[nt], "BhDesNgb");
-      addr[nt] = &All.BhDesNgb;
-      id[nt++] = REAL;
-      
-      strcpy(tag[nt], "BhDesDev");
-      addr[nt] = &All.BhDesDev;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "JetFeedback");
-      addr[nt] = &All.JetFeedback;
-      id[nt++] = INT;
-
-      strcpy(tag[nt], "Epsilon_r");
-      addr[nt] = &All.Epsilon_r;
-      id[nt++] = REAL;
-            
-      strcpy(tag[nt], "Epsilon_f");
-      addr[nt] = &All.Epsilon_f;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "Mload");
-      addr[nt] = &All.Mload;
       id[nt++] = REAL;
 #endif
 
@@ -604,63 +619,52 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif  
 
-#ifdef SUPERNOVAE      
-      //strcpy(tag[nt], "Ftherm");
-      //addr[nt] = &All.Ftherm;
-      //id[nt++] = REAL;
-
-      //strcpy(tag[nt], "Fsn");
-      //addr[nt] = &All.Fsn;
-      //id[nt++] = REAL;
-#endif
-
-#ifdef BLACKHOLES
-#ifdef REFINEMENT_AROUND_BH
-#if defined(REFINEMENT_AROUND_BH_FIXED)
-      strcpy(tag[nt], "RefBHRadius");
-      addr[nt] = &All.RefBHRadius;
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+      strcpy(tag[nt], "BhDesNgb");
+      addr[nt] = &All.BhDesNgb;
       id[nt++] = REAL;
-
-      strcpy(tag[nt], "RefBHMinCellRadius");
-      addr[nt] = &All.RefBHMinCellRadius;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "RefBHMaxCellRadius");
-      addr[nt] = &All.RefBHMaxCellRadius;
-      id[nt++] = REAL;
-#elif defined(REFINEMENT_AROUND_BH_HYBRID)
-      strcpy(tag[nt], "RefBHRadiusHSML");
-      addr[nt] = &All.RefBHRadiusHSML;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "RefBHMinCellRadius");
-      addr[nt] = &All.RefBHMinCellRadius;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "RefBHMaxCellRadius");
-      addr[nt] = &All.RefBHMaxCellRadius;
-      id[nt++] = REAL;
-#else
-      strcpy(tag[nt], "RefBHRadiusHSML");
-      addr[nt] = &All.RefBHRadiusHSML;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "RefBHMinCellRadiusRBondi");
-      addr[nt] = &All.RefBHMinCellRadiusRBondi;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "RefBHMaxCellRadiusHSML");
-      addr[nt] = &All.RefBHMaxCellRadiusHSML;
+      
+      strcpy(tag[nt], "BhDesDev");
+      addr[nt] = &All.BhDesDev;
       id[nt++] = REAL;
 #endif
-      strcpy(tag[nt], "RefBHMinCellMass");
-      addr[nt] = &All.RefBHMinCellMass;
-      id[nt++] = REAL;
 
-      strcpy(tag[nt], "RefBHLowerFactorC");
-      addr[nt] = &All.RefBHLowerFactorC;
+#ifdef TORQUE_ACCRETION
+      strcpy(tag[nt], "Epsilon_T"); // NORMALIZATION FOR TORQUE_ACCRETION
+      addr[nt] = &All.Epsilon_T;
       id[nt++] = REAL;
 #endif
+
+#ifdef ADP_ACCRETION
+      strcpy(tag[nt], "ADP_tvisc");         /* viscous timescale */
+      addr[nt] = &All.ADP_tvisc;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "ADP_tcap");         /* capture timescale */
+      addr[nt] = &All.ADP_tcap;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "ADP_EddFactor");
+      addr[nt] = &All.ADP_EddFactor;
+      id[nt++] = REAL;
+#endif
+
+#ifdef BH_FEEDBACK_ACTIVE
+      strcpy(tag[nt], "JetFeedback");
+      addr[nt] = &All.JetFeedback;
+      id[nt++] = INT;
+
+      strcpy(tag[nt], "Epsilon_r");
+      addr[nt] = &All.Epsilon_r;
+      id[nt++] = REAL;
+            
+      strcpy(tag[nt], "Epsilon_f");
+      addr[nt] = &All.Epsilon_f;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "Mload");
+      addr[nt] = &All.Mload;
+      id[nt++] = REAL;
 #endif
         
 #ifdef FIND_HALOS
