@@ -76,8 +76,6 @@ void read_parameter_file(char *fname)
   int param_handled[MAX_PARAMETERS];
   int errorFlag = 0;
 
-  All.StarformationOn = 0; /* defaults */
-
   for(i = 0; i < MAX_PARAMETERS; i++)
     {
       param_handled[i] = 0;
@@ -297,14 +295,6 @@ void read_parameter_file(char *fname)
 
       strcpy(tag[nt], "ResubmitOn");
       addr[nt] = &All.ResubmitOn;
-      id[nt++] = INT;
-
-      strcpy(tag[nt], "CoolingOn");
-      addr[nt] = &All.CoolingOn;
-      id[nt++] = INT;
-
-      strcpy(tag[nt], "StarformationOn");
-      addr[nt] = &All.StarformationOn;
       id[nt++] = INT;
 
       strcpy(tag[nt], "TypeOfTimestepCriterion");
@@ -930,18 +920,6 @@ void check_parameters()
     }
 #endif /* #ifndef GRAVITY_NOT_PERIODIC #else */
 
-#ifdef COOLING
-  if(All.CoolingOn == 0)
-    {
-      mpi_terminate("Code was compiled with cooling switched on.\nYou must set `CoolingOn=1', or recompile the code.\n");
-    }
-#else  /* #ifdef COOLING */
-  if(All.CoolingOn == 1)
-    {
-      mpi_terminate("Code was compiled with cooling switched off.\nYou must set `CoolingOn=0', or recompile the code.\n");
-    }
-#endif /* #ifdef COOLING #else */
-
   if(All.TypeOfTimestepCriterion >= 3)
     {
       mpi_terminate("The specified timestep criterion\nis not valid\n");
@@ -961,23 +939,6 @@ void check_parameters()
       mpi_terminate("NTYPES>8 is not allowed with ICFormat=%d, since the header block is limited to 256 bytes.\n", All.ICFormat);
     }
 #endif /* #if (NTYPES > 8) */
-
-#ifdef USE_SFR
-  if(All.StarformationOn == 0)
-    {
-      mpi_terminate("Code was compiled with star formation switched on.\nYou must set `StarformationOn=1', or recompile the code.\n");
-    }
-  if(All.CoolingOn == 0)
-    {
-      mpi_terminate(
-          "You try to use the code with star formation enabled,\nbut you did not switch on cooling.\nThis mode is not supported.\n");
-    }
-#else  /* #ifdef USE_SFR */
-  if(All.StarformationOn == 1)
-    {
-      mpi_terminate("Code was compiled with star formation switched off.\nYou must set `StarformationOn=0', or recompile the code.\n");
-    }
-#endif /* #ifdef USE_SFR #else */
 
 #if defined(ENFORCE_JEANS_STABILITY_OF_CELLS) && defined(USE_SFR)
   if(ThisTask == 0)

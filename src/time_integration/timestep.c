@@ -125,16 +125,16 @@ void set_cf_units(void)
   All.cf_UnitMass_in_g            = All.UnitMass_in_g / h;                       
   All.cf_UnitVelocity_in_cm_per_s = All.UnitVelocity_in_cm_per_s;
   All.cf_UnitLength_in_cm         = a * All.UnitLength_in_cm / h;                       
-  All.cf_UnitDensity_in_cgs       = All.UnitDensity_in_cgs * h*h / (a*a*a);     
-  All.cf_UnitPressure_in_cgs      = All.UnitDensity_in_cgs * h*h / (a*a*a)
+  All.cf_UnitDensity_in_cgs       = All.UnitDensity_in_cgs * h*h / a/a/a;     
+  All.cf_UnitPressure_in_cgs      = All.UnitDensity_in_cgs * h*h / a/a/a 
                                     * All.UnitVelocity_in_cm_per_s
                                     * All.UnitVelocity_in_cm_per_s;                  
-  All.cf_UnitMomentum_in_cgs      = (All.UnitMass_in_g / h) 
+  All.cf_UnitMomentum_in_cgs      = All.UnitMass_in_g / h 
                                     * All.UnitVelocity_in_cm_per_s / a;                    
-  All.cf_UnitEnergy_in_cgs        = (All.UnitMass_in_g / h)
+  All.cf_UnitEnergy_in_cgs        = All.UnitMass_in_g / h
                                     * All.UnitVelocity_in_cm_per_s
                                     * All.UnitVelocity_in_cm_per_s
-                                    / (a * a);  
+                                    / a/a;  
   
   All.cf_UnitTime_in_yr   = All.cf_UnitTime_in_s / SEC_PER_YEAR;
   All.cf_UnitMass_in_Msun = All.cf_UnitMass_in_g / SOLAR_MASS;                                 

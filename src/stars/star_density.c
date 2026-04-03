@@ -73,9 +73,9 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      StarNumNgb[i]                   = out->NumNgb;
-      SP[i].NgbMass                   = out->NgbMass;
-      SP[i].NgbVolume                 = out->NgbVolume;
+      StarNumNgb[i]                  = out->NumNgb;
+      SP[i].NgbMass                  = out->NgbMass;
+      SP[i].NgbVolume                = out->NgbVolume;
       SP[i].NgbMaxBin                = out->NgbMaxBin;
     }
   else /* combine */
@@ -84,7 +84,7 @@ static void out2particle(data_out *out, int i, int mode)
       SP[i].NgbMass                   += out->NgbMass;
       SP[i].NgbVolume                 += out->NgbVolume;
       if(out->NgbMaxBin > SP[i].NgbMaxBin)
-        SP[i].NgbMaxBin               = out->NgbMaxBin;
+        SP[i].NgbMaxBin                = out->NgbMaxBin;
     }
 }
 

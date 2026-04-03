@@ -1087,8 +1087,6 @@ extern struct global_data_all_processes
   int TypeOfTimestepCriterion; /*!< gives type of timestep criterion (only 0 supported right now - unlike
                                   gadget-1.1) */
   int OutputListOn;            /*!< flags that output times are listed in a specified file */
-  int CoolingOn;               /*!< flags that cooling is enabled */
-  int StarformationOn;         /*!< flags that star formation is enabled */
 
   int NParameters;
 

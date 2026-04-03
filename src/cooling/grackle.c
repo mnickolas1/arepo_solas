@@ -290,9 +290,9 @@ void InitGrackle(void)
   * so it's better to set this = 0 and only change a_value at every timestep.
   */
   All.GrackleUnits.comoving_coordinates = 0; //All.ComovingIntegrationOn; // 1 if cosmological sim, 0 if not
-  All.GrackleUnits.density_units        = All.UnitDensity_in_cgs;
-  All.GrackleUnits.length_units         = All.UnitLength_in_cm;
-  All.GrackleUnits.time_units           = All.UnitTime_in_s;
+  All.GrackleUnits.density_units        = All.UnitDensity_in_cgs / h/h;
+  All.GrackleUnits.length_units         = All.UnitLength_in_cm / h;
+  All.GrackleUnits.time_units           = All.UnitTime_in_s / h;
   All.GrackleUnits.a_units              = 1.0; // units for the expansion factor; NOTE: Should be 1 always
   set_velocity_units(&All.GrackleUnits);
 
