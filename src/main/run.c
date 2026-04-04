@@ -428,7 +428,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 
 #ifdef BH_ACCRETION_ACTIVE
   bh_accretion();
-  update_bh_accretion_rate();
+  bh_swallow();
 #endif
 
   update_bh_timesteps();

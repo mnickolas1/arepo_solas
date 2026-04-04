@@ -1,23 +1,35 @@
-#ifdef BLACKHOLES
+#ifndef BH_PROTO_H
+#define BH_PROTO_H
+
 /* black hole functions */
 
+/* Memory allocation */
 void reallocate_memory_maxpartbhs(void);
 void domain_resize_storage_bhs(int count_get_bh);
 
-void bh_density(void);
-void update_bh_accretion_rate(void);
-
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+/* Timesteps */
 integertime get_timestep_bh(int p);
 void update_bh_timesteps(void);
 void reconstruct_bh_timebins(void);
 void update_list_of_active_bh_particles(void);
-/*void update_list_of_active_bh_particles_prior_mesh(void);*/
 
-void blackhole_mark_cells_for_refinement(void);
+/* Density loop */
+void bh_density(void);
+#endif
 
-#ifdef BLACKHOLES_FEEDBACK
+#ifdef BH_ACCRETION_ACTIVE
+/* Accretion loops */
+void bh_accretion(void);
+void bh_swallow(void);
+#endif
+
+#ifdef BH_FEEDBACK_ACTIVE
+/* Feedback loops */
 void bh_jet_density(void);
 void bh_ngb_feedback(void);
 #endif
 
-#endif /* #ifdef BLACKHOLES */
+void blackhole_mark_cells_for_refinement(void);
+
+#endif 
