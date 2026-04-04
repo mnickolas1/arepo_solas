@@ -5,7 +5,17 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-static int int_compare(const void *a, const void *b);
+
+static int int_compare(const void *a, const void *b)
+{
+  if(*((int *)a) < *((int *)b))
+    return -1;
+
+  if(*((int *)a) > *((int *)b))
+    return +1;
+
+  return 0;
+}
 
 /* Sph loop kernel function */
 void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
@@ -80,9 +90,9 @@ void update_bh_accretion_rate(void)
       BhP[i].AccretionRate  = accretion_rate;
     }
  
-  MPI_Allreduce(&accretion_rate, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-  MPI_Barrier(MPI_COMM_WORLD); 
-  mpi_printf("BLACK_HOLES: Black hole accretion rate: %e \n", acc_rate_for_print);
+  //MPI_Allreduce(&accretion_rate, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  //MPI_Barrier(MPI_COMM_WORLD); 
+  //mpi_printf("BLACK_HOLES: Black hole accretion rate: %e \n", acc_rate_for_print);
 }
 #endif
 
@@ -291,26 +301,39 @@ void update_bh_accretion_rate(void)
 }
 #endif
 
-/* Get timestep for bh based on smallest between ngbs */
-integertime get_timestep_bh(int p)
+integertime get_timestep_bh(int i)
 { 
-  return BhP[p].NgbMinStep;
+  double dt_grav = (PPS(i).TimeBinGrav ? (((integertime)1) << PPS(i).TimeBinGrav) : 0) * All.Timebase_interval;
+  double dt_ngbmax = (BhP[i].NgbMaxBin ? (((integertime)1) << BhP[i].NgbMaxBin) : 0) * All.Timebase_interval;
+  double dt_bh = PPB(i).Mass / BhP[i].AccretionRate;
+
+  double dt = dt_grav;
+
+  if(dt_ngbmax < dt)
+    dt = dt_ngbmax;
+
+  if(dt_bh < dt)
+    dt = dt_bh;
+
+  integertime ti_step = (integertime)(dt / All.Timebase_interval);
+  
+  return ti_step;
 }
 
-/* Update bh-timestep at prior_mesh_construction */
 void update_bh_timesteps(void)
 {
-  int i, bin;
+  int idx, i;
   integertime ti_step;
 
-  for(i = 0; i < NumBhs; i++)
-    { 
+for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
+    {
+      i = TimeBinsBh.ActiveParticleList[idx];
+
       ti_step = get_timestep_bh(i);
-
-      bin = get_timestep_bin(ti_step);
-
-      BhP[i].TimeBinBh = bin;
+    
+      BhP[i].TimeBinBh = get_timestep_bin(ti_step);
     }
+    
   reconstruct_bh_timebins();
   update_list_of_active_bh_particles();
 }
@@ -532,14 +555,3 @@ void perform_end_of_step_bh_physics(void)
         All.FeedbackFlag = 1;
 #endif
 } // perform_end_of_step_physics(void)
-
-static int int_compare(const void *a, const void *b)
-{
-  if(*((int *)a) < *((int *)b))
-    return -1;
-
-  if(*((int *)a) > *((int *)b))
-    return +1;
-
-  return 0;
-}

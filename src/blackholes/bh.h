@@ -31,6 +31,7 @@ extern struct bh_particle_data
 #ifdef BONDI_ACCRETION
   MyDouble VelocityGas[3];
   MyDouble VelocityGasCircular[3];
+  MyDouble Density;
   MyDouble InternalEnergyGas;
   MyDouble AccretionRate;
   MyDouble MassToDrain;

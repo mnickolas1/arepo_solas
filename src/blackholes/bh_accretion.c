@@ -55,6 +55,7 @@ typedef struct
 #ifdef BONDI_ACCRETION
   MyDouble VelocityGas[3];
   MyDouble VelocityGasCircular[3];
+  MyDouble Density;
   MyDouble InternalEnergyGas;
 #endif
 
@@ -103,7 +104,7 @@ static void out2particle(data_out *out, int i, int mode)
           BhP[i].VelocityGas[j] = out->VelocityGas[j];
           BhP[i].VelocityGasCircular[j] = out->VelocityGasCircular[j];
         }
-
+      BhP[i].Density = out->Density;
       BhP[i].InternalEnergyGas = out->InternalEnergyGas;
 #endif
 
@@ -140,6 +141,7 @@ static void out2particle(data_out *out, int i, int mode)
           BhP[i].VelocityGas[j] += out->VelocityGas[j];
           BhP[i].VelocityGasCircular[j] += out->VelocityGasCircular[j];
         }
+      BhP[i].Density += out->Density;
       BhP[i].InternalEnergyGas += out->InternalEnergyGas;
 #endif
 
@@ -311,10 +313,11 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   h = target_data->Hsml;
 
 #ifdef BONDI_ACCRETION
-  MyDouble internal_energy_gas = 0;
   MyDouble velocity_gas[3], velocity_gas_circular[3];
   for(int j = 0; j < 3; j++)
     velocity_gas[j] = velocity_gas_circular[j] = 0;
+  MyDouble density, internal_energy_gas;
+  density = internal_energy_gas = 0;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -326,7 +329,7 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   MyDouble R0_torque = All.TorqueR0;   // 0.2-0.3 kpc in code units
   MyDouble R0_torque2 = R0_torque * R0_torque;
   /* For angular momentum accretion tracking */
-    MyDouble velocity_gas_circular[3];
+  MyDouble velocity_gas_circular[3];
   for(int j = 0; j < 3; j++)
     velocity_gas_circular[j] = 0;
 #endif
@@ -335,9 +338,6 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   MyDouble adp_captured_mass = 0.0;
   MyDouble Racc = h * 24 ;
   MyDouble Racc2 = Racc * Racc;
-  MyDouble velocity_gas[3], velocity_gas_circular[3];
-  for(int j = 0; j < 3; j++)
-    velocity_gas[j] = velocity_gas_circular[j] = 0;
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -414,17 +414,19 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 
 #ifdef BONDI_ACCRETION
           /* comute relative velocities, 
-               relative specific angular momenta and internal energy of gas */
+          relative specific angular momenta and internal energy of gas */
 
-          velocity_gas[0] += dvx * P[i].Mass / rho*wk;
-          velocity_gas[1] += dvy * P[i].Mass / rho*wk;
-          velocity_gas[2] += dvz * P[i].Mass / rho*wk;
+          velocity_gas[0] += dvx * P[i].Mass / rho * wk;
+          velocity_gas[1] += dvy * P[i].Mass / rho * wk;
+          velocity_gas[2] += dvz * P[i].Mass / rho * wk;
 
-          velocity_gas_circular[0] -= v_cross[0] * P[i].Mass / rho*wk;
-          velocity_gas_circular[1] -= v_cross[1] * P[i].Mass / rho*wk;
-          velocity_gas_circular[2] -= v_cross[2] * P[i].Mass / rho*wk;
+          velocity_gas_circular[0] += v_cross[0] * P[i].Mass / rho * wk;
+          velocity_gas_circular[1] += v_cross[1] * P[i].Mass / rho * wk;
+          velocity_gas_circular[2] += v_cross[2] * P[i].Mass / rho * wk;
 
-          internal_energy_gas += SphP[i].Utherm * P[i].Mass / rho*wk;
+          density += P[i].Mass * wk;
+
+          internal_energy_gas += SphP[i].Utherm * P[i].Mass / rho * wk;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -443,10 +445,9 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
                     torque_Mgas_disk += P[i].Mass; 
               
                   /* Accumulate circular velocity for angular momentum tracking */
-                  
-                  velocity_gas_circular[0] += v_cross[0] * P[i].Mass / rho;
-                  velocity_gas_circular[1] += v_cross[1] * P[i].Mass / rho;
-                  velocity_gas_circular[2] += v_cross[2] * P[i].Mass / rho;
+                  velocity_gas_circular[0] += v_cross[0] * P[i].Mass / rho * wk;
+                  velocity_gas_circular[1] += v_cross[1] * P[i].Mass / rho * wk;
+                  velocity_gas_circular[2] += v_cross[2] * P[i].Mass / rho * wk;
                 }
           
             /*else if(P[i].Type == 4) TODO
@@ -462,24 +463,6 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 #ifdef ADP_ACCRETION
           if(r2 < Racc2)
             adp_captured_mass += P[i].Mass;
-          
-          double v_phi = (v_cross[0]*angular_momentum[0] + v_cross[1]*angular_momentum[1] + v_cross[2]*angular_momentum[2]) / r;
-          
-          int is_disk = (v_phi > 0.0);
-          
-          /* Accumulate total masses */
-          if(P[j].Type == 0)  /* Gas */
-            {
-              adp_captured_mass += mass_j; 
-              if(is_disk)
-                adp_captured_mass += mass_j; 
-              
-              /* Accumulate circular velocity for angular momentum tracking */
-                  
-              velocity_gas_circular[0] += v_cross[0] * P[i].Mass / rho;
-              velocity_gas_circular[1] += v_cross[1] * P[i].Mass / rho;
-              velocity_gas_circular[2] += v_cross[2] * P[i].Mass / rho;
-            }
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -500,6 +483,7 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
       out.VelocityGas[j] = velocity_gas[j];
       out.VelocityGasCircular[j] = velocity_gas_circular[j];
     }
+  out.Density = density;
   out.InternalEnergyGas = internal_energy_gas;
 #endif
 
@@ -515,11 +499,6 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 
 #ifdef ADP_ACCRETION
   out.ADP_CapturedMass = adp_captured_mass;
-  for(int j = 0; j < 3; j++)
-    {
-      out.VelocityGas[j] = velocity_gas[j];
-      out.VelocityGasCircular[j] = velocity_gas_circular[j];
-    }
 #endif
 
 //#ifdef INFALL_ACCRETION

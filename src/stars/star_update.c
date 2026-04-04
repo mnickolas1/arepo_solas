@@ -6,7 +6,16 @@
 #include "../main/proto.h"
 
 
-static int int_compare(const void *a, const void *b);
+static int int_compare(const void *a, const void *b)
+{
+  if(*((int *)a) < *((int *)b))
+    return -1;
+
+  if(*((int *)a) > *((int *)b))
+    return +1;
+
+  return 0;
+}
 
 double gaussian_weight(double r, double h)
 {
@@ -41,15 +50,15 @@ double gaussian_weight(double r, double h)
   *wk  *= K_norm * hinv3;
 }*/
 
-integertime get_timestep_star(int p)
+integertime get_timestep_star(int i)
 { 
 #ifdef SELFGRAVITY  
-  double dt_grav = (PPS(p).TimeBinGrav ? (((integertime)1) << PPS(p).TimeBinGrav) : 0) * All.Timebase_interval;
+  double dt_grav = (PPS(i).TimeBinGrav ? (((integertime)1) << PPS(i).TimeBinGrav) : 0) * All.Timebase_interval;
 #else 
   double dt_grav = MAX_REAL_NUMBER;
 #endif
 
-  double dt_ngbmax = (SP[p].NgbMaxBin ? (((integertime)1) << SP[p].NgbMaxBin) : 0) * All.Timebase_interval;
+  double dt_ngbmax = (SP[i].NgbMaxBin ? (((integertime)1) << SP[i].NgbMaxBin) : 0) * All.Timebase_interval;
   double dt_star = pow(10,4) / All.cf_UnitTime_in_yr;
 
   double dt = dt_grav;
@@ -60,7 +69,7 @@ integertime get_timestep_star(int p)
   if(dt_star < dt)
     dt = dt_star;
 
-  double star_mass = PPS(p).Mass * All.cf_UnitMass_in_Msun;
+  double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
 
   // This deactivates low mass stars
   if (star_mass < 2)
@@ -311,14 +320,3 @@ void perform_end_of_step_star_physics(void)
     mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n",
                All.StarFeedbackGlobal[3], All.StarFeedbackGlobal[7]);   
 } 
-
-static int int_compare(const void *a, const void *b)
-{
-  if(*((int *)a) < *((int *)b))
-    return -1;
-
-  if(*((int *)a) > *((int *)b))
-    return +1;
-
-  return 0;
-}

@@ -1062,8 +1062,8 @@ extern struct global_data_all_processes
       cf_UnitMomentum_in_cgs,      /*!< factor to convert internal momentum units to cgs units */
       cf_UnitEnergy_in_cgs,        /*!< factor to convert internal energy units to cgs units */
 
-      cf_UnitTime_in_yr,
-      cf_UnitMass_in_Msun;
+      cf_UnitTime_in_yr,           /*!< factor to convert internal time units to years */
+      cf_UnitMass_in_Msun;         /*!< factor to convert internal mass units to solar masses */
 
   /* Cosmology */
 
@@ -1351,6 +1351,7 @@ double InitMetallicityinSolar;
   /* for parameter file */
   double BhDesNgb;
   double BhDesDev;
+  double HMaxFactor;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -1360,7 +1361,7 @@ double InitMetallicityinSolar;
 #endif
 
 #ifdef ADP_ACCRETION
-  double ADP_Racc;        /* capture radius (code length units)  ??Not used?? */
+  double ADP_Racc;        /* capture radius (code length units)  ??Hardcoded?? */
   double ADP_tcap;        /* reservoir to disc transfer timescale (code time units); 0 = instant */
   double ADP_tvisc;       /* disc viscous timescale (code time units) */
   double ADP_EddFactor;   /* multiplier on Eddington cap (default 1) */

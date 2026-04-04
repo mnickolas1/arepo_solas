@@ -627,6 +627,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "BhDesDev");
       addr[nt] = &All.BhDesDev;
       id[nt++] = REAL;
+
+      strcpy(tag[nt], "HMaxFactor");
+      addr[nt] = &All.HMaxFactor;
+      id[nt++] = REAL;
 #endif
 
 #ifdef TORQUE_ACCRETION
