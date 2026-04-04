@@ -1,13 +1,14 @@
 #include <stdlib.h>       
-#include <math.h>     
+#include <math.h>
+#include <gsl/gsl_math.h>              
 #include <mpi.h>            
   
-#include "../../main/allvars.h"
-#include "../../main/proto.h"
+#include "../main/allvars.h"
+#include "../main/proto.h"
 
-#include "../../domain/domain.h"
+#include "../domain/domain.h"
 
-static int sf_massdrain_evaluate(int target, int mode, int threadid);
+static int bh_swallow_evaluate(int target, int mode, int threadid);
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -16,10 +17,9 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid);
 typedef struct
 {
   MyDouble Pos[3];
-  MyFloat Hsml;
-  MyDouble MassOfStar;
   MyDouble NgbMass;
-  
+  MyDouble Accretion;
+  MyFloat Hsml;
   int Firstnode;
 } data_in;
 
@@ -36,14 +36,15 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Pos[0]        = PPS(i).Pos[0];
-  in->Pos[1]        = PPS(i).Pos[1];
-  in->Pos[2]        = PPS(i).Pos[2];
-  in->Hsml          = SP[i].Hsml;
-  in->MassOfStar    = SP[i].MassOfStar;
-  in->NgbMass       = SP[i].NgbMass;
+  for(int j = 0; j < 3; j++)
+    in->Pos[j] = PPB(i).Pos[j];
+  in->NgbMass = BhP[i].NgbMass;
 
-  in->Firstnode     = firstnode;
+  double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
+  in->Accretion = BhP[i].AccretionRate * bh_timestep; 
+  
+  in->Hsml = BhP[i].Hsml;
+  in->Firstnode = firstnode;
 }  
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -51,10 +52,7 @@ static void particle2in(data_in *in, int i, int firstnode)
  *         DataOut needed by generic_comm_helpers2.
  */
 typedef struct
-{ 
-  MyDouble CM[3];
-  MyDouble VM[3];
-  MyDouble Metals;
+{
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -74,33 +72,14 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      for(int j = 0; j < 3; j++)
-        {
-          PPS(i).Pos[j] = out->CM[j];
-          PPS(i).Vel[j] = out->VM[j];
-        }
-#ifdef METALS
-      SP[i].Metallicity = out->Metals;
-#endif
     }
   else /* combine */
     {
-      for(int j = 0; j < 3; j++)
-        {
-          PPS(i).Pos[j] += out->CM[j];
-          PPS(i).Vel[j] += out->VM[j];
-        }
-#ifdef METALS
-      SP[i].Metallicity += out->Metals;
-#endif
     }
-
-  if(mode == MODE_IMPORTED_PARTICLES)
-    SP[i].Metallicity /= SP[i].MassOfStar; 
 }
 
 
-#include "../../utils/generic_comm_helpers2.h"
+#include "../utils/generic_comm_helpers2.h"
 
 /*! \brief Routine that defines what to do with local particles.
  *
@@ -110,9 +89,8 @@ static void out2particle(data_out *out, int i, int mode)
  */
 static void kernel_local(void)
 {
-  int i, idx, j;
-
-  int threadid = get_thread_num();
+  int i, idx;
+  int j, threadid = get_thread_num();
 
   for(j = 0; j < NTask; j++)
     Thread[threadid].Exportflag[j] = -1;
@@ -122,20 +100,19 @@ static void kernel_local(void)
       if(Thread[threadid].ExportSpace < MinSpace)
         break;
 
-      i = NextParticle++;
+      //i = NextParticle++;
 
-      if(i >= NumStars)
-        break;
+      //if(i >= NumBhs)
+      //break;
         
-      //idx = NextParticle++;
+      idx = NextParticle++;
 
-      //if(idx >= TimeBinsStar.NActiveParticles)
-      //  break;
+      if(idx >= TimeBinsBh.NActiveParticles)
+        break;
 
-      //i = TimeBinsStar.ActiveParticleList[idx];
-
-      if(PPS(i).Mass == 0)
-        sf_massdrain_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+      i = TimeBinsBh.ActiveParticleList[idx];
+        
+      bh_swallow_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 
@@ -149,7 +126,6 @@ static void kernel_imported(void)
 {
   /* now do the particles that were sent to us */
   int i, cnt = 0;
-
   int threadid = get_thread_num();
 
   while(1)
@@ -159,7 +135,7 @@ static void kernel_imported(void)
       if(i >= Nimport)
         break;
 
-      sf_massdrain_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+      bh_swallow_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
     }
 }
 
@@ -175,10 +151,17 @@ static void kernel_imported(void)
  *
  *  \return void
  */
-void sf_massdrain()
+void bh_swallow(void)
 {
+  int i, idx;
+
+  CPU_Step[CPU_MISC] += measure_time();
+
   generic_set_MaxNexport();
-  generic_comm_pattern(NumStars, kernel_local, kernel_imported);
+
+  generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
+
+  CPU_Step[CPU_INIT] += measure_time();
 }
 
 /*! \brief Inner function of the SPH density calculation
@@ -193,13 +176,13 @@ void sf_massdrain()
  *
  *  \return 0
  */
-static int sf_massdrain_evaluate(int target, int mode, int threadid)
+static int bh_swallow_evaluate(int target, int mode, int threadid)
 {
-  int j, n, numnodes, *firstnode; 
-  double h, h2, dx, dy, dz, r, r2, wk; 
-  MyDouble *pos, massofstar, ngbmass, factor;
-  MyDouble cm[3], vm[3];
-
+  int i, n, numnodes, *firstnode; 
+  double h, h2, r, r2, wk;
+  double dx, dy, dz, dvx, dvy, dvz; 
+  MyDouble *pos, ngbmass, accretion;
+  
   data_in local, *target_data;
   data_out out;
 
@@ -219,28 +202,31 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
     }
 
   pos = target_data->Pos;
-  h = target_data->Hsml;
-  h2 = h * h;
-  
-  massofstar = target_data->MassOfStar;
   ngbmass = target_data->NgbMass;
+  accretion = target_data->Accretion;
+  h = target_data->Hsml;
 
-  for(j = 0; j < 3; j++)
-    cm[j] = vm[j] = 0;
-#ifdef METALS
-  MyDouble metals = 0;
-#endif
+  double hinv, hinv3, hinv4, u, dwk;
+
+  h2 = h * h;
+  hinv = 1.0 / h;
+#ifndef TWODIMS
+  hinv3 = hinv * hinv * hinv;
+#else  /* #ifndef  TWODIMS */
+  hinv3 = hinv * hinv / boxSize_Z;
+#endif /* #ifndef  TWODIMS #else */
+  hinv4 = hinv3 * hinv;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
-/* compute star->cell position vectors: posSP-posSphP */
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+/* compute bh->cell position vectors: posBhP-posSphP */
+      dx = pos[0] - P[i].Pos[0];
+      dy = pos[1] - P[i].Pos[1];
+      dz = pos[2] - P[i].Pos[2];
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -268,40 +254,14 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
         {
           r = sqrt(r2);
 
-          wk = gaussian_weight(r, h);
+          u = r * hinv;
 
-          factor = P[j].Mass * wk / ngbmass;
+          kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          // compute the mass drain
-          SphP[j].StarMassDrain += massofstar * factor;
-          // compute center of mass and velocity
-          cm[0] += P[j].Pos[0] * factor;
-          cm[1] += P[j].Pos[1] * factor;
-          cm[2] += P[j].Pos[2] * factor;
+          SphP[i].BhMassDrain = dmin(0.9 * P[i].Mass, accretion * P[i].Mass / ngbmass);
 
-          vm[0] += P[j].Vel[0] * factor;
-          vm[1] += P[j].Vel[1] * factor;
-          vm[2] += P[j].Vel[2] * factor;
-#ifdef METALS
-          metals += SphP[j].GasMetallicity * P[j].Mass * factor;
-#endif
-        }
-    }
-
-  for(int k = 0; k < 3; k++) 
-    {
-      out.CM[k] = cm[k];
-      out.VM[k] = vm[k];
-    }
-#ifdef METALS
-    out.Metals = metals;
-#endif
-
-  /* now collect the result at the right place */
-  if(mode == MODE_LOCAL_PARTICLES)
-    out2particle(&out, target, MODE_LOCAL_PARTICLES);
-  else
-    DataResult[target] = out;
+        } // if(r2 < h2)
+    } // for(n = 0; n < nfound; n++)
 
   return 0;
 }

@@ -286,8 +286,7 @@ void bh_accretion(void)
  */
 static int bh_accretion_evaluate(int target, int mode, int threadid)
 {
-  int j, n, numnodes, *firstnode; 
-  int numngb; 
+  int i, n, numnodes, *firstnode; 
   double h, h2, r, r2, wk;
   double dx, dy, dz, dvx, dvy, dvz; 
   MyDouble *pos, *vel, *angular_momentum;
@@ -400,8 +399,6 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 
       if(r2 < h2)
         {
-          numngb++;
-
           r = sqrt(r2);
 
           u = r * hinv;
