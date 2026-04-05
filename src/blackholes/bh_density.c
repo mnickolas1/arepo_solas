@@ -179,9 +179,9 @@ void bh_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  BhNumNgb  = (MyFloat *)mymalloc("BhNumNgb", NumBhs * sizeof(MyFloat));
-  Left      = (MyFloat *)mymalloc("Left", NumBhs * sizeof(MyFloat));
-  Right     = (MyFloat *)mymalloc("Right", NumBhs * sizeof(MyFloat));
+  BhNumNgb = (MyFloat *)mymalloc("BhNumNgb", NumBhs * sizeof(MyFloat));
+  Left = (MyFloat *)mymalloc("Left", NumBhs * sizeof(MyFloat));
+  Right = (MyFloat *)mymalloc("Right", NumBhs * sizeof(MyFloat));
 
   for(i = 0; i < NumBhs; i++)
     {
@@ -193,7 +193,7 @@ void bh_density(void)
 
   generic_set_MaxNexport();
 
-  for(idx=0; idx<TimeBinsBh.NActiveParticles; idx++)
+  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
     {
       i = TimeBinsBh.ActiveParticleList[idx];
       if(BhP[i].Hsml <= 0)
@@ -211,7 +211,7 @@ void bh_density(void)
 
       generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
 
-      for(idx=0, npleft=0; idx<TimeBinsBh.NActiveParticles; idx++)
+      for(idx = 0, npleft = 0; idx < TimeBinsBh.NActiveParticles; idx++)
         {
           i = TimeBinsBh.ActiveParticleList[idx];
            

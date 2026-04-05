@@ -10,6 +10,8 @@
 
 static int bh_swallow_evaluate(int target, int mode, int threadid);
 
+static MyFloat *AccretionLimited;
+
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
  *         pointers DataIn and DataGet needed by generic_comm_helpers2.
@@ -39,10 +41,7 @@ static void particle2in(data_in *in, int i, int firstnode)
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPB(i).Pos[j];
   in->NgbMass = BhP[i].NgbMass;
-
-  double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
-  in->Accretion = BhP[i].AccretionRate * bh_timestep; 
-  
+  in->Accretion = BhP[i].Accretion; 
   in->Hsml = BhP[i].Hsml;
   in->Firstnode = firstnode;
 }  
@@ -53,6 +52,8 @@ static void particle2in(data_in *in, int i, int firstnode)
  */
 typedef struct
 {
+  MyDouble AccretionLimited;
+  MyDouble MassToDrain; 
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -72,9 +73,13 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
+      AccretionLimited[i] = out->AccretionLimited;
+      BhP[i].MassToDrain = out->MassToDrain;
     }
   else /* combine */
     {
+      AccretionLimited[i] += out->AccretionLimited;
+      BhP[i].MassToDrain += out->MassToDrain;
     }
 }
 
@@ -155,11 +160,23 @@ void bh_swallow(void)
 {
   int i, idx;
 
+  AccretionLimited = (MyFloat *)mymalloc("AccretionLimited", NumBhs * sizeof(MyFloat));
+
   CPU_Step[CPU_MISC] += measure_time();
 
   generic_set_MaxNexport();
 
   generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
+
+  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
+    {
+      i = TimeBinsBh.ActiveParticleList[idx];
+      
+      if(AccretionLimited[i])
+        BhP[i].Accretion = AccretionLimited[i];
+    }
+
+  myfree(AccretionLimited);
 
   CPU_Step[CPU_INIT] += measure_time();
 }
@@ -180,8 +197,8 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
   double h, h2, r, r2, wk;
-  double dx, dy, dz, dvx, dvy, dvz; 
-  MyDouble *pos, ngbmass, accretion;
+  double dx, dy, dz; 
+  MyDouble *pos, ngbmass, accretion, accretion_limited, mass_to_drain, factor;
   
   data_in local, *target_data;
   data_out out;
@@ -205,6 +222,8 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
   ngbmass = target_data->NgbMass;
   accretion = target_data->Accretion;
   h = target_data->Hsml;
+
+  accretion_limited = mass_to_drain = factor = 0;
 
   double hinv, hinv3, hinv4, u, dwk;
 
@@ -258,10 +277,34 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
 
           kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          SphP[i].BhMassDrain = dmin(0.9 * P[i].Mass, accretion * P[i].Mass / ngbmass);
+          factor = P[i].Mass / ngbmass;
+
+          if(accretion * factor > 0.9 * P[i].Mass)
+            {
+              SphP[i].BhMassDrain += 0.9 * P[i].Mass;
+              
+              accretion_limited += 0.9 * P[i].Mass;
+              
+              mass_to_drain += accretion * factor - 0.9 * P[i].Mass;
+            }
+          else
+            {
+              SphP[i].BhMassDrain += accretion * P[i].Mass / ngbmass;
+              
+              accretion_limited += accretion * P[i].Mass / ngbmass;
+            }
 
         } // if(r2 < h2)
     } // for(n = 0; n < nfound; n++)
+
+  out.AccretionLimited = accretion_limited;
+  out.MassToDrain = mass_to_drain;
+
+  /* now collect the result at the right place */
+  if(mode == MODE_LOCAL_PARTICLES)
+    out2particle(&out, target, MODE_LOCAL_PARTICLES);
+  else
+    DataResult[target] = out;
 
   return 0;
 }

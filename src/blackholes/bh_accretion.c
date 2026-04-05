@@ -518,15 +518,19 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 static void update_bh_accretion_rate(void)
 {
   /* calculate bondi accretion rate */
-  int i;
+  int idx, i;
   double density, pressure, sound_speed, velocity_gas_norm;
   double denominator, denominator_inv, BondiRate, EddingtonRate;
   double accretion_rate, acc_max, acc_rate_for_print;
 
   accretion_rate = acc_max = acc_rate_for_print = 0;
 
-  for(i = 0; i < NumBhs; i++)
+  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
     {
+      i = TimeBinsBh.ActiveParticleList[idx];
+      
+      double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
+
       /* get pressure */
       if(BhP[i].Density > 0)
         {  
@@ -557,7 +561,8 @@ static void update_bh_accretion_rate(void)
       EddingtonRate *=  (All.UnitTime_in_s / All.UnitMass_in_g);
       accretion_rate = fmin(BondiRate, EddingtonRate);
       
-      BhP[i].AccretionRate  = accretion_rate;
+      /* Store the accretion */
+      BhP[i].Accretion = accretion_rate * bh_timestep;
 
       /* Track maximum for output */
       if(accretion_rate > acc_max)
@@ -574,16 +579,20 @@ static void update_bh_accretion_rate(void)
 static void update_bh_accretion_rate(void)
 {
   /* Calculate Torque-limited accretion rate */
-  int i;
+  int idx, i;
   double M_BH, M_gas, M_star, M_enc, M_gas_disk, M_star_disk, M_disk;
   double R0, f_d, f_gas, f0;
   double torque_rate, EddingtonRate;
   double accretion_rate, acc_max, acc_rate_for_print;
 
   accretion_rate = acc_max = acc_rate_for_print = 0;
-  
-  for(i = 0; i < NumBhs; i++)
+
+  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
     {
+      i = TimeBinsBh.ActiveParticleList[idx];
+
+      double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
+
       M_BH        = PPB(i).Mass;
       M_gas       = BhP[i].TorqueMgas;       // Total gas mass within R0
       M_star      = BhP[i].TorqueMstar;      // Total stellar mass within R0
@@ -594,7 +603,7 @@ static void update_bh_accretion_rate(void)
 
       if(R0 <= 0 || (M_gas + M_star) <= 0)
         {
-          BhP[i].AccretionRate = 0;
+          BhP[i].Accretion = 0;
           continue;
         }
 
@@ -625,7 +634,7 @@ static void update_bh_accretion_rate(void)
       /* If no disk, no torque-driven accretion */
       if(f_d < 1e-6 || M_disk < 1e-6)
         {
-          BhP[i].AccretionRate = 0;
+          BhP[i].Accretion = 0;
           continue;
         }
 
@@ -664,8 +673,8 @@ static void update_bh_accretion_rate(void)
       /* Apply Eddington limit */
       accretion_rate = fmin(torque_rate, max_accretion);
 
-      /* Store the accretion rate */
-      BhP[i].AccretionRate = accretion_rate;
+      /* Store the accretion */
+      BhP[i].Accretion  = accretion_rate * bh_timestep;
       
       /* Track maximum for output */
       if(accretion_rate > acc_max)
@@ -681,25 +690,19 @@ static void update_bh_accretion_rate(void)
 #ifdef ADP_ACCRETION
 static void update_bh_accretion_rate(void)
 {
-  int i;
-  int bin;
-  double dt;
-  double M_BH;
-  double Mcap;
-  double M_res;
-  double M_disc;
+  int idx, i;
+  double M_BH, Mcap, M_res, M_disc;
   double dM_to_disc, mdot_visc, mdot_cap, dM_bh;
   double EddingtonRate; 
   double accretion_rate, acc_max, acc_rate_for_print;
 
   accretion_rate = acc_max = acc_rate_for_print = 0;
 
-  for(i = 0; i < NumBhs; i++)
+  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
     {
-      bin = BhP[i].TimeBinBh;
-      dt = (bin ? (((integertime)1) << bin) : 0) * All.Timebase_interval;
+      i = TimeBinsBh.ActiveParticleList[idx];
 
-      if(dt <= 0) continue;
+      double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
 
       M_BH = PPB(i).Mass;
 
@@ -721,7 +724,7 @@ static void update_bh_accretion_rate(void)
          dM = M_res * (dt / tcap).
          If ADP_tcap == 0 (instantaneous) dump everything at once. */
       if(All.ADP_tcap > 0)
-        dM_to_disc = M_res * (dt / All.ADP_tcap);
+        dM_to_disc = M_res * (bh_timestep / All.ADP_tcap);
       else
         dM_to_disc = M_res;   /* instantaneous: reservoir empties each step */
 
@@ -736,7 +739,7 @@ static void update_bh_accretion_rate(void)
       if(All.ADP_tvisc > 0)
         mdot_visc = M_disc / All.ADP_tvisc;
       else
-        mdot_visc = (dt > 0) ? M_disc / dt : 0;   /* fallback: drain in one step */
+        mdot_visc = (bh_timestep > 0) ? M_disc / bh_timestep : 0;   /* fallback: drain in one step */
 
       if(mdot_visc < 0) mdot_visc = 0;
 
@@ -748,12 +751,12 @@ static void update_bh_accretion_rate(void)
 
       accretion_rate = fmin(mdot_visc, mdot_cap);
 
-      dM_bh = accretion_rate * dt;
+      dM_bh = accretion_rate * bh_timestep;
 
       if(dM_bh > M_disc)
         {
-          dM_bh          = M_disc;
-          accretion_rate = (dt > 0) ? dM_bh / dt : 0;
+          dM_bh = M_disc;
+          accretion_rate = (bh_timestep > 0) ? dM_bh / bh_timestep : 0;
         }
       if(dM_bh < 0) dM_bh = 0;
 
@@ -761,7 +764,9 @@ static void update_bh_accretion_rate(void)
 
       BhP[i].ADP_ReservoirMass = M_res;
       BhP[i].ADP_DiscMass = M_disc;
-      BhP[i].AccretionRate = accretion_rate;
+            
+      /* Store the accretion */
+      BhP[i].Accretion = dM_bh;
 
       //debug
       //mpi_printf("ADP BH %d: Mcap=%e  Mres=%e  Mdisc=%e  mdot_visc=%e  mdot_Edd=%e  Mdot_BH=%e\n",

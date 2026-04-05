@@ -33,7 +33,7 @@ extern struct bh_particle_data
   MyDouble VelocityGasCircular[3];
   MyDouble Density;
   MyDouble InternalEnergyGas;
-  MyDouble AccretionRate;
+  MyDouble Accretion;
   MyDouble MassToDrain;
 #endif
 
@@ -46,7 +46,7 @@ extern struct bh_particle_data
   MyDouble TorqueFd;
   MyDouble VelocityGasCircular[3];
   MyDouble InternalEnergyGas;
-  MyDouble AccretionRate;
+  MyDouble Accretion;
   MyDouble MassToDrain;
 #endif
 
@@ -56,7 +56,7 @@ extern struct bh_particle_data
   MyDouble ADP_DiscMass;       /* disc mass available to accrete (code mass) */
   MyDouble VelocityGas[3];
   MyDouble VelocityGasCircular[3];
-  MyDouble AccretionRate;
+  MyDouble Accretion;
   MyDouble MassToDrain; 
 #endif
 
