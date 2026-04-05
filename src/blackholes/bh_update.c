@@ -152,69 +152,41 @@ void perform_end_of_step_bh_physics(void)
   double pj, p0;
   double kick_vector[3];
     
-#ifdef BONDI_ACCRETION
-  int j, bin;
-  double dt;
-  // Accrete mass, angular momentum onto the bh and drain ngb cells
-  for(i=0; i<NumBhs; i++)
+#ifdef BH_ACCRETION_ACTIVE
+  /* Accrete mass and angular momentum onto the bh */
+  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
     {
-      bin = BhP[i].TimeBinBh;
-      dt  = (bin ? (((integertime)1) << bin) : 0) * All.Timebase_interval;
-      PPB(i).Mass += (1-All.Epsilon_r) * BhP[i].AccretionRate * dt;
-      BhP[i].AngularMomentum[0] += BhP[i].AccretionRate * dt * BhP[i].VelocityGasCircular[0];
-      BhP[i].AngularMomentum[1] += BhP[i].AccretionRate * dt * BhP[i].VelocityGasCircular[1];
-      BhP[i].AngularMomentum[2] += BhP[i].AccretionRate * dt * BhP[i].VelocityGasCircular[2];
+      i = TimeBinsBh.ActiveParticleList[idx];
+
+      PPB(i).Mass += (1 - All.Epsilon_r) * BhP[i].Accretion;
+
+      BhP[i].AngularMomentum[0] += BhP[i].Accretion * BhP[i].VelocityGasCircular[0];
+      BhP[i].AngularMomentum[1] += BhP[i].Accretion * BhP[i].VelocityGasCircular[1];
+      BhP[i].AngularMomentum[2] += BhP[i].Accretion * BhP[i].VelocityGasCircular[2];
+    }
       
-      for(j=0; j<NumGas; j++)
-        {
-          if(SphP[j].BhMassDrain > 0)
-            {
-              if(P[j].Mass - SphP[j].BhMassDrain < 0.1*P[j].Mass)
-                {
-                  double M_old = P[j].Mass;
-                  double requested = SphP[j].BhMassDrain;
+  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+    {
+      i = TimeBinsHydro.ActiveParticleList[idx];
 
-                  double drained = 0.9 * M_old;
+      if(i < 0)
+        continue;
 
-                  P[j].Mass = 0.1 * M_old;
+      P[i].Mass -= SphP[i].BhMassDrain;
 
-                  BhP[i].MassToDrain += requested - drained;
-
-                  // We're also losing thermal and kinetic energy & momentum 
+      double factor = (P[i].Mass)/(P[i].Mass + SphP[i].BhMassDrain);
                     
-                  // Update total energy 
-                  SphP[j].Energy *= 0.1;
+      // Update total energy 
+      SphP[i].Energy *= factor;
                     
-                  // Update momentum 
-                  SphP[j].Momentum[0] *= 0.1;
-                  SphP[j].Momentum[1] *= 0.1;
-                  SphP[j].Momentum[2] *= 0.1;
-                }
-              else
-                {
-                  P[j].Mass -= SphP[j].BhMassDrain;
-                    
-                  // Update total energy 
-                  SphP[j].Energy *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
-                    
-                  // Update momentum 
-                  SphP[j].Momentum[0] *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
-                  SphP[j].Momentum[1] *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
-                  SphP[j].Momentum[2] *= (P[j].Mass)/(P[j].Mass + SphP[j].BhMassDrain);
-                }
-              SphP[j].BhMassDrain = 0;
-            }
-        }
+      // Update momentum 
+      SphP[i].Momentum[0] *= factor;
+      SphP[i].Momentum[1] *= factor;
+      SphP[i].Momentum[2] *= factor;
+              
+      SphP[i].BhMassDrain = 0;
     }
 #endif
-    
-//#ifdef INFALL_ACCRETION
-//  for(i=0; i<NumBhs; i++)
-//    {
-//      PPB(i).Mass += (1-All.Epsilon_r) * BhP[i].Accretion;
-//      BhP[i].Accretion = 0;
-//    }
-//#endif
 
 #ifdef BH_FEEDBACK_ACTIVE   
   struct pv_update_data pvd;
@@ -228,15 +200,15 @@ void perform_end_of_step_bh_physics(void)
       pvd.atime = pvd.hubble_a = pvd.a3inv = 1.0;
     
   // Inject feedback to ngb cells 
-  if(All.Time >= All.FeedbackTime)
+
+  if(All.FeedbackFlag > 0)
     {
-      if(All.FeedbackFlag > 0)
+      for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
         {
-          for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
-            {
-              i = TimeBinsHydro.ActiveParticleList[idx];
-              if(i < 0)
-                continue;
+          i = TimeBinsHydro.ActiveParticleList[idx];
+            
+          if(i < 0)
+            continue;
                 
               // Dump mass, momentum and energy injected by bh 
               if(SphP[i].ThermalFeed > 0 || SphP[i].KineticFeed > 0)

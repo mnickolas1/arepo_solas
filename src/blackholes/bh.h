@@ -23,9 +23,6 @@ extern struct bh_particle_data
   int NgbMaxBin;
   int DensityFlag;
   signed char TimeBinBh;
-  
-  MyDouble NgbMassFeed;
-  MyDouble NgbVolumeFeed;
 #endif
 
 #ifdef BONDI_ACCRETION

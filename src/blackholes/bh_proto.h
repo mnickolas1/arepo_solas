@@ -24,10 +24,14 @@ void bh_accretion(void);
 void bh_swallow(void);
 #endif
 
-#ifdef BH_FEEDBACK_ACTIVE
 /* Feedback loops */
+#ifdef BH_THERMAL_FEEDBACK
+void bh_feedback(void);
+#endif
+
+#ifdef BH_JET_FEEDBACK
 void bh_jet_density(void);
-void bh_ngb_feedback(void);
+void bh_jet_feedback(void);
 #endif
 
 void blackhole_mark_cells_for_refinement(void);

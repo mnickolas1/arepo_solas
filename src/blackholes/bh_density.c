@@ -397,6 +397,7 @@ static int bh_density_evaluate(int target, int mode, int threadid)
       if(dz < -boxHalf_Z)
         dz += boxSize_Z;
 #endif /* #ifndef REFLECTIVE_Z */
+
       r2 = dx * dx + dy * dy + dz * dz;
 
       if(r2 < h2)

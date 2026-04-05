@@ -8,9 +8,7 @@
 
 #include "../domain/domain.h"
 
-static int bh_swallow_evaluate(int target, int mode, int threadid);
-
-static MyFloat *AccretionLimited;
+static int bh_feedback_evaluate(int target, int mode, int threadid);
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -18,10 +16,12 @@ static MyFloat *AccretionLimited;
  */
 typedef struct
 {
+  int Bin;
   MyDouble Pos[3];
-  MyDouble NgbMass;
-  MyDouble Accretion;
   MyFloat Hsml;
+  MyDouble NgbMass;
+  MyDouble NgbMassFeed;
+  MyDouble Accretion;
   int Firstnode;
 } data_in;
 
@@ -41,19 +41,18 @@ static void particle2in(data_in *in, int i, int firstnode)
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPB(i).Pos[j];
   in->NgbMass = BhP[i].NgbMass;
-  in->Accretion = BhP[i].Accretion; 
+  in->NgbMassFeed = BhP[i].NgbMassFeed;
+  in->Accretion = BhP[i].Accretion;
   in->Hsml = BhP[i].Hsml;
   in->Firstnode = firstnode;
-}  
+}
 
 /*! \brief Local data structure that holds results acquired on remote
  *         processors. Type called data_out and static pointers DataResult and
- *         DataOut needed by generic_comm_helpers2.
- */
+ *         DataOut needed by generic_comm_helpers2.*/
+
 typedef struct
 {
-  MyDouble AccretionLimited;
-  MyDouble MassToDrain; 
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -67,22 +66,17 @@ static data_out *DataResult, *DataOut;
  *  \param[in] mode Mode of function: local particles or information that was
  *  communicated from other tasks and has to be added locally?
  *
- *  \return void
- */
+ *  \return void*/
+ 
 static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      AccretionLimited[i] = out->AccretionLimited;
-      BhP[i].MassToDrain = out->MassToDrain;
     }
   else /* combine */
     {
-      AccretionLimited[i] += out->AccretionLimited;
-      BhP[i].MassToDrain += out->MassToDrain;
     }
 }
-
 
 #include "../utils/generic_comm_helpers2.h"
 
@@ -117,7 +111,7 @@ static void kernel_local(void)
 
       i = TimeBinsBh.ActiveParticleList[idx];
         
-      bh_swallow_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+      bh_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 
@@ -140,66 +134,28 @@ static void kernel_imported(void)
       if(i >= Nimport)
         break;
 
-      bh_swallow_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+      bh_feedback_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
     }
 }
 
-/*! \brief Main function of SPH density calculation.
- *
- *  This function computes the local density for each active SPH particle and
- *  the number of weighted neighbors in the current smoothing radius. If a
- *  particle with its smoothing region is fully inside the local domain, it is
- *  not exported to the other processors. The function also detects particles
- *  that have a number of neighbors outside the allowed tolerance range. For
- *  these particles, the smoothing length is adjusted accordingly, and the
- *  computation is called again.
- *
- *  \return void
- */
-void bh_swallow(void)
+void bh_feedback(void)
 {
-  int i, idx;
-
-  AccretionLimited = (MyFloat *)mymalloc("AccretionLimited", NumBhs * sizeof(MyFloat));
-
   CPU_Step[CPU_MISC] += measure_time();
 
   generic_set_MaxNexport();
 
   generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
 
-  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
-    {
-      i = TimeBinsBh.ActiveParticleList[idx];
-      
-      if(AccretionLimited[i])
-        BhP[i].Accretion = AccretionLimited[i];
-    }
-
-  myfree(AccretionLimited);
-
-  CPU_Step[CPU_INIT] += measure_time();
+  CPU_Step[CPU_MISC] += measure_time();
 }
 
-/*! \brief Inner function of the SPH density calculation
- *
- *  This function represents the core of the SPH density computation. The
- *  target particle may either be local, or reside in the communication
- *  buffer.
- *
- *  \param[in] target Index of particle in local data/import buffer.
- *  \param[in] mode Mode in which function is called (local or impored data).
- *  \param[in] threadid ID of local thread.
- *
- *  \return 0
- */
-static int bh_swallow_evaluate(int target, int mode, int threadid)
+static int bh_feedback_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
   double h, h2, r, r2, wk;
-  double dx, dy, dz; 
-  MyDouble *pos, ngbmass, accretion, accretion_limited, mass_to_drain, factor;
-  
+  double dx, dy, dz, dvx, dvy, dvz; 
+  MyDouble *pos, ngbmass, accretion, massloading, energyfeed;
+
   data_in local, *target_data;
   data_out out;
 
@@ -219,15 +175,12 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
     }
 
   pos = target_data->Pos;
-  ngbmass = target_data->NgbMass;
-  accretion = target_data->Accretion;
   h = target_data->Hsml;
+  ngbmass = target_data->NgbMass;
+  ngbmassfeed = target_data->NgbMassFeed;
+  accretion = target_data->Accretion;
 
-  accretion_limited = mass_to_drain = factor = 0;
-
-  double hinv, hinv3, hinv4, u, dwk;
-
-  h2 = h * h;
+  h2   = h * h;
   hinv = 1.0 / h;
 #ifndef TWODIMS
   hinv3 = hinv * hinv * hinv;
@@ -236,16 +189,26 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
 
-  int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+  massloading = All.Mload * accretion; 
+  energyfeed = All.Epsilon_f * All.Epsilon_r * accretion * (CLIGHT * CLIGHT / (All.UnitVelocity_in_cm_per_s * All.UnitVelocity_in_cm_per_s));
 
+  /* jet axis and opening angle */    
+
+  /* positive and negative jet axes */
+  double pos_z_axis[3] = {0, 0, 1};
+  double neg_z_axis[3] = {0, 0, -1};      
+  /* jet angle */
+  double theta = DEG_TO_RAD(10);
+  double vx, vy, vz, pos_z_angle, neg_z_angle;
+
+  int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
   for(n = 0; n < nfound; n++)
     {
-      i = Thread[threadid].Ngblist[n];
+      j = Thread[threadid].Ngblist[n];
 
-/* compute bh->cell position vectors: posBhP-posSphP */
-      dx = pos[0] - P[i].Pos[0];
-      dy = pos[1] - P[i].Pos[1];
-      dz = pos[2] - P[i].Pos[2];
+      dx = pos[0] - P[j].Pos[0];
+      dy = pos[1] - P[j].Pos[1];
+      dz = pos[2] - P[j].Pos[2];
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -267,7 +230,6 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
       if(dz < -boxHalf_Z)
         dz += boxSize_Z;
 #endif /* #ifndef REFLECTIVE_Z */
-
       r2 = dx * dx + dy * dy + dz * dz;
 
       if(r2 < h2)
@@ -276,32 +238,50 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
 
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          factor = P[i].Mass / ngbmass;
-
-          if(accretion * factor > 0.9 * P[i].Mass)
+          if(!All.JetFeedback)
             {
-              SphP[i].BhMassDrain += 0.9 * P[i].Mass;
-              
-              accretion_limited += 0.9 * P[i].Mass;
-              
-              mass_to_drain += accretion * factor - 0.9 * P[i].Mass;
-            }
-          else
-            {
-              SphP[i].BhMassDrain += accretion * P[i].Mass / ngbmass;
-              
-              accretion_limited += accretion * P[i].Mass / ngbmass;
+              /* add thermal energy isotropically */
+              SphP[j].ThermalFeed   += energyfeed/ngbmass*P[j].Mass;
+              All.EnergyExchange[0] += energyfeed/ngbmass*P[j].Mass;
             }
 
-        } // if(r2 < h2)
-    } // for(n = 0; n < nfound; n++)
+          if(All.JetFeedback)
+            {
+              /* double cone jet setup */
 
-  out.AccretionLimited = accretion_limited;
-  out.MassToDrain = mass_to_drain;
+              /* calculate vector to cone vertex */
+              vx = -dx; // x-component of the vector from the vertex to the point
+              vy = -dy; // y-component of the vector from the vertex to the point
+              vz = -dz; // z-component of the vector from the vertex to the point
+              /* calculate angles */    
+              pos_z_angle = acos((vx*pos_z_axis[0] + 
+              vy*pos_z_axis[1] + vz*pos_z_axis[2]) / 
+                (sqrt(pow(vx, 2) + pow(vy, 2) + pow(vz, 2)) * sqrt(pow(pos_z_axis[0], 2) + pow(pos_z_axis[1], 2) + pow(pos_z_axis[2], 2))));
+              neg_z_angle = acos((vx*neg_z_axis[0] + vy*neg_z_axis[1] + vz*neg_z_axis[2]) / 
+                (sqrt(pow(vx, 2) + pow(vy, 2) + pow(vz, 2)) * sqrt(pow(neg_z_axis[0], 2) + pow(neg_z_axis[1], 2) + pow(neg_z_axis[2], 2))));    
+              /* check if particle is inside the cone */ 
+              if((pos_z_angle <= theta) || (neg_z_angle <= theta))
+                {
+                  /* add mass */
+                  SphP[j].MassLoading += massloading/ngbmass_feed*P[j].Mass;
+                  
+                  /* split kinetic and thermal energy feed */ 
+                  /* add kinetic energy in cone */
+                  SphP[j].KineticFeed   += energyfeed/ngbmass_feed*P[j].Mass;
+                  All.EnergyExchange[0] += energyfeed/ngbmass_feed*P[j].Mass;
 
-  /* now collect the result at the right place */
+                  /* set radial kick direction */      
+                  SphP[j].BhKickVector[0] = vx/r;
+                  SphP[j].BhKickVector[1] = vy/r;
+                  SphP[j].BhKickVector[2] = vz/r;                
+                }
+            }
+        }
+    }
+
+  /* Now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)
     out2particle(&out, target, MODE_LOCAL_PARTICLES);
   else
