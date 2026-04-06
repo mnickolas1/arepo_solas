@@ -498,10 +498,10 @@ int init(void)
         SphP[i].PConservedScalars[j] = SphP[i].PScalars[j] * P[i].Mass;
 #endif /* #ifdef PASSIVE_SCALARS */
 
-//#ifdef STARS
-//  for(i=0; i<NumStars; i++)
-//      SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
-//#endif
+#ifdef STARS
+  for(i=0; i<NumStars; i++)
+      SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+#endif
 
   if(RestartFlag == 17)
     {
@@ -578,11 +578,11 @@ gsl_rng_set(rng, ThisTask + 1);
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE  
-  for(i=0; i < 8; i++)
+  for(i=0; i < 6; i++)
     All.StarFeedbackLocal[i] = 0;
   
   double *sfg = All.StarFeedbackGlobal;
-  sfg = malloc(8 * sizeof(double));
+  sfg = malloc(6 * sizeof(double));
 
   mpi_printf("Loading star evolution tables\n");
   load_star_tables(All.StarTablesFile);
@@ -592,15 +592,23 @@ gsl_rng_set(rng, ThisTask + 1);
   init_healpix_rays();
 #endif
 
+#ifdef BH_ACCRETION_ACTIVE 
+  for(i=0; i < 2; i++)
+    All.BhAccretionLocal[i] = 0;
+  
+  double *bag = All.BhAccretionGlobal;
+  bag = malloc(2 * sizeof(double));
+#endif 
+
 #ifdef BH_FEEDBACK_ACTIVE 
   srand((unsigned int)time(NULL));
   All.FeedbackFlag = 1;
 
-  for(i=0; i < 8; i++)
+  for(i=0; i < 2; i++)
     All.BhFeedbackLocal[i] = 0;
   
   double *bfg = All.BhFeedbackGlobal;
-  bfg = malloc(8 * sizeof(double));
+  bfg = malloc(2 * sizeof(double));
 #endif 
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

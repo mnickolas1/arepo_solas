@@ -313,14 +313,13 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
               SphP[j].StarMomentumFeed[0] += (windmomentum * dx/r + massloss * vel[0] / All.cf_atime) * factor;
               SphP[j].StarMomentumFeed[1] += (windmomentum * dy/r + massloss * vel[1] / All.cf_atime) * factor;
               SphP[j].StarMomentumFeed[2] += (windmomentum * dz/r + massloss * vel[2] / All.cf_atime) * factor;
-              All.StarFeedbackLocal[2] += windmomentum * factor; //need to update 
               
               double vsq = vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2];
               double vdotp = vel[0] * (dx / r) + vel[1] * (dy / r) + vel[2] * (dz / r);
               SphP[j].StarEnergyFeed += (windmomentum * windmomentum / (2.0 * massloss) // wind KE
                                      + 0.5 * massloss * vsq / All.cf_atime / All.cf_atime       // bulk KE
                                      + windmomentum * vdotp / All.cf_atime) * factor;       // cross
-              All.StarFeedbackLocal[3] += (windmomentum * windmomentum / (2.0 * massloss) 
+              All.StarFeedbackLocal[2] += (windmomentum * windmomentum / (2.0 * massloss) 
                                        + 0.5 * massloss * vsq / All.cf_atime / All.cf_atime                             
                                        + windmomentum * vdotp / All.cf_atime) * factor;
             }
@@ -343,12 +342,11 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
               SphP[j].StarMomentumFeed[0] += (pSN * dx/r + SNmassloss * vel[0] / All.cf_atime) * factor;
               SphP[j].StarMomentumFeed[1] += (pSN * dy/r + SNmassloss * vel[1] / All.cf_atime) * factor;
               SphP[j].StarMomentumFeed[2] += (pSN * dz/r + SNmassloss * vel[2] / All.cf_atime) * factor;
-              All.StarFeedbackLocal[2] += sqrt(2 * SNenergyinject * SNmassloss) * factor; // need to update
 
               SphP[j].StarEnergyFeed += (SNenergyinject                              // thermal/KE in star frame
                                      + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime  // bulk KE
                                      + pSN * vdotp / All.cf_atime) * factor;             // cross
-              All.StarFeedbackLocal[3] += (SNenergyinject       
+              All.StarFeedbackLocal[2] += (SNenergyinject       
                                        + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime  
                                        + pSN * vdotp / All.cf_atime) * factor;     
             }
@@ -373,7 +371,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
               // Energy = thermal (in star frame) + bulk KE of ejected mass (no cross term)
               SphP[j].StarEnergyFeed += (SNenergyinject
                                      + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime) * factor;
-              All.StarFeedbackLocal[3] += (SNenergyinject
+              All.StarFeedbackLocal[2] += (SNenergyinject
                                        + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime) * factor;
             }
 #endif

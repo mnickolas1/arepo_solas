@@ -238,7 +238,7 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
           P[i].BhMassFeed += mass_feed * factor;
 
           SphP[i].BhThermalFeed += energy_feed * factor;
-          All.EnergyExchange[0] += energy_feed * factor;
+          All.BhFeedbackLocal[0] += energy_feed * factor;
         }
     }
 

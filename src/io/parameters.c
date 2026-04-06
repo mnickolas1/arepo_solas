@@ -654,10 +654,6 @@ void read_parameter_file(char *fname)
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
-      strcpy(tag[nt], "JetFeedback");
-      addr[nt] = &All.JetFeedback;
-      id[nt++] = INT;
-
       strcpy(tag[nt], "Epsilon_r");
       addr[nt] = &All.Epsilon_r;
       id[nt++] = REAL;

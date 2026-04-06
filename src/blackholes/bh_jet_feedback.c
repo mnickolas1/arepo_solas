@@ -240,15 +240,6 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
 
           bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          if(!All.JetFeedback)
-            {
-              /* add thermal energy isotropically */
-              SphP[j].ThermalFeed   += energyfeed/ngbsmass*P[j].Mass;
-              All.EnergyExchange[0] += energyfeed/ngbsmass*P[j].Mass;
-            }
-
-          if(All.JetFeedback)
-            {
               /* double cone jet setup */
 
               /* calculate vector to cone vertex */
@@ -276,7 +267,6 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
                   SphP[j].BhKickVector[0] = vx/r;
                   SphP[j].BhKickVector[1] = vy/r;
                   SphP[j].BhKickVector[2] = vz/r;                
-                }
             }
         }
     }

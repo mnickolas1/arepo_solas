@@ -934,32 +934,17 @@ extern struct global_data_all_processes
   int MaxPartBhs;
 #endif
 
-#if defined(COOLING)
-  char TreecoolFile[MAXLEN_PATH];
-#endif /* #if defined(COOLING) */
+  MyIDType MaxID;
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
   int TotPartSpecial, MaxPartSpecial;
 #endif /* #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE */
-
-#if defined(REFINEMENT)
-  double ReferenceGasPartMass;
-#endif /* #if defined(REFINEMENT) */
-
-#ifdef REFINEMENT
-  double TargetGasMass;
-  double TargetGasMassFactor;
-  int RefinementCriterion;
-  int DerefinementCriterion;
-#endif /* #ifdef REFINEMENT */
 
   double TotGravCost;
 
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   double AvgType1Mass;
 #endif /* #ifdef INDIVIDUAL_GRAVITY_SOFTENING */
-
-  double MeanVolume;
 
   int MultipleDomains;
   double TopNodeFactor;
@@ -989,22 +974,13 @@ extern struct global_data_all_processes
   /* some SPH parameters */
 
   int DesNumNgb; /*!< Desired number of SPH neighbours */
-
-#ifdef SUBFIND
-  int DesLinkNgb;
-  double ErrTolThetaSubfind;
-#endif /* #ifdef SUBFIND */
-
-#ifdef FIND_HALOS
-  double TimeOfFirstHaloFinding;
-  double NextTimeOfHaloFinding;
-  double TimeBetweenHaloFinding;
-#endif
     
   double TotCountReducedFluxes;
   double TotCountFluxes;
 
   double DtDisplacement;
+
+  double GlobalDisplacementVector[3];
 
   double MaxNumNgbDeviation; /*!< Maximum allowed deviation neighbour number */
 
@@ -1219,6 +1195,83 @@ extern struct global_data_all_processes
   char OutputListFlag[MAXLEN_OUTPUTLIST];
   int OutputListLength; /*!< number of times stored in table of desired output times */
 
+#ifdef REDUCE_FLUSH
+  double FlushCpuTimeDiff;
+  double FlushLast;
+#endif /* #ifdef REDUCE_FLUSH */
+
+#ifdef ONEDIMS_SPHERICAL
+  double CoreMass;
+  double CoreRadius;
+#endif /* #ifdef ONEDIMS_SPHERICAL */
+
+#ifdef TILE_ICS
+  int TileICsFactor;
+#endif /* #ifdef TILE_ICS */
+
+  double MeanVolume;
+
+#ifdef REFINEMENT
+  double ReferenceGasPartMass;
+  double TargetGasMass;
+  double TargetGasMassFactor;
+  int RefinementCriterion;
+  int DerefinementCriterion;
+#endif 
+
+#ifdef REFINEMENT_VOLUME_LIMIT
+  double MaxVolumeDiff;
+  double MinVolume;
+  double MaxVolume;
+#endif 
+
+#ifdef REFINEMENT_AROUND_BH
+#if defined(REFINEMENT_AROUND_BH_FIXED)
+  double RefBHRadius;        /* refinement region in code units */
+  double RefBHMaxCellRadius; /* in code units */
+  double RefBHMinCellRadius; /* in code units */
+#elif defined(REFINEMENT_AROUND_BH_HYBRID)
+  double RefBHRadiusHSML;          /* refinement region in units of hsml */
+  double RefBHMaxCellRadius; /* in code units */
+  double RefBHMinCellRadius; /* in code units */
+#else
+  double RefBHRadiusHSML;          /* refinement region in units of hsml */
+  double RefBHMaxCellRadiusHSML;   /* in units of hsml */
+  double RefBHMinCellRadiusRBondi; /* in units of rbondi */
+#endif
+  double RefBHMinCellMass;  /* do not refine below this mass */
+  double RefBHLowerFactorC; /* provides lower bound for refined cell sizes */
+#endif
+
+#ifdef ADDBACKGROUNDGRID
+  int GridSize;
+#endif 
+
+#ifdef MHD_POWELL
+  double Powell_Momentum[3];
+  double Powell_Angular_Momentum[3];
+  double Powell_Energy;
+#endif /* #ifdef MHD_POWELL */
+
+#ifdef MHD_SEEDFIELD
+  int B_dir;      /* flags for direction: x = 1, y = 2, z = 4 */
+  double B_value; /* value for the chosen component(s) of the magnetic field */
+#endif            /* #ifdef MHD_SEEDFIELD */
+
+#ifdef METALS
+double InitMetallicityinSolar; 
+#endif 
+
+#ifdef COOLING
+  char TreecoolFile[MAXLEN_PATH];
+#endif 
+
+#ifdef USE_GRACKLE
+  code_units GrackleUnits;
+  grackle_field_data GrackleFieldData;
+  char GrackleDataFile[100];
+#endif
+
 #ifdef USE_SFR /* enable Springel & Hernquist model */
   double OverDensThresh;
   double CritOverDensity;
@@ -1256,82 +1309,14 @@ extern struct global_data_all_processes
   int IMF;
 #endif
 
-#ifdef MHD_POWELL
-  double Powell_Momentum[3];
-  double Powell_Angular_Momentum[3];
-  double Powell_Energy;
-#endif /* #ifdef MHD_POWELL */
-
-#ifdef MHD_SEEDFIELD
-  int B_dir;      /* flags for direction: x = 1, y = 2, z = 4 */
-  double B_value; /* value for the chosen component(s) of the magnetic field */
-#endif            /* #ifdef MHD_SEEDFIELD */
-
-  MyIDType MaxID;
-
-#ifdef REFINEMENT_VOLUME_LIMIT
-  double MaxVolumeDiff;
-  double MinVolume;
-  double MaxVolume;
-#endif /* #ifdef REFINEMENT_VOLUME_LIMIT */
-
-#ifdef REFINEMENT_AROUND_BH
-#if defined(REFINEMENT_AROUND_BH_FIXED)
-  double RefBHRadius;        /* refinement region in code units */
-  double RefBHMaxCellRadius; /* in code units */
-  double RefBHMinCellRadius; /* in code units */
-#elif defined(REFINEMENT_AROUND_BH_HYBRID)
-  double RefBHRadiusHSML;          /* refinement region in units of hsml */
-  double RefBHMaxCellRadius; /* in code units */
-  double RefBHMinCellRadius; /* in code units */
-#else
-  double RefBHRadiusHSML;          /* refinement region in units of hsml */
-  double RefBHMaxCellRadiusHSML;   /* in units of hsml */
-  double RefBHMinCellRadiusRBondi; /* in units of rbondi */
-#endif
-  double RefBHMinCellMass;  /* do not refine below this mass */
-  double RefBHLowerFactorC; /* provides lower bound for refined cell sizes */
-#endif
-
-#ifdef REDUCE_FLUSH
-  double FlushCpuTimeDiff;
-  double FlushLast;
-#endif /* #ifdef REDUCE_FLUSH */
-
-#ifdef TILE_ICS
-  int TileICsFactor;
-#endif /* #ifdef TILE_ICS */
-
-#ifdef ADDBACKGROUNDGRID
-  int GridSize;
-#endif /* #ifdef ADDBACKGROUNDGRID */
-
-#ifdef ONEDIMS_SPHERICAL
-  double CoreMass;
-  double CoreRadius;
-#endif /* #ifdef ONEDIMS_SPHERICAL */
-
-  double GlobalDisplacementVector[3];
-
-#ifdef USE_GRACKLE
-  code_units GrackleUnits;
-  grackle_field_data GrackleFieldData;
-  char GrackleDataFile[100];
-#endif
-
-#ifdef METALS
-double InitMetallicityinSolar; 
-//double ConstantMetallicityYield;
-#endif 
-
 #if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
   /* for parameter file */
   double FeedbackTime;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  double StarFeedbackLocal[8];
-  double StarFeedbackGlobal[8];
+  double StarFeedbackLocal[6];
+  double StarFeedbackGlobal[6];
   
   /* for parameter file */
   double StarDesNgb;
@@ -1354,6 +1339,11 @@ double InitMetallicityinSolar;
   double HMaxFactor;
 #endif
 
+#ifdef BH_ACCRETION_ACTIVE
+  double BhAccretionLocal[2];
+  double BhAccretionGlobal[2];
+#endif
+
 #ifdef TORQUE_ACCRETION
   /* for parameter file */
   double Epsilon_T;
@@ -1368,15 +1358,25 @@ double InitMetallicityinSolar;
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
-  double BhFeedbackLocal[8];
-  double BhFeedbackGlobal[8];
+  double BhFeedbackLocal[2];
+  double BhFeedbackGlobal[2];
 
   int FeedbackFlag;
 
-  double JetFeedback;
   double Epsilon_r;
   double Epsilon_f;
   double Mload;
+#endif
+
+#ifdef SUBFIND
+  int DesLinkNgb;
+  double ErrTolThetaSubfind;
+#endif /* #ifdef SUBFIND */
+
+#ifdef FIND_HALOS
+  double TimeOfFirstHaloFinding;
+  double NextTimeOfHaloFinding;
+  double TimeBetweenHaloFinding;
 #endif
 } All;
 
@@ -1590,6 +1590,18 @@ extern struct sph_particle_data
   MyFloat CurlB[3];
 #endif 
 
+/* passive scalars */
+#ifdef PASSIVE_SCALARS
+  MyFloat PScalars[PASSIVE_SCALARS];
+  MyFloat PConservedScalars[PASSIVE_SCALARS];
+#endif 
+
+/* metallicity */
+#ifdef METALS
+#define GasMetallicity PScalars[METALLICITY_INDEX]
+#define GasMetals PConservedScalars[METALLICITY_INDEX]
+#endif
+
 /* cooling */
 #if defined(COOLING)
   MyFloat Ne; /* electron fraction, expressed as local electron number
@@ -1622,18 +1634,6 @@ extern struct sph_particle_data
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
   MyDouble StarMassDrain;
-#endif
-
-/* passive scalars */
-#ifdef PASSIVE_SCALARS
-  MyFloat PScalars[PASSIVE_SCALARS];
-  MyFloat PConservedScalars[PASSIVE_SCALARS];
-#endif 
-
-/* metallicity */
-#ifdef METALS
-#define GasMetallicity PScalars[METALLICITY_INDEX]
-#define GasMetals PConservedScalars[METALLICITY_INDEX]
 #endif
 
 /* stars */

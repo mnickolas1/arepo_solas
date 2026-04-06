@@ -262,13 +262,13 @@ void perform_end_of_step_star_physics(void)
 #if defined(WINDS) || defined(SUPERNOVAE)
           // Add mass 
           P[i].Mass += SphP[i].StarMassFeed;
-          All.StarFeedbackLocal[4] += SphP[i].StarMassFeed;
+          All.StarFeedbackLocal[3] += SphP[i].StarMassFeed;
           SphP[i].StarMassFeed = 0;
 #ifdef METALS
           // Add metals
           SphP[i].GasMetals += SphP[i].StarMetalsFeed;
           SphP[i].GasMetallicity = SphP[i].GasMetals / P[i].Mass;
-          All.StarFeedbackLocal[5] += SphP[i].StarMetalsFeed;
+          All.StarFeedbackLocal[4] += SphP[i].StarMetalsFeed;
           SphP[i].StarMetalsFeed = 0;
 #endif
 #endif
@@ -278,8 +278,6 @@ void perform_end_of_step_star_physics(void)
           SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0];
           SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1];
           SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2];
-          All.StarFeedbackLocal[6] += sqrt(pow(SphP[i].StarMomentumFeed[0],2) + 
-          pow(SphP[i].StarMomentumFeed[1],2) + pow(SphP[i].StarMomentumFeed[2],2));   
           // Update velocities 
           update_primitive_variables_single(P, SphP, i, &pvd);
           // Set feed flags to zero
@@ -291,11 +289,11 @@ void perform_end_of_step_star_physics(void)
           double Eold = SphP[i].Energy;
           SphP[i].Energy = 0.5*P[i].Mass*(P[i].Vel[0]*P[i].Vel[0] + P[i].Vel[1]*P[i].Vel[1] + P[i].Vel[2]*P[i].Vel[2])
           + P[i].Mass * SphP[i].Utherm;
-          All.StarFeedbackLocal[7] += SphP[i].Energy - Eold;
+          All.StarFeedbackLocal[5] += SphP[i].Energy - Eold;
 #else       
           // Update total energy
           SphP[i].Energy += SphP[i].StarEnergyFeed;
-          All.StarFeedbackLocal[7] += SphP[i].StarEnergyFeed;
+          All.StarFeedbackLocal[5] += SphP[i].StarEnergyFeed;
           // Set feed flags to zero
           SphP[i].StarEnergyFeed = 0;
 #endif
@@ -308,15 +306,13 @@ void perform_end_of_step_star_physics(void)
         
     } // if(All.Time >= All.FeedbackTime)
 
-    MPI_Allreduce(&All.StarFeedbackLocal, &All.StarFeedbackGlobal, 8, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&All.StarFeedbackLocal, &All.StarFeedbackGlobal, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     mpi_printf("STARS: Number of StarParts = %d \n", All.TotNumStars);
     mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[4]);
+               All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[3]);
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[1], All.StarFeedbackGlobal[5]);
-    //mpi_printf("STARS: Momentum given by StarParts = %e, Momentum taken up by gas particles = %e \n",
-               //All.StarFeedbackGlobal[2] * All.cf_atime, All.StarFeedbackGlobal[6] * All.cf_atime);
+               All.StarFeedbackGlobal[1], All.StarFeedbackGlobal[4]);
     mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[3], All.StarFeedbackGlobal[7]);   
+               All.StarFeedbackGlobal[2], All.StarFeedbackGlobal[5]);   
 } 

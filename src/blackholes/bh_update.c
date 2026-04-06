@@ -211,7 +211,7 @@ void perform_end_of_step_bh_physics(void)
             continue;
                 
           // Dump mass, momentum and energy injected by bh 
-          if(SphP[i].ThermalFeed > 0 || SphP[i].KineticFeed > 0)
+          if(SphP[i].BhThermalFeed > 0)
             {
               // Add mass
               //P[i].Mass += SphP[i].BhMassFeed;
@@ -231,7 +231,7 @@ void perform_end_of_step_bh_physics(void)
 
               // Update total energy 
               SphP[i].Energy += SphP[i].BhThermalFeed;
-              //All.EnergyExchange[1] += SphP[i].ThermalFeed + SphP[i].KineticFeed;
+              All.BhFeedbackLocal[1] += SphP[i].BhThermalFeed;
               // Update momentum 
               //SphP[i].Momentum[0] += kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
               //SphP[i].Momentum[1] += kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
@@ -256,11 +256,11 @@ void perform_end_of_step_bh_physics(void)
 #endif
     } // if(All.FeedbackFlag>0)
         
-    MPI_Allreduce(&All.EnergyExchange, &All.EnergyExchangeTot, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&All.BhFeedbackLocal, &All.BhFeedbackGlobal, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD); 
   
-    mpi_printf("BLACK_HOLES: Energy given by BH = %e, Energy taken up by gas particles = %e \n",
-               All.EnergyExchangeTot[0] * All.UnitEnergy_in_cgs, All.EnergyExchangeTot[1] * All.UnitEnergy_in_cgs);
+    mpi_printf("BLACK_HOLES: Energy given by BHs = %e, Energy taken up by gas particles = %e \n",
+               All.BhFeedbackGlobal[0], All.BhFeedbackGlobal[1]);
 
 #ifdef BURST_MODE
     if(All.EnergyExchangeTot[0] - All.EnergyExchangeTot[1] > 10)
