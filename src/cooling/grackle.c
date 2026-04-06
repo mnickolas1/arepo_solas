@@ -289,6 +289,9 @@ void InitGrackle(void)
   * IMPORTANT: at the moment the density is already converted into proper frame before calling the cooling routine,
   * so it's better to set this = 0 and only change a_value at every timestep.
   */
+  
+  double h = All.HubbleParam;
+
   All.GrackleUnits.comoving_coordinates = 0; //All.ComovingIntegrationOn; // 1 if cosmological sim, 0 if not
   All.GrackleUnits.density_units        = All.UnitDensity_in_cgs / h/h;
   All.GrackleUnits.length_units         = All.UnitLength_in_cm / h;
