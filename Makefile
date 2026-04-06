@@ -305,15 +305,23 @@ INCL	+= subfind/subfind.h
 SUBDIRS += subfind
 endif
 
-ifeq (BLACKHOLES,$(findstring BLACKHOLES,$(CONFIGVARS)))
-OBJS    += blackholes/bh_density.o \
-           blackholes/bh_jet_density.o\
-           blackholes/bh_feedback.o \
-           blackholes/bh_update.o
-INCL    += blackholes/bh_proto.h
-SUBDIRS += blackholes
+#INDIVIDUAL_STAR_BY_STAR_FORMATION
+ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
+ifeq (,$(filter USE_SFR,$(CONFIGVARS)))
+    $(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires USE_SFR)
+endif
+ifeq (,$(filter STAR_PARTICLES 2,$(CONFIGVARS)))
+    $(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES=2)
 endif
 
+OBJS += star_formation/individual_star_formation/sfr_starbystar.o \
+        star_formation/individual_star_formation/individual_star_formation.o \
+        star_formation/individual_star_formation/sf_starbystar.o \
+        star_formation/individual_star_formation/sf_massdrain.o
+SUBDIRS += star_formation/individual_star_formation
+endif
+
+#STARS
 ifneq (,$(filter STARS,$(CONFIGVARS)))
 OBJS    += stars/star.o 
 INCL    += stars/star.h
@@ -335,24 +343,32 @@ STAR_FEEDBACK_ACTIVE = WINDS PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRE
 STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
 
 ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
+CONFIGVARS += STAR_FEEDBACK_ACTIVE
+endif
+
+ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
+CONFIGVARS += STAR_RADIATION_ACTIVE
+endif
+
+ifneq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 ifeq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
 $(error STAR_FEEDBACK_ACTIVE requires STAR_PARTICLES)
 endif
 endif
 
-ifneq (,$(filter STAR_PARTICLES $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
+ifneq (,$(filter STAR_PARTICLES STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 ifeq (,$(filter STARS,$(CONFIGVARS)))
 $(error STAR_PARTICLES or STAR_FEEDBACK_ACTIVE requires STARS)
 endif
 endif
 
 ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
-ifeq (,$(filter USE_SFR $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
+ifeq (,$(filter USE_SFR STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 $(error STAR_PARTICLES requires USE_SFR or STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
-ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
+ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
 ifeq (,$(filter USE_GRACKLE,$(CONFIGVARS)))
 $(error STAR_RADIATION_ACTIVE requires USE_GRACKLE)
 endif
@@ -382,19 +398,50 @@ INCL    += extern/chealpix.h \
 SUBDIRS += extern
 endif
 
-ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
-ifeq (,$(filter USE_SFR,$(CONFIGVARS)))
-    $(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires USE_SFR)
-endif
-ifeq (,$(filter STAR_PARTICLES 2,$(CONFIGVARS)))
-    $(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES=2)
+ifneq (,$(filter BLACKHOLES,$(CONFIGVARS)))
+OBJS    += blackholes/bh.o
+INCL    += blackholes/bh.h
+SUBDIRS += blackholes
 endif
 
-  OBJS    += star_formation/individual_star_formation/sfr_starbystar.o \
-          star_formation/individual_star_formation/individual_star_formation.o \
-          star_formation/individual_star_formation/sf_starbystar.o \
-          star_formation/individual_star_formation/sf_massdrain.o
-  SUBDIRS += star_formation/individual_star_formation
+#BLACKHOLES
+ifneq (,$(filter BH_FEEDBACK,$(CONFIGVARS)))
+CONFIGVARS += BH_THERMAL_FEEDBACK BH_JET_FEEDBACK 
+endif
+
+CONFIGVARS := $(sort $(CONFIGVARS))
+
+BH_ACCRETION_ACTIVE = BONDI_ACCRETION TORQUE_ACCRETION ADP_ACCRETION
+
+BH_FEEDBACK_ACTIVE = BH_THERMAL_FEEDBACK BH_JET_FEEDBACK 
+
+ifneq (,$(filter $(BH_ACCRETION_ACTIVE),$(CONFIGVARS)))
+CONFIGVARS += BH_ACCRETION_ACTIVE
+endif
+
+ifneq (,$(filter $(BH_FEEDBACK_ACTIVE),$(CONFIGVARS)))
+CONFIGVARS += BH_FEEDBACK_ACTIVE
+endif
+
+ifneq (,$(filter BH_ACCRETION_ACTIVE BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+ifeq (,$(filter BLACKHOLES,$(CONFIGVARS)))
+$(error BH_ACCRETION_ACTIVE or BH_FEEDBACK_ACTIVE requires BLACKHOLES)
+endif
+endif
+
+ifneq (,$(filter BH_ACCRETION_ACTIVE BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+OBJS    += blackholes/bh_density.o \
+           blackholes/bh_update.o 
+INCL    += blackholes/bh_proto.h 
+endif
+
+ifneq (,$(filter BH_ACCRETION_ACTIVE,$(CONFIGVARS)))
+OBJS    += blackholes/bh_accretion.o \
+           blackholes/bh_swallow.o   
+endif
+
+ifneq (,$(filter BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+OBJS    += blackholes/bh_feedback.o   
 endif
 
 ################################

@@ -4,52 +4,6 @@
 #define ALLOC_STAR_ROOM 64
 extern int NumStars;
 
-#ifdef STAR_FEEDBACK
-#define WINDS
-#define RADIATION
-#define SUPERNOVAE
-#endif
-
-#ifdef RADIATION
-#define PHOTOIONIZATION
-#define PHOTOELECTRIC_HEATING
-#define RADIATION_PRESSURE
-#endif
-
-#if defined(WINDS) \
-|| defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE) \
-|| defined(SUPERNOVAE)
-#define STAR_FEEDBACK_ACTIVE
-#endif
-
-#if defined(PHOTOIONIZATION) || defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-#define STAR_RADIATION_ACTIVE
-#endif
-
-#if defined(STAR_FEEDBACK_ACTIVE) 
-#ifndef STAR_PARTICLES
-#error "We cannot run star feedback simulations without a star particles model!"
-#endif
-#endif
-
-#if defined(STAR_PARTICLES) || defined(STAR_FEEDBACK_ACTIVE)
-#ifndef STARS
-#error "We cannot run star feedback simulations without stars!"
-#endif
-#endif
-
-#if defined(STAR_PARTICLES) 
-#if !defined(USE_SFR) && !defined(STAR_FEEDBACK_ACTIVE) 
-#error "We need star formation/feedback for star particles!"
-#endif
-#endif
-
-#if defined(STAR_RADIATION_ACTIVE)
-#ifndef USE_GRACKLE
-#error "We cannot run star radiation simulations without GRACKLE!"
-#endif
-#endif
-
 #include "../main/allvars.h"
 
 #ifdef STAR_PARTICLES
