@@ -11,7 +11,7 @@
 static int bh_density_evaluate(int target, int mode, int threadid);
 static int bh_density_isactive(int n);
 
-static MyFloat *BhNumNgb;
+static MyFloat *BhNgbs;
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -53,11 +53,14 @@ static void particle2in(data_in *in, int i, int firstnode)
  */
 typedef struct
 {
-  MyDouble NumNgb;
-  MyDouble NgbMass;
-  MyDouble NgbVolume;
-  MyDouble AngularMomentum[3];
-  integertime NgbMaxBin;
+  MyDouble Ngbs;
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
+  int NgbsMaxBin;
+
+#ifdef TORQUE_ACCRETION
+  MyDouble GasAngularMomentum[3];
+#endif
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -77,22 +80,28 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      BhNumNgb[i] = out->NumNgb;
-      BhP[i].NgbMass = out->NgbMass;
-      BhP[i].NgbVolume = out->NgbVolume;
+      BhNgbs[i] = out->Ngbs;
+      BhP[i].NgbsMass = out->NgbsMass;
+      BhP[i].NgbsVolume = out->NgbsVolume;
+      BhP[i].NgbsMaxBin = out->NgbsMaxBin;
+
+#ifdef TORQUE_ACCRETION
       for(int j = 0; j < 3; j++)
-        BhP[i].AngularMomentum[j] = out->AngularMomentum[j];
-      BhP[i].NgbMaxBin = out->NgbMaxBin;
+        BhP[i].GasAngularMomentum[j] = out->GasAngularMomentum[j];
+#endif
     }
   else /* combine */
     {
-      BhNumNgb[i] += out->NumNgb;
-      BhP[i].NgbMass += out->NgbMass;
-      BhP[i].NgbVolume += out->NgbVolume;
+      BhNgbs[i] += out->Ngbs;
+      BhP[i].NgbsMass += out->NgbsMass;
+      BhP[i].NgbsVolume += out->NgbsVolume;
+      if(out->NgbsMaxBin > BhP[i].NgbsMaxBin)
+        BhP[i].NgbsMaxBin = out->NgbsMaxBin;
+
+#ifdef TORQUE_ACCRETION
       for(int j = 0; j < 3; j++)
-        BhP[i].AngularMomentum[j] += out->AngularMomentum[j];
-      if(out->NgbMaxBin > BhP[i].NgbMaxBin)
-        BhP[i].NgbMaxBin = out->NgbMaxBin;
+        BhP[i].GasAngularMomentum[j] += out->GasAngularMomentum[j];
+#endif
     }
 }
 
@@ -179,7 +188,7 @@ void bh_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  BhNumNgb = (MyFloat *)mymalloc("BhNumNgb", NumBhs * sizeof(MyFloat));
+  BhNgbs = (MyFloat *)mymalloc("BhNgbs", NumBhs * sizeof(MyFloat));
   Left = (MyFloat *)mymalloc("Left", NumBhs * sizeof(MyFloat));
   Right = (MyFloat *)mymalloc("Right", NumBhs * sizeof(MyFloat));
 
@@ -217,14 +226,14 @@ void bh_density(void)
            
           if(BhP[i].DensityFlag == 2)
             {
-              if(BhNumNgb[i] == 0)
+              if(BhNgbs[i] == 0)
                 terminate("BH_DENSITY: BH %d has zero neighbours at maximum Hsml=%g\n", i, BhP[i].Hsml);
 
               BhP[i].DensityFlag = -1; /* Mark as inactive */
               continue;
             }
 
-          if(BhP[i].NgbMass < (All.BhDesNgb - All.BhDesDev) * All.TargetGasMass || BhP[i].NgbMass > (All.BhDesNgb + All.BhDesDev) * All.TargetGasMass)
+          if(BhP[i].NgbsMass < (All.BhDesNgb - All.BhDesDev) * All.TargetGasMass || BhP[i].NgbsMass > (All.BhDesNgb + All.BhDesDev) * All.TargetGasMass)
             {
               /* need to redo this particle */
               npleft++;
@@ -240,7 +249,7 @@ void bh_density(void)
                     }
                 } 
 
-              if(BhP[i].NgbMass < (All.BhDesNgb - All.BhDesDev) * All.TargetGasMass)
+              if(BhP[i].NgbsMass < (All.BhDesNgb - All.BhDesDev) * All.TargetGasMass)
                 Left[i] = dmax(BhP[i].Hsml, Left[i]);
               else
                 {
@@ -304,7 +313,7 @@ void bh_density(void)
 
   myfree(Right);
   myfree(Left);
-  myfree(BhNumNgb);
+  myfree(BhNgbs);
 
   /* mark as active again */
   for(i = 0; i < NumBhs; i++)
@@ -329,13 +338,13 @@ void bh_density(void)
 static int bh_density_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int numngb, ngbmaxbin = 0; 
+  int ngbs, ngbsmaxbin = 0; 
   double h, h2, r, r2, wk;
   double dx, dy, dz, dvx, dvy, dvz; 
-  MyDouble *pos, *vel, ngbmass, ngbvolume, angular_momentum[3];
+  MyDouble *pos, *vel, ngbsmass, ngbsvolume;
 
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -355,11 +364,25 @@ static int bh_density_evaluate(int target, int mode, int threadid)
   pos = target_data->Pos;
   vel = target_data->Vel;
   h = target_data->Hsml;
-  h2 = h * h;
 
-  numngb = ngbmass = ngbvolume = 0;
+  ngbs = ngbsmass = ngbsvolume = 0;
+
+#ifdef TORQUE_ACCRETION
+  MyDouble gas_angular_momentum[3];
   for(int j = 0; j < 3; j++)
-    angular_momentum[j] = 0; 
+    gas_angular_momentum[j] = 0;
+#endif 
+
+  double hinv, hinv3, hinv4, u, dwk;
+
+  h2   = h * h;
+  hinv = 1.0 / h;
+#ifndef TWODIMS
+  hinv3 = hinv * hinv * hinv;
+#else  /* #ifndef  TWODIMS */
+  hinv3 = hinv * hinv / boxSize_Z;
+#endif /* #ifndef  TWODIMS #else */
+  hinv4 = hinv3 * hinv;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -402,29 +425,39 @@ static int bh_density_evaluate(int target, int mode, int threadid)
 
       if(r2 < h2)
         {
-          numngb++;
+          r = sqrt(r2);
+          u = r * hinv;
+
+          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
           
-          // compute the bh-ngb-mass 
-          ngbmass += P[i].Mass;
-          // compute the bh-ngb-volume
-          ngbvolume += SphP[i].Volume;
-           
-          angular_momentum[0] += P[i].Mass * (dy * dvz - dz * dvy);
-          angular_momentum[1] += P[i].Mass * (dz * dvx - dx * dvz);
-          angular_momentum[2] += P[i].Mass * (dx * dvy - dy * dvx);
+          ngbs++;
+          
+          // compute the bh-ngbs-mass 
+          ngbsmass += P[i].Mass * wk;
+          // compute the bh-ngbs-volume
+          ngbsvolume += SphP[i].Volume * wk;
 
           // compute the max hydro bin for neighbors   
-          if(ngbmaxbin < P[i].TimeBinHydro)
-            ngbmaxbin = P[i].TimeBinHydro;
+          if(ngbsmaxbin < P[i].TimeBinHydro)
+            ngbsmaxbin = P[i].TimeBinHydro;
+
+#ifdef TORQUE_ACCRETION           
+          gas_angular_momentum[0] += P[i].Mass * (dy * dvz - dz * dvy);
+          gas_angular_momentum[1] += P[i].Mass * (dz * dvx - dx * dvz);
+          gas_angular_momentum[2] += P[i].Mass * (dx * dvy - dy * dvx);
+#endif
         }
     }
 
-  out.NumNgb = numngb;
-  out.NgbMass = ngbmass;
-  out.NgbVolume = ngbvolume;
+  out.Ngbs = ngbs;
+  out.NgbsMass = ngbsmass;
+  out.NgbsVolume = ngbsvolume;
+  out.NgbsMaxBin = ngbsmaxbin;
+
+#ifdef TORQUE_ACCRETION 
   for(int j = 0; j < 3; j++)
-    out.AngularMomentum[j] = angular_momentum[j];   
-  out.NgbMaxBin = ngbmaxbin;
+    out.GasAngularMomentum[j] = gas_angular_momentum[j];   
+#endif
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)

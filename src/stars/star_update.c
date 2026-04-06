@@ -58,7 +58,7 @@ integertime get_timestep_star(int i)
   double dt_grav = MAX_REAL_NUMBER;
 #endif
 
-  double dt_ngbmax = (SP[i].NgbMaxBin ? (((integertime)1) << SP[i].NgbMaxBin) : 0) * All.Timebase_interval;
+  double dt_ngbmax = (SP[i].NgbsMaxBin ? (((integertime)1) << SP[i].NgbsMaxBin) : 0) * All.Timebase_interval;
   double dt_star = pow(10,4) / All.cf_UnitTime_in_yr;
 
   double dt = dt_grav;
@@ -167,7 +167,7 @@ void star_prep(void)
       i = TimeBinsStar.ActiveParticleList[idx];
 
       if(SP[i].Active == 0)
-        if(TimeBinSynchronized[SP[i].NgbMaxBin])
+        if(TimeBinSynchronized[SP[i].NgbsMaxBin])
           {
             SP[i].Active = 1;
             SP[i].PhysicalAge_yr = 0.0;

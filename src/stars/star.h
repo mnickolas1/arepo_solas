@@ -96,9 +96,9 @@ extern struct star_particle_data
 #ifdef STAR_FEEDBACK_ACTIVE
   int Active;
   MyDouble Hsml;
-  MyDouble NgbMass;
-  MyDouble NgbVolume;
-  int NgbMaxBin;
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
+  int NgbsMaxBin;
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble PhysicalAge_yr;

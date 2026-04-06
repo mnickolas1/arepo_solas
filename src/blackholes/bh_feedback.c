@@ -16,11 +16,10 @@ static int bh_feedback_evaluate(int target, int mode, int threadid);
  */
 typedef struct
 {
-  int Bin;
   MyDouble Pos[3];
-  MyFloat Hsml;
-  MyDouble NgbMass;
+  MyDouble NgbsMass;
   MyDouble Accretion;
+  MyFloat Hsml;
   int Firstnode;
 } data_in;
 
@@ -39,7 +38,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPB(i).Pos[j];
-  in->NgbMass = BhP[i].NgbMass;
+  in->NgbsMass = BhP[i].NgbsMass;
   in->Accretion = BhP[i].Accretion;
   in->Hsml = BhP[i].Hsml;
   in->Firstnode = firstnode;
@@ -152,10 +151,10 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
   int i, n, numnodes, *firstnode; 
   double h, h2, r, r2, wk;
   double dx, dy, dz, dvx, dvy, dvz; 
-  MyDouble *pos, ngbmass, accretion, massfeed, energyfeed, factor;
+  MyDouble *pos, ngbsmass, accretion, mass_feed, energy_feed, factor;
 
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -174,8 +173,12 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
 
   pos = target_data->Pos;
   h = target_data->Hsml;
-  ngbmass = target_data->NgbMass;
+  ngbsmass = target_data->NgbsMass;
   accretion = target_data->Accretion;
+
+  factor = 0;
+  mass_feed = All.Mload * All.Epsilon_r * accretion; 
+  energy_feed = All.Epsilon_f * (1 - All.Mload) * All.Epsilon_r * accretion * (CLIGHT * CLIGHT / (All.UnitVelocity_in_cm_per_s * All.UnitVelocity_in_cm_per_s));
 
   double hinv, hinv3, hinv4, u, dwk;
 
@@ -187,10 +190,6 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
   hinv3 = hinv * hinv / boxSize_Z;
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
-
-  factor = 0;
-  massfeed = All.Mload * accretion; 
-  energyfeed = All.Epsilon_f * All.Epsilon_r * accretion * (CLIGHT * CLIGHT / (All.UnitVelocity_in_cm_per_s * All.UnitVelocity_in_cm_per_s));
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -229,18 +228,17 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
       if(r2 < h2)
         {
           r = sqrt(r2);
-
           u = r * hinv;
 
           bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          factor = P[i].Mass / ngbmass;
+          factor = P[i].Mass * wk / ngbsmass;
 
           /* add thermal energy isotropically */
-          P[i].BhMassFeed += massfeed * factor;
+          P[i].BhMassFeed += mass_feed * factor;
 
-          SphP[i].BhThermalFeed += energyfeed * factor;
-          All.EnergyExchange[0] += energyfeed * factor;
+          SphP[i].BhThermalFeed += energy_feed * factor;
+          All.EnergyExchange[0] += energy_feed * factor;
         }
     }
 

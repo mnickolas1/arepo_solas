@@ -17,21 +17,24 @@ extern struct bh_particle_data
 
 #if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
   MyDouble Hsml;
-  MyDouble NgbMass;
-  MyDouble NgbVolume;
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
   MyDouble AngularMomentum[3];
-  int NgbMaxBin;
+  int NgbsMaxBin;
   int DensityFlag;
   signed char TimeBinBh;
 #endif
 
-#ifdef BONDI_ACCRETION
-  MyDouble VelocityGas[3];
-  MyDouble VelocityGasCircular[3];
-  MyDouble Density;
-  MyDouble InternalEnergyGas;
+#ifdef BH_ACCRETION_ACTIVE
   MyDouble Accretion;
   MyDouble MassToDrain;
+#endif
+
+#ifdef BONDI_ACCRETION
+  MyDouble GasVelocity[3];
+  MyDouble GasCircularVelocity[3];
+  MyDouble GasDensity;
+  MyDouble GasInternalEnergy;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -41,20 +44,15 @@ extern struct bh_particle_data
   MyDouble TorqueMstarDisk;
   MyDouble TorqueR0;
   MyDouble TorqueFd;
-  MyDouble VelocityGasCircular[3];
-  MyDouble InternalEnergyGas;
-  MyDouble Accretion;
-  MyDouble MassToDrain;
+  MyDouble GasAngularMomentum[3];
+  MyDouble GasCircularVelocity[3];
 #endif
 
 #ifdef ADP_ACCRETION
   MyDouble ADP_CapturedMass;   /* mass captured since last update (code mass) */
   MyDouble ADP_ReservoirMass;  /* reservoir mass waiting to enter disc (code mass) */
   MyDouble ADP_DiscMass;       /* disc mass available to accrete (code mass) */
-  MyDouble VelocityGas[3];
-  MyDouble VelocityGasCircular[3];
-  MyDouble Accretion;
-  MyDouble MassToDrain; 
+  MyDouble GasCircularVelocity[3];
 #endif
 
 //#ifdef INFALL_ACCRETION

@@ -802,9 +802,9 @@ void init_io_fields()
   init_units(IO_BHDENSITY, 0., 0., 0., 0., 0., All.UnitDensity_in_cgs);
   init_snapshot_type(IO_BHDENSITY, SN_MINI);
 
-  init_field(IO_BH_NGBMASS, "BNM ", "BlackHoleNgbMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].NgbMass, 0, BHS_ONLY);
-  init_units(IO_BH_NGBMASS, 0., 0., 0., 0., 0., All.UnitMass_in_g);
-  init_snapshot_type(IO_BH_NGBMASS, SN_MINI);
+  init_field(IO_BH_NGBSMASS, "BNM ", "BlackHoleNgbsMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].NgbsMass, 0, BHS_ONLY);
+  init_units(IO_BH_NGBSMASS, 0., 0., 0., 0., 0., All.UnitMass_in_g);
+  init_snapshot_type(IO_BH_NGBSMASS, SN_MINI);
 
 #ifdef BONDI_ACCRETION
   init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].AccretionRate, 0, BHS_ONLY);

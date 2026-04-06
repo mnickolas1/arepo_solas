@@ -47,8 +47,10 @@ void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
 integertime get_timestep_bh(int i)
 { 
   double dt_grav = (PPS(i).TimeBinGrav ? (((integertime)1) << PPS(i).TimeBinGrav) : 0) * All.Timebase_interval;
-  double dt_ngbmax = (BhP[i].NgbMaxBin ? (((integertime)1) << BhP[i].NgbMaxBin) : 0) * All.Timebase_interval;
-  double dt_bh = PPB(i).Mass / BhP[i].AccretionRate;
+  double dt_ngbmax = (BhP[i].NgbsMaxBin ? (((integertime)1) << BhP[i].NgbsMaxBin) : 0) * All.Timebase_interval;
+  
+  double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
+  double dt_bh = PPB(i).Mass / (BhP[i].Accretion / bh_timestep);
 
   double dt = dt_grav;
 
@@ -68,7 +70,7 @@ void update_bh_timesteps(void)
   int idx, i;
   integertime ti_step;
 
-for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
+  for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
     {
       i = TimeBinsBh.ActiveParticleList[idx];
 
@@ -149,8 +151,6 @@ void update_list_of_active_bh_particles(void)
 void perform_end_of_step_bh_physics(void)
 {
   int idx, i;
-  double pj, p0;
-  double kick_vector[3];
     
 #ifdef BH_ACCRETION_ACTIVE
   /* Accrete mass and angular momentum onto the bh */
@@ -160,9 +160,10 @@ void perform_end_of_step_bh_physics(void)
 
       PPB(i).Mass += (1 - All.Epsilon_r) * BhP[i].Accretion;
 
-      BhP[i].AngularMomentum[0] += BhP[i].Accretion * BhP[i].VelocityGasCircular[0];
-      BhP[i].AngularMomentum[1] += BhP[i].Accretion * BhP[i].VelocityGasCircular[1];
-      BhP[i].AngularMomentum[2] += BhP[i].Accretion * BhP[i].VelocityGasCircular[2];
+      /* Do we want to track bh spin? */
+      //BhP[i].AngularMomentum[0] += BhP[i].Accretion * BhP[i].VelocityGasCircular[0];
+      //BhP[i].AngularMomentum[1] += BhP[i].Accretion * BhP[i].VelocityGasCircular[1];
+      //BhP[i].AngularMomentum[2] += BhP[i].Accretion * BhP[i].VelocityGasCircular[2];
     }
       
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
@@ -171,19 +172,18 @@ void perform_end_of_step_bh_physics(void)
 
       if(i < 0)
         continue;
+        
+      double original_mass = P[i].Mass;
 
       P[i].Mass -= SphP[i].BhMassDrain;
 
-      double factor = (P[i].Mass)/(P[i].Mass + SphP[i].BhMassDrain);
-                    
-      // Update total energy 
+      double factor = P[i].Mass / original_mass;
+
       SphP[i].Energy *= factor;
-                    
-      // Update momentum 
       SphP[i].Momentum[0] *= factor;
       SphP[i].Momentum[1] *= factor;
       SphP[i].Momentum[2] *= factor;
-              
+
       SphP[i].BhMassDrain = 0;
     }
 #endif
@@ -210,63 +210,61 @@ void perform_end_of_step_bh_physics(void)
           if(i < 0)
             continue;
                 
-              // Dump mass, momentum and energy injected by bh 
-              if(SphP[i].ThermalFeed > 0 || SphP[i].KineticFeed > 0)
-                {
-                  // Add mass
-                  P[i].Mass += SphP[i].MassLoading;
+          // Dump mass, momentum and energy injected by bh 
+          if(SphP[i].ThermalFeed > 0 || SphP[i].KineticFeed > 0)
+            {
+              // Add mass
+              //P[i].Mass += SphP[i].BhMassFeed;
                     
-                  // Add kinetic energy */
-                  SphP[i].Energy += SphP[i].KineticFeed * All.cf_atime*All.cf_atime;
+              // Add kinetic energy */
+              //SphP[i].Energy += SphP[i].KineticFeed;
                     
-                  // Calculate momentum feed exactly so energy is conserved */
-                  //-> we need to do this here so that particle properties don't change between loading the buffer and emptying it*/
-                  kick_vector[0] = SphP[i].BhKickVector[0];
-                  kick_vector[1] = SphP[i].BhKickVector[1];
-                  kick_vector[2] = SphP[i].BhKickVector[2];
+              // Calculate momentum feed exactly so energy is conserved */
+              //-> we need to do this here so that particle properties don't change between loading the buffer and emptying it*/
+              //kick_vector[0] = SphP[i].BhKickVector[0];
+              //kick_vector[1] = SphP[i].BhKickVector[1];
+              //kick_vector[2] = SphP[i].BhKickVector[2];
                     
-                  p0 = sqrt(pow(SphP[i].Momentum[0], 2) + pow(SphP[i].Momentum[1], 2) + pow(SphP[i].Momentum[2], 2));
+              //p0 = sqrt(pow(SphP[i].Momentum[0], 2) + pow(SphP[i].Momentum[1], 2) + pow(SphP[i].Momentum[2], 2));
                     
-                  pj = sqrt(2 * P[i].Mass * (SphP[i].Energy - (P[i].Mass-SphP[i].MassLoading)*SphP[i].Utherm*All.cf_atime*All.cf_atime)) - p0;
+              //pj = sqrt(2 * P[i].Mass * (SphP[i].Energy - (P[i].Mass-SphP[i].MassLoading)*SphP[i].Utherm*All.cf_atime*All.cf_atime)) - p0;
 
-                  // Update total energy 
-                  SphP[i].Energy += SphP[i].ThermalFeed * All.cf_atime*All.cf_atime;
-                  All.EnergyExchange[1] += SphP[i].ThermalFeed + SphP[i].KineticFeed;
-                  // Update momentum 
-                  SphP[i].Momentum[0] += kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-                  SphP[i].Momentum[1] += kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-                  SphP[i].Momentum[2] += kick_vector[2] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
-                  // Update velocities
-                  update_primitive_variables_single(P, SphP, i, &pvd);
-                  // Update internal energy 
-                  update_internal_energy(P, SphP, i, &pvd);
-                  // Update pressure
-                  set_pressure_of_cell_internal(P, SphP, i);
-                  // Set feed flags to zero 
-                  SphP[i].ThermalFeed = SphP[i].KineticFeed = SphP[i].MassLoading = 0;
-                  momentum_kick[0] = momentum_kick[1] = momentum_kick[2] = 0;
+              // Update total energy 
+              SphP[i].Energy += SphP[i].BhThermalFeed;
+              //All.EnergyExchange[1] += SphP[i].ThermalFeed + SphP[i].KineticFeed;
+              // Update momentum 
+              //SphP[i].Momentum[0] += kick_vector[0] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
+              //SphP[i].Momentum[1] += kick_vector[1] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
+              //SphP[i].Momentum[2] += kick_vector[2] * pj / sqrt(pow(kick_vector[0], 2) + pow(kick_vector[1], 2) + pow(kick_vector[2], 2));
+              // Update velocities
+              //update_primitive_variables_single(P, SphP, i, &pvd);
+              // Update internal energy 
+              update_internal_energy(P, SphP, i, &pvd);
+              // Update pressure
+              set_pressure_of_cell_internal(P, SphP, i);
+              // Set feed flags to zero 
+              SphP[i].BhMassFeed = SphP[i].BhThermalFeed = SphP[i].BhKineticFeed = 0;
 #ifdef PASSIVE_SCALARS
-                  // Tracer field advected passively 
-                  SphP[i].PScalars[0] = 1;
-                  SphP[i].PConservedScalars[0] = P[i].Mass;
+              // Tracer field advected passively 
+              SphP[i].PScalars[0] = 1;
+              SphP[i].PConservedScalars[0] = P[i].Mass;
 #endif
-                }
             }
+        }
 #ifdef BURST_MODE
             All.FeedbackFlag = -1;
 #endif
-        } // if(All.FeedbackFlag>0)
-    } // if(All.Time >= All.FeedbackTime)
+    } // if(All.FeedbackFlag>0)
         
     MPI_Allreduce(&All.EnergyExchange, &All.EnergyExchangeTot, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD); 
   
     mpi_printf("BLACK_HOLES: Energy given by BH = %e, Energy taken up by gas particles = %e \n",
                All.EnergyExchangeTot[0] * All.UnitEnergy_in_cgs, All.EnergyExchangeTot[1] * All.UnitEnergy_in_cgs);
-#endif /* ifdef BLACKHOLES */
-    
+
 #ifdef BURST_MODE
     if(All.EnergyExchangeTot[0] - All.EnergyExchangeTot[1] > 10)
         All.FeedbackFlag = 1;
+#endif
 #endif
 } // perform_end_of_step_physics(void)

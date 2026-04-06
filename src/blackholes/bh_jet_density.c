@@ -76,12 +76,12 @@ static void out2particle(data_out *out, int i, int mode)
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
       BhNumNgb[i]                      = out->Ngb;
-      BhP[i].NgbMassFeed               = out->Mass;
+      BhP[i].NgbsmassFeed               = out->Mass;
     }
   else /* combine */
     {
       BhNumNgb[i]                      += out->Ngb;
-      BhP[i].NgbMassFeed               += out->Mass;
+      BhP[i].NgbsmassFeed               += out->Mass;
     }
 }
 
@@ -196,7 +196,7 @@ void bh_jet_density(void)
         {
           i = TimeBinsBh.ActiveParticleList[idx];
 
-          if(BhP[i].NgbMassFeed < (All.BhDesNgb - All.BhDesDev) || BhP[i].NgbMassFeed > (All.BhDesNgb + All.BhDesDev))
+          if(BhP[i].NgbsmassFeed < (All.BhDesNgb - All.BhDesDev) || BhP[i].NgbsmassFeed > (All.BhDesNgb + All.BhDesDev))
           {
                   /* need to redo this particle */
             npleft++;
@@ -212,7 +212,7 @@ void bh_jet_density(void)
                 }
               } 
 
-            if(BhP[i].NgbMassFeed < (All.BhDesNgb - All.BhDesDev))
+            if(BhP[i].NgbsmassFeed < (All.BhDesNgb - All.BhDesDev))
               Left[i] = dmax(BhP[i].Hsml, Left[i]);
             else
               {

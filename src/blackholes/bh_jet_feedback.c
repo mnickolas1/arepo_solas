@@ -19,8 +19,8 @@ typedef struct
   int Bin;
   MyDouble Pos[3];
   MyFloat Hsml;
-  MyDouble NgbMass;
-  MyDouble NgbMassFeed;
+  MyDouble Ngbsmass;
+  MyDouble NgbsmassFeed;
   MyDouble Accretion;
   int Firstnode;
 } data_in;
@@ -40,8 +40,8 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPB(i).Pos[j];
-  in->NgbMass = BhP[i].NgbMass;
-  in->NgbMassFeed = BhP[i].NgbMassFeed;
+  in->Ngbsmass = BhP[i].Ngbsmass;
+  in->NgbsmassFeed = BhP[i].NgbsmassFeed;
   in->Accretion = BhP[i].Accretion;
   in->Hsml = BhP[i].Hsml;
   in->Firstnode = firstnode;
@@ -154,7 +154,7 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
   int i, n, numnodes, *firstnode; 
   double h, h2, r, r2, wk;
   double dx, dy, dz, dvx, dvy, dvz; 
-  MyDouble *pos, ngbmass, accretion, massloading, energyfeed;
+  MyDouble *pos, ngbsmass, accretion, massloading, energyfeed;
 
   data_in local, *target_data;
   data_out out;
@@ -176,8 +176,8 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
 
   pos = target_data->Pos;
   h = target_data->Hsml;
-  ngbmass = target_data->NgbMass;
-  ngbmassfeed = target_data->NgbMassFeed;
+  ngbsmass = target_data->Ngbsmass;
+  ngbsmassfeed = target_data->NgbsmassFeed;
   accretion = target_data->Accretion;
 
   h2   = h * h;
@@ -243,8 +243,8 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
           if(!All.JetFeedback)
             {
               /* add thermal energy isotropically */
-              SphP[j].ThermalFeed   += energyfeed/ngbmass*P[j].Mass;
-              All.EnergyExchange[0] += energyfeed/ngbmass*P[j].Mass;
+              SphP[j].ThermalFeed   += energyfeed/ngbsmass*P[j].Mass;
+              All.EnergyExchange[0] += energyfeed/ngbsmass*P[j].Mass;
             }
 
           if(All.JetFeedback)
@@ -265,12 +265,12 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
               if((pos_z_angle <= theta) || (neg_z_angle <= theta))
                 {
                   /* add mass */
-                  SphP[j].MassLoading += massloading/ngbmass_feed*P[j].Mass;
+                  SphP[j].MassLoading += massloading/ngbsmass_feed*P[j].Mass;
                   
                   /* split kinetic and thermal energy feed */ 
                   /* add kinetic energy in cone */
-                  SphP[j].KineticFeed   += energyfeed/ngbmass_feed*P[j].Mass;
-                  All.EnergyExchange[0] += energyfeed/ngbmass_feed*P[j].Mass;
+                  SphP[j].KineticFeed   += energyfeed/ngbsmass_feed*P[j].Mass;
+                  All.EnergyExchange[0] += energyfeed/ngbsmass_feed*P[j].Mass;
 
                   /* set radial kick direction */      
                   SphP[j].BhKickVector[0] = vx/r;

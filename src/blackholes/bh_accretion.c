@@ -19,7 +19,11 @@ typedef struct
 {
   MyDouble Pos[3];
   MyDouble Vel[3];
-  MyDouble AngularMomentum[3];
+
+#ifdef TORQUE_ACCRETION
+  MyDouble GasAngularMomentum[3];
+#endif
+
   MyFloat Hsml;
   int Firstnode;
 } data_in;
@@ -41,7 +45,10 @@ static void particle2in(data_in *in, int i, int firstnode)
     {
       in->Pos[j] = PPB(i).Pos[j];
       in->Vel[j] = PPB(i).Vel[j];
-      in->AngularMomentum[j] = BhP[i].AngularMomentum[j];
+
+#ifdef TORQUE_ACCRETION
+      in->GasAngularMomentum[j] = BhP[i].GasAngularMomentum[j];
+#endif
     }
   in->Hsml = BhP[i].Hsml;
   in->Firstnode = firstnode;
@@ -54,10 +61,10 @@ static void particle2in(data_in *in, int i, int firstnode)
 typedef struct
 {
 #ifdef BONDI_ACCRETION
-  MyDouble VelocityGas[3];
-  MyDouble VelocityGasCircular[3];
-  MyDouble Density;
-  MyDouble InternalEnergyGas;
+  MyDouble GasVelocity[3];
+  MyDouble GasCircularVelocity[3];
+  MyDouble GasDensity;
+  MyDouble GasInternalEnergy;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -65,16 +72,13 @@ typedef struct
   MyDouble TorqueMstar;
   MyDouble TorqueMgasDisk;      /* Disk component gas mass */
   MyDouble TorqueMstarDisk;     /* Disk component stellar mass */ 
-  MyDouble TorqueR0;
-  MyDouble VelocityGasCircular[3];
+  MyDouble GasCircularVelocity[3];
 #endif
 
 #ifdef ADP_ACCRETION
   MyDouble ADP_CapturedMass;
-  MyDouble ADP_ReservoirMass;
-  MyDouble ADP_DiscMass;
-  MyDouble VelocityGas[3];
-  MyDouble VelocityGasCircular[3];
+  //MyDouble GasVelocity[3];
+  //MyDouble GasCircularVelocity[3];
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -102,11 +106,11 @@ static void out2particle(data_out *out, int i, int mode)
 #ifdef BONDI_ACCRETION
       for(int j = 0; j < 3; j++)
         {
-          BhP[i].VelocityGas[j] = out->VelocityGas[j];
-          BhP[i].VelocityGasCircular[j] = out->VelocityGasCircular[j];
+          BhP[i].GasVelocity[j] = out->GasVelocity[j];
+          BhP[i].GasCircularVelocity[j] = out->GasCircularVelocity[j];
         }
-      BhP[i].Density = out->Density;
-      BhP[i].InternalEnergyGas = out->InternalEnergyGas;
+      BhP[i].GasDensity = out->GasDensity;
+      BhP[i].GasInternalEnergy = out->GasInternalEnergy;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -114,20 +118,17 @@ static void out2particle(data_out *out, int i, int mode)
       BhP[i].TorqueMstar = out->TorqueMstar;
       BhP[i].TorqueMgasDisk = out->TorqueMgasDisk;
       BhP[i].TorqueMstarDisk = out->TorqueMstarDisk;
-      BhP[i].TorqueR0 = out->TorqueR0;
       for(int j = 0; j < 3; j++)
-        BhP[i].VelocityGasCircular[j] = out->VelocityGasCircular[j];
+        BhP[i].GasCircularVelocity[j] = out->GasCircularVelocity[j];
 #endif
 
 #ifdef ADP_ACCRETION
       BhP[i].ADP_CapturedMass = out->ADP_CapturedMass;
-      BhP[i].ADP_ReservoirMass = out->ADP_ReservoirMass;
-      BhP[i].ADP_DiscMass = out->ADP_DiscMass;
-      for(int j = 0; j < 3; j++)
-        {
-          BhP[i].VelocityGas[j] = out->VelocityGas[j];
-          BhP[i].VelocityGasCircular[j] = out->VelocityGasCircular[j];
-        }
+      //for(int j = 0; j < 3; j++)
+      //  {
+      //    BhP[i].GasVelocity[j] = out->GasVelocity[j];
+      //    BhP[i].GasCircularVelocity[j] = out->GasCircularVelocity[j];
+      //  }
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -139,11 +140,11 @@ static void out2particle(data_out *out, int i, int mode)
 #ifdef BONDI_ACCRETION
       for(int j = 0; j < 3; j++)
         {
-          BhP[i].VelocityGas[j] += out->VelocityGas[j];
-          BhP[i].VelocityGasCircular[j] += out->VelocityGasCircular[j];
+          BhP[i].GasVelocity[j] += out->GasVelocity[j];
+          BhP[i].GasCircularVelocity[j] += out->GasCircularVelocity[j];
         }
-      BhP[i].Density += out->Density;
-      BhP[i].InternalEnergyGas += out->InternalEnergyGas;
+      BhP[i].GasDensity += out->GasDensity;
+      BhP[i].GasInternalEnergy += out->GasInternalEnergy;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -151,21 +152,17 @@ static void out2particle(data_out *out, int i, int mode)
       BhP[i].TorqueMstar += out->TorqueMstar;
       BhP[i].TorqueMgasDisk += out->TorqueMgasDisk;
       BhP[i].TorqueMstarDisk += out->TorqueMstarDisk;
-      if(out->TorqueR0 > BhP[i].TorqueR0)
-        BhP[i].TorqueR0 = out->TorqueR0;
       for(int j = 0; j < 3; j++)
-        BhP[i].VelocityGasCircular[j] += out->VelocityGasCircular[j];
+        BhP[i].GasCircularVelocity[j] += out->GasCircularVelocity[j];
 #endif
 
 #ifdef ADP_ACCRETION
       BhP[i].ADP_CapturedMass += out->ADP_CapturedMass;
-      BhP[i].ADP_ReservoirMass += out->ADP_ReservoirMass;
-      BhP[i].ADP_DiscMass += out->ADP_DiscMass;
-      for(int j = 0; j < 3; j++)
-        {
-          BhP[i].VelocityGas[j] += out->VelocityGas[j];
-          BhP[i].VelocityGasCircular[j] += out->VelocityGasCircular[j];
-        }
+      //for(int j = 0; j < 3; j++)
+      //  {
+      //    BhP[i].GasVelocity[j] += out->GasVelocity[j];
+      //    BhP[i].GasCircularVelocity[j] += out->GasCircularVelocity[j];
+      //  }
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -289,10 +286,10 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   int i, n, numnodes, *firstnode; 
   double h, h2, r, r2, wk;
   double dx, dy, dz, dvx, dvy, dvz; 
-  MyDouble *pos, *vel, *angular_momentum;
+  MyDouble *pos, *vel;
   
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -311,18 +308,20 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 
   pos = target_data->Pos;
   vel = target_data->Vel;
-  angular_momentum = target_data->AngularMomentum;
   h = target_data->Hsml;
 
 #ifdef BONDI_ACCRETION
-  MyDouble velocity_gas[3], velocity_gas_circular[3];
+  MyDouble gas_velocity[3], gas_circular_velocity[3];
   for(int j = 0; j < 3; j++)
-    velocity_gas[j] = velocity_gas_circular[j] = 0;
-  MyDouble density, internal_energy_gas;
-  density = internal_energy_gas = 0;
+    gas_velocity[j] = gas_circular_velocity[j] = 0;
+  MyDouble gas_density, gas_internal_energy;
+  gas_density = gas_internal_energy = 0;
 #endif
 
 #ifdef TORQUE_ACCRETION
+  MyDouble *gas_angular_momentum;
+  gas_angular_momentum = target_data->GasAngularMomentum;
+
   /* Torque accretion model from Angles-Alcazar et al. 2016 */
   MyDouble torque_Mgas = 0.0;  /* Total gas mass within R0 */
   MyDouble torque_Mstar = 0.0;  /* Total stellar mass within R0 */
@@ -331,14 +330,14 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   MyDouble R0_torque = All.TorqueR0;   // 0.2-0.3 kpc in code units
   MyDouble R0_torque2 = R0_torque * R0_torque;
   /* For angular momentum accretion tracking */
-  MyDouble velocity_gas_circular[3];
+  MyDouble gas_circular_velocity[3];
   for(int j = 0; j < 3; j++)
-    velocity_gas_circular[j] = 0;
+    gas_circular_velocity[j] = 0;
 #endif
 
 #ifdef ADP_ACCRETION
   MyDouble adp_captured_mass = 0.0;
-  MyDouble Racc = h * 24 ;
+  MyDouble Racc = h * 24; //??
   MyDouble Racc2 = Racc * Racc;
 #endif
 
@@ -401,10 +400,9 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
       if(r2 < h2)
         {
           r = sqrt(r2);
-
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           double v_cross[3];
           v_cross[0] = dy * dvz - dz * dvy;
@@ -417,23 +415,23 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
           /* comute relative velocities, 
           relative specific angular momenta and internal energy of gas */
 
-          velocity_gas[0] += dvx * P[i].Mass / rho * wk;
-          velocity_gas[1] += dvy * P[i].Mass / rho * wk;
-          velocity_gas[2] += dvz * P[i].Mass / rho * wk;
+          gas_velocity[0] += dvx * P[i].Mass * wk / rho;
+          gas_velocity[1] += dvy * P[i].Mass * wk / rho;
+          gas_velocity[2] += dvz * P[i].Mass * wk / rho;
 
-          velocity_gas_circular[0] += v_cross[0] * P[i].Mass / rho * wk;
-          velocity_gas_circular[1] += v_cross[1] * P[i].Mass / rho * wk;
-          velocity_gas_circular[2] += v_cross[2] * P[i].Mass / rho * wk;
+          gas_circular_velocity[0] += v_cross[0] * P[i].Mass * wk / rho;
+          gas_circular_velocity[1] += v_cross[1] * P[i].Mass * wk / rho;
+          gas_circular_velocity[2] += v_cross[2] * P[i].Mass * wk / rho;
 
-          density += P[i].Mass * wk;
+          gas_density += P[i].Mass * wk;
 
-          internal_energy_gas += SphP[i].Utherm * P[i].Mass / rho * wk;
+          gas_internal_energy += SphP[i].Utherm * P[i].Mass * wk / rho;
 #endif
 
 #ifdef TORQUE_ACCRETION
           if(r2 < R0_torque2)
             {
-              double v_phi = (v_cross[0]*angular_momentum[0] + v_cross[1]*angular_momentum[1] + v_cross[2]*angular_momentum[2]) / r;
+              double v_phi = (v_cross[0]*gas_angular_momentum[0] + v_cross[1]*gas_angular_momentum[1] + v_cross[2]*gas_angular_momentum[2]) / r;
           
               int is_disk = (v_phi > 0.0);
           
@@ -446,9 +444,9 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
                     torque_Mgas_disk += P[i].Mass; 
               
                   /* Accumulate circular velocity for angular momentum tracking */
-                  velocity_gas_circular[0] += v_cross[0] * P[i].Mass / rho * wk;
-                  velocity_gas_circular[1] += v_cross[1] * P[i].Mass / rho * wk;
-                  velocity_gas_circular[2] += v_cross[2] * P[i].Mass / rho * wk;
+                  gas_circular_velocity[0] += v_cross[0] * P[i].Mass * wk / rho;
+                  gas_circular_velocity[1] += v_cross[1] * P[i].Mass * wk / rho;
+                  gas_circular_velocity[2] += v_cross[2] * P[i].Mass * wk / rho;
                 }
           
             /*else if(P[i].Type == 4) TODO
@@ -462,7 +460,7 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 #endif 
 
 #ifdef ADP_ACCRETION
-          if(r2 < Racc2)
+          if(r2 < Racc2) //??
             adp_captured_mass += P[i].Mass;
 #endif
 
@@ -481,11 +479,11 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 #ifdef BONDI_ACCRETION
   for(int j = 0; j < 3; j++)
     {
-      out.VelocityGas[j] = velocity_gas[j];
-      out.VelocityGasCircular[j] = velocity_gas_circular[j];
+      out.GasVelocity[j] = gas_velocity[j];
+      out.GasCircularVelocity[j] = gas_circular_velocity[j];
     }
-  out.Density = density;
-  out.InternalEnergyGas = internal_energy_gas;
+  out.GasDensity = gas_density;
+  out.GasInternalEnergy = gas_internal_energy;
 #endif
 
 #ifdef TORQUE_ACCRETION
@@ -493,9 +491,9 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   out.TorqueMstar = torque_Mstar;
   out.TorqueMgasDisk = torque_Mgas_disk;
   out.TorqueMstarDisk = torque_Mstar_disk;
-  out.TorqueR0 = h; 
+  //?? out.TorqueR0 = h; 
   for(int j = 0; j < 3; j++) 
-    out.VelocityGasCircular[j] = velocity_gas_circular[j];
+    out.GasCircularVelocity[j] = gas_circular_velocity[j];
 #endif
 
 #ifdef ADP_ACCRETION
@@ -515,12 +513,12 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   return 0;
 }
 
-#ifdef BONDI_ACCRETION 
+#if defined(BONDI_ACCRETION) 
 static void update_bh_accretion_rate(void)
 {
   /* calculate bondi accretion rate */
   int idx, i;
-  double density, pressure, sound_speed, velocity_gas_norm;
+  double gas_density, gas_pressure, gas_sound_speed, gas_velocity_norm;
   double denominator, denominator_inv, BondiRate, EddingtonRate;
   double accretion_rate, acc_max, acc_rate_for_print;
 
@@ -533,22 +531,22 @@ static void update_bh_accretion_rate(void)
       double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
 
       /* get pressure */
-      if(BhP[i].Density > 0)
+      if(BhP[i].GasDensity > 0)
         {  
-          density = BhP[i].Density;
-          pressure = GAMMA_MINUS1 * density * BhP[i].InternalEnergyGas;
+          gas_density = BhP[i].GasDensity;
+          gas_pressure = GAMMA_MINUS1 * gas_density * BhP[i].GasInternalEnergy;
 
           /* get soundspeed */
-          sound_speed = sqrt(GAMMA * pressure / density);
+          gas_sound_speed = sqrt(GAMMA * gas_pressure / gas_density);
       
-          velocity_gas_norm = sqrt(BhP[i].VelocityGas[0]*BhP[i].VelocityGas[0] + 
-          BhP[i].VelocityGas[1]*BhP[i].VelocityGas[1] + BhP[i].VelocityGas[2]*BhP[i].VelocityGas[2]); 
+          gas_velocity_norm = sqrt(BhP[i].GasVelocity[0]*BhP[i].GasVelocity[0] + 
+          BhP[i].GasVelocity[1]*BhP[i].GasVelocity[1] + BhP[i].GasVelocity[2]*BhP[i].GasVelocity[2]); 
 
-          denominator = (sound_speed*sound_speed + velocity_gas_norm*velocity_gas_norm);
+          denominator = (gas_sound_speed*gas_sound_speed + gas_velocity_norm*gas_velocity_norm);
           if(denominator > 0)
             {
               denominator_inv = 1. / sqrt(denominator);
-              BondiRate = 4. * M_PI * All.G * All.G * PPB(i).Mass * PPB(i).Mass * density *
+              BondiRate = 4. * M_PI * All.G * All.G * PPB(i).Mass * PPB(i).Mass * gas_density *
               denominator_inv * denominator_inv * denominator_inv;
             }
           else
@@ -574,9 +572,8 @@ static void update_bh_accretion_rate(void)
   MPI_Barrier(MPI_COMM_WORLD); 
   mpi_printf("BLACK_HOLES: Black hole max Bondi accretion rate: %e (code units)\n", acc_rate_for_print);
 }
-#endif
 
-#ifdef TORQUE_ACCRETION
+#elif defined(TORQUE_ACCRETION)
 static void update_bh_accretion_rate(void)
 {
   /* Calculate Torque-limited accretion rate */
@@ -686,9 +683,8 @@ static void update_bh_accretion_rate(void)
   MPI_Barrier(MPI_COMM_WORLD); 
   mpi_printf("BLACK_HOLES: Black hole max torque-limited accretion rate: %e (code units)\n", acc_rate_for_print);
 }
-#endif
 
-#ifdef ADP_ACCRETION
+#elif defined(ADP_ACCRETION)
 static void update_bh_accretion_rate(void)
 {
   int idx, i;

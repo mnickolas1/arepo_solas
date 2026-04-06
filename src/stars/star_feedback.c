@@ -18,9 +18,8 @@ typedef struct
 {
   MyDouble Pos[3];
   MyDouble Vel[3];
-  MyFloat Hsml;
-  MyDouble NgbMass;
-  MyDouble NgbVolume;
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble TimeSN_yr;
@@ -43,6 +42,7 @@ typedef struct
   MyDouble SN_EnergyInject;
 #endif
 
+  MyFloat Hsml;
   int Firstnode;
 } data_in;
 
@@ -59,15 +59,13 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Pos[0]         = PPS(i).Pos[0];
-  in->Pos[1]         = PPS(i).Pos[1];
-  in->Pos[2]         = PPS(i).Pos[2];
-  in->Vel[0]         = PPS(i).Vel[0];
-  in->Vel[1]         = PPS(i).Vel[1];
-  in->Vel[2]         = PPS(i).Vel[2];
-  in->Hsml           = SP[i].Hsml;
-  in->NgbMass        = SP[i].NgbMass;
-  in->NgbVolume      = SP[i].NgbVolume;
+  for(int j = 0; j < 3; j++)
+    {  
+      in->Pos[j] = PPS(i).Pos[j];
+      in->Vel[j] = PPS(i).Vel[j];
+    }
+  in->NgbsMass = SP[i].NgbsMass;
+  in->NgbsVolume = SP[i].NgbsVolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   in->TimeSN_yr         = SP[i].TimeSN_yr;
@@ -90,7 +88,8 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->SN_EnergyInject = SP[i].SN_EnergyInject;
 #endif
 
-  in->Firstnode      = firstnode;
+  in->Hsml = SP[i].Hsml;
+  in->Firstnode = firstnode;
 }
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -199,7 +198,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
   double h, h2, dx, dy, dz, r, r2, wk; 
-  MyDouble *pos, *vel, ngbmass, ngbvolume, factor;
+  MyDouble *pos, *vel, ngbsmass, ngbsvolume, factor;
   
   data_in local, *target_data;
 
@@ -223,8 +222,8 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   h = target_data->Hsml;
   h2   = h * h;
   
-  ngbmass = target_data->NgbMass;
-  ngbvolume = target_data->NgbVolume;
+  ngbsmass = target_data->NgbsMass;
+  ngbsvolume = target_data->NgbsVolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble time_sn_yr = target_data->TimeSN_yr;
@@ -282,7 +281,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
         {
           r = sqrt(r2);
 
-          factor = SphP[j].Volume / ngbvolume;
+          factor = SphP[j].Volume / ngbsvolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
           if(time_sn_yr < MAX_REAL_NUMBER)

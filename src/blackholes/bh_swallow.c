@@ -19,7 +19,7 @@ static MyFloat *AccretionLimited;
 typedef struct
 {
   MyDouble Pos[3];
-  MyDouble NgbMass;
+  MyDouble NgbsMass;
   MyDouble Accretion;
   MyFloat Hsml;
   int Firstnode;
@@ -40,7 +40,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPB(i).Pos[j];
-  in->NgbMass = BhP[i].NgbMass;
+  in->NgbsMass = BhP[i].NgbsMass;
   in->Accretion = BhP[i].Accretion; 
   in->Hsml = BhP[i].Hsml;
   in->Firstnode = firstnode;
@@ -160,9 +160,9 @@ void bh_swallow(void)
 {
   int i, idx;
 
-  AccretionLimited = (MyFloat *)mymalloc("AccretionLimited", NumBhs * sizeof(MyFloat));
-
   CPU_Step[CPU_MISC] += measure_time();
+
+  AccretionLimited = (MyFloat *)mymalloc("AccretionLimited", NumBhs * sizeof(MyFloat));
 
   generic_set_MaxNexport();
 
@@ -198,10 +198,10 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
   int i, n, numnodes, *firstnode; 
   double h, h2, r, r2, wk;
   double dx, dy, dz; 
-  MyDouble *pos, ngbmass, accretion, accretion_limited, mass_to_drain, factor;
+  MyDouble *pos, ngbsmass, accretion, accretion_limited, mass_to_drain, factor;
   
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -219,7 +219,7 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
     }
 
   pos = target_data->Pos;
-  ngbmass = target_data->NgbMass;
+  ngbsmass = target_data->NgbsMass;
   accretion = target_data->Accretion;
   h = target_data->Hsml;
 
@@ -273,12 +273,11 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
       if(r2 < h2)
         {
           r = sqrt(r2);
-
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          factor = P[i].Mass / ngbmass;
+          factor = P[i].Mass * wk / ngbsmass;
 
           if(accretion * factor > 0.9 * P[i].Mass)
             {
@@ -290,9 +289,9 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
             }
           else
             {
-              SphP[i].BhMassDrain += accretion * P[i].Mass / ngbmass;
+              SphP[i].BhMassDrain += accretion * factor;
               
-              accretion_limited += accretion * P[i].Mass / ngbmass;
+              accretion_limited += accretion * factor;
             }
 
         } // if(r2 < h2)

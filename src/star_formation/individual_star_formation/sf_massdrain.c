@@ -16,10 +16,9 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid);
 typedef struct
 {
   MyDouble Pos[3];
-  MyFloat Hsml;
   MyDouble MassOfStar;
-  MyDouble NgbMass;
-  
+  MyDouble NgbsMass;
+  MyFloat Hsml;
   int Firstnode;
 } data_in;
 
@@ -36,14 +35,12 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Pos[0]        = PPS(i).Pos[0];
-  in->Pos[1]        = PPS(i).Pos[1];
-  in->Pos[2]        = PPS(i).Pos[2];
-  in->Hsml          = SP[i].Hsml;
-  in->MassOfStar    = SP[i].MassOfStar;
-  in->NgbMass       = SP[i].NgbMass;
-
-  in->Firstnode     = firstnode;
+  for(int j = 0; j < 3; j++)
+    in->Pos[j] = PPS(i).Pos[j];
+  in->MassOfStar = SP[i].MassOfStar;
+  in->NgbsMass = SP[i].NgbsMass;
+  in->Hsml = SP[i].Hsml;
+  in->Firstnode = firstnode;
 }  
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -197,7 +194,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
   double h, h2, dx, dy, dz, r, r2, wk; 
-  MyDouble *pos, massofstar, ngbmass, factor;
+  MyDouble *pos, massofstar, ngbsmass, factor;
   MyDouble cm[3], vm[3];
 
   data_in local, *target_data;
@@ -223,7 +220,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   h2 = h * h;
   
   massofstar = target_data->MassOfStar;
-  ngbmass = target_data->NgbMass;
+  ngbsmass = target_data->NgbsMass;
 
   for(j = 0; j < 3; j++)
     cm[j] = vm[j] = 0;
@@ -270,7 +267,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 
           wk = gaussian_weight(r, h);
 
-          factor = P[j].Mass * wk / ngbmass;
+          factor = P[j].Mass * wk / ngbsmass;
 
           // compute the mass drain
           SphP[j].StarMassDrain += massofstar * factor;

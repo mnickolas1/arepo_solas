@@ -11,7 +11,7 @@
 static int star_density_evaluate(int target, int mode, int threadid);
 static int star_density_isactive(int n);
 
-static MyFloat *StarNumNgb;
+static MyFloat *StarNgbs;
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -37,11 +37,10 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Pos[0]        = PPS(i).Pos[0];
-  in->Pos[1]        = PPS(i).Pos[1];
-  in->Pos[2]        = PPS(i).Pos[2];
-  in->Hsml          = SP[i].Hsml;
-  in->Firstnode     = firstnode;
+  for(int j = 0; j < 3; j++)
+    in->Pos[j] = PPS(i).Pos[j];
+  in->Hsml = SP[i].Hsml;
+  in->Firstnode = firstnode;
 }  
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -50,10 +49,10 @@ static void particle2in(data_in *in, int i, int firstnode)
  */
 typedef struct
 { 
-  MyDouble NumNgb;
-  MyDouble NgbMass;
-  MyDouble NgbVolume;
-  int NgbMaxBin;
+  MyDouble Ngbs;
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
+  int NgbsMaxBin;
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -73,18 +72,18 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      StarNumNgb[i]                  = out->NumNgb;
-      SP[i].NgbMass                  = out->NgbMass;
-      SP[i].NgbVolume                = out->NgbVolume;
-      SP[i].NgbMaxBin                = out->NgbMaxBin;
+      StarNgbs[i] = out->Ngbs;
+      SP[i].NgbsMass = out->NgbsMass;
+      SP[i].NgbsVolume = out->NgbsVolume;
+      SP[i].NgbsMaxBin = out->NgbsMaxBin;
     }
   else /* combine */
     {
-      StarNumNgb[i]                   += out->NumNgb;
-      SP[i].NgbMass                   += out->NgbMass;
-      SP[i].NgbVolume                 += out->NgbVolume;
-      if(out->NgbMaxBin > SP[i].NgbMaxBin)
-        SP[i].NgbMaxBin                = out->NgbMaxBin;
+      StarNgbs[i] += out->Ngbs;
+      SP[i].NgbsMass += out->NgbsMass;
+      SP[i].NgbsVolume += out->NgbsVolume;
+      if(out->NgbsMaxBin > SP[i].NgbsMaxBin)
+        SP[i].NgbsMaxBin = out->NgbsMaxBin;
     }
 }
 
@@ -176,14 +175,13 @@ void star_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  StarNumNgb = (MyFloat *)mymalloc("StarNumNgb", NumStars * sizeof(MyFloat));
+  StarNgbs = (MyFloat *)mymalloc("StarNgbs", NumStars * sizeof(MyFloat));
   Left = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
   Right = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
 
   for(i = 0; i < NumStars; i++)
     {
       Left[i] = Right[i] = 0;
-      StarNumNgb[i] = 0;
 
       SP[i].DensityFlag = 1;
       
@@ -204,7 +202,7 @@ void star_density(void)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
 
-          if(StarNumNgb[i] < (All.StarDesNgb - All.StarDesDev) || StarNumNgb[i] > (All.StarDesNgb + All.StarDesDev))
+          if(StarNgbs[i] < (All.StarDesNgb - All.StarDesDev) || StarNgbs[i] > (All.StarDesNgb + All.StarDesDev))
             {
               /* need to redo this particle */
               npleft++;
@@ -220,7 +218,7 @@ void star_density(void)
                     }
                 } 
 
-              if(StarNumNgb[i] < (All.StarDesNgb - All.StarDesDev))
+              if(StarNgbs[i] < (All.StarDesNgb - All.StarDesDev))
                 Left[i] = dmax(SP[i].Hsml, Left[i]);
               else
                 {
@@ -275,7 +273,7 @@ void star_density(void)
 
   myfree(Right);
   myfree(Left);
-  myfree(StarNumNgb);
+  myfree(StarNgbs);
 
   /* mark as active again */
   for(i = 0; i < NumStars; i++)
@@ -300,9 +298,9 @@ void star_density(void)
 static int star_density_evaluate(int target, int mode, int threadid)
 {
   int j, n, numnodes, *firstnode; 
-  int numngb, ngbmaxbin = 0; 
+  int ngbs, ngbsmaxbin = 0; 
   double h, h2, dx, dy, dz, r, r2, wk; 
-  MyDouble *pos, ngbmass, ngbvolume;
+  MyDouble *pos, ngbsmass, ngbsvolume;
 
   data_in local, *target_data;
   data_out out;
@@ -326,7 +324,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
   h    = target_data->Hsml;
   h2   = h * h;
 
-  numngb = ngbmass = ngbvolume = 0;
+  ngbs = ngbsmass = ngbsvolume = 0;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -363,22 +361,22 @@ static int star_density_evaluate(int target, int mode, int threadid)
 
       if(r2 < h2)
         {
-          numngb++;
+          ngbs++;
           
           // compute the star-ngb-mass 
-          ngbmass += P[j].Mass;
+          ngbsmass += P[j].Mass;
           // compute the star-ngb-volume
-          ngbvolume += SphP[j].Volume;
+          ngbsvolume += SphP[j].Volume;
           // compute the max hydro bin for neighbors   
-          if(ngbmaxbin < P[j].TimeBinHydro)
-            ngbmaxbin = P[j].TimeBinHydro;
+          if(ngbsmaxbin < P[j].TimeBinHydro)
+            ngbsmaxbin = P[j].TimeBinHydro;
         }
     }
 
-  out.NumNgb = numngb;
-  out.NgbMass = ngbmass;
-  out.NgbVolume = ngbvolume;
-  out.NgbMaxBin = ngbmaxbin;
+  out.Ngbs = ngbs;
+  out.NgbsMass = ngbsmass;
+  out.NgbsVolume = ngbsvolume;
+  out.NgbsMaxBin = ngbsmaxbin;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)
