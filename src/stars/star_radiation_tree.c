@@ -3,38 +3,44 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-static inline int ray_box_intersect(double *ray_pos, double *ray_dir,
-                                            MyNgbTreeFloat *rmin, MyNgbTreeFloat *rmax,
-                                            double *t_enter, double *t_exit)
+static inline int ray_box_intersect(double *ray_pos, double *ray_dir, MyNgbTreeFloat *rmin, MyNgbTreeFloat *rmax, double *t_enter, double *t_exit)
 {
-    double tmin = -MAX_REAL_NUMBER, tmax = MAX_REAL_NUMBER;
+  double tmin = -MAX_REAL_NUMBER, tmax = MAX_REAL_NUMBER;
 
-    for(int i = 0; i < 3; i++)
+  for(int i = 0; i < 3; i++)
     {
-        if(fabs(ray_dir[i]) < 1e-12) /* ray parallel to this slab */
+      if(fabs(ray_dir[i]) < 1e-12) /* ray parallel to this slab */
         {
-            if(ray_pos[i] < rmin[i] || ray_pos[i] > rmax[i])
-                return 0;
+          if(ray_pos[i] < rmin[i] || ray_pos[i] > rmax[i])
+            return 0;
         }
-        else
+      else
         {
-            double inv_dir = 1.0 / ray_dir[i];
-            double t1 = (rmin[i] - ray_pos[i]) * inv_dir;
-            double t2 = (rmax[i] - ray_pos[i]) * inv_dir;
+          double inv_dir = 1.0 / ray_dir[i];
+          double t1 = (rmin[i] - ray_pos[i]) * inv_dir;
+          double t2 = (rmax[i] - ray_pos[i]) * inv_dir;
 
-            if(t1 > t2) { double tmp = t1; t1 = t2; t2 = tmp; }
+          if(t1 > t2) 
+            { 
+              double tmp = t1; 
+              t1 = t2; 
+              t2 = tmp; 
+            }
 
-            tmin = (t1 > tmin) ? t1 : tmin;
-            tmax = (t2 < tmax) ? t2 : tmax;
+          tmin = t1 > tmin ? t1 : tmin;
+          tmax = t2 < tmax ? t2 : tmax;
 
-            if(tmin > tmax) return 0;
+          if(tmin > tmax) 
+            return 0;
         }
     }
 
-    if(tmax < 0) return 0;
+    if(tmax < 0) 
+      return 0;
 
-    *t_enter = tmin;
+    *t_enter = fmax(tmin, 0.0);
     *t_exit  = tmax;
+
     return 1;
 }
 
@@ -42,16 +48,17 @@ static inline int ray_sphere_intersect(const double dx, const double dy, const d
 {
   /* Check if ray origin is inside the sphere first.
    * dx/dy/dz = sphere_centre - ray_origin */
-  double dist2 = dx*dx + dy*dy + dz*dz;
+  double dist2 = dx * dx + dy * dy + dz * dz;
+  
   if(dist2 < r2)
     {
       /* Origin is inside — find the single forward exit point.
        * Project centre onto ray, then offset by half-chord. */
-      double t_closest = dx*dir[0] + dy*dir[1] + dz*dir[2];
-      double cx = dx - t_closest*dir[0];
-      double cy = dy - t_closest*dir[1];
-      double cz = dz - t_closest*dir[2];
-      double b2 = cx*cx + cy*cy + cz*cz;
+      double t_closest = dx * dir[0] + dy * dir[1] + dz * dir[2];
+      double cx = dx - t_closest * dir[0];
+      double cy = dy - t_closest * dir[1];
+      double cz = dz - t_closest * dir[2];
+      double b2 = cx * cx + cy * cy + cz * cz;
       double dt = sqrt(r2 - b2);
       *t_enter = 0.0;         
       *t_exit  = t_closest + dt;
@@ -59,18 +66,23 @@ static inline int ray_sphere_intersect(const double dx, const double dy, const d
     }
 
   /* Sphere centre is outside and ahead */
-  double t_closest = dx*dir[0] + dy*dir[1] + dz*dir[2];
-  if(t_closest <= 0) return 0;
+  double t_closest = dx * dir[0] + dy * dir[1] + dz * dir[2];
+  
+  if(t_closest <= 0) 
+    return 0;
 
-  double cx = dx - t_closest*dir[0];
-  double cy = dy - t_closest*dir[1];
-  double cz = dz - t_closest*dir[2];
-  double b2 = cx*cx + cy*cy + cz*cz;
-  if(b2 >= r2) return 0;
+  double cx = dx - t_closest * dir[0];
+  double cy = dy - t_closest * dir[1];
+  double cz = dz - t_closest * dir[2];
+  double b2 = cx * cx + cy * cy + cz * cz;
+  
+  if(b2 >= r2) 
+    return 0;
 
   double dt = sqrt(r2 - b2);
   *t_enter = t_closest - dt;
   *t_exit  = t_closest + dt;
+  
   return 1;
 }
 
@@ -174,14 +186,22 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
           ray->t = cur.t_exit;
 
-          if(!still_alive) return; /* all bands are exhausted */     
+          if(ray->t == ray->t_maximum) 
+            {
+              ray->is_paused = 1; 
+              return;
+            }
+          
+          /* all bands are exhausted */
+          if(!still_alive) 
+            return;      
         }
       /* ---- internal node ---- */
       else if(no < Ngb_MaxPart + Ngb_MaxNodes)
         {
           struct NgbNODE *nop = &Ngb_Nodes[no];
 
-#ifdef RAD_OPENING_ANGLE
+#ifdef RAD_OPENING_ANGLE //this should only trigger for non-top level nodes!!
           /* --- Barnes-Hut opening criterion --- */
           double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
           double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
@@ -217,7 +237,14 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
               ray->t = cur.t_exit;
 
-              if(!still_alive) return;
+              if(ray->t == ray->t_maximum) 
+                {
+                  ray->is_paused = 1; 
+                  return;
+                }
+
+              if(!still_alive) 
+                return;
                 
               continue;  /* don't open this node */
             }
@@ -256,11 +283,12 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
               if(hit)
                 {
-                  if(t_enter >= ray->t_max)
-                  /* child is beyond max travel distance - skip entirely */;
+                  if(t_enter > ray->t_maximum)
+                  /* child is beyond max travel distance - skip entirely */
+                    continue;
                   else
                     {
-                      t_exit = fmin(t_exit, ray->t_max);  /* limit traversal distance */
+                      t_exit = fmin(t_exit, ray->t_maximum);  /* limit traversal distance */
                   
                       if(nchildren >= 8)
                         terminate("Too many children!");
@@ -331,5 +359,14 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
         /* this rank is done with this ray */
         return;
         }
+       
+      if(stack_top == 0)
+        if(ray->t < ray->t_maximum) 
+          {
+            ray->t = ray->t_maximum;
+            ray->is_paused = 1; 
+            return;
+          }
+
     }
 }
