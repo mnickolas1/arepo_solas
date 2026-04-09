@@ -92,16 +92,15 @@ void allocate_memory(void)
   mpi_printf("ALLOCATE: initial allocation for MaxPartSph = %d\n", All.MaxPartSph);
   SphP = (struct sph_particle_data *)mymalloc_movable(&SphP, "SphP", All.MaxPartSph * sizeof(struct sph_particle_data));
 
-#ifdef BLACKHOLES
-  mpi_printf("ALLOCATE: initial allocation for MaxPartBhs = %d\n", All.MaxPartBhs);
-  BhP=(struct bh_particle_data *)mymalloc_movable(&BhP, "BhP", All.MaxPartBhs*sizeof(struct bh_particle_data));
-#endif
-
 #ifdef STARS
   mpi_printf("ALLOCATE: initial allocation for MaxPartStars = %d\n", All.MaxPartStars);
   SP=(struct star_particle_data *)mymalloc_movable(&SP, "SP", All.MaxPartStars*sizeof(struct star_particle_data));
 #endif
 
+#ifdef BLACKHOLES
+  mpi_printf("ALLOCATE: initial allocation for MaxPartBhs = %d\n", All.MaxPartBhs);
+  BhP=(struct bh_particle_data *)mymalloc_movable(&BhP, "BhP", All.MaxPartBhs*sizeof(struct bh_particle_data));
+#endif
   
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
   PartSpecialListGlobal = (struct special_particle_data *)mymalloc_movable(&PartSpecialListGlobal, "PartSpecialListGlobal",
@@ -111,23 +110,25 @@ void allocate_memory(void)
   timebins_allocate(&TimeBinsHydro);
   timebins_allocate(&TimeBinsGravity);
 
-#ifdef BH_FEEDBACK_ACTIVE
-  timebins_allocate(&TimeBinsBh);
-#endif
-
 #ifdef STAR_FEEDBACK_ACTIVE
   timebins_allocate(&TimeBinsStar);
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  timebins_allocate(&TimeBinsBh);
 #endif
 
   /* set to zero */
   memset(P, 0, All.MaxPart * sizeof(struct particle_data));
   memset(SphP, 0, All.MaxPartSph * sizeof(struct sph_particle_data));
+
+#ifdef STARS
+  memset(SP, 0, All.MaxPartStars * sizeof(struct star_particle_data));
+#endif
+
 #ifdef BLACKHOLES
   memset(BhP, 0, All.MaxPartBhs * sizeof(struct bh_particle_data));
 #endif   
-#ifdef STARS
-  memset(SP, 0, All.MaxPartStars * sizeof(struct star_particle_data));
-#endif  
 }
 
 /*! \brief Reallocates memory for particle data.
@@ -158,24 +159,28 @@ void reallocate_memory_maxpartsph(void)
   timebins_reallocate(&TimeBinsHydro);
 }
 
-#ifdef BLACKHOLES
-void reallocate_memory_maxpartbhs(void)
-{
-  mpi_printf("ALLOCATE: Changing to MaxPartBhs= %d\n", All.MaxPartBhs);
-
-  BhP = (struct bh_particle_data *)myrealloc_movable(BhP, All.MaxPartBhs * sizeof(struct bh_particle_data));
-  timebins_reallocate(&TimeBinsBh);
-}
-#endif
-
 #ifdef STARS
 void reallocate_memory_maxpartstars(void)
 {
   mpi_printf("ALLOCATE: Changing to MaxPartStars= %d\n", All.MaxPartStars);
 
   SP = (struct star_particle_data *)myrealloc_movable(SP, All.MaxPartStars * sizeof(struct star_particle_data));
+
 #ifdef STAR_FEEDBACK_ACTIVE
   timebins_reallocate(&TimeBinsStar);
+#endif
+}
+#endif
+
+#ifdef BLACKHOLES
+void reallocate_memory_maxpartbhs(void)
+{
+  mpi_printf("ALLOCATE: Changing to MaxPartBhs= %d\n", All.MaxPartBhs);
+
+  BhP = (struct bh_particle_data *)myrealloc_movable(BhP, All.MaxPartBhs * sizeof(struct bh_particle_data));
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  timebins_reallocate(&TimeBinsBh);
 #endif
 }
 #endif

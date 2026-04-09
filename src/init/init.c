@@ -820,13 +820,14 @@ void setup_smoothinglengths_particles(void)
 
   construct_forcetree(0, 1, 0, 0); /* build force tree with all particles only */
 
-#ifdef BH_FEEDBACK_ACTIVE
-  TimeBinsBh.NActiveParticles = 0;
-#endif /* #ifdef BLACKHOLES */
-
 #ifdef STAR_FEEDBACK_ACTIVE
   TimeBinsStar.NActiveParticles = 0;
 #endif /* #ifdef STARS */
+
+#if defined(BH_ACCRETION_ACTIVE) ||defined(BH_FEEDBACK_ACTIVE)
+  TimeBinsBh.NActiveParticles = 0;
+#endif /* #ifdef BLACKHOLES */
+
 
   for(i = 0; i < NumPart; i++)
     {
@@ -837,6 +838,7 @@ void setup_smoothinglengths_particles(void)
 #ifdef STARS
       if (P[i].Type==4) DesNgb=All.StarDesNgb;
 #endif
+
 #ifdef BLACKHOLES
       if (P[i].Type==5) DesNgb=All.BhDesNgb;
 #endif
@@ -869,6 +871,7 @@ void setup_smoothinglengths_particles(void)
         TimeBinsStar.NActiveParticles++;  
       }
 #endif /* #ifdef STARS */
+
 #ifdef BLACKHOLES
       if(P[i].Type == 5)
       {

@@ -50,7 +50,7 @@ double gaussian_weight(double r, double h)
   *wk  *= K_norm * hinv3;
 }*/
 
-integertime get_timestep_star(int i)
+integertime star_timestep(int i)
 { 
 #ifdef SELFGRAVITY  
   double dt_grav = (PPS(i).TimeBinGrav ? (((integertime)1) << PPS(i).TimeBinGrav) : 0) * All.Timebase_interval;
@@ -84,7 +84,7 @@ integertime get_timestep_star(int i)
   return ti_step;
 }
 
-void update_star_timesteps(void)
+void star_update_timesteps(void)
 {
   int idx, i;
   integertime ti_step;
@@ -93,17 +93,17 @@ for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
 
-      ti_step = get_timestep_star(i);
+      ti_step = star_timestep(i);
     
       SP[i].TimeBinStar = get_timestep_bin(ti_step);
     }
     
-  reconstruct_star_timebins();
-  update_list_of_active_star_particles();
+  star_reconstruct_timebins();
+  star_update_list_of_active_particles();
 }
 
 /* Call this function as the reconstruct_timebins() star version */
-void reconstruct_star_timebins(void)
+void star_reconstruct_timebins(void)
 {
   int i, bin;
 
@@ -138,7 +138,7 @@ void reconstruct_star_timebins(void)
 }
 
 /* Call this function after updating the star-timebin */
-void update_list_of_active_star_particles(void)
+void star_update_list_of_active_particles(void)
 {
   int i, n;
   TimeBinsStar.NActiveParticles = 0;
@@ -235,7 +235,7 @@ void star_prep(void)
     }
 }
 
-void perform_end_of_step_star_physics(void)
+void star_perform_end_of_step_physics(void)
 {
   int idx, i;
 

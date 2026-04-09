@@ -102,12 +102,15 @@ extern struct domain_cost_data
  */
 extern int *toGo, *toGoSph;
 extern int *toGet, *toGetSph;
-#ifdef BLACKHOLES
-extern int *toGoBhs, *toGetBhs;
-#endif
+
 #ifdef STARS
 extern int *toGoStars, *toGetStars;
 #endif
+
+#ifdef BLACKHOLES
+extern int *toGoBhs, *toGetBhs;
+#endif
+
 extern int *list_NumPart;
 extern int *list_NumGas;
 extern int *list_load;

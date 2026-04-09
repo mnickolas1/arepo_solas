@@ -1249,24 +1249,6 @@ static void contents_restart_file(int modus)
   in(&Stars_converted, modus);
 #endif
 
-#ifdef BLACKHOLES 
-  in(&NumBhs, modus);
-  
-    if(NumBhs > 0)
-    {
-      /* Bh-Particle data  */
-      byten(&BhP[0], NumBhs * sizeof(struct bh_particle_data), modus);
-    }
-
-  in(&TimeBinsBh.NActiveParticles, modus);
-  byten(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles * sizeof(int), modus);
-  byten(TimeBinsBh.NextInTimeBin, NumBhs * sizeof(int), modus);
-  byten(TimeBinsBh.PrevInTimeBin, NumBhs * sizeof(int), modus);
-  byten(TimeBinsBh.TimeBinCount, TIMEBINS * sizeof(int), modus);
-  byten(TimeBinsBh.FirstInTimeBin, TIMEBINS * sizeof(int), modus);
-  byten(TimeBinsBh.LastInTimeBin, TIMEBINS * sizeof(int), modus);
-#endif
-
 #ifdef STARS 
   in(&NumStars, modus);
   
@@ -1285,6 +1267,26 @@ static void contents_restart_file(int modus)
   byten(TimeBinsStar.TimeBinCount, TIMEBINS * sizeof(int), modus);
   byten(TimeBinsStar.FirstInTimeBin, TIMEBINS * sizeof(int), modus);
   byten(TimeBinsStar.LastInTimeBin, TIMEBINS * sizeof(int), modus);
+#endif
+
+#ifdef BLACKHOLES 
+  in(&NumBhs, modus);
+  
+    if(NumBhs > 0)
+    {
+      /* Bh-Particle data  */
+      byten(&BhP[0], NumBhs * sizeof(struct bh_particle_data), modus);
+    }
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  in(&TimeBinsBh.NActiveParticles, modus);
+  byten(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles * sizeof(int), modus);
+  byten(TimeBinsBh.NextInTimeBin, NumBhs * sizeof(int), modus);
+  byten(TimeBinsBh.PrevInTimeBin, NumBhs * sizeof(int), modus);
+  byten(TimeBinsBh.TimeBinCount, TIMEBINS * sizeof(int), modus);
+  byten(TimeBinsBh.FirstInTimeBin, TIMEBINS * sizeof(int), modus);
+  byten(TimeBinsBh.LastInTimeBin, TIMEBINS * sizeof(int), modus);
 #endif
 
   polling(modus);

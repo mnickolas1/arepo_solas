@@ -44,10 +44,10 @@ struct star_feedback units_for_feedback(struct star_feedback star);
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 
 /* Timesteps */
-integertime get_timestep_star(int p);
-void update_star_timesteps(void);
-void reconstruct_star_timebins(void);
-void update_list_of_active_star_particles(void);
+integertime star_timestep(int p);
+void star_update_timesteps(void);
+void star_reconstruct_timebins(void);
+void star_update_list_of_active_particles(void);
 
 /* Density-Feedback loop */
 void star_density(void);
@@ -67,9 +67,9 @@ RayPacket *init_rays_from_stars(int *n_rays_local);
 void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffer *export_buf);
 RayExportBuffer *init_export_buffer(int capacity);
 void free_export_buffer(RayExportBuffer *buf);
-void radiation(void);
 void exchange_rays(RayExportBuffer *send, RayPacket **recv, int *n_recv);
 void send_results_home(void);
+void star_radiation(void);
 #endif
 
 #endif

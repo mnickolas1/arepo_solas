@@ -151,13 +151,13 @@ void begrun1(void)
   timebins_init(&TimeBinsHydro, "Hydro", &All.MaxPartSph);
   timebins_init(&TimeBinsGravity, "Gravity", &All.MaxPart);
 
-#ifdef BLACKHOLES 
-  timebins_init(&TimeBinsBh, "Bh", &All.MaxPartBhs);
-#endif /* BLACKHOLES */
-
 #ifdef STAR_FEEDBACK_ACTIVE 
   timebins_init(&TimeBinsStar, "Star", &All.MaxPartStars);
-#endif /* STARS */
+#endif 
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  timebins_init(&TimeBinsBh, "Bh", &All.MaxPartBhs);
+#endif 
 
 #if defined(COOLING)
   All.Time = All.TimeBegin;

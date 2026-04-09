@@ -175,14 +175,15 @@ void domain_Decomposition(void)
     }
 
   reconstruct_timebins();
-
-#ifdef BLACKHOLES
-  update_bh_timesteps();
-#endif
     
 #ifdef STAR_FEEDBACK_ACTIVE
-  reconstruct_star_timebins();
-  update_list_of_active_star_particles();;
+  star_reconstruct_timebins();
+  star_update_list_of_active_particles();;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  bh_reconstruct_timebins();
+  bh_update_list_of_active_particles();;
 #endif
 
   for(int i = 0; i < GRAVCOSTLEVELS; i++)

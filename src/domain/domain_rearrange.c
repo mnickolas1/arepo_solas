@@ -104,14 +104,17 @@ void domain_rearrange_particle_sequence(void)
 
             P[NumGas - 1]   = P[NumPart - 1];
             Key[NumGas - 1] = Key[NumPart - 1];
-#ifdef BLACKHOLES
-            if (P[NumGas - 1].Type == 5)
-              BPP(NumGas - 1).PID = NumGas - 1;
-#endif
+
 #ifdef STARS
             if (P[NumGas - 1].Type == 4)
               SPP(NumGas - 1).PID = NumGas - 1;
 #endif
+
+#ifdef BLACKHOLES
+            if (P[NumGas - 1].Type == 5)
+              BPP(NumGas - 1).PID = NumGas - 1;
+#endif
+
             NumGas--;
             count_gaselim++;
           }

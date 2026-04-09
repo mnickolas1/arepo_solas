@@ -411,7 +411,7 @@ void radiation_feedback(void)
     }
 }
 
-void radiation(void)
+void star_radiation(void)
 {
   /* 0. update cell opacities -> maybe we need to do this earlier in the hydro loop */
   //update_kappa(); -> We call this after cooling now (careful with Tree_Points!!)

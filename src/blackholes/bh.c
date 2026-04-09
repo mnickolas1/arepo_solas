@@ -1,4 +1,4 @@
-#include "../blackholes/bh.h"
+#include "../main/allvars.h"
 
 int NumBhs;
 

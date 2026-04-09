@@ -367,6 +367,5 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
             ray->is_paused = 1; 
             return;
           }
-
     }
 }

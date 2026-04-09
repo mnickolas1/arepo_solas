@@ -6,6 +6,7 @@ extern int NumBhs;
 
 #include "../main/allvars.h"
 
+extern FILE *FdBlackHoles; 
 
 #if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
 extern struct TimeBinData TimeBinsBh;

@@ -787,38 +787,6 @@ void init_io_fields()
   init_units(IO_ALLOWREFINEMENT, 0, 0, 0, 0, 0, 0);
 #endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
 
-#ifdef BLACKHOLES
-  init_field(IO_BHID, "BHID  ", "BlackholeIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].BhID, 0, BHS_ONLY);
-  init_units(IO_BHID, 0, 0, 0, 0, 0, 0);
-  init_snapshot_type(IO_BHID, SN_MINI);
-
-
-  init_field(IO_BHHSML, "BHHS", "BlackholeHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_BH, &BhP[0].Hsml, 0, BHS_ONLY);
-  init_units(IO_BHHSML, 0., 0., 0., 0., 0., All.UnitLength_in_cm);
-  init_snapshot_type(IO_BHHSML, SN_MINI);
-
-
-  init_field(IO_BHDENSITY, "BHD ", "BlackHoleDensity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].Density, 0, BHS_ONLY);
-  init_units(IO_BHDENSITY, 0., 0., 0., 0., 0., All.UnitDensity_in_cgs);
-  init_snapshot_type(IO_BHDENSITY, SN_MINI);
-
-  init_field(IO_BH_NGBSMASS, "BNM ", "BlackHoleNgbsMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].NgbsMass, 0, BHS_ONLY);
-  init_units(IO_BH_NGBSMASS, 0., 0., 0., 0., 0., All.UnitMass_in_g);
-  init_snapshot_type(IO_BH_NGBSMASS, SN_MINI);
-
-#ifdef BONDI_ACCRETION
-  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].AccretionRate, 0, BHS_ONLY);
-  init_units(IO_ACCRETION_RATE, 0., 0., 0., 0., 0., All.UnitMass_in_g / All.UnitTime_in_s);
-  init_snapshot_type(IO_ACCRETION_RATE, SN_MINI);
-#endif
- 
-#ifdef OUTPUT_TIMEBIN_BH
-  init_field(IO_TIMEBIN_BH, "TBBH", "TimebinBh", MEM_INT, FILE_INT, FILE_NONE, 1, A_BH, &BhP[0].TimeBinBh, 0, BHS_ONLY);
-  init_units(IO_TIMEBIN_BH, 0., 0., 0., 0., 0., 0.0);
-  init_snapshot_type(IO_TIMEBIN_BH, SN_MINI);
-#endif 
-#endif
-
 #ifdef STARS
   init_field(IO_STARID, "SID  ", "StarIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].SID, 0, STARS_ONLY);
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
@@ -834,11 +802,6 @@ void init_io_fields()
   init_field(IO_STARHSML, "SHS", "StarHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_S, &SP[0].Hsml, 0, STARS_ONLY);
   init_units(IO_STARHSML, 0., 0., 0., 0., 0., All.UnitLength_in_cm);
   init_snapshot_type(IO_STARHSML, SN_MINI);
-#ifdef OUTPUT_TIMEBIN_STAR
-  init_field(IO_TIMEBIN_STAR, "TBS", "TimebinStar", MEM_INT, FILE_INT, FILE_NONE, 1, A_S, &SP[0].TimeBinStar, 0, STARS_ONLY);
-  init_units(IO_TIMEBIN_STAR, 0., 0., 0., 0., 0., 0.0);
-  init_snapshot_type(IO_TIMEBIN_STAR, SN_MINI);
-#endif 
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -846,4 +809,38 @@ void init_io_fields()
   init_units(IO_HI_RADIATION, 0., 0., 0., 0., 0., 0.0);
   init_snapshot_type(IO_HI_RADIATION, SN_MINI);
 #endif
+
+#ifdef OUTPUT_TIMEBIN_STAR
+  init_field(IO_TIMEBIN_STAR, "TBS", "TimebinStar", MEM_INT, FILE_INT, FILE_NONE, 1, A_S, &SP[0].TimeBinStar, 0, STARS_ONLY);
+  init_units(IO_TIMEBIN_STAR, 0., 0., 0., 0., 0., 0.0);
+  init_snapshot_type(IO_TIMEBIN_STAR, SN_MINI);
+#endif 
+
+#ifdef BLACKHOLES
+  init_field(IO_BHID, "BHID  ", "BlackholeIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].BhID, 0, BHS_ONLY);
+  init_units(IO_BHID, 0, 0, 0, 0, 0, 0);
+  init_snapshot_type(IO_BHID, SN_MINI);
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  init_field(IO_BHHSML, "BHHS", "BlackholeHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_BH, &BhP[0].Hsml, 0, BHS_ONLY);
+  init_units(IO_BHHSML, 0., 0., 0., 0., 0., All.UnitLength_in_cm);
+  init_snapshot_type(IO_BHHSML, SN_MINI);
+
+  init_field(IO_BH_NGBSMASS, "BNM ", "BlackHoleNgbsMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].NgbsMass, 0, BHS_ONLY);
+  init_units(IO_BH_NGBSMASS, 0., 0., 0., 0., 0., All.UnitMass_in_g);
+  init_snapshot_type(IO_BH_NGBSMASS, SN_MINI);
+#endif
+
+#ifdef BONDI_ACCRETION
+  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].AccretionRate, 0, BHS_ONLY);
+  init_units(IO_ACCRETION_RATE, 0., 0., 0., 0., 0., All.UnitMass_in_g / All.UnitTime_in_s);
+  init_snapshot_type(IO_ACCRETION_RATE, SN_MINI);
+#endif
+ 
+#ifdef OUTPUT_TIMEBIN_BH
+  init_field(IO_TIMEBIN_BH, "TBB", "TimebinBh", MEM_INT, FILE_INT, FILE_NONE, 1, A_BH, &BhP[0].TimeBinBh, 0, BHS_ONLY);
+  init_units(IO_TIMEBIN_BH, 0., 0., 0., 0., 0., 0.0);
+  init_snapshot_type(IO_TIMEBIN_BH, SN_MINI);
+#endif 
 }

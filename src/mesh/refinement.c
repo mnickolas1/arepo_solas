@@ -172,13 +172,15 @@ void move_collisionless_particle(int new_i, int old_i)
   struct TimeBinData *tbData;
 
   P[new_i] = P[old_i];
-#ifdef BLACKHOLES
-  if(P[new_i].Type==5)
-    BPP(new_i).PID = new_i;
-#endif
+
 #ifdef STARS
   if(P[new_i].Type==4)
     SPP(new_i).PID = new_i;
+#endif
+
+#ifdef BLACKHOLES
+  if(P[new_i].Type==5)
+    BPP(new_i).PID = new_i;
 #endif
 
   if(P[old_i].Mass == 0 && P[old_i].ID == 0)

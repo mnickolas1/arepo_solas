@@ -33,11 +33,11 @@
 #define TAG_PDATA 12
 #define TAG_SPHDATA 13
 #define TAG_KEY 14
-#ifdef BLACKHOLES
-#define TAG_BHDATA 15
-#endif
 #ifdef STARS
-#define TAG_STARDATA 16
+#define TAG_STARDATA 15
+#endif
+#ifdef BLACKHOLES
+#define TAG_BHDATA 16
 #endif
 #define TAG_GRAV_B 19
 #define TAG_HYDRO_A 22

@@ -412,13 +412,13 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
     {
       star_density();  
   
-      update_star_timesteps();
+      star_update_timesteps();
+      
       star_prep();
-
       star_feedback();
 
 #ifdef STAR_RADIATION_ACTIVE
-      radiation();
+      star_radiation();
 #endif
     }
 #endif
@@ -431,7 +431,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   bh_swallow();
 #endif
 
-  update_bh_timesteps();
+  bh_update_timesteps();
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
@@ -461,12 +461,12 @@ void calculate_non_standard_physics_end_of_step(void)
 {
 #ifdef STAR_FEEDBACK_ACTIVE
   if(All.Time > All.FeedbackTime) 
-    perform_end_of_step_star_physics();
+    star_perform_end_of_step_physics();
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
   if(All.Time > All.FeedbackTime)
-    perform_end_of_step_bh_physics();
+    bh_perform_end_of_step_physics();
 #endif
 
 #ifdef COOLING

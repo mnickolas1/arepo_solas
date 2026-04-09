@@ -9,10 +9,10 @@ void domain_resize_storage_bhs(int count_get_bh);
 
 #if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
 /* Timesteps */
-integertime get_timestep_bh(int p);
-void update_bh_timesteps(void);
-void reconstruct_bh_timebins(void);
-void update_list_of_active_bh_particles(void);
+integertime bh_timestep(int p);
+void bh_update_timesteps(void);
+void bh_reconstruct_timebins(void);
+void bh_update_list_of_active_particles(void);
 
 /* Density loop */
 void bh_density(void);

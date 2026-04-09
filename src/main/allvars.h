@@ -60,6 +60,10 @@
 #include "../stars/star.h"
 #endif
 
+#ifdef BLACKHOLES
+#include "../blackholes/bh.h"
+#endif
+
 #define AREPO_VERSION "Arepo public 1.0" /* code version string */
 
 /* default values for unspecified config options */
@@ -1965,25 +1969,10 @@ enum iofields
   IO_SOFTENING,
   IO_TASK,
   IO_TIMEBIN_HYDRO,
-#ifdef BLACKHOLES
-  IO_BHID,
-  IO_BHHSML,
-  IO_BHDENSITY,
-  IO_BH_NGBSMASS,
-#ifdef BONDI_ACCRETION
-  IO_ACCRETION_RATE,
-#endif
-#ifdef OUTPUT_TIMEBIN_BH
-  IO_TIMEBIN_BH,
-#endif
-#endif
 #ifdef STARS
   IO_STARID,
 #ifdef METALS
   IO_STAR_METALS,
-#endif
-#ifdef OUTPUT_TIMEBIN_STAR
-  IO_TIMEBIN_STAR,
 #endif
 #endif
 #ifdef STAR_FEEDBACK_ACTIVE
@@ -1993,6 +1982,22 @@ enum iofields
 #ifdef STAR_RADIATION_ACTIVE
   IO_HI_RADIATION,
 #endif
+#ifdef OUTPUT_TIMEBIN_STAR
+  IO_TIMEBIN_STAR,
+#endif
+#ifdef BLACKHOLES
+  IO_BHID,
+#endif
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  IO_BHHSML,
+  IO_BH_NGBSMASS,
+#endif
+#ifdef BONDI_ACCRETION
+  IO_ACCRETION_RATE,
+#endif
+#ifdef OUTPUT_TIMEBIN_BH
+  IO_TIMEBIN_BH,
+#endif
   IO_LASTENTRY /* This should be kept - it signals the end of the list */
 };
 
@@ -2001,11 +2006,11 @@ enum arrays
   A_NONE,
   A_SPHP,
   A_P,
-#ifdef BLACKHOLES
-  A_BH,
-#endif
 #ifdef STARS
   A_S,
+#endif
+#ifdef BLACKHOLES
+  A_BH,
 #endif
   A_PS
 };

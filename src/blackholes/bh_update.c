@@ -44,7 +44,7 @@ void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
   *wk  *= K_norm * hinv3;
 }
 
-integertime get_timestep_bh(int i)
+integertime bh_timestep(int i)
 { 
   double dt_grav = (PPS(i).TimeBinGrav ? (((integertime)1) << PPS(i).TimeBinGrav) : 0) * All.Timebase_interval;
   double dt_ngbmax = (BhP[i].NgbsMaxBin ? (((integertime)1) << BhP[i].NgbsMaxBin) : 0) * All.Timebase_interval;
@@ -65,7 +65,7 @@ integertime get_timestep_bh(int i)
   return ti_step;
 }
 
-void update_bh_timesteps(void)
+void bh_update_timesteps(void)
 {
   int idx, i;
   integertime ti_step;
@@ -74,17 +74,17 @@ void update_bh_timesteps(void)
     {
       i = TimeBinsBh.ActiveParticleList[idx];
 
-      ti_step = get_timestep_bh(i);
+      ti_step = bh_timestep(i);
     
       BhP[i].TimeBinBh = get_timestep_bin(ti_step);
     }
     
-  reconstruct_bh_timebins();
-  update_list_of_active_bh_particles();
+  bh_reconstruct_timebins();
+  bh_update_list_of_active_particles();
 }
 
 /* Call this function as the reconstruct_timebins() bh version */
-void reconstruct_bh_timebins(void)
+void bh_reconstruct_timebins(void)
 {
   int i, bin;
 
@@ -119,7 +119,7 @@ void reconstruct_bh_timebins(void)
 }
 
 /* Call this function after updating the bh-timebin to the ngb condition */
-void update_list_of_active_bh_particles(void)
+void bh_update_list_of_active_particles(void)
 {
   int i, n;
   TimeBinsBh.NActiveParticles = 0;
@@ -148,7 +148,7 @@ void update_list_of_active_bh_particles(void)
   TimeBinsBh.GlobalNActiveParticles = out;*/
 }
 
-void perform_end_of_step_bh_physics(void)
+void bh_perform_end_of_step_physics(void)
 {
   int idx, i;
     
