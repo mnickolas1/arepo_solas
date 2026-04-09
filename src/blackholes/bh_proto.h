@@ -16,6 +16,9 @@ void bh_update_list_of_active_particles(void);
 
 /* Density loop */
 void bh_density(void);
+void bh_perform_end_of_step_physics(void);
+
+void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
 #endif
 
 #ifdef BH_ACCRETION_ACTIVE

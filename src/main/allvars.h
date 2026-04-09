@@ -342,6 +342,13 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #endif /* ifndef PASSIVE_SCALARS*/
 #endif /* METALS */
 
+#ifdef JET_TRACER
+#define JET_INDEX (PASSIVE_SCALARS - 1) 
+#ifndef PASSIVE_SCALARS
+#error "JET_TRACER needs PASSIVE_SCALARS!"
+#endif 
+#endif 
+
 /* calculate appropriate value of MAXSCALARS */
 
 #if defined(REFINEMENT_HIGH_RES_GAS) || defined(PASSIVE_SCALARS)
@@ -1344,6 +1351,8 @@ double InitMetallicityinSolar;
 #endif
 
 #ifdef BH_ACCRETION_ACTIVE
+  double Epsilon_r;
+
   double BhAccretionLocal[2];
   double BhAccretionGlobal[2];
 #endif
@@ -1351,7 +1360,7 @@ double InitMetallicityinSolar;
 #ifdef TORQUE_ACCRETION
   /* for parameter file */
   double Epsilon_T;
-  //double TorqueR0; ??What is this??
+  double TorqueR0; //??What is this??
 #endif
 
 #ifdef ADP_ACCRETION
@@ -1367,7 +1376,6 @@ double InitMetallicityinSolar;
 
   int FeedbackFlag;
 
-  double Epsilon_r;
   double Epsilon_f;
   double Mload;
 #endif
@@ -1680,6 +1688,10 @@ MyDouble StarMomentumFeed[3];
   MyDouble BhThermalFeed;
   MyDouble BhKineticFeed;
   MyDouble BhMomentumFeed[3];
+#endif
+
+#ifdef JET_TRACER
+#define JetTracer PScalars[JET_INDEX]  
 #endif
 } * SphP,          /*!< holds SPH particle data on local processor */
     *DomainSphBuf; /*!< buffer for SPH particle data in domain decomposition */

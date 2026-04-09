@@ -125,101 +125,96 @@ SUBDIRS = . \
           mpi_utils \
           ngbtree \
           pm \
-          star_formation \
           time_integration \
           utils \
 
-OBJS =   debug_md5/calc_checksum.o \
-         debug_md5/Md5.o \
-         domain/domain.o \
-         domain/domain_balance.o \
-         domain/domain_box.o \
-         domain/domain_counttogo.o \
-         domain/domain_DC_update.o \
-         domain/domain_exchange.o \
-         domain/domain_rearrange.o \
-         domain/domain_sort_kernels.o \
-         domain/domain_toplevel.o \
-         domain/domain_vars.o \
-         domain/peano.o \
-         gravity/accel.o \
-         gravity/forcetree.o \
-         gravity/forcetree_ewald.o  \
-         gravity/forcetree_optimizebalance.o \
-         gravity/forcetree_walk.o \
-         gravity/grav_external.o \
-         gravity/grav_softening.o \
-         gravity/gravdirect.o \
-         gravity/gravtree.o \
-         gravity/gravtree_forcetest.o \
-         gravity/longrange.o \
-         gravity/pm/pm_periodic2d.o \
-         gravity/pm/pm_periodic.o \
-         gravity/pm/pm_mpi_fft.o \
-         gravity/pm/pm_nonperiodic.o \
-         hydro/finite_volume_solver.o \
-         hydro/gradients.o \
-         hydro/riemann.o \
-         hydro/riemann_hllc.o \
-         hydro/riemann_hlld.o \
-         hydro/scalars.o \
-         hydro/update_primitive_variables.o \
-         init/begrun.o \
-         init/density.o \
-         init/init.o \
-         io/global.o \
-         io/hdf5_util.o \
-         io/io.o \
-         io/io_fields.o \
-         io/logs.o \
-         io/parameters.o \
-         io/read_ic.o \
-         io/restart.o \
-         main/allvars.o \
-         main/main.o \
-         main/run.o \
-         mesh/criterion_derefinement.o \
-         mesh/criterion_refinement.o \
-         mesh/refinement.o \
-         mesh/set_vertex_velocities.o \
-         mesh/voronoi/voronoi.o \
-         mesh/voronoi/voronoi_1d.o \
-         mesh/voronoi/voronoi_1d_spherical.o \
-         mesh/voronoi/voronoi_3d.o \
-         mesh/voronoi/voronoi_check.o \
-         mesh/voronoi/voronoi_derefinement.o \
-         mesh/voronoi/voronoi_dynamic_update.o \
-         mesh/voronoi/voronoi_exchange.o \
-         mesh/voronoi/voronoi_ghost_search.o \
-         mesh/voronoi/voronoi_gradients_lsf.o \
-         mesh/voronoi/voronoi_gradients_onedims.o \
-         mesh/voronoi/voronoi_refinement.o \
-         mesh/voronoi/voronoi_utils.o \
-         mpi_utils/checksummed_sendrecv.o \
-         mpi_utils/hypercube_allgatherv.o \
-         mpi_utils/mpi_util.o \
-         mpi_utils/myalltoall.o \
-         mpi_utils/sizelimited_sendrecv.o \
-         mpi_utils/pinning.o \
-         ngbtree/ngbtree.o \
-         ngbtree/ngbtree_search.o \
-         ngbtree/ngbtree_walk.o \
-         star_formation/sfr_eEOS.o \
-         star_formation/starformation.o \
-				 star_formation//sfr_AGORA.o \
-				 star_formation//sfr_JEANS.o \
-         time_integration/darkenergy.o \
-         time_integration/do_gravity_hydro.o \
-         time_integration/driftfac.o \
-         time_integration/predict.o \
-         time_integration/timestep.o \
-         time_integration/timestep_treebased.o \
-         utils/allocate.o \
-         utils/debug.o \
-         utils/mpz_extension.o \
-         utils/mymalloc.o \
-         utils/parallel_sort.o \
-         utils/system.o \
+OBJS = debug_md5/calc_checksum.o \
+       debug_md5/Md5.o \
+       domain/domain.o \
+       domain/domain_balance.o \
+       domain/domain_box.o \
+       domain/domain_counttogo.o \
+       domain/domain_DC_update.o \
+       domain/domain_exchange.o \
+       domain/domain_rearrange.o \
+       domain/domain_sort_kernels.o \
+       domain/domain_toplevel.o \
+       domain/domain_vars.o \
+       domain/peano.o \
+       gravity/accel.o \
+       gravity/forcetree.o \
+       gravity/forcetree_ewald.o  \
+       gravity/forcetree_optimizebalance.o \
+       gravity/forcetree_walk.o \
+       gravity/grav_external.o \
+       gravity/grav_softening.o \
+       gravity/gravdirect.o \
+       gravity/gravtree.o \
+       gravity/gravtree_forcetest.o \
+       gravity/longrange.o \
+       gravity/pm/pm_periodic2d.o \
+       gravity/pm/pm_periodic.o \
+       gravity/pm/pm_mpi_fft.o \
+       gravity/pm/pm_nonperiodic.o \
+       hydro/finite_volume_solver.o \
+       hydro/gradients.o \
+       hydro/riemann.o \
+       hydro/riemann_hllc.o \
+       hydro/riemann_hlld.o \
+       hydro/scalars.o \
+       hydro/update_primitive_variables.o \
+       init/begrun.o \
+       init/density.o \
+       init/init.o \
+       io/global.o \
+       io/hdf5_util.o \
+       io/io.o \
+       io/io_fields.o \
+       io/logs.o \
+       io/parameters.o \
+       io/read_ic.o \
+       io/restart.o \
+       main/allvars.o \
+       main/main.o \
+       main/run.o \
+       mesh/criterion_derefinement.o \
+       mesh/criterion_refinement.o \
+       mesh/refinement.o \
+       mesh/set_vertex_velocities.o \
+       mesh/voronoi/voronoi.o \
+       mesh/voronoi/voronoi_1d.o \
+       mesh/voronoi/voronoi_1d_spherical.o \
+       mesh/voronoi/voronoi_3d.o \
+       mesh/voronoi/voronoi_check.o \
+       mesh/voronoi/voronoi_derefinement.o \
+       mesh/voronoi/voronoi_dynamic_update.o \
+       mesh/voronoi/voronoi_exchange.o \
+       mesh/voronoi/voronoi_ghost_search.o \
+       mesh/voronoi/voronoi_gradients_lsf.o \
+       mesh/voronoi/voronoi_gradients_onedims.o \
+       mesh/voronoi/voronoi_refinement.o \
+       mesh/voronoi/voronoi_utils.o \
+       mpi_utils/checksummed_sendrecv.o \
+       mpi_utils/hypercube_allgatherv.o \
+       mpi_utils/mpi_util.o \
+       mpi_utils/myalltoall.o \
+       mpi_utils/sizelimited_sendrecv.o \
+       mpi_utils/pinning.o \
+       ngbtree/ngbtree.o \
+       ngbtree/ngbtree_search.o \
+       ngbtree/ngbtree_walk.o \
+       time_integration/darkenergy.o \
+       time_integration/do_gravity_hydro.o \
+       time_integration/driftfac.o \
+       time_integration/predict.o \
+       time_integration/timestep.o \
+       time_integration/timestep_treebased.o \
+       utils/allocate.o \
+       utils/debug.o \
+       utils/mpz_extension.o \
+       utils/mymalloc.o \
+       utils/parallel_sort.o \
+       utils/system.o \
 
 INCL += debug_md5/Md5.h \
         domain/bsd_tree.h \
@@ -236,74 +231,45 @@ INCL += debug_md5/Md5.h \
         utils/timer.h
 
 ifeq (TWODIMS,$(findstring TWODIMS,$(CONFIGVARS)))
-OBJS    += mesh/voronoi/voronoi_2d.o
+OBJS += mesh/voronoi/voronoi_2d.o
 endif
 
 ifeq (MYIBARRIER,$(findstring MYIBARRIER,$(CONFIGVARS)))
-OBJS    += mpi_utils/myIBarrier.o
-INCL    += mpi_utils/myIBarrier.h
+OBJS += mpi_utils/myIBarrier.o
+INCL += mpi_utils/myIBarrier.h
 endif
 
 ifeq (MHD,$(findstring MHD,$(CONFIGVARS)))
-OBJS    += hydro/mhd.o
+OBJS += hydro/mhd.o
 endif
 
 ifeq (ADDBACKGROUNDGRID,$(findstring ADDBACKGROUNDGRID,$(CONFIGVARS)))
-OBJS    += add_backgroundgrid/add_bggrid.o \
-           add_backgroundgrid/calc_weights.o \
-           add_backgroundgrid/distribute.o
-INCL    += add_backgroundgrid/add_bggrid.h
+OBJS += add_backgroundgrid/add_bggrid.o \
+        add_backgroundgrid/calc_weights.o \
+        add_backgroundgrid/distribute.o
+INCL += add_backgroundgrid/add_bggrid.h
 SUBDIRS += add_backgroundgrid
 endif
 
+#COOLING
 ifeq (COOLING,$(findstring COOLING,$(CONFIGVARS)))
-OBJS    += cooling/cooling.o
-INCL    += cooling/cooling_vars.h \
-           cooling/cooling_proto.h
+OBJS += cooling/cooling.o
+INCL += cooling/cooling_vars.h \
+        cooling/cooling_proto.h
 SUBDIRS += cooling
 endif
 
 ifeq (USE_GRACKLE,$(findstring USE_GRACKLE,$(CONFIGVARS)))
-OBJS    += cooling/grackle.o
+OBJS += cooling/grackle.o
 endif
 
-ifeq (FOF,$(findstring FOF,$(CONFIGVARS)))
-OBJS    += fof/fof.o \
-           fof/fof_distribute.o \
-           fof/fof_findgroups.o \
-           fof/fof_io.o \
-           fof/fof_nearest.o \
-           fof/fof_sort_kernels.o \
-           fof/fof_vars.o
-INCL    += fof/fof.h
-SUBDIRS += fof
-ifeq (FIND_HALOS,$(findstring FIND_HALOS,$(CONFIGVARS)))
-OBJS    += fof/fof_seeding.o 
-endif
-endif
-
-ifeq (SUBFIND,$(findstring SUBFIND,$(CONFIGVARS)))
-OBJS	+= subfind/subfind.o \
-           subfind/subfind_vars.o \
-           subfind/subfind_serial.o \
-           subfind/subfind_coll_tree.o \
-           subfind/subfind_properties.o \
-           subfind/subfind_so.o \
-           subfind/subfind_distribute.o \
-           subfind/subfind_collective.o \
-           subfind/subfind_findlinkngb.o \
-           subfind/subfind_nearesttwo.o \
-           subfind/subfind_loctree.o \
-           subfind/subfind_coll_domain.o \
-           subfind/subfind_coll_treewalk.o \
-           subfind/subfind_density.o \
-           subfind/subfind_io.o \
-           subfind/subfind_sort_kernels.o \
-           subfind/subfind_reprocess.o \
-           subfind/subfind_so_potegy.o
-INCL	+= subfind/subfind.h
-SUBDIRS += subfind
-endif
+#SFR
+ifneq (,$(filter SFR,$(CONFIGVARS)))
+OBJS += star_formation/starformation.o \
+        star_formation/sfr_eEOS.o \
+		star_formation/sfr_AGORA.o \
+		star_formation/sfr_JEANS.o 
+SUBDIRS += star_formation 
 
 #INDIVIDUAL_STAR_BY_STAR_FORMATION
 ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
@@ -323,8 +289,8 @@ endif
 
 #STARS
 ifneq (,$(filter STARS,$(CONFIGVARS)))
-OBJS    += stars/star.o 
-INCL    += stars/star.h
+OBJS += stars/star.o 
+INCL += stars/star.h
 SUBDIRS += stars 
 endif
 
@@ -377,32 +343,32 @@ endif
 endif
 
 ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
-OBJS    += stars/star_particle.o
-INCL    += stars/star_particle.h  
+OBJS += stars/star_particle.o
+INCL += stars/star_particle.h  
 endif
 
 ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
-OBJS    += stars/star_density.o \
-           stars/star_feedback.o \
-           stars/star_update.o \
-           stars/star_interpolation.o \
-           stars/star_tables.o
-INCL    += stars/star_proto.h \
-           stars/star_tables.h
+OBJS += stars/star_density.o \
+        stars/star_feedback.o \
+        stars/star_update.o \
+        stars/star_interpolation.o \
+        stars/star_tables.o
+INCL += stars/star_proto.h \
+        stars/star_tables.h
 endif
 
 ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
-OBJS    += extern/chealpix.o \
-           stars/star_radiation.o \
-           stars/star_radiation_tree.o
-INCL    += extern/chealpix.h \
-           stars/star_radiation.h
+OBJS += extern/chealpix.o \
+        stars/star_radiation.o \
+        stars/star_radiation_tree.o
+INCL += extern/chealpix.h \
+        stars/star_radiation.h
 SUBDIRS += extern
 endif
 
 ifneq (,$(filter BLACKHOLES,$(CONFIGVARS)))
-OBJS    += blackholes/bh.o
-INCL    += blackholes/bh.h
+OBJS += blackholes/bh.o
+INCL += blackholes/bh.h
 SUBDIRS += blackholes
 endif
 
@@ -434,18 +400,57 @@ endif
 endif
 
 ifneq (,$(filter BH_ACCRETION_ACTIVE BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
-OBJS    += blackholes/bh_density.o \
-           blackholes/bh_update.o 
-INCL    += blackholes/bh_proto.h 
+OBJS += blackholes/bh_density.o \
+        blackholes/bh_update.o 
+INCL += blackholes/bh_proto.h 
 endif
 
 ifneq (,$(filter BH_ACCRETION_ACTIVE,$(CONFIGVARS)))
-OBJS    += blackholes/bh_accretion.o \
-           blackholes/bh_swallow.o   
+OBJS += blackholes/bh_accretion.o \
+        blackholes/bh_swallow.o   
 endif
 
 ifneq (,$(filter BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
-OBJS    += blackholes/bh_feedback.o   
+OBJS += blackholes/bh_feedback.o   
+endif
+
+ifeq (FOF,$(findstring FOF,$(CONFIGVARS)))
+OBJS += fof/fof.o \
+        fof/fof_distribute.o \
+        fof/fof_findgroups.o \
+        fof/fof_io.o \
+        fof/fof_nearest.o \
+        fof/fof_sort_kernels.o \
+        fof/fof_vars.o
+INCL += fof/fof.h
+SUBDIRS += fof
+
+ifeq (FIND_HALOS,$(findstring FIND_HALOS,$(CONFIGVARS)))
+OBJS += fof/fof_seeding.o 
+endif
+endif
+
+ifeq (SUBFIND,$(findstring SUBFIND,$(CONFIGVARS)))
+OBJS += subfind/subfind.o \
+        subfind/subfind_vars.o \
+        subfind/subfind_serial.o \
+        subfind/subfind_coll_tree.o \
+        subfind/subfind_properties.o \
+        subfind/subfind_so.o \
+        subfind/subfind_distribute.o \
+        subfind/subfind_collective.o \
+        subfind/subfind_findlinkngb.o \
+        subfind/subfind_nearesttwo.o \
+        subfind/subfind_loctree.o \
+        subfind/subfind_coll_domain.o \
+        subfind/subfind_coll_treewalk.o \
+        subfind/subfind_density.o \
+        subfind/subfind_io.o \
+        subfind/subfind_sort_kernels.o \
+        subfind/subfind_reprocess.o \
+        subfind/subfind_so_potegy.o
+INCL += subfind/subfind.h
+SUBDIRS += subfind
 endif
 
 ################################

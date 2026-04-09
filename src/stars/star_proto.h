@@ -53,7 +53,8 @@ void star_update_list_of_active_particles(void);
 void star_density(void);
 void star_prep(void);
 void star_feedback(void);
-void perform_end_of_step_star_physics(void);
+void star_perform_end_of_step_physics(void);
+
 double gaussian_weight(double r, double h);
 //void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
 #endif

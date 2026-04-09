@@ -46,7 +46,7 @@ void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
 
 integertime bh_timestep(int i)
 { 
-  double dt_grav = (PPS(i).TimeBinGrav ? (((integertime)1) << PPS(i).TimeBinGrav) : 0) * All.Timebase_interval;
+  double dt_grav = (PPB(i).TimeBinGrav ? (((integertime)1) << PPB(i).TimeBinGrav) : 0) * All.Timebase_interval;
   double dt_ngbmax = (BhP[i].NgbsMaxBin ? (((integertime)1) << BhP[i].NgbsMaxBin) : 0) * All.Timebase_interval;
   
   double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
@@ -244,11 +244,13 @@ void bh_perform_end_of_step_physics(void)
               set_pressure_of_cell_internal(P, SphP, i);
               // Set feed flags to zero 
               SphP[i].BhMassFeed = SphP[i].BhThermalFeed = SphP[i].BhKineticFeed = 0;
-#ifdef PASSIVE_SCALARS
+
+#ifdef JET_TRACER
               // Tracer field advected passively 
-              SphP[i].PScalars[0] = 1;
-              SphP[i].PConservedScalars[0] = P[i].Mass;
+              SphP[i].PScalars[JET_INDEX] = 1;
+              SphP[i].PConservedScalars[JET_INDEX] = P[i].Mass;
 #endif
+
             }
         }
 #ifdef BURST_MODE
@@ -266,5 +268,6 @@ void bh_perform_end_of_step_physics(void)
     if(All.EnergyExchangeTot[0] - All.EnergyExchangeTot[1] > 10)
         All.FeedbackFlag = 1;
 #endif
+
 #endif
 } // perform_end_of_step_physics(void)

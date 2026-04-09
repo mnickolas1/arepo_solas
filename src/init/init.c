@@ -479,16 +479,11 @@ int init(void)
       mass += P[i].Mass;
     }
 
-#ifdef USE_GRACKLE // -> need to set flags properly
-  init_state();
-#endif
-
 /* NOTE: The metals have to be initialised before the PASSIVE_SCALARS.
- * The value in the PScalars are set to zero during reading ICs. If PConservedScalars are set to zero,
- * this the same as no advection!
+ * The value in the PScalars are set to zero during reading ICs.
  * */
 #ifdef METALS
-  for(i=0; i<NumGas; i++)
+  for(i = 0; i < NumGas; i++)
       SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
 #endif /* ifdef METALS */
 
@@ -499,8 +494,12 @@ int init(void)
 #endif /* #ifdef PASSIVE_SCALARS */
 
 #ifdef STARS
-  for(i=0; i<NumStars; i++)
+  for(i = 0; i < NumStars; i++)
       SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+#endif
+
+#ifdef USE_GRACKLE 
+  init_state();
 #endif
 
   if(RestartFlag == 17)
