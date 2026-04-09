@@ -120,24 +120,6 @@ static void io_func_timestep(int particle, int components, void *out_buffer, int
 }
 #endif /* #ifdef OUTPUTTIMESTEP */
 
-/*
-#ifdef BLACKHOLES
-#ifdef OUTPUT_TIMEBIN_BH 
-static void io_func_timebin_bh(int particle, int components, void *out_buffer, int mode)
-{
-  ((int *)out_buffer)[0] = P[particle].TimeBinBh;
-}
-#endif
-#ifdef OUTPUTTIMESTEP_BH
-static void io_func_timestep_bh(int particle, int components, void *out_buffer, int mode)
-{
-  ((MyOutputFloat *)out_buffer)[0] =
-      (P[particle].TimeBinBh ? (((integertime)1) << P[particle].TimeBinBh) : 0) * All.Timebase_interval;
-}
-#endif
-#endif
-*/
-
 #ifdef OUTPUT_SOFTENINGS
 /*! \brief Output function of the force softening.
  *  \param[in] particle Index of particle/cell.
@@ -505,6 +487,18 @@ static void io_func_bfield(int particle, int components, void *out_buffer, int m
 }
 #endif /* #ifdef MHD */
 
+#ifdef BH_ACCRETION_ACTIVE
+static void io_func_accretion_rate(int particle, int components, void *out_buffer, int mode)
+{
+  if(mode == 0)
+    {
+      double bh_timestep = (BhP[particle].TimeBinBh ? (((integertime)1) << BhP[particle].TimeBinBh) : 0) * All.Timebase_interval;
+
+      ((MyOutputFloat *)out_buffer)[0] = bh_timestep ? BhP[particle].Accretion / bh_timestep : 0;
+    }
+}
+#endif
+
 /*! \brief Function for field registering.
  *
  *  For init_field arguments read the description of init_field.
@@ -827,7 +821,7 @@ void init_io_fields()
 
 //TODO: Add a function to convert accretion to accretion rate
 #ifdef BONDI_ACCRETION_RATE 
-  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].AccretionRate, 0, BHS_ONLY);
+  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, 0, io_func_accretion_rate, BHS_ONLY);
   init_units(IO_ACCRETION_RATE, 0., 0., 0., 0., 0., All.UnitMass_in_g / All.UnitTime_in_s);
   init_snapshot_type(IO_ACCRETION_RATE, SN_MINI);
 #endif
