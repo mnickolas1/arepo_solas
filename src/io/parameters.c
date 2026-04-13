@@ -633,6 +633,12 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif
 
+#ifdef BH_ACCRETION_ACTIVE
+      strcpy(tag[nt], "Epsilon_r");
+      addr[nt] = &All.Epsilon_r;
+      id[nt++] = REAL;
+#endif            
+
 #ifdef TORQUE_ACCRETION
       strcpy(tag[nt], "Epsilon_T"); // NORMALIZATION FOR TORQUE_ACCRETION
       addr[nt] = &All.Epsilon_T;
@@ -654,10 +660,6 @@ void read_parameter_file(char *fname)
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE
-      strcpy(tag[nt], "Epsilon_r");
-      addr[nt] = &All.Epsilon_r;
-      id[nt++] = REAL;
-            
       strcpy(tag[nt], "Epsilon_f");
       addr[nt] = &All.Epsilon_f;
       id[nt++] = REAL;

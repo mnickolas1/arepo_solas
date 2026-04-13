@@ -819,9 +819,8 @@ void init_io_fields()
   init_snapshot_type(IO_BH_NGBSMASS, SN_MINI);
 #endif
 
-//TODO: Add a function to convert accretion to accretion rate
-#ifdef BONDI_ACCRETION_RATE 
-  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, 0, io_func_accretion_rate, BHS_ONLY);
+#ifdef BH_ACCRETION_ACTIVE 
+  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_NONE, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_NONE, 0, io_func_accretion_rate, BHS_ONLY);
   init_units(IO_ACCRETION_RATE, 0., 0., 0., 0., 0., All.UnitMass_in_g / All.UnitTime_in_s);
   init_snapshot_type(IO_ACCRETION_RATE, SN_MINI);
 #endif
