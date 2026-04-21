@@ -96,6 +96,14 @@ extern struct domain_cost_data
   float WorkSph; /*!< total "work" due to the particles stored by a leave node */
   int Count;     /*!< a table that gives the total number of particles held by each processor */
   int CountSph;  /*!< a table that gives the total number of SPH particles held by each processor */
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  float WorkStar;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  float WorkBh;
+#endif
 } * DomainLeaveNode;
 
 /* toGo[partner] gives the number of particles on the current task that have to go to task 'partner'
