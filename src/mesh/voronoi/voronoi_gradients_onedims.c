@@ -36,9 +36,9 @@
 
 #if defined(ONEDIMS)
 
-#ifdef OUTPUT_DIVVEL
+#ifdef DIVVEL
 static void compute_divvel();
-#endif /* #ifdef OUTPUT_DIVVEL */
+#endif /* #ifdef DIVVEL */
 
 /*! \brief Gets a value of a quantity.
  *
@@ -148,14 +148,14 @@ void calculate_gradients(void)
         }
     }
 
-#ifdef OUTPUT_DIVVEL
+#ifdef DIVVEL
   compute_divvel();
-#endif /* #ifdef OUTPUT_DIVVEL */
+#endif /* #ifdef DIVVEL */
 
   CPU_Step[CPU_GRADIENTS] += measure_time();
 }
 
-#ifdef OUTPUT_DIVVEL
+#ifdef DIVVEL
 /*! \brief Calculates velocity divergence in 1d simulation.
  *
  *  Using Gauss' theorem.
@@ -199,6 +199,6 @@ void compute_divvel()
       SphP[i].DivVel = 0.5 * (VF[i].area * VelxR - VF[i - 1].area * VelxL) / SphP[i].Volume;
     }
 }
-#endif /* #ifdef OUTPUT_DIVVEL */
+#endif /* #ifdef DIVVEL */
 
 #endif /* #if defined(ONEDIMS) */

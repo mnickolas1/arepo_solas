@@ -1286,6 +1286,9 @@ double InitMetallicityinSolar;
 #ifdef USE_SFR /* enable Springel & Hernquist model */
   double OverDensThresh;
   double CritOverDensity;
+#endif
+
+#ifdef EEOS_SF
   double TemperatureThresh;
   double CritPhysDensity;
   double PhysDensThresh;
@@ -1296,18 +1299,19 @@ double InitMetallicityinSolar;
   double TempClouds;
   double MaxSfrTimescale;
   double FactorSN;
-#endif /* #ifdef USE_SFR */
+#endif 
 
-#if defined(USE_SFR) && defined(AGORA_SF)
-  double StarFormationEfficiency;   // Corresponds to a percentage - lies between 0 and 1
-  double StarFormationNumberDensityThreshold;  // Neutral atomic hydrogen density in cubic cm
+#ifdef AGORA_SF
+  double NumberDensThreshold;  
+  double TemperatureThreshold;
+  double StarFormationEfficiency;
 #endif
 
-#if defined(USE_SFR) && defined(JEANS_SF)
-  double StarFormationEfficiency;   // Corresponds to a percentage - lies between 0 and 1
+#ifdef JEANS_SF
 #ifdef JEANS_MASS_BASED
   double JeansMassThreshold;
 #endif
+  double StarFormationEfficiency;  
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
@@ -1552,7 +1556,7 @@ extern struct sph_particle_data
 
   double TimeLastPrimUpdate;
 
-#if defined(OUTPUT_DIVVEL)
+#ifdef DIVVEL
   MyFloat DivVel; 
 #endif       
 
@@ -1615,7 +1619,7 @@ extern struct sph_particle_data
 #endif
 
 /* cooling */
-#if defined(COOLING)
+#ifdef COOLING
   MyFloat Ne; /* electron fraction, expressed as local electron number
                  density normalized to the hydrogen number density. Gives
                  indirectly ionization state and mean molecular weight. */

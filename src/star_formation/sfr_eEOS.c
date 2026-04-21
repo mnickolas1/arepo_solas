@@ -47,8 +47,6 @@
 
 #include "../gravity/forcetree.h"
 
-#if defined(USE_SFR) && defined(EEOS_SF) 
-
 /*! \brief Main driver for star formation and gas cooling.
  *
  *  This function loops over all the active gas cells. If a given cell
@@ -535,5 +533,3 @@ double calc_egyeff(int i, double gasdens, double *ne, double *x, double *tsfr, d
 
   return egyeff;
 }
-
-#endif /* #ifdef USE_SFR */

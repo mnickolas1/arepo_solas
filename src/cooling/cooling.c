@@ -925,8 +925,8 @@ void cool_cell(int i)
 
   dtcool = dtime;
 
-  ne         = SphP[i].Ne; /* electron abundance (gives ionization state and mean molecular weight) */
-  unew       = DoCooling(dmax(All.MinEgySpec, SphP[i].Utherm), dens * All.cf_a3inv, dtcool, &ne, i);
+  ne = SphP[i].Ne; /* electron abundance (gives ionization state and mean molecular weight) */
+  unew = DoCooling(dmax(All.MinEgySpec, SphP[i].Utherm), dens * All.cf_a3inv, dtcool, &ne, i);
   SphP[i].Ne = ne;
 
   if(unew < 0)

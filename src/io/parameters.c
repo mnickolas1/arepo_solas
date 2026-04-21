@@ -493,17 +493,25 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif /* #ifdef ONEDIMS_SPHERICAL */
 
+/* Metallicity */
+#ifdef METALS
+        strcpy(tag[nt], "InitMetallicityinSolar");
+        addr[nt] = &All.InitMetallicityinSolar;
+        id[nt++] = REAL;
+#endif
+
 /* Cooling */
 #ifdef COOLING
       strcpy(tag[nt], "TreecoolFile");
       addr[nt] = &All.TreecoolFile;
       id[nt++] = STRING;
+#endif
+
 #ifdef USE_GRACKLE
         strcpy(tag[nt], "GrackleDataFile");
         addr[nt] = &All.GrackleDataFile;
         id[nt++] = STRING;
-#endif /* ifdef USE_GRACKLE */
-#endif /* ifdef COOLING */
+#endif 
         
 /* Star Formation */
 #ifdef USE_SFR
@@ -541,27 +549,9 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.MaxSfrTimescale;
         id[nt++] = REAL;
 #endif /* #ifdef EEOS_SF */
-        
-#if defined(AGORA_SF) || defined(JEANS_SF)
-        strcpy(tag[nt], "StarFormationEfficiency");  // Value between 0 and 1
-        addr[nt] = &All.StarFormationEfficiency;
-        id[nt++] = REAL;
-#endif
 
 #ifdef AGORA_SF
-        strcpy(tag[nt], "StarFormationNumberDensityThreshold"); // n_H in units of cm^-3
-        addr[nt] = &All.StarFormationNumberDensityThreshold;
-        id[nt++] = REAL;
-#endif
-        
-#ifdef JEANS_MASS_BASED
-        strcpy(tag[nt], "JeansMassThreshold");
-        addr[nt] = &All.JeansMassThreshold;
-        id[nt++] = REAL;
-#endif 
-
-#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-        strcpy(tag[nt], "NumberDensThreshold"); // n_H in units of cm^-3
+        strcpy(tag[nt], "NumberDensThreshold"); 
         addr[nt] = &All.NumberDensThreshold ;
         id[nt++] = REAL;
 
@@ -573,11 +563,29 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.StarFormationEfficiency;
         id[nt++] = REAL;
 #endif
+
+#ifdef JEANS_SF
+#ifdef JEANS_MASS_BASED
+        strcpy(tag[nt], "JeansMassThreshold");
+        addr[nt] = &All.JeansMassThreshold;
+        id[nt++] = REAL;
+#endif 
+        strcpy(tag[nt], "StarFormationEfficiency"); 
+        addr[nt] = &All.StarFormationEfficiency;
+        id[nt++] = REAL;
+#endif
         
-/* Metallicity */
-#ifdef METALS
-        strcpy(tag[nt], "InitMetallicityinSolar");
-        addr[nt] = &All.InitMetallicityinSolar;
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+        strcpy(tag[nt], "NumberDensThreshold"); 
+        addr[nt] = &All.NumberDensThreshold ;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "TemperatureThreshold");
+        addr[nt] = &All.TemperatureThreshold;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "StarFormationEfficiency");  
+        addr[nt] = &All.StarFormationEfficiency;
         id[nt++] = REAL;
 #endif
 

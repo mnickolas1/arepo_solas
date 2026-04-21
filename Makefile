@@ -264,12 +264,28 @@ OBJS += cooling/grackle.o
 endif
 
 #SFR
-ifneq (,$(filter SFR,$(CONFIGVARS)))
-OBJS += star_formation/starformation.o \
-        star_formation/sfr_eEOS.o \
-		star_formation/sfr_AGORA.o \
-		star_formation/sfr_JEANS.o 
+ifneq (,$(filter USE_SFR,$(CONFIGVARS)))
+OBJS += star_formation/starformation.o 
 SUBDIRS += star_formation 
+
+# Enforce only one SF model at a time
+SF_MODELS := $(filter EEOS_SF AGORA_SF JEANS_SF,$(CONFIGVARS))
+ifneq ($(word 2,$(SF_MODELS)),)
+$(error Only one SF model may be active at a time. Currently enabled: $(SF_MODELS))
+endif
+
+ifneq (,$(filter EEOS_SF,$(CONFIGVARS)))
+OBJS  += star_formation/sfr_eEOS.o
+endif
+
+ifneq (,$(filter AGORA_SF,$(CONFIGVARS)))
+OBJS  += star_formation/sfr_AGORA.o
+endif
+
+ifneq (,$(filter JEANS_SF,$(CONFIGVARS)))
+OBJS  += star_formation/sfr_JEANS.o
+endif
+endif
 
 #INDIVIDUAL_STAR_BY_STAR_FORMATION
 ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))

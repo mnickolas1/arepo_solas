@@ -43,7 +43,31 @@
 
 #include "../gravity/forcetree.h"
 
-#if defined(USE_SFR) && defined(AGORA_SF)
+/* Function that checks whether a cell i satisfies star formation criteria*/
+static int sf_criteria(int i)
+{
+  double mu = compute_mu(i);
+  double number_dens = SphP[i].Density * All.cf_UnitDensity_in_cgs / mu / PROTONMASS;
+  double u_to_temp_fac = mu * PROTONMASS / BOLTZMANN * GAMMA_MINUS1;
+  double temp = SphP[i].Utherm * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s * u_to_temp_fac;
+
+  if(number_dens < All.NumberDensThreshold)
+    return 0;
+
+  if(All.ComovingIntegrationOn)
+    if(number_dens < All.OverDensThresh * All.cf_a3inv)
+      return 0;
+
+  if(temp > All.TemperatureThreshold)
+    return 0;
+
+#ifdef DIVVEL
+  if(SphP[i].DivVel >= 0)
+    return 0;
+#endif
+
+  return 1;
+}
 
 /*! \brief Main driver for star formation and gas cooling.
  *
@@ -60,21 +84,9 @@ void cooling_and_starformation(void)
 {
   TIMER_START(CPU_COOLINGSFR);
 
-  int idx, i, bin, flag;
-  double dt, dtime, ne = 1;
+  int idx, i, bin;
   double unew, du;
-
-  double dens;
     
-  double t_freefall;  // Freefall timescale
-  double sf_dens_threshold;  // Number density of neutral atomic hydrogen, code units - converted from parameter file value
-
-  sf_dens_threshold=All.StarFormationNumberDensityThreshold*PROTONMASS/All.UnitDensity_in_cgs;
-    
-  /* note: assuming FULL ionization */
-  double u_to_temp_fac =
-      (4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC))) * PROTONMASS / BOLTZMANN * GAMMA_MINUS1 * All.UnitEnergy_in_cgs / All.UnitMass_in_g;
-
   /* clear the SFR stored in the active timebins */
   for(bin = 0; bin < TIMEBINS; bin++)
     if(TimeBinSynchronized[bin])
@@ -85,17 +97,12 @@ void cooling_and_starformation(void)
       i = TimeBinsHydro.ActiveParticleList[idx];
       if(i < 0)
         continue;
-
-      if(P[i].Mass == 0 && P[i].ID == 0)
-        continue; /* skip cells that have been swallowed or eliminated */
-
-      dens = SphP[i].Density;
-
-      dt    = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
-      dtime = All.cf_atime * dt / All.cf_time_hubble_a;
-
+      
+      /* skip cells that have been swallowed or eliminated */
+      if(P[i].Mass == 0)
+        continue; 
+       
       /* apply the temperature floor */
-
       unew = dmax(All.MinEgySpec, SphP[i].Utherm);
 
       if(unew < 0)
@@ -107,62 +114,14 @@ void cooling_and_starformation(void)
 
       cool_cell(i);
 
-
-      /* check whether conditions for star formation are fulfilled.
-       * f=1  normal cooling
-       * f=0  star formation
-       */
-
-      flag = 1; /* default is normal cooling */
-
-      /* enable star formation if gas is above SF density threshold */
-      if(dens * All.cf_a3inv >= sf_dens_threshold)
-        flag = 0;
-
-      if(All.ComovingIntegrationOn)
-        if(dens < All.OverDensThresh)
-          flag = 1;
-
-      if(P[i].Mass == 0) /* tracer particles don't form stars */
-        flag = 1;
-
-      if(flag == 1)
+      if(sf_criteria(i))
+        {
+          SphP[i].Sfr = get_starformation_rate(i);
+          TimeBinSfr[P[i].TimeBinHydro] += SphP[i].Sfr;
+        }
+      else
         SphP[i].Sfr = 0;
 
-      /* active star formation */
-      if(flag == 0)
-        {
-          SphP[i].Ne = (HYDROGEN_MASSFRAC + 1) / 2 / HYDROGEN_MASSFRAC; /* note: assuming FULL ionization */
-
-          if(dt > 0)
-            {
-              if(P[i].TimeBinHydro) /* upon start-up, we need to protect against dt==0 */
-                {
-                  unew = SphP[i].Utherm;
-
-                  du = unew - SphP[i].Utherm;
-                  if(unew < All.MinEgySpec)
-                    du = All.MinEgySpec - SphP[i].Utherm;
-
-                  SphP[i].Utherm += du;
-                  SphP[i].Energy += All.cf_atime * All.cf_atime * du * P[i].Mass;
-
-#ifdef OUTPUT_COOLHEAT
-                  if(dtime > 0)
-                    SphP[i].CoolHeat = du * P[i].Mass / dtime;
-#endif /* #ifdef OUTPUT_COOLHEAT */
-
-                  set_pressure_of_cell(i);
-                }
-            }
-
-            //  Compute the freefall time
-            t_freefall=sqrt(3.*M_PI/32/All.G/SphP[i].Density); // freefall time in code units
-
-            SphP[i].Sfr=All.StarFormationEfficiency*P[i].Mass/t_freefall * (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
-            
-            TimeBinSfr[P[i].TimeBinHydro] += SphP[i].Sfr;
-        }
     } /* end of main loop over active particles */
 
   TIMER_STOP(CPU_COOLINGSFR);
@@ -179,33 +138,15 @@ double get_starformation_rate(int i)
   if(RestartFlag == 3)
     return SphP[i].Sfr;
 
-  double rateOfSF;
-  int flag;
-  double tsfr;
-  /* note: assuming FULL ionization */
-  double u_to_temp_fac =
-      (4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC))) * PROTONMASS / BOLTZMANN * GAMMA_MINUS1 * All.UnitEnergy_in_cgs / All.UnitMass_in_g;
+  double rateOfSF, t_freefall;
 
-  double t_freefall;  // Freefall timescale
-  double sf_dens_threshold;  // Number density of neutral atomic hydrogen, code units - converted from parameter file value
-
-  sf_dens_threshold=All.StarFormationNumberDensityThreshold*PROTONMASS*pow(All.UnitDensity_in_cgs,-1.);
-
-  flag   = 1; /* default is normal cooling */
-    
-  if(SphP[i].Density * All.cf_a3inv >= sf_dens_threshold)
-    flag = 0;
-
-  if(All.ComovingIntegrationOn)
-    if(SphP[i].Density < All.OverDensThresh)
-      flag = 1;
-
-  if(flag == 1)
+  if(!sf_criteria(i))
     return 0;
+    
+  /* freefall time in code units */
+  t_freefall = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density); 
 
-  t_freefall=sqrt(3.*M_PI/32/All.G/SphP[i].Density); // freefall time in code units
-
-  rateOfSF=All.StarFormationEfficiency*P[i].Mass/t_freefall;
+  rateOfSF = All.StarFormationEfficiency * P[i].Mass / t_freefall;
 
   /* convert to solar masses per yr */
   rateOfSF *= (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
@@ -220,11 +161,7 @@ double get_starformation_rate(int i)
  */
 void set_units_sfr(void)
 {
-  double meanweight;
-
   All.OverDensThresh = All.CritOverDensity * All.OmegaBaryon * 3 * All.Hubble * All.Hubble / (8 * M_PI * All.G);
 
   All.PhysDensThresh = All.CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / All.UnitDensity_in_cgs;
 }
-
-#endif /* #if defined(USE_SFR) && defined(AGORA_SF) */

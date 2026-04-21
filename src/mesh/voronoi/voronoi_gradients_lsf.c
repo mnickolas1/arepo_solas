@@ -60,9 +60,9 @@ static double boundaryX(double dx);
 static double boundaryY(double dy);
 static double boundaryZ(double dz);
 
-#if defined(OUTPUT_DIVVEL) || defined(MHD)
+#if defined(DIVVEL) || defined(MHD)
 static void compute_divergences();
-#endif /* #if defined(OUTPUT_DIVVEL) || defined(MHD) */
+#endif /* #if defined(DIVVEL) || defined(MHD) */
 
 /*! \brief Adds row to another one in matrix equation.
  *
@@ -427,14 +427,14 @@ void calculate_gradients(void)
   myfree(maxvalues);
   myfree(minvalues);
 
-#if defined(OUTPUT_DIVVEL) || defined(MHD)
+#if defined(DIVVEL) || defined(MHD)
   compute_divergences();
-#endif /* #if defined(OUTPUT_DIVVEL) || defined(MHD */
+#endif /* #if defined(DIVVEL) || defined(MHD) */
 
   TIMER_STOP(CPU_GRADIENTS);
 }
 
-#if defined(OUTPUT_DIVVEL) || defined(MHD)
+#if defined(DIVVEL) || defined(MHD)
 /*! \brief Computes divergences applying the Gauss' law.
  *
  *  Loops through all active cells and computes the fluxes through all
@@ -454,17 +454,17 @@ void compute_divergences()
       if(i < 0)
         continue;
 
-#if defined(OUTPUT_DIVVEL)
+#ifdef DIVVEL
       SphP[i].DivVel = 0;
-#endif /* #if defined(OUTPUT_DIVVEL) */
+#endif /* #ifdef DIVVEL */
 #ifdef MHD
       SphP[i].DivB = 0;
 #endif /* #ifdef MHD */
 
       MyDouble *CenterOther, Mirror[3];
-#if defined(OUTPUT_DIVVEL)
+#ifdef DIVVEL
       MyFloat *VelOther;
-#endif /* #if defined(OUTPUT_DIVVEL) */
+#endif /* #ifdef DIVVEL */
 #ifdef MHD
       MyFloat *BOther, B[3];
       struct grad_data *GradOther;
@@ -527,9 +527,9 @@ void compute_divergences()
                   else
                     CenterOther = SphP[particle].Center;
 
-#if defined(OUTPUT_DIVVEL)
+#ifdef DIVVEL
                   VelOther = P[particle].Vel;
-#endif /* #if defined(OUTPUT_DIVVEL) */
+#endif /* #ifdef DIVVEL */
 #ifdef MHD
                   GradOther = &SphP[particle].Grad;
                   BOther    = SphP[particle].B;
@@ -538,9 +538,9 @@ void compute_divergences()
               else
                 {
                   CenterOther = PrimExch[particle].Center;
-#if defined(OUTPUT_DIVVEL)
+#ifdef DIVVEL
                   VelOther = PrimExch[particle].VelGas;
-#endif /* #if defined(OUTPUT_DIVVEL) */
+#endif /* #ifdef DIVVEL */
 #ifdef MHD
                   GradOther = &GradExch[particle];
                   BOther    = PrimExch[particle].B;
@@ -566,13 +566,13 @@ void compute_divergences()
               norm[1] /= dist;
               norm[2] /= dist;
 
-#if defined(OUTPUT_DIVVEL)
+#ifdef DIVVEL
               double Vel[3];
               for(int j = 0; j < 3; j++)
                 Vel[j] = 0.5 * (P[i].Vel[j] + VelOther[j]);
               double nVel = Vel[0] * norm[0] + Vel[1] * norm[1] + Vel[2] * norm[2];
               SphP[i].DivVel += Mesh.VF[vf].area * nVel;
-#endif /* #if defined(OUTPUT_DIVVEL) */
+#endif /* #ifdef DIVVEL */
 #ifdef MHD
               double nB = B[0] * norm[0] + B[1] * norm[1] + B[2] * norm[2];
               SphP[i].DivB += Mesh.VF[vf].area * nB;
@@ -585,15 +585,15 @@ void compute_divergences()
           q = DC[q].next;
         }
 
-#if defined(OUTPUT_DIVVEL)
+#ifdef DIVVEL
       SphP[i].DivVel /= SphP[i].Volume;
-#endif /* #if defined(OUTPUT_DIVVEL) */
+#endif /* #ifdef DIVVEL */
 #ifdef MHD
       SphP[i].DivB /= SphP[i].Volume;
 #endif /* #ifdef MHD */
     }
 }
-#endif /* #if defined(OUTPUT_DIVVEL) || defined(MHD) */
+#endif /* #if defined(DIVVEL) || defined(MHD) */
 
 /*! \brief Correct values for gradient calculation for reflective boundary
  *         conditions.
