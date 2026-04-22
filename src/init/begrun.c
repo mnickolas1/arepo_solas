@@ -229,9 +229,9 @@ void begrun2(void)
   if(RestartFlag > 2)
     open_logfiles();
 
-#if defined(USE_SFR) && defined(EEOS_SF)   /* For the default SF scheme in Arepo */
+#ifdef EEOS_SF  /* For the default SF scheme in Arepo */
   sfr_init();
-#endif /* #if defined(USE_SFR) && defined(EEOS_SF) */
+#endif /* #ifdef EEOS_SF */
 
 #ifdef PMGRID
   long_range_init_regionsize();

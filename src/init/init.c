@@ -372,9 +372,9 @@ int init(void)
     {
       mark_active_timebins();
       open_logfiles();
-#if defined(USE_SFR) && defined(EEOS_SF)
+#ifdef EEOS_SF
       sfr_init();
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef EEOS_SF */
       set_non_standard_physics_for_current_time();
 
 #ifdef PMGRID
@@ -520,9 +520,9 @@ int init(void)
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
   /* initialize star formation rate */
-#if defined(USE_SFR) && defined(EEOS_SF)
+#ifdef EEOS_SF
   sfr_init();
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef EEOS_SF */
 
 #if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
   for(i = 0; i < NumGas; i++)

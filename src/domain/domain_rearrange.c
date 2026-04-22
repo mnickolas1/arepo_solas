@@ -55,7 +55,7 @@
  */
 void domain_rearrange_particle_sequence(void)
 {
-#if defined(USE_SFR)
+#ifdef USE_SFR
   if(Stars_converted)
     {
       struct particle_data psave;
@@ -85,9 +85,9 @@ void domain_rearrange_particle_sequence(void)
        */
       Stars_converted = 0;
     }
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef USE_SFR */
 
-#if defined(REFINEMENT_MERGE_CELLS)
+#ifdef REFINEMENT_MERGE_CELLS
   int i, count_elim, count_gaselim;
 
   count_elim    = 0;
@@ -138,5 +138,5 @@ void domain_rearrange_particle_sequence(void)
   All.TotNumPart -= tot[0];
   All.TotNumGas -= tot[1];
 
-#endif /* #if defined(REFINEMENT_MERGE_CELLS */
+#endif /* #ifdef REFINEMENT_MERGE_CELLS */
 }

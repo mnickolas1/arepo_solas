@@ -514,7 +514,7 @@ void read_parameter_file(char *fname)
 #endif 
         
 /* Star Formation */
-#ifdef USE_SFR
+#ifdef EEOS_SF
         strcpy(tag[nt], "CritOverDensity");
         addr[nt] = &All.CritOverDensity;
         id[nt++] = REAL;
@@ -522,9 +522,7 @@ void read_parameter_file(char *fname)
         strcpy(tag[nt], "CritPhysDensity");
         addr[nt] = &All.CritPhysDensity;
         id[nt++] = REAL;
-#endif
         
-#ifdef EEOS_SF
         strcpy(tag[nt], "TemperatureThresh");
         addr[nt] = &All.TemperatureThresh;
         id[nt++] = REAL;

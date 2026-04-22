@@ -130,9 +130,9 @@ void set_pressure_of_cell_internal(struct particle_data *localP, struct sph_part
 #endif /* #ifdef ISOTHERM_EQS */
 
 #ifdef ENFORCE_JEANS_STABILITY_OF_CELLS
-#if defined(USE_SFR)
+#ifdef USE_SFR
   if(get_starformation_rate(i) == 0)
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef USE_SFR */
     {
 #ifdef ADAPTIVE_HYDRO_SOFTENING
       double cell_soft = All.ForceSoftening[localP[i].SofteningType];

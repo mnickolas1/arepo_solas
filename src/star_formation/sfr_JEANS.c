@@ -182,15 +182,3 @@ double get_starformation_rate(int i)
 
   return rateOfSF;
 }
-
-/*! \brief Set the appropriate units for the parameters of the multi-phase
- *         model.
- *
- *  \return void
- */
-void set_units_sfr(void)
-{
-  All.OverDensThresh = All.CritOverDensity * All.OmegaBaryon * 3 * All.Hubble * All.Hubble / (8 * M_PI * All.G);
-
-  All.PhysDensThresh = All.CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / All.UnitDensity_in_cgs;
-}

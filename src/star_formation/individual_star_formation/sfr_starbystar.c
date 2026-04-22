@@ -54,10 +54,6 @@ static int sf_criteria(int i)
   if(number_dens < All.NumberDensThreshold)
     return 0;
 
-  if(All.ComovingIntegrationOn)
-    if(number_dens < All.OverDensThresh * All.cf_a3inv)
-      return 0;
-
   if(temp > All.TemperatureThreshold)
     return 0;
 
@@ -152,16 +148,4 @@ double get_starformation_rate(int i)
   rateOfSF *= (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
 
   return rateOfSF;
-}
-
-/*! \brief Set the appropriate units for the parameters of the multi-phase
- *         model.
- *
- *  \return void
- */
-void set_units_sfr(void)
-{
-  All.OverDensThresh = All.CritOverDensity * All.OmegaBaryon * 3 * All.Hubble * All.Hubble / (8 * M_PI * All.G);
-
-  All.PhysDensThresh = All.CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / All.UnitDensity_in_cgs;
 }

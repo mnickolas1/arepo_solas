@@ -1283,12 +1283,10 @@ double InitMetallicityinSolar;
   char GrackleDataFile[100];
 #endif
 
-#ifdef USE_SFR /* enable Springel & Hernquist model */
+/* enable Springel & Hernquist model */
+#ifdef EEOS_SF
   double OverDensThresh;
   double CritOverDensity;
-#endif
-
-#ifdef EEOS_SF
   double TemperatureThresh;
   double CritPhysDensity;
   double PhysDensThresh;

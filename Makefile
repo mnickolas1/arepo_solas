@@ -268,6 +268,12 @@ ifneq (,$(filter USE_SFR,$(CONFIGVARS)))
 OBJS += star_formation/starformation.o 
 SUBDIRS += star_formation 
 
+ifneq (,$(filter EEOS_SF AGORA_SF JEANS_SF,$(CONFIGVARS)))
+ifeq (,$(filter USE_SFR,$(CONFIGVARS)))
+$(error EEOS_SF, AGORA_SF, and JEANS_SF all require USE_SFR)
+endif
+endif
+
 # Enforce only one SF model at a time
 SF_MODELS := $(filter EEOS_SF AGORA_SF JEANS_SF,$(CONFIGVARS))
 ifneq ($(word 2,$(SF_MODELS)),)
