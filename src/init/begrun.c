@@ -318,9 +318,9 @@ void set_units(void)
       mpi_printf("BEGRUN: MinEgySpec set to %g based on MinGasTemp=%g\n", All.MinEgySpec, All.MinGasTemp);
     }
 
-#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#if defined EEOS_SF
   set_units_sfr();
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef EEOS_SF */
 
 #ifdef STATICNFW
   R200    = pow(NFW_M200 * All.G / (100 * All.Hubble * All.Hubble), 1.0 / 3);

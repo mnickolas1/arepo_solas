@@ -24,7 +24,6 @@
  * \details     contains functions:
  *                void cooling_and_starformation(void)
  *                double get_starformation_rate(int i)
- *                void set_units_sfr(void)
  *
  *
  * \par Major modifications and contributions:

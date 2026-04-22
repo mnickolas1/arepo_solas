@@ -26,7 +26,6 @@
  *                double get_starformation_rate(int i)
  *                void init_clouds(void)
  *                void integrate_sfr(void)
- *                void set_units_sfr(void)
  *                double calc_egyeff(int i, double gasdens, double *ne,
  *                  double *x, double *tsfr, double *factorEVP)
  *
