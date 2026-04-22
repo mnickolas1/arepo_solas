@@ -285,15 +285,15 @@ void domain_init_sum_cost(void)
 #else /* #ifdef HIERARCHICAL_GRAVITY */
 
   domain_to_be_balanced[All.HighestActiveTimeBin] = 1;
-  domain_grav_weight[All.HighestActiveTimeBin]    = 1;
-  domain_hydro_weight[All.HighestActiveTimeBin]   = 1;
+  domain_grav_weight[All.HighestActiveTimeBin] = 1;
+  domain_hydro_weight[All.HighestActiveTimeBin] = 1;
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  domain_star_weight[All.HighestActiveTimeBin]    = 1;
+  domain_star_weight[All.HighestActiveTimeBin] = 1;
 #endif
 
 #if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-  domain_bh_weight[All.HighestActiveTimeBin]      = 1;
+  domain_bh_weight[All.HighestActiveTimeBin] = 1;
 #endif
 
   for(int i = All.SmallestTimeBinWithDomainDecomposition - 1, weight = 1; i >= All.LowestOccupiedTimeBin; i--, weight *= 2)

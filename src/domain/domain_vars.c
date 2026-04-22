@@ -57,12 +57,10 @@ double fac_work, fac_load, fac_worksph;
 double normsum_work, normsum_load, normsum_worksph;
 
 #ifdef STAR_FEEDBACK_ACTIVE
-double domain_star_weight[TIMEBINS];
 double normsum_workstar, fac_workstar, totstarcost, starcost;
 #endif
 
 #if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-double domain_bh_weight[TIMEBINS];
 double normsum_workbh, fac_workbh, totbhcost, bhcost;
 #endif
 

@@ -89,12 +89,10 @@ extern double normsum_work, normsum_load, normsum_worksph;
 extern double totgravcost, totpartcount, gravcost, totsphcost, sphcost;
 
 #ifdef STAR_FEEDBACK_ACTIVE
-extern double domain_star_weight[TIMEBINS];
 extern double normsum_workstar, fac_workstar, totstarcost, starcost;
 #endif
 
 #if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-extern double domain_bh_weight[TIMEBINS];
 extern double normsum_workbh, fac_workbh, totbhcost, bhcost;
 #endif
 
@@ -139,6 +137,15 @@ extern double *list_worksph;
 peano1D domain_double_to_int(double d);
 double domain_grav_tot_costfactor(int i);
 double domain_hydro_tot_costfactor(int i);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+double domain_star_tot_costfactor(int i);
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+double domain_bh_tot_costfactor(int i);
+#endif
+
 void domain_init_sum_cost(void);
 void domain_printf(char *buf);
 void domain_report_balance(void);
