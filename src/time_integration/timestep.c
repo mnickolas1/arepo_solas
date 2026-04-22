@@ -86,7 +86,6 @@ void set_cosmo_factors_for_current_time(void)
       All.cf_afac3    = pow(All.Time, 3 * (1 - GAMMA) / 2.0);
       All.cf_hubble_a = All.cf_H = All.cf_Hrate = hubble_function(All.Time);
       All.cf_time_hubble_a                      = All.Time * All.cf_hubble_a;
-      All.cf_time_hubble_a                      = All.Time * All.cf_hubble_a;
       All.cf_redshift                           = 1 / All.Time - 1;
     }
   else

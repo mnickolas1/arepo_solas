@@ -58,7 +58,7 @@ double get_jeans_length(int i)
 {
   double sound_speed, jeans_length;
 
-  sound_speed  = sqrt(GAMMA * SphP[i].Pressure / SphP[i].Density);
+  sound_speed = get_sound_speed(i);
   
   jeans_length = sqrt(M_PI / All.G / SphP[i].Density) * sound_speed;
 
@@ -75,7 +75,7 @@ double get_jeans_mass(int i)
 {
   double sound_speed, jeans_mass;
 
-  sound_speed  = sqrt(GAMMA * SphP[i].Pressure / SphP[i].Density);
+  sound_speed = get_sound_speed(i);
   
   jeans_mass = pow(M_PI, 2.5) * pow(sound_speed, 3.) / 6. / pow(All.G, 1.5) / sqrt(SphP[i].Density);
 
