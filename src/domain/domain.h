@@ -86,8 +86,17 @@ extern int Nbranch;
 
 extern double fac_work, fac_load, fac_worksph;
 extern double normsum_work, normsum_load, normsum_worksph;
-
 extern double totgravcost, totpartcount, gravcost, totsphcost, sphcost;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+extern double domain_star_weight[TIMEBINS];
+extern double normsum_workstar, fac_workstar, totstarcost, starcost;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+extern double domain_bh_weight[TIMEBINS];
+extern double normsum_workbh, fac_workbh, totbhcost, bhcost;
+#endif
 
 extern struct domain_cost_data
 {

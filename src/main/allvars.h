@@ -780,6 +780,15 @@ extern int domain_bintolevel[TIMEBINS];
 extern int domain_refbin[TIMEBINS];
 extern int domain_grav_weight[TIMEBINS];
 extern int domain_hydro_weight[TIMEBINS];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+extern int domain_star_weight[TIMEBINS];
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+extern int domain_bh_weight[TIMEBINS];
+#endif
+
 extern int domain_to_be_balanced[TIMEBINS];
 
 /*! Array of task numbers holding the respective top-level nodes. For

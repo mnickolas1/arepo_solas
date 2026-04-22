@@ -297,6 +297,16 @@ void domain_find_total_cost(void)
   double partcount    = 0;
   double sphpartcount = 0;
 
+#ifdef STAR_FEEDBACK_ACTIVE
+  starcost = 0;
+  double starpartcount = 0;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  bhcost = 0;
+  double bhpartcount = 0;
+#endif
+
   for(int i = 0; i < NumPart; i++)
     {
 #ifdef ADDBACKGROUNDGRID
@@ -312,55 +322,104 @@ void domain_find_total_cost(void)
 
       if(hydrocost > 0)
         sphpartcount += 1.0;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      double scost = domain_star_tot_costfactor(i);
+      starcost += scost;
+      if(scost > 0)
+        starpartcount += 1.0;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+      double bcost = domain_bh_tot_costfactor(i);
+      bhcost += bcost;
+      if(bcost > 0)
+        bhpartcount += 1.0;
+#endif
     }
 
-  double loc[4] = {gravcost, sphcost, partcount, sphpartcount}, sum[4];
+  int nloc = 4;
 
-  MPI_Allreduce(loc, sum, 4, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#ifdef STAR_FEEDBACK_ACTIVE
+  nloc += 2;
+#endif
 
-  totgravcost            = sum[0];
-  totsphcost             = sum[1];
-  totpartcount           = sum[2];
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  nloc += 2;
+#endif
+
+  double loc[nloc], sum[nloc];
+  loc[0] = gravcost;
+  loc[1] = sphcost;
+  loc[2] = partcount;
+  loc[3] = sphpartcount;
+  int idx = 4;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  loc[idx++] = starcost;
+  loc[idx++] = starpartcount;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  loc[idx++] = bhcost;
+  loc[idx++] = bhpartcount;
+#endif
+
+  MPI_Allreduce(loc, sum, nloc, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  totgravcost  = sum[0];
+  totsphcost   = sum[1];
+  totpartcount = sum[2];
   double totsphpartcount = sum[3];
+  idx = 4;
 
-  if(totsphcost > 0 && totgravcost > 0 && totsphpartcount > (All.TopNodeFactor * All.MultipleDomains * NTask))
-    {
-      /* in this case we give equal weight to gravitational work-load, hydro work load, and particle load.
-       */
-      normsum_work    = 0.333333;
-      normsum_load    = 0.333333;
-      normsum_worksph = 0.333333;
-      fac_work        = normsum_work / totgravcost;
-      fac_load        = normsum_load / totpartcount;
-      fac_worksph     = normsum_worksph / totsphcost;
-    }
-  else if(totgravcost > 0)
-    {
-      /* in this case we give equal weight to gravitational work-load and particle load.
-       * The final pieces should have at most imbalance 2.0 in either of the two
-       */
-      normsum_work    = 0.5;
-      normsum_load    = 0.5;
-      normsum_worksph = 0;
-      fac_work        = normsum_work / totgravcost;
-      fac_load        = normsum_load / totpartcount;
-      fac_worksph     = 0.0;
-    }
-  else if(totsphcost > 0)
-    {
-      /* here we only appear to do hydrodynamics. We hence give equal weight to SPH cost and
-       * particle load.
-       */
-      normsum_work    = 0;
-      normsum_load    = 0.5;
-      normsum_worksph = 0.5;
-      fac_work        = 0.0;
-      fac_load        = normsum_load / totpartcount;
-      fac_worksph     = normsum_worksph / totsphcost;
-    }
-  else
+#ifdef STAR_FEEDBACK_ACTIVE
+  totstarcost = sum[idx++];
+  double totstarpartcount = sum[idx++];
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  totbhcost = sum[idx++];
+  double totbhpartcount = sum[idx++];
+#endif
+
+  /* count active channels */
+  int nchannels = 1; /* always load counts */
+  if(totgravcost > 0) nchannels++;
+  if(totsphcost  > 0) nchannels++;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  if(totstarcost > 0) nchannels++;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  if(totbhcost > 0) nchannels++;
+#endif
+
+  double w = 1.0 / nchannels;
+
+  normsum_work = (totgravcost > 0) ? w : 0;
+  normsum_worksph = (totsphcost  > 0) ? w : 0;
+  normsum_load = w;
+
+  fac_work = (totgravcost > 0) ? normsum_work    / totgravcost  : 0;
+  fac_worksph = (totsphcost  > 0) ? normsum_worksph / totsphcost   : 0;
+  fac_load = normsum_load / totpartcount;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  normsum_workstar = (totstarcost > 0) ? w : 0;
+  fac_workstar = (totstarcost > 0) ? normsum_workstar / totstarcost : 0;
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+  normsum_workbh = (totbhcost > 0) ? w : 0;
+  fac_workbh = (totbhcost > 0) ? normsum_workbh / totbhcost : 0;
+#endif
+
+  if(totgravcost == 0 && totsphcost == 0)
     terminate("strange: totsphcost=%g  totgravcost=%g\n", totsphcost, totgravcost);
 }
+
 
 /*! \brief Coordinate conversion to integer.
  *

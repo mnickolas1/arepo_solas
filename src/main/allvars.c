@@ -150,6 +150,15 @@ int domain_bintolevel[TIMEBINS];
 int domain_refbin[TIMEBINS];
 int domain_grav_weight[TIMEBINS];
 int domain_hydro_weight[TIMEBINS];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+int domain_star_weight[TIMEBINS];
+#endif
+
+#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+int domain_bh_weight[TIMEBINS];
+#endif
+
 int domain_to_be_balanced[TIMEBINS];
 
 int *DomainTask;

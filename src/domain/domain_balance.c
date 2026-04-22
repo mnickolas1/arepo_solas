@@ -145,7 +145,7 @@ double domain_star_tot_costfactor(int i)
   if(P[i].Type == 4)
     for(int bin = SPP(i).TimeBinStar; bin <= All.HighestOccupiedTimeBin; bin++)
       if(domain_to_be_balanced[bin])
-        w += domain_stellar_weight[bin];
+        w += domain_star_weight[bin];
   return w;
 }
 #endif
@@ -984,7 +984,7 @@ void domain_combine_multipledomains(void)
         {
           for(int bin = SPP(i).TimeBinStar; bin <= All.HighestActiveTimeBin; bin++)
             if(domain_to_be_balanced[bin])
-              loc_bin_Cost[bin * ndomains + n].StarCost += domain_stellar_weight[bin];
+              loc_bin_Cost[bin * ndomains + n].StarCost += domain_star_weight[bin];
         }
 #endif
 
