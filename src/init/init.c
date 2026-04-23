@@ -524,10 +524,10 @@ int init(void)
   sfr_init();
 #endif /* #ifdef EEOS_SF */
 
-#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#ifdef USE_SFR
   for(i = 0; i < NumGas; i++)
     SphP[i].Sfr = get_starformation_rate(i);
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef USE_SFR */
 
   update_primitive_variables();
 

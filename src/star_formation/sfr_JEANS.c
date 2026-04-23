@@ -172,7 +172,7 @@ double get_starformation_rate(int i)
     return 0;
     
   /* freefall time in code units */
-  t_freefall = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density); 
+  t_freefall = sqrt(3.0 * M_PI / 32 / All.G / SphP[i].Density); 
 
   rateOfSF = All.StarFormationEfficiency * P[i].Mass / t_freefall;
 

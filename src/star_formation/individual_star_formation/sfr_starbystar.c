@@ -133,18 +133,8 @@ double get_starformation_rate(int i)
   if(RestartFlag == 3)
     return SphP[i].Sfr;
 
-  double rateOfSF, t_freefall;
-
   if(!sf_criteria(i))
     return 0;
-    
-  /* freefall time in code units */
-  t_freefall = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density); 
 
-  rateOfSF = All.StarFormationEfficiency * P[i].Mass / t_freefall;
-
-  /* convert to solar masses per yr */
-  rateOfSF *= (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
-
-  return rateOfSF;
+  return 1;
 }

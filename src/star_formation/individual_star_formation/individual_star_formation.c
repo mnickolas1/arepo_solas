@@ -90,7 +90,7 @@ void individual_starbystar_formation(void)
       dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
       dt /= All.cf_time_hubble;
 
-      dtff = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density);
+      dtff = sqrt(3.0 * M_PI / 32 / All.G / SphP[i].Density);
           
       p = 0;
       prob = 0;

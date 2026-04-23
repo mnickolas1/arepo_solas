@@ -335,7 +335,7 @@ static void io_func_coolrate(int particle, int components, void *buffer, int mod
 #endif /* #ifdef OUTPUTCOOLRATE */
 
 /* -- user defined functions: gas properties -- */
-#if defined(COOLING)
+#ifdef COOLING
 /*! \brief IO function of the electron number density.
  *
  *  \param[in] particle Index of particle/cell.
@@ -352,7 +352,7 @@ static void io_func_ne(int particle, int components, void *buffer, int mode)
       // normal code path: calculate Ne accounting for GFM options and USE_SFR
       double ne = SphP[particle].Ne;
 
-#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#ifdef USE_SFR
       // reproduces previous behavior that Ne is updated prior to output only for Sfr>0 cells
       // if this is unwanted (or redundant) this if() condition should be removed
       double nh0, coolrate;
@@ -369,7 +369,7 @@ static void io_func_ne(int particle, int components, void *buffer, int mode)
 }
 #endif /* #if defined(COOLING) */
 
-#if defined(COOLING) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#ifdef COOLING
 /*! \brief Output function for neutral hydrogen fraction.
  *
  *  \param[in] particle Index of particle/cell.
@@ -390,7 +390,7 @@ static void io_func_nh(int particle, int components, void *buffer, int mode)
 }
 #endif /* #if defined(COOLING) */
 
-#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#ifdef USE_SFR
 /*! \brief IO function for star formation rate.
  *
  *  \param[in] particle Index of particle/cell.
@@ -575,7 +575,7 @@ void init_io_fields()
   init_units(IO_CSND, 0., 0., 0., 0., 1., All.UnitVelocity_in_cm_per_s);
 #endif /* #ifdef OUTPUT_CSND */
 
-#if defined(COOLING) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#ifdef COOLING
   init_field(IO_NE, "NE  ", "ElectronAbundance", MEM_NONE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_NONE, 0, io_func_ne,
              GAS_ONLY);                /* electron abundance */
   init_units(IO_NE, 0, 0, 0, 0, 0, 0); /* dimensionless fraction */
@@ -586,7 +586,7 @@ void init_io_fields()
   init_units(IO_NH, 0, 0, 0, 0, 0, 0); /* dimensionless fraction */
 #endif                                 /* #if defined(COOLING) */
 
-#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
+#ifdef USE_SFR
   init_field(IO_SFR, "SFR ", "StarFormationRate", MEM_NONE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_NONE, 0, io_func_sfr,
              GAS_ONLY);                                                    /* star formation rate */
   init_units(IO_SFR, 0.0, 0.0, -1.0, 1.0, 1.0, SOLAR_MASS / SEC_PER_YEAR); /* Msun/yr */

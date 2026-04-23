@@ -123,13 +123,13 @@ void sfr_create_star_particles(void)
           dtime = All.cf_atime * dt / All.cf_time_hubble_a;
 
           mass_of_star = 0;
-          prob         = 0;
-          p            = 0;
-          pall         = 0;
+          prob = 0;
+          p = 0;
+          pall = 0;
 
           if(SphP[i].Sfr > 0)
             {
-              p    = SphP[i].Sfr / ((All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR)) * dtime / P[i].Mass;
+              p = SphP[i].Sfr / ((All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR)) * dtime / P[i].Mass;
               pall = p;
               sum_sm += P[i].Mass * (1 - exp(-p));
 
@@ -357,7 +357,7 @@ void convert_cell_into_star(int i, double birthtime)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI)); //need to check that this works!
+  SP[NumStars].Hsml = cbrt((3.0 * SphP[i].Volume) / (4.0 * M_PI)); //need to check that this works!
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbsMaxBin = P[i].TimeBinHydro; //need to check that this works!
