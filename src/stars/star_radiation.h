@@ -68,6 +68,12 @@ typedef struct
   int healpix_pixel;   /* pixel index in nested scheme */
 } RayPacket;
 
+typedef struct {
+  RayPacket *rays;
+  int n;
+  int capacity;
+} RayWorkStack;
+
 typedef struct 
 {
   int n; /* number of rays to export */

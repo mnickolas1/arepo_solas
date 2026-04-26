@@ -63,13 +63,7 @@ void update_kappa(void)
     }
 }
 
-typedef struct {
-  RayPacket *rays;
-  int n;
-  int capacity;
-} RayWorkStack;
-
-static RayWorkStack *init_work_stack(int capacity)
+RayWorkStack *init_work_stack(int capacity)
 {
   RayWorkStack *w = mymalloc("RayWorkStack", sizeof(RayWorkStack));
   w->rays = mymalloc("WorkRays", capacity * sizeof(RayPacket));
@@ -78,7 +72,7 @@ static RayWorkStack *init_work_stack(int capacity)
   return w;
 }
 
-static void append_ray(RayWorkStack *w, const RayPacket *ray)
+void append_ray(RayWorkStack *w, const RayPacket *ray)
 {
   if(w->n >= w->capacity)
     {
@@ -88,7 +82,7 @@ static void append_ray(RayWorkStack *w, const RayPacket *ray)
   w->rays[w->n++] = *ray;
 }
 
-static void free_work_stack(RayWorkStack *w)
+void free_work_stack(RayWorkStack *w)
 {
   myfree(w->rays);
   myfree(w);
@@ -162,7 +156,7 @@ void init_rays_from_stars(RayWorkStack *work)
 }
 
 /* Returns 4 child rays by value. Returns 0 if at NSIDE_MAX. */
-static int split_ray(const RayPacket *parent, RayPacket children[4])
+int split_ray(const RayPacket *parent, RayPacket children[4])
 {
   if(parent->nside >= NSIDE_MAX)
     return 0;
@@ -515,7 +509,7 @@ void star_radiation(void)
       while(work->n > 0)
         {
           RayPacket ray = work->rays[--work->n];
-          raytrace_treewalk(&ray, export_buf, work);
+          raytrace_treewalk(&ray, work, export_buf);
         }
 
       /* send rays to remote ranks, receive rays from remote ranks */

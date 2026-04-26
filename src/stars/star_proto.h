@@ -65,7 +65,9 @@ double gaussian_weight(double r, double h);
 
 void init_healpix_rays(void);
 void init_rays_from_stars(RayWorkStack *work);
-void raytrace_treewalk(RayPacket *ray, RayExportBuffer *split_buf, RayExportBuffer *export_buf);
+int split_ray(const RayPacket *parent, RayPacket children[4]);
+void append_ray(RayWorkStack *w, const RayPacket *ray);
+void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);
 RayExportBuffer *init_export_buffer(int capacity);
 void free_export_buffer(RayExportBuffer *buf);
 void exchange_rays(RayExportBuffer *send, RayWorkStack *work)

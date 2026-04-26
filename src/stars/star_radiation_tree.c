@@ -128,6 +128,8 @@ Tree indices are organized as follows:
 
 void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf)
 {
+  double xtmp, ytmp, ztmp;
+  
   /* local stack for ordering within this domain */
   StackEntry stack[RAY_STACK_SIZE];
   int stack_top = 0;
