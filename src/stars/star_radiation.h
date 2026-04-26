@@ -4,10 +4,12 @@
 #include <stdint.h>
 
 #define TAG_RAD 18
-#define RAD_BACKGROUND 0
 #define RAD_TRUNC_FRAC 0.01 
 #define MAX_NUM_RAYS 12288 
 #define RAY_STACK_SIZE 64
+
+#define NSIDE_MIN 1
+#define NSIDE_MAX 32      
 
 /* Change at init_rays_from_stars */
 #define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
@@ -60,6 +62,10 @@ typedef struct
   StackEntry pending[RAY_STACK_SIZE];
   int n_pending;
   int target_node;
+  int is_paused;
+  
+  int nside;           /* current HEALPix nside level */
+  int healpix_pixel;   /* pixel index in nested scheme */
 } RayPacket;
 
 typedef struct 

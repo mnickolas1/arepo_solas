@@ -613,12 +613,6 @@ void read_parameter_file(char *fname)
       id[nt++] = STRING;
 #endif
 
-#ifdef STAR_RADIATION_ACTIVE
-      strcpy(tag[nt], "Nside");
-      addr[nt] = &All.Nside;
-      id[nt++] = INT;
-#endif  
-
 #ifdef RAD_OPENING_ANGLE
       strcpy(tag[nt], "RadOpeningAngle");
       addr[nt] = &All.RadOpeningAngle;

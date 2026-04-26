@@ -63,29 +63,51 @@ void update_kappa(void)
     }
 }
 
-struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
+typedef struct {
+  RayPacket *rays;
+  int n;
+  int capacity;
+} RayWorkStack;
+
+static RayWorkStack *init_work_stack(int capacity)
+{
+  RayWorkStack *w = mymalloc("RayWorkStack", sizeof(RayWorkStack));
+  w->rays = mymalloc("WorkRays", capacity * sizeof(RayPacket));
+  w->n = 0;
+  w->capacity = capacity;
+  return w;
+}
+
+static void append_ray(RayWorkStack *w, const RayPacket *ray)
+{
+  if(w->n >= w->capacity)
+    {
+      w->capacity *= 2;
+      w->rays = myrealloc(w->rays, w->capacity * sizeof(RayPacket));
+    }
+  w->rays[w->n++] = *ray;
+}
+
+static void free_work_stack(RayWorkStack *w)
+{
+  myfree(w->rays);
+  myfree(w);
+}
 
 void init_healpix_rays(void) 
 {
-  int nside = All.Nside;
+  int nside = NSIDE_MIN
   NRays = 12 * nside * nside;
 
   for(int ipix = 0; ipix < NRays; ipix++)
     {
-      pix2vec_nest(All.Nside, ipix, HealpixDirs[ipix]);
+      pix2vec_nest(nside, ipix, HealpixDirs[ipix]);
     }
 }
 
-RayPacket *init_rays_from_stars(int *n_rays_local)
+void init_rays_from_stars(RayWorkStack *work)
 {
-  int n_stars = TimeBinsStar.NActiveParticles;
-  int total_rays = n_stars * NRays;
   double SQRT3 = sqrt(3);
-    
-  // Allocate memory for all rays
-  RayPacket *rays = mymalloc("rays", total_rays * sizeof(RayPacket));
-    
-  *n_rays_local = total_rays;
     
   int ray_idx = 0;
     
@@ -100,35 +122,69 @@ RayPacket *init_rays_from_stars(int *n_rays_local)
       for(int iray = 0; iray < NRays; iray++)
         {   
           // Initialize ray from star i
-          rays[ray_idx].pos[0] = PPS(i).Pos[0];      
-          rays[ray_idx].pos[1] = PPS(i).Pos[1]; 
-          rays[ray_idx].pos[2] = PPS(i).Pos[2]; 
-          rays[ray_idx].dir[0] = HealpixDirs[iray][0];        
-          rays[ray_idx].dir[1] = HealpixDirs[iray][1];
-          rays[ray_idx].dir[2] = HealpixDirs[iray][2];
-          rays[ray_idx].t = 0.0;
-          rays[ray_idx].t_exit = MAX_REAL_NUMBER;
-          rays[ray_idx].t_maximum = fmin(CLIGHT/All.cf_UnitVelocity_in_cm_per_s * dt_rad/All.cf_time_hubble, SQRT3 * All.BoxSize);
+          RayPacket ray = {0};
+
+          ray.pos[0] = PPS(i).Pos[0];      
+          ray.pos[1] = PPS(i).Pos[1]; 
+          ray.pos[2] = PPS(i).Pos[2]; 
+          ray.dir[0] = HealpixDirs[iray][0];        
+          ray.dir[1] = HealpixDirs[iray][1];
+          ray.dir[2] = HealpixDirs[iray][2];
+          ray.t = 0.0;
+          ray.t_exit = MAX_REAL_NUMBER;
+          ray.t_maximum = fmin(CLIGHT/All.cf_UnitVelocity_in_cm_per_s * dt_rad/All.cf_time_hubble, SQRT3 * All.BoxSize);
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
-              rays[ray_idx].RAD[w] = SP[i].LUM[w] / NRays;
+              ray.RAD[w] = SP[i].LUM[w] / NRays;
 
-              rays[ray_idx].RAD_Initial[w] = SP[i].LUM[w] / NRays;
+              ray.RAD_Initial[w] = SP[i].LUM[w] / NRays;
             }
   
-          rays[ray_idx].active_bands = ALL_BANDS_ACTIVE;
+          ray.active_bands = ALL_BANDS_ACTIVE;
           
-          rays[ray_idx].ray_id = ray_idx;
-          rays[ray_idx].home_task = ThisTask;
+          ray.ray_id = ray_idx;
+          ray.home_task = ThisTask;
           
-          rays[ray_idx].n_pending = 0;
-          rays[ray_idx].target_node = -1;
+          ray.n_pending = 0;
+          ray.target_node = -1;
+
+          ray.is_paused = 0;
+
+          ray.nside = NSIDE_MIN;        
+          ray.healpix_pixel = iray;            
             
           ray_idx++;
+
+          append_ray(work, &ray);
         }
     }
-  return rays;
+}
+
+/* Returns 4 child rays by value. Returns 0 if at NSIDE_MAX. */
+static int split_ray(const RayPacket *parent, RayPacket children[4])
+{
+  if(parent->nside >= NSIDE_MAX)
+    return 0;
+
+  int new_nside = parent->nside * 2;
+
+  for(int k = 0; k < 4; k++)
+    {
+      children[k] = *parent;   /* copy all state including t, active_bands etc. */
+
+      children[k].nside = new_nside;
+      children[k].healpix_pixel = 4 * parent->healpix_pixel + k;
+
+      pix2vec_nest(new_nside, children[k].healpix_pixel, children[k].dir);
+
+      for(int w = 0; w < WAVEBANDS; w++)
+        {
+          children[k].RAD[w] = parent->RAD[w] * 0.25;
+          children[k].RAD_Initial[w] = parent->RAD_Initial[w] * 0.25;
+        }
+    }
+  return 1;
 }
 
 RayExportBuffer *init_export_buffer(int capacity)
@@ -186,46 +242,54 @@ static void sort_by_task(RayExportBuffer *buf)
   myfree(idx);
 }
 
-void exchange_rays(RayExportBuffer *send, RayPacket **recv, int *n_recv)
+void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
 {
-    int send_count[NTask], recv_count[NTask];
-    int send_offset[NTask], recv_offset[NTask];
+  int send_count[NTask], recv_count[NTask];
+  int send_offset[NTask], recv_offset[NTask];
 
-    /* count how many rays go to each task */
-    memset(send_count, 0, NTask * sizeof(int));
-    for(int i = 0; i < send->n; i++)
-        send_count[send->task[i]]++;
+  /* count how many rays go to each task */
+  memset(send_count, 0, NTask * sizeof(int));
+  for(int i = 0; i < send->n; i++)
+    send_count[send->task[i]]++;
 
-    MPI_Alltoall(send_count, 1, MPI_INT, recv_count, 1, MPI_INT, MPI_COMM_WORLD);
+  MPI_Alltoall(send_count, 1, MPI_INT, recv_count, 1, MPI_INT, MPI_COMM_WORLD);
 
-    /* compute offsets */
-    send_offset[0] = recv_offset[0] = 0;
-    int total_recv = recv_count[0];
+  /* compute offsets */
+  send_offset[0] = recv_offset[0] = 0;
+  int total_recv = recv_count[0];
     
-    for(int i = 1; i < NTask; i++)
-      {
-        send_offset[i] = send_offset[i-1] + send_count[i-1];
-        recv_offset[i] = recv_offset[i-1] + recv_count[i-1];
-        total_recv += recv_count[i];
-      }
+  for(int i = 1; i < NTask; i++)
+    {
+      send_offset[i] = send_offset[i-1] + send_count[i-1];
+      recv_offset[i] = recv_offset[i-1] + recv_count[i-1];
+      total_recv += recv_count[i];
+    }
 
-    for(int i = 0; i < NTask; i++) 
-      {
-       send_count[i] *= sizeof(RayPacket);
-       recv_count[i] *= sizeof(RayPacket);
-       send_offset[i] *= sizeof(RayPacket);
-       recv_offset[i] *= sizeof(RayPacket);
-      }
+  /* grow work array to fit incoming rays */
+  while(work->n + total_recv > work->capacity)
+    {
+      work->capacity *= 2;
+      work->rays = myrealloc(work->rays, work->capacity * sizeof(RayPacket));
+    }
 
-    /* sort send buffer by task */
-    sort_by_task(send);
+  for(int i = 0; i < NTask; i++) 
+    {
+      send_count[i] *= sizeof(RayPacket);
+      recv_count[i] *= sizeof(RayPacket);
+      send_offset[i] *= sizeof(RayPacket);
+      recv_offset[i] *= sizeof(RayPacket);
+    }
 
-    *recv = mymalloc("imported_rays", total_recv * sizeof(RayPacket));
-    *n_recv = total_recv;
+  /* sort send buffer by task */
+  sort_by_task(send);
 
-    /* exchange ray data */
-    MPI_Alltoallv(send->rays, send_count, send_offset, MPI_BYTE, *recv, recv_count, recv_offset, MPI_BYTE, MPI_COMM_WORLD);
+  /* exchange ray data */
+  MPI_Alltoallv(send->rays, send_count, send_offset, MPI_BYTE, work->rays + work->n, recv_count, recv_offset, MPI_BYTE, MPI_COMM_WORLD);
+
+  work->n += total_recv;
 }
+
+struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
 
 void send_results_home(void)
 {
@@ -324,7 +388,8 @@ void distribute_node_rad(int no)
         break; 
       }
       
-  if(!has_rad) return;
+  if(!has_rad) 
+    return;
   
   double node_tau[WAVEBANDS];
   for(int w = 0; w < WAVEBANDS; w++)
@@ -428,41 +493,39 @@ void star_radiation(void)
      for(int w = 0; w < WAVEBANDS; w++)
         SphP[i].RAD[w] = 0.0;
 
-/* 1. initialize rays from active star particles */
-  int n_rays_local = 0;
-  int n_rays_global = 0;
-  RayPacket *rays = init_rays_from_stars(&n_rays_local);
+  /* 1. initialize rays from active star particles */ 
+  int n_stars = TimeBinsStar.NActiveParticles;
+  int n_rays_local = n_stars * NRays;
+  int n_rays_global;
 
-  MPI_Allreduce(&n_rays_local, &n_rays_global, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);  
+  MPI_Allreduce(&n_rays_local, &n_rays_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);  
 
-  /* 2. do initial local walk (mode=0) for all rays */
-  RayExportBuffer *export_buf = init_export_buffer(4. * n_rays_global);
+  /* 2. do initial local walk for all rays */
+  RayWorkStack *work = init_work_array(16 * n_rays_global);
+  RayExportBuffer *export_buf = init_export_buffer(16 * n_rays_global);
+  
+  init_rays_from_stars(work);
 
-  for(int i = 0; i < n_rays_local; i++)
-    raytrace_treewalk(&rays[i], 0, -1, export_buf);
-
-  /* 3. iterate until no more exports globally */
-  int n_exports_global;
+  /* 3. iterate until no more rays globally */
   do
     {
+      while(work->n > 0)
+        {
+          RayPacket ray = work->rays[--work->n];
+          raytrace_treewalk(&ray, export_buf, work);
+        }
+
       /* send rays to remote ranks, receive rays from remote ranks */
-      RayPacket *imported_rays;
-      int n_imported;
-      exchange_rays(export_buf, &imported_rays, &n_imported);
+      exchange_rays(export_buf, work);
 
       /* reset export buffer for this round */
       export_buf->n = 0;
 
-      /* walk imported rays in mode=1 */
-      for(int i = 0; i < n_imported; i++)
-        raytrace_treewalk(&imported_rays[i], 1, imported_rays[i].target_node, export_buf);
-
-      myfree(imported_rays);
-
-      /* check if anyone still has rays in flight */
-      MPI_Allreduce(&export_buf->n, &n_exports_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+       /* check if anyone still has rays in flight */
+      int n_global;
+      MPI_Allreduce(&work->n, &n_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       
-    } while(n_exports_global > 0);
+    } while(n_global > 0);
     
   //send_results_home();
 
@@ -473,5 +536,5 @@ void star_radiation(void)
   radiation_feedback();
 
   free_export_buffer(export_buf);
-  myfree(rays);
+  free_work_stack(work);
 }

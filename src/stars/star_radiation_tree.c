@@ -126,14 +126,14 @@ Tree indices are organized as follows:
 [Ngb_MaxPart+Ngb_MaxNodes ... Ngb_MaxPart+Ngb_MaxNodes+NTopleaves-1] -> pseudo-particles
 */
 
-void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffer *export_buf)
+void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf)
 {
   /* local stack for ordering within this domain */
   StackEntry stack[RAY_STACK_SIZE];
   int stack_top = 0;
 
   /* push entry point */
-  if(mode == 0)
+  if(ray->target_node < 0 )
     stack[stack_top++] = (StackEntry){0.0, MAX_REAL_NUMBER, Ngb_MaxPart}; /* root */
   else
     {
@@ -141,7 +141,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
       stack_top = ray->n_pending;
       ray->n_pending = 0;
       /* push the target node on top - it goes first */
-      stack[stack_top++] = (StackEntry){ray->t, ray->t_exit, target_node};
+      stack[stack_top++] = (StackEntry){ray->t, ray->t_exit, ray->target_node};
     }
   
   while(stack_top > 0)
@@ -201,55 +201,112 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
         {
           struct NgbNODE *nop = &Ngb_Nodes[no];
 
-#ifdef RAD_OPENING_ANGLE //this should only trigger for non-top level nodes!!
-          /* --- Barnes-Hut opening criterion --- */
-          double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
-          double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
-          double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
-
-          double ddx = cx - ray->pos[0];
-          double ddy = cy - ray->pos[1];
-          double ddz = cz - ray->pos[2];
-          double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
-
-          double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
-          double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
-          double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
-          double len2 = dx*dx + dy*dy + dz*dz;
-          
-          /* node is far enough — treat as single slab */
-          if(dist2 > 0 && len2 / dist2 < All.RadOpeningAngle * All.RadOpeningAngle)
+#ifdef RAD_OPENING_ANGLE
+          /* This should only trigger for non-top level nodes */ 
+          if (no >= Ngb_FirstNonTopLevelNode)
             {
-              double chord_length = cur.t_exit - cur.t_enter;
-              
-              double density_kappa[WAVEBANDS];
-              for(int w = 0; w < WAVEBANDS; w++)
-                density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];  /* volume-weighted mean kappa * density */
+              /* --- Barnes-Hut opening criterion --- */
+              double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
+              double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
+              double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
 
-              double absorbed[WAVEBANDS];
-              double dtau_IR;
+              double ddx = cx - ray->pos[0];
+              double ddy = cy - ray->pos[1];
+              double ddz = cz - ray->pos[2];
+              double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
 
-              int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
-
-              /* accumulate for later distribution to children */
-              for(int w = 0; w < WAVEBANDS; w++)
-                RtNgb_Nodes[no].RAD[w] += absorbed[w];
-
-              ray->t = cur.t_exit;
-
-              if(ray->t == ray->t_maximum) 
+              double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
+              double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
+              double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
+              double len2 = dx*dx + dy*dy + dz*dz;
+          
+              /* node is far enough — treat as single slab */
+              if(dist2 > 0 && len2 / dist2 < All.RadOpeningAngle * All.RadOpeningAngle)
                 {
-                  ray->is_paused = 1; 
-                  return;
-                }
+                  double chord_length = cur.t_exit - cur.t_enter;
+              
+                  double density_kappa[WAVEBANDS];
+                  for(int w = 0; w < WAVEBANDS; w++)
+                    density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];  /* volume-weighted mean kappa * density */
 
-              if(!still_alive) 
-                return;
+                  double absorbed[WAVEBANDS];
+                  double dtau_IR;
+
+                  int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
+
+                  /* accumulate for later distribution to children */
+                  for(int w = 0; w < WAVEBANDS; w++)
+                    RtNgb_Nodes[no].RAD[w] += absorbed[w];
+
+                  ray->t = cur.t_exit;
+
+                  if(ray->t == ray->t_maximum) 
+                    {
+                      ray->is_paused = 1; 
+                      return;
+                    }
+
+                  if(!still_alive) 
+                    return;
                 
-              continue;  /* don't open this node */
+                  continue;  /* don't open this node */
+                }
             }
-#endif
-          /* open it and enumerate children -> sort by t_enter, push */
+#endif      
+          /* Adaptive splitting criterion */
+          if(ray->nside < NSIDE_MAX)
+            {
+              double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
+              double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
+              double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
+
+              double ddx = cx - ray->pos[0];
+              double ddy = cy - ray->pos[1];
+              double ddz = cz - ray->pos[2];
+              double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
+
+              double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
+              double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
+              double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
+              double len2 = dx*dx + dy*dy + dz*dz;
+
+              /* use number of actual children for adaptive f */
+             
+              double f_eff = fmax(1.0, (double)RtNgb_Nodes[no].nchildren); /* at least 1 ray per child */
+
+              double coeff = 3.0 * f_eff / M_PI; /* from Ω_ray = 4π/(12·nside²) */
+
+              if(dist2 > 0.0 && len2 * coeff * (double)(ray->nside * ray->nside) > dist2)
+                {
+                  /* ray is too coarse — push split children to split_buf, consume parent */
+                  RayPacket children[4];
+                  if(split_ray(ray, children))
+                    {
+                      /* pack pending */
+                      if(stack_top >= RAY_STACK_SIZE - 1) 
+                        terminate("Too many pending entries to split!");
+
+                      ray->n_pending = stack_top;
+                      memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
+
+                      ray->t = cur.t_enter;
+                      ray->t_exit = cur.t_exit;
+                      ray->target_node = no;  /* store for re-entry */
+
+                      for(int k = 0; k < 4; k++)
+                        {
+                          if(work->n >= work->capacity)
+                            terminate("Work stack overflow!");
+                          
+                          append_ray(work, &children[k]);
+                        }
+                      /* parent ray is consumed */
+                      return;   
+                    }
+                  /* else: at NSIDE_MAX, fall through and open the node normally */
+                }
+            }
+          /* open node and enumerate children -> sort by t_enter, push */
           StackEntry children[8];
           int nchildren = 0;
 
@@ -344,7 +401,7 @@ void raytrace_treewalk(RayPacket *ray, int mode, int target_node, RayExportBuffe
 
           ray->t = cur.t_enter;
           ray->t_exit = cur.t_exit;
-          ray->target_node = remote_node;  /* store for mode==1 */
+          ray->target_node = remote_node;  /* store for re-entry */
 
           /* add to export buffer */
           if(export_buf->n < export_buf->capacity)
