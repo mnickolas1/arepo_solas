@@ -88,7 +88,7 @@ void individual_starbystar_formation(void)
         continue; /* skip cells that have been swallowed or eliminated */
 
       dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
-      dt /= All.cf_time_hubble;
+      dt /= All.cf_hubble_a;
 
       dtff = sqrt(3.0 * M_PI / 32 / All.G / SphP[i].Density);
           

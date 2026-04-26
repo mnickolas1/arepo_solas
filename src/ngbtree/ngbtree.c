@@ -664,10 +664,10 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
                             }
 #ifdef STAR_RADIATION_ACTIVE  
-                          volume += RtNgb_Nodes[p].u.d.volume;
+                          volume += RtNgb_Nodes[p].volume;
                           
                           for(int w = 0; w < WAVEBANDS; w++)
-                            density_kappa[w] += RtNgb_Nodes[p].u.d.volume * RtNgb_Nodes[p].u.d.density_kappa[w];
+                            density_kappa[w] += RtNgb_Nodes[p].volume * RtNgb_Nodes[p].density_kappa[w];
 #endif
                         }
                     }
@@ -729,14 +729,14 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
 #ifdef STAR_RADIATION_ACTIVE  
-          RtNgb_Nodes[no].u.d.volume = volume;
+          RtNgb_Nodes[no].volume = volume;
           
           if(volume > 0)
             for(int w = 0; w < WAVEBANDS; w++)
               density_kappa[w] /= volume;
 
           for(int w = 0; w < WAVEBANDS; w++)
-            RtNgb_Nodes[no].u.d.density_kappa[w] = density_kappa[w];
+            RtNgb_Nodes[no].density_kappa[w] = density_kappa[w];
 
           /* count direct children */
           int nchildren = 0;
@@ -887,10 +887,10 @@ void ngb_exchange_topleafdata(void)
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
 #ifdef STAR_RADIATION_ACTIVE
-          loc_DomainMoment[idx].volume = RtNgb_Nodes[no].u.d.volume;
+          loc_DomainMoment[idx].volume = RtNgb_Nodes[no].volume;
           
           for(int w = 0; w < WAVEBANDS; w++)
-            loc_DomainMoment[idx].density_kappa[w] = RtNgb_Nodes[no].u.d.density_kappa[w];
+            loc_DomainMoment[idx].density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];
 #endif
 
           idx++;
@@ -925,10 +925,10 @@ void ngb_exchange_topleafdata(void)
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
 #ifdef STAR_RADIATION_ACTIVE
-          RtNgb_Nodes[no].u.d.volume = DomainMoment[idx].volume;
+          RtNgb_Nodes[no].volume = DomainMoment[idx].volume;
           
           for(int w = 0; w < WAVEBANDS; w++)
-            RtNgb_Nodes[no].u.d.density_kappa[w] = DomainMoment[idx].density_kappa[w];
+            RtNgb_Nodes[no].density_kappa[w] = DomainMoment[idx].density_kappa[w];
 #endif
 
           Ngb_Nodes[no].Ti_Current = All.Ti_Current;

@@ -49,7 +49,6 @@
 
 #include "../time_integration/timestep.h"
 #include "../utils/dtypes.h"
-#include "../ngbtree/ngbtree.h"
 #include "../utils/tags.h"
 
 #ifdef USE_GRACKLE
@@ -63,6 +62,8 @@
 #ifdef BLACKHOLES
 #include "../blackholes/bh.h"
 #endif
+
+#include "../ngbtree/ngbtree.h"
 
 #define AREPO_VERSION "Arepo public 1.0" /* code version string */
 
@@ -1345,10 +1346,6 @@ double InitMetallicityinSolar;
   double StarDesDev;
   char StarTablesFile[MAXLEN_PATH];
 #endif  
-
-#ifdef STAR_RADIATION_ACTIVE
-  int Nside;
-#endif
 
 #ifdef RAD_OPENING_ANGLE
   double RadOpeningAngle;

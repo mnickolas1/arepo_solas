@@ -96,7 +96,7 @@ static void free_work_stack(RayWorkStack *w)
 
 void init_healpix_rays(void) 
 {
-  int nside = NSIDE_MIN
+  int nside = NSIDE_MIN;
   NRays = 12 * nside * nside;
 
   for(int ipix = 0; ipix < NRays; ipix++)
@@ -132,7 +132,7 @@ void init_rays_from_stars(RayWorkStack *work)
           ray.dir[2] = HealpixDirs[iray][2];
           ray.t = 0.0;
           ray.t_exit = MAX_REAL_NUMBER;
-          ray.t_maximum = fmin(CLIGHT/All.cf_UnitVelocity_in_cm_per_s * dt_rad/All.cf_time_hubble, SQRT3 * All.BoxSize);
+          ray.t_maximum = fmin(CLIGHT/All.cf_UnitVelocity_in_cm_per_s * dt_rad/All.cf_hubble_a, SQRT3 * All.BoxSize);
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
@@ -289,6 +289,7 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
   work->n += total_recv;
 }
 
+#ifdef TREEPOINTS
 struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
 
 void send_results_home(void)
@@ -374,6 +375,7 @@ void send_results_home(void)
   myfree(Send_offset); myfree(Recv_offset);
   myfree(Send_count);  myfree(Recv_count);
 }
+#endif
 
 #ifdef RAD_OPENING_ANGLE
 void distribute_node_rad(int no)
@@ -462,7 +464,7 @@ void radiation_feedback(void)
 
       /* RT_ionization_rate:  1 / (time units) */
       double n_HI = SphP[i].grHI * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
-      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs / dt/All.cf_time_hubble/All.HubbleParam / volume) / n_HI: 0.0;
+      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HI: 0.0;
 
       /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
       double E_threshold = N_abs * energy_thresh; 
@@ -501,12 +503,13 @@ void star_radiation(void)
   MPI_Allreduce(&n_rays_local, &n_rays_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);  
 
   /* 2. do initial local walk for all rays */
-  RayWorkStack *work = init_work_array(16 * n_rays_global);
+  RayWorkStack *work = init_work_stack(16 * n_rays_global);
   RayExportBuffer *export_buf = init_export_buffer(16 * n_rays_global);
   
   init_rays_from_stars(work);
 
   /* 3. iterate until no more rays globally */
+  int n_global;
   do
     {
       while(work->n > 0)
@@ -522,7 +525,7 @@ void star_radiation(void)
       export_buf->n = 0;
 
        /* check if anyone still has rays in flight */
-      int n_global;
+      
       MPI_Allreduce(&work->n, &n_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       
     } while(n_global > 0);

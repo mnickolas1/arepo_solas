@@ -317,11 +317,16 @@ SUBDIRS += stars
 endif
 
 ifneq (,$(filter STAR_FEEDBACK,$(CONFIGVARS)))
-CONFIGVARS += WINDS RADIATION SUPERNOVAE 
+CONFIGVARS += WINDS RADIATION SUPERNOVAE
+$(shell echo "#define WINDS" >> $(BUILD_DIR)/arepoconfig.h)
+$(shell echo "#define SUPERNOVAE" >> $(BUILD_DIR)/arepoconfig.h)  
 endif
 
 ifneq (,$(filter RADIATION,$(CONFIGVARS)))
-CONFIGVARS += PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE 
+CONFIGVARS += PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
+$(shell echo "#define PHOTOIONIZATION" >> $(BUILD_DIR)/arepoconfig.h)
+$(shell echo "#define PHOTOELECTRIC_HEATING" >> $(BUILD_DIR)/arepoconfig.h)  
+$(shell echo "#define RADIATION_PRESSURE" >> $(BUILD_DIR)/arepoconfig.h)  
 endif
 
 CONFIGVARS := $(sort $(CONFIGVARS))
