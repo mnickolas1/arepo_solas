@@ -35,6 +35,45 @@ GSL_LIB    = -lgsl -lgslcblas
 MATH_LIB   = -lm -lstdc++
 HWLOC_LIB  = -lhwloc
 
+################################
+#determine the needed libraries#
+################################
+
+# we only need fftw if PMGRID is turned on, make sure variable is empty otherwise
+FFTW_LIB =
+ifeq (PMGRID, $(findstring PMGRID, $(CONFIGVARS)))
+ifeq (DOUBLEPRECISION_FFTW,$(findstring DOUBLEPRECISION_FFTW,$(CONFIGVARS)))  # test for double precision libraries
+FFTW_LIB = $(FFTW_LIBS) -lfftw3
+else
+FFTW_LIB = $(FFTW_LIBS) -lfftw3f
+endif
+endif
+
+ifneq (HAVE_HDF5,$(findstring HAVE_HDF5,$(CONFIGVARS)))
+HDF5_INCL = 
+HDF5_LIB = 
+endif
+
+ifneq (IMPOSE_PINNING,$(findstring IMPOSE_PINNING,$(CONFIGVARS)))
+HWLOC_INCL =
+HWLOC_LIB =
+endif
+
+ifeq (USE_GRACKLE,$(findstring USE_GRACKLE,$(CONFIGVARS)))
+OPTIONS += -DCONFIG_BFLOAT_8
+GRACKLE_INCL = -I$(HOME)/Codes/grackle/include
+GRACKLE_LIB = -L$(HOME)/Codes/grackle/lib -lgrackle -Wl,-rpath,$(HOME)/Codes/grackle/lib
+ifeq ($(SYSTYPE),"MACOSX")
+LDFLAGS += -L$(shell BREW --prefix gcc)/lib/gcc/current -lgfortran -lquadmath
+else
+LDFLAGS += -lgfortran -lquadmath
+endif
+else
+GRACKLE_INCL =
+GRACKLE_LIB =
+LDFLAGS +=
+endif
+
 #Mac OS using MacPorts modules for openmpi, fftw, gsl, hdf5 and hwloc
 ifeq ($(SYSTYPE),"Darwin")
 # compiler and its optimization options
@@ -49,8 +88,8 @@ HWLOC_LIB = -L/opt/local/lib -lhwloc
 # libraries that are included on demand, depending on Config.sh options
 FFTW_INCL = -I/opt/local/include -I/usr/local/include
 FFTW_LIBS = -L/opt/local/lib -I/usr/local/lib
-HDF5_INCL = -I/opt/local/include -DH5_USE_16_API
-HDF5_LIB  = -L/opt/local/lib  -lhdf5 -lz
+HDF5_INCL = -I/opt/local/include 
+HDF5_LIB  = -L/opt/local/lib  
 HWLOC_INCL= -I/opt/local/include
 endif
 # end of Darwin
@@ -73,11 +112,10 @@ GMP_LIB   = -L$(shell $(BREW) --prefix gmp)/lib -lgmp
 # libraries that are included on demand, depending on Config.sh options
 FFTW_INCL = -I$(shell $(BREW) --prefix fftw)/include -I/usr/local/include
 FFTW_LIBS = -L$(shell $(BREW) --prefix fftw)/lib -I/usr/local/lib
-HDF5_INCL = -I$(shell $(BREW) --prefix hdf5)/include -DH5_USE_16_API
-HDF5_LIB  = -L$(shell $(BREW) --prefix hdf5)/lib -lhdf5 -lz
+HDF5_INCL = -I$(shell $(BREW) --prefix hdf5)/include 
+HDF5_LIB  = -L$(shell $(BREW) --prefix hdf5)/lib 
 HWLOC_INCL= -I$(shell $(BREW) --prefix hwloc)/include
 HWLOC_LIB = -L$(shell $(BREW) --prefix hwloc)/lib -lhwloc
-
 endif
 # end of Darwin
 
@@ -96,8 +134,8 @@ HWLOC_LIB = -lhwloc
 # libraries that are included on demand, depending on Config.sh options
 FFTW_INCL =
 FFTW_LIBS =
-HDF5_INCL = -I/usr/include/hdf5/serial/ -DH5_USE_16_API
-HDF5_LIB  = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lhdf5 -lz
+HDF5_INCL = -I/usr/include/hdf5/serial/ 
+HDF5_LIB  = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/
 HWLOC_INCL=
 endif
 # end of Linux
@@ -316,17 +354,21 @@ INCL += stars/star.h
 SUBDIRS += stars 
 endif
 
+define add_define
+  grep -qxF '#define $(1)' $(BUILD_DIR)/arepoconfig.h || echo '#define $(1)' >> $(BUILD_DIR)/arepoconfig.h
+endef
+
 ifneq (,$(filter STAR_FEEDBACK,$(CONFIGVARS)))
 CONFIGVARS += WINDS RADIATION SUPERNOVAE
-$(shell echo "#define WINDS" >> $(BUILD_DIR)/arepoconfig.h)
-$(shell echo "#define SUPERNOVAE" >> $(BUILD_DIR)/arepoconfig.h)  
+$(shell $(call add_define,WINDS))
+$(shell $(call add_define,SUPERNOVAE))
 endif
 
 ifneq (,$(filter RADIATION,$(CONFIGVARS)))
 CONFIGVARS += PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
-$(shell echo "#define PHOTOIONIZATION" >> $(BUILD_DIR)/arepoconfig.h)
-$(shell echo "#define PHOTOELECTRIC_HEATING" >> $(BUILD_DIR)/arepoconfig.h)  
-$(shell echo "#define RADIATION_PRESSURE" >> $(BUILD_DIR)/arepoconfig.h)  
+$(shell $(call add_define,PHOTOIONIZATION))
+$(shell $(call add_define,PHOTOELECTRIC_HEATING))
+$(shell $(call add_define,RADIATION_PRESSURE))
 endif
 
 CONFIGVARS := $(sort $(CONFIGVARS))
@@ -337,12 +379,12 @@ STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
 
 ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
 CONFIGVARS += STAR_FEEDBACK_ACTIVE
-$(shell echo "#define STAR_FEEDBACK_ACTIVE" >> $(BUILD_DIR)/arepoconfig.h)
+$(shell $(call add_define,STAR_FEEDBACK_ACTIVE))
 endif
 
 ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
 CONFIGVARS += STAR_RADIATION_ACTIVE
-$(shell echo "#define STAR_RADIATION_ACTIVE" >> $(BUILD_DIR)/arepoconfig.h)
+$(shell $(call add_define,STAR_RADIATION_ACTIVE))
 endif
 
 ifneq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
@@ -412,12 +454,12 @@ BH_FEEDBACK_ACTIVE = BH_THERMAL_FEEDBACK BH_JET_FEEDBACK
 
 ifneq (,$(filter $(BH_ACCRETION_ACTIVE),$(CONFIGVARS)))
 CONFIGVARS += BH_ACCRETION_ACTIVE
-$(shell echo "#define BH_ACCRETION_ACTIVE" >> $(BUILD_DIR)/arepoconfig.h)
+$(shell $(call add_define,BH_ACCRETION_ACTIVE))
 endif
 
 ifneq (,$(filter $(BH_FEEDBACK_ACTIVE),$(CONFIGVARS)))
 CONFIGVARS += BH_FEEDBACK_ACTIVE
-$(shell echo "#define BH_FEEDBACK_ACTIVE" >> $(BUILD_DIR)/arepoconfig.h)
+$(shell $(call add_define,BH_FEEDBACK_ACTIVE))
 endif
 
 ifneq (,$(filter BH_ACCRETION_ACTIVE BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
@@ -480,51 +522,14 @@ INCL += subfind/subfind.h
 SUBDIRS += subfind
 endif
 
-################################
-#determine the needed libraries#
-################################
 
-# we only need fftw if PMGRID is turned on, make sure variable is empty otherwise
-FFTW_LIB =
-ifeq (PMGRID, $(findstring PMGRID, $(CONFIGVARS)))
-ifeq (DOUBLEPRECISION_FFTW,$(findstring DOUBLEPRECISION_FFTW,$(CONFIGVARS)))  # test for double precision libraries
-FFTW_LIB = $(FFTW_LIBS) -lfftw3
-else
-FFTW_LIB = $(FFTW_LIBS) -lfftw3f
-endif
-endif
-
-ifneq (HAVE_HDF5,$(findstring HAVE_HDF5,$(CONFIGVARS)))
-HDF5_INCL =
-HDF5_LIB =
-endif
-
-ifneq (IMPOSE_PINNING,$(findstring IMPOSE_PINNING,$(CONFIGVARS)))
-HWLOC_INCL =
-HWLOC_LIB =
-endif
-
-ifeq (USE_GRACKLE,$(findstring USE_GRACKLE,$(CONFIGVARS)))
-OPTIONS += -DCONFIG_BFLOAT_8
-GRACKLE_INCL = -I$(HOME)/Codes/grackle/include
-GRACKLE_LIB = -L$(HOME)/Codes/grackle/lib -lgrackle -Wl,-rpath,$(HOME)/Codes/grackle/lib
-ifeq ($(SYSTYPE),"MACOSX")
-LDFLAGS += -L$(shell BREW --prefix gcc)/lib/gcc/current -lgfortran -lquadmath
-else
-LDFLAGS += -lgfortran -lquadmath
-endif
-else
-GRACKLE_INCL =
-GRACKLE_LIB =
-LDFLAGS +=
-endif
 ##########################
 #combine compiler options#
 ##########################
 
-CFLAGS = $(OPTIMIZE) $(MPICH_INCL) $(HDF5_INCL) $(GSL_INCL) $(GMP_INCL) $(FFTW_INCL) $(HWLOC_INCL) $(CELIB_INCL) $(GRACKLE_INCL) -I$(BUILD_DIR)
+CFLAGS = $(OPTIMIZE) $(MPICH_INCL) $(HDF5_INCL) -DH5_USE_16_API $(GSL_INCL) $(GMP_INCL) $(FFTW_INCL) $(HWLOC_INCL) $(CELIB_INCL) $(GRACKLE_INCL) -I$(BUILD_DIR)
 
-LIBS = $(GMP_LIB) $(MPICH_LIB) $(HDF5_LIB) $(GSL_LIB) $(FFTW_LIB) $(HWLOC_LIB) $(CELIB_LIB) $(MATH_LIB) $(GRACKLE_LIB) $(LDFLAGS)
+LIBS = $(GMP_LIB) $(MPICH_LIB) $(HDF5_LIB) -lhdf5 -lz $(GSL_LIB) $(FFTW_LIB) $(HWLOC_LIB) $(CELIB_LIB) $(MATH_LIB) $(GRACKLE_LIB) $(LDFLAGS)
 
 FOPTIONS = $(OPTIMIZE)
 FFLAGS = $(FOPTIONS)
