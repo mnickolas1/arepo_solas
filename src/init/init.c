@@ -493,9 +493,11 @@ int init(void)
         SphP[i].PConservedScalars[j] = SphP[i].PScalars[j] * P[i].Mass;
 #endif /* #ifdef PASSIVE_SCALARS */
 
+#ifdef METALS
 #ifdef STARS
   for(i = 0; i < NumStars; i++)
       SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+#endif
 #endif
 
 #ifdef USE_GRACKLE 
@@ -549,7 +551,7 @@ if(ThisTask == 0)
   {
     build_imf_cdf();
 
-#if STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
     setup_mass_bins();
 #endif
 
@@ -560,7 +562,7 @@ if(ThisTask == 0)
 MPI_Bcast(cdf_masses, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 MPI_Bcast(cdf_values, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-#if STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 

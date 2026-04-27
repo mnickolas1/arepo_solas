@@ -31,7 +31,7 @@ extern struct star_particle_data
   MyDouble Metallicity;
 #endif
 
-#if STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
   int NumOfStarsInBins[NBINS];
 #endif
 

@@ -214,7 +214,7 @@ void sfr_create_star_particles(void)
     }
 #endif /* #ifdef STARS */
 
-#if STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
     sample_star_particle(PPS(i).Mass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
 #endif

@@ -128,7 +128,7 @@ double sample_imf(double u)
     return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));;
 }
 
-#if STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 double StarMassBins[NBINS + 1] = 
 {
   /* Region A */

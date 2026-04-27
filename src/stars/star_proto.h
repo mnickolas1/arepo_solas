@@ -18,7 +18,7 @@ void build_imf_cdf(void);
 double sample_imf(double u);
 #endif
 
-#if STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 void setup_mass_bins(void);
 void sample_star_particle(double m, int *bins);
 struct star_feedback star_particle_feedback(int index, double dt, double z, double a);
