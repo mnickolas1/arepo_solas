@@ -65,8 +65,8 @@ void update_kappa(void)
 
 RayWorkStack *init_work_stack(int capacity)
 {
-  RayWorkStack *w = mymalloc("RayWorkStack", sizeof(RayWorkStack));
-  w->rays = mymalloc("WorkRays", capacity * sizeof(RayPacket));
+  RayWorkStack *w = mymalloc_movable(&w, "RayWorkStack", sizeof(RayWorkStack));
+  w->rays = mymalloc_movable(&w->rays, "WorkRays", capacity * sizeof(RayPacket));
   w->n = 0;
   w->capacity = capacity;
   return w;
@@ -77,15 +77,15 @@ void append_ray(RayWorkStack *w, const RayPacket *ray)
   if(w->n >= w->capacity)
     {
       w->capacity *= 2;
-      w->rays = myrealloc(w->rays, w->capacity * sizeof(RayPacket));
+      w->rays = myrealloc_movable(w->rays, w->capacity * sizeof(RayPacket));
     }
   w->rays[w->n++] = *ray;
 }
 
 void free_work_stack(RayWorkStack *w)
 {
-  myfree(w->rays);
-  myfree(w);
+  myfree_movable(w->rays);
+  myfree_movable(w);
 }
 
 void init_healpix_rays(void) 
@@ -183,9 +183,9 @@ int split_ray(const RayPacket *parent, RayPacket children[4])
 
 RayExportBuffer *init_export_buffer(int capacity)
 {
-  RayExportBuffer *buf = mymalloc("export_buf", sizeof(RayExportBuffer));
-  buf->rays = mymalloc("export_buf_rays", capacity * sizeof(RayPacket));
-  buf->task = mymalloc("export_buf_task", capacity * sizeof(int));
+  RayExportBuffer *buf = malloc(sizeof(RayExportBuffer));
+  buf->rays = malloc(capacity * sizeof(RayPacket));
+  buf->task = malloc(capacity * sizeof(int));
   buf->n = 0;
   buf->capacity = capacity;
   return buf;
@@ -193,17 +193,17 @@ RayExportBuffer *init_export_buffer(int capacity)
 
 void free_export_buffer(RayExportBuffer *buf)
 {
-  myfree(buf->task);
-  myfree(buf->rays);
-  myfree(buf);
+  free(buf->task);
+  free(buf->rays);
+  free(buf);
 }
 
 static void sort_by_task(RayExportBuffer *buf)
 {
   /* build index array */
-  int *idx = mymalloc("idx", buf->n * sizeof(int));
-  RayPacket *sorted_rays = mymalloc("sorted_rays", buf->n * sizeof(RayPacket));
-  int *sorted_task = mymalloc("sorted_task", buf->n * sizeof(int));
+  int *idx = malloc(buf->n * sizeof(int));
+  RayPacket *sorted_rays = malloc(buf->n * sizeof(RayPacket));
+  int *sorted_task = malloc(buf->n * sizeof(int));
   
   for(int i = 0; i < buf->n; i++)
     idx[i] = i;
@@ -231,9 +231,9 @@ static void sort_by_task(RayExportBuffer *buf)
   memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayPacket));
   memcpy(buf->task, sorted_task, buf->n * sizeof(int));
 
-  myfree(sorted_task); 
-  myfree(sorted_rays);
-  myfree(idx);
+  free(sorted_task); 
+  free(sorted_rays);
+  free(idx);
 }
 
 void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
@@ -263,7 +263,7 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
   while(work->n + total_recv > work->capacity)
     {
       work->capacity *= 2;
-      work->rays = myrealloc(work->rays, work->capacity * sizeof(RayPacket));
+      work->rays = myrealloc_movable(work->rays, work->capacity * sizeof(RayPacket));
     }
 
   for(int i = 0; i < NTask; i++) 
@@ -289,17 +289,17 @@ struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
 void send_results_home(void)
 {
   int i, j, n, k, ncount;
-  int *Recv_count = mymalloc("Recv_count", NTask * sizeof(int));
-  int *Send_count = mymalloc("Send_count", NTask * sizeof(int));
-  int *Recv_offset = mymalloc("Recv_offset", NTask * sizeof(int));
-  int *Send_offset = mymalloc("Send_offset", NTask * sizeof(int));
+  int *Recv_count = malloc(NTask * sizeof(int));
+  int *Send_count = malloc(NTask * sizeof(int));
+  int *Recv_offset = malloc(NTask * sizeof(int));
+  int *Send_offset = malloc(NTask * sizeof(int));
 
   /* count gas cells among imported particles */
   for(i = 0, ncount = 0; i < Tree_NumPartImported; i++)
     if(Tree_Points[i].Type == 0)
       ncount++;
 
-  Rad_ResultsActiveImported = mymalloc("Rad_ResultsActiveImported", ncount * sizeof(struct rad_resultsactiveimported_data));
+  Rad_ResultsActiveImported = malloc(ncount * sizeof(struct rad_resultsactiveimported_data));
 
   /* pack gas cell results, count per task */
   for(j = 0; j < NTask; j++)
@@ -337,7 +337,7 @@ void send_results_home(void)
     }
 
   struct rad_resultsactiveimported_data *tmp_results =
-    mymalloc("tmp_results", Nexport * sizeof(struct rad_resultsactiveimported_data));
+    malloc(Nexport * sizeof(struct rad_resultsactiveimported_data));
 
   /* exchange results back to home ranks */
   for(int ngrp = 1; ngrp < (1 << PTask); ngrp++)
@@ -364,10 +364,10 @@ void send_results_home(void)
     }
 
   /* free in reverse allocation order */
-  myfree(tmp_results);
-  myfree(Rad_ResultsActiveImported);
-  myfree(Send_offset); myfree(Recv_offset);
-  myfree(Send_count);  myfree(Recv_count);
+  free(tmp_results);
+  free(Rad_ResultsActiveImported);
+  free(Send_offset); free(Recv_offset);
+  free(Send_count); free(Recv_count);
 }
 #endif
 
@@ -504,7 +504,7 @@ void star_radiation(void)
 
   /* 2. do initial local walk for all rays */
   RayWorkStack *work = init_work_stack(16 * n_rays_global);
-  RayExportBuffer *export_buf = init_export_buffer(16 * n_rays_global);
+  RayExportBuffer *export_buf = init_export_buffer(5000 * n_rays_global);
   
   init_rays_from_stars(work);
 
