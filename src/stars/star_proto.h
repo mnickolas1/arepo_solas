@@ -70,7 +70,7 @@ void append_ray(RayWorkStack *w, const RayPacket *ray);
 void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);
 RayExportBuffer *init_export_buffer(int capacity);
 void free_export_buffer(RayExportBuffer *buf);
-void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
+void exchange_rays(RayExportBuffer *send, RayWorkStack *work);
 void send_results_home(void);
 void star_radiation(void);
 #endif
