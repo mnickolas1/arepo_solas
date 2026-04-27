@@ -474,6 +474,10 @@ void radiation_feedback(void)
 
 void star_radiation(void)
 {
+  double t0, t1;
+
+  CPU_Step[CPU_MISC] += measure_time();
+
   /* 0. update cell opacities -> maybe we need to do this earlier in the hydro loop */
   //update_kappa(); -> We call this after cooling now (careful with Tree_Points!!)
 
@@ -492,9 +496,11 @@ void star_radiation(void)
   /* 1. initialize rays from active star particles */ 
   int n_stars = TimeBinsStar.NActiveParticles;
   int n_rays_local = n_stars * NRays;
-  int n_rays_global;
+  long long n_rays_global;
 
-  MPI_Allreduce(&n_rays_local, &n_rays_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);  
+  sumup_large_ints(1, &n_rays_local, &n_rays_global);
+
+  mpi_printf("STAR_RADIATION: Initialize with %d rays\n", n_rays_global);
 
   /* 2. do initial local walk for all rays */
   RayWorkStack *work = init_work_stack(16 * n_rays_global);
@@ -503,9 +509,12 @@ void star_radiation(void)
   init_rays_from_stars(work);
 
   /* 3. iterate until no more rays globally */
-  int n_global;
+  long long n_global;
+  int iter = 0;
   do
     {
+      t0 = second();
+
       while(work->n > 0)
         {
           RayPacket ray = work->rays[--work->n];
@@ -519,8 +528,16 @@ void star_radiation(void)
       export_buf->n = 0;
 
        /* check if anyone still has rays in flight */
-      
-      MPI_Allreduce(&work->n, &n_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+      sumup_large_ints(1, &work->n, &n_global);
+
+      t1 = second();
+
+      iter++;
+
+      if(n_global > 0 && iter > 0)
+        mpi_printf("STAR_RADIATION: Rad iteration %3d: need to repeat for %12lld rays. (took %g sec)\n", iter, n_global,
+                       timediff(t0, t1));
       
     } while(n_global > 0);
     
