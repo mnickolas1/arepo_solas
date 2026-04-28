@@ -1,7 +1,7 @@
 #ifndef STAR_TABLES_H
 #define STAR_TABLES_H
 
-#include <mpi.h>
+#include "../main/allvars.h"
 
 extern int Z_COUNT;
 extern int M_COUNT;
@@ -23,17 +23,8 @@ extern double ***MetalsLossRate;
 extern double ***WindVelocity;
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-extern double ***RAD_IonizingRate;
-extern double ***RAD_IonizingLuminosity;
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-extern double ***RAD_UVLymanWernerLuminosity;
-extern double ***RAD_UltravioletLuminosity;
-#endif
-#if defined(RADIATION_PRESSURE)
-extern double ***RAD_OpticalLuminosity;
-extern double ***RAD_InfraredLuminosity;
+#ifdef STAR_RADIATION_ACTIVE
+extern double ***RAD[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE

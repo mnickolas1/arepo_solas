@@ -405,9 +405,11 @@ $(error STAR_PARTICLES requires USE_SFR or STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
+GRACKLE_LEVEL := $(word 2,$(filter GRACKLE_CHEMISTRY %,$(CONFIGVARS)))
+
 ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
-ifeq (,$(filter USE_GRACKLE,$(CONFIGVARS)))
-$(error STAR_RADIATION_ACTIVE requires USE_GRACKLE)
+ifeq ($(shell [ $(GRACKLE_LEVEL) -ge 2 ] && echo yes),)
+$(error STAR_RADIATION_ACTIVE requires GRACKLE_CHEMISTRY >= 2)
 endif
 endif
 

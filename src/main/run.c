@@ -415,7 +415,10 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
       star_update_timesteps();
       
       star_prep();
+
+#if defined(WINDS) || defined(SUPERNOVAE)
       star_feedback();
+#endif
 
 #ifdef STAR_RADIATION_ACTIVE
       star_radiation();
@@ -459,7 +462,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
-#ifdef STAR_FEEDBACK_ACTIVE
+#if defined(WINDS) || defined(SUPERNOVAE)
   if(All.Time > All.FeedbackTime) 
     star_perform_end_of_step_physics();
 #endif
