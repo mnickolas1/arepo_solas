@@ -63,7 +63,18 @@ void update_kappa(void)
     }
 }
 
-RayWorkStack *init_work_stack(int capacity)
+void init_healpix_rays(void) 
+{
+  int nside = NSIDE_MIN;
+  NRays = 12 * nside * nside;
+
+  for(int ipix = 0; ipix < NRays; ipix++)
+    {
+      pix2vec_nest(nside, ipix, HealpixDirs[ipix]);
+    }
+}
+
+static RayWorkStack *init_work_stack(int capacity)
 {
   RayWorkStack *w = mymalloc_movable(&w, "RayWorkStack", sizeof(RayWorkStack));
   w->rays = mymalloc_movable(&w->rays, "WorkRays", capacity * sizeof(RayPacket));
@@ -82,24 +93,13 @@ void append_ray(RayWorkStack *w, const RayPacket *ray)
   w->rays[w->n++] = *ray;
 }
 
-void free_work_stack(RayWorkStack *w)
+static void free_work_stack(RayWorkStack *w)
 {
   myfree_movable(w->rays);
   myfree_movable(w);
 }
 
-void init_healpix_rays(void) 
-{
-  int nside = NSIDE_MIN;
-  NRays = 12 * nside * nside;
-
-  for(int ipix = 0; ipix < NRays; ipix++)
-    {
-      pix2vec_nest(nside, ipix, HealpixDirs[ipix]);
-    }
-}
-
-void init_rays_from_stars(RayWorkStack *work)
+static void init_rays_from_stars(RayWorkStack *work)
 {
   double SQRT3 = sqrt(3);
     
@@ -181,7 +181,7 @@ int split_ray(const RayPacket *parent, RayPacket children[4])
   return 1;
 }
 
-RayExportBuffer *init_export_buffer(int capacity)
+static RayExportBuffer *init_export_buffer(int capacity)
 {
   RayExportBuffer *buf = malloc(sizeof(RayExportBuffer));
   buf->rays = malloc(capacity * sizeof(RayPacket));
@@ -191,7 +191,7 @@ RayExportBuffer *init_export_buffer(int capacity)
   return buf;
 }
 
-void free_export_buffer(RayExportBuffer *buf)
+static void free_export_buffer(RayExportBuffer *buf)
 {
   free(buf->task);
   free(buf->rays);
@@ -236,7 +236,7 @@ static void sort_by_task(RayExportBuffer *buf)
   free(idx);
 }
 
-void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
+static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
 {
   int send_count[NTask], recv_count[NTask];
   int send_offset[NTask], recv_offset[NTask];
@@ -286,7 +286,7 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
 #ifdef TREEPOINTS
 struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
 
-void send_results_home(void)
+static void send_results_home(void)
 {
   int i, j, n, k, ncount;
   int *Recv_count = malloc(NTask * sizeof(int));
@@ -372,7 +372,7 @@ void send_results_home(void)
 #endif
 
 #ifdef RAD_OPENING_ANGLE
-void distribute_node_rad(int no)
+static void distribute_node_rad(int no)
 {
   /* quick check — skip empty nodes */
   int has_rad = 0;
@@ -434,7 +434,7 @@ void distribute_node_rad(int no)
 }
 #endif
 
-void radiation_feedback(void)
+static void radiation_feedback(void)
 {
   /* Photoionization and photoelectric heating here -> we do rad pressure inside the tree walk */
   int i, w;
@@ -478,9 +478,6 @@ void star_radiation(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  /* 0. update cell opacities -> maybe we need to do this earlier in the hydro loop */
-  //update_kappa(); -> We call this after cooling now (careful with Tree_Points!!)
-
 #ifdef RAD_OPENING_ANGLE
   /* zero RAD accumulator on all nodes before treewalk -> importnant for top nodes! */
   for(int no = Ngb_MaxPart; no < Ngb_MaxPart + Ngb_NumNodes; no++)
@@ -492,8 +489,7 @@ void star_radiation(void)
   for(int i = 0; i < NumGas; i++)
      for(int w = 0; w < WAVEBANDS; w++)
         SphP[i].RAD[w] = 0.0;
-
-  /* 1. initialize rays from active star particles */ 
+ 
   int n_stars = TimeBinsStar.NActiveParticles;
   int n_rays_local = n_stars * NRays;
   long long n_rays_global;
@@ -502,13 +498,11 @@ void star_radiation(void)
 
   mpi_printf("STAR_RADIATION: Initialize with %d rays\n", n_rays_global);
 
-  /* 2. do initial local walk for all rays */
   RayWorkStack *work = init_work_stack(16 * n_rays_global);
   RayExportBuffer *export_buf = init_export_buffer(5000 * n_rays_global);
   
   init_rays_from_stars(work);
 
-  /* 3. iterate until no more rays globally */
   long long n_global;
   int iter = 0;
   do

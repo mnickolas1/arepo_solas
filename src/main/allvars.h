@@ -336,18 +336,51 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #define IO_SLEEP_TIME 10
 #endif /* #ifdef TOLERATE_WRITE_ERROR */
 
-#ifdef METALS
-#define METALLICITY_INDEX 0 /* Where metals sit in the scalars array */
-#ifndef PASSIVE_SCALARS
-#error "METALS need PASSIVE_SCALARS!"
-#endif /* ifndef PASSIVE_SCALARS*/
-#endif /* METALS */
+/*** Advected Scalars ***/
 
-#ifdef JET_TRACER
-#define JET_INDEX (PASSIVE_SCALARS - 1) 
-#ifndef PASSIVE_SCALARS
-#error "JET_TRACER needs PASSIVE_SCALARS!"
+/* Default */
+#define METALS_INDEX 0
+#define METALS_NUMBER 0
+#define GRACKLE_SPECIES_INDEX 0
+#define GRACKLE_SPECIES_NUMBER 0
+#define JET_INDEX 0
+#define JET_NUMBER 0
+
+/* Metals */
+#ifdef METALS
+#undef METALS_INDEX
+#undef METALS_NUMBER
+#define METALS_INDEX 0
+#define METALS_NUMBER 1 
 #endif 
+
+/* Chemistry Species */
+#ifdef USE_GRACKLE
+#if GRACKLE_CHEMISTRY >= 1
+#undef GRACKLE_SPECIES_INDEX
+#undef GRACKLE_SPECIES_NUMBER
+#define GRACKLE_SPECIES_INDEX (METALS_INDEX + METALS_NUMBER)
+#endif
+#endif
+
+#ifdef USE_GRACKLE
+#if GRACKLE_CHEMISTRY == 1
+#define GRACKLE_SPECIES_NUMBER 5
+#elif GRACKLE_CHEMISTRY == 2
+#define GRACKLE_SPECIES_NUMBER 8
+#elif GRACKLE_CHEMISTRY == 3
+#define GRACKLE_SPECIES_NUMBER 11
+#else
+  #error "Invalid GRACKLE_CHEMISTRY value!"
+#endif
+#endif
+
+/* Jets */
+#ifdef JET_TRACER
+#undef JET_INDEX
+#undef JET_NUMBER
+#define JET_INDEX (GRACKLE_SPECIES_INDEX + GRACKLE_SPECIES_NUMBER)
+#define JET_NUMBER 1 
 #endif 
 
 /* calculate appropriate value of MAXSCALARS */
@@ -478,6 +511,27 @@ typedef unsigned long long peano1D;
 * Anders+Grevesse 1989 (Z=0.0201, proto-solar=0.0213)
 */
 #define SOLAR_METALLICITY 0.0134
+
+#if GRACKLE_CHEMISTRY >= 1
+#define GRACKLE_HI    0
+#define GRACKLE_HII   1
+#define GRACKLE_HeI   2
+#define GRACKLE_HeII  3
+#define GRACKLE_HeIII 4
+#endif
+
+#if GRACKLE_CHEMISTRY >= 2
+#define GRACKLE_H2I   5
+#define GRACKLE_H2II  6
+#define GRACKLE_HM    7
+#endif
+
+#if GRACKLE_CHEMISTRY >= 3
+#define GRACKLE_DI    8
+#define GRACKLE_DII   9
+#define GRACKLE_HDI   10
+#endif
+#endif
 
 #ifndef FOF_PRIMARY_LINK_TYPES
 #define FOF_PRIMARY_LINK_TYPES 2
@@ -1618,8 +1672,8 @@ extern struct sph_particle_data
 
 /* metallicity */
 #ifdef METALS
-#define GasMetallicity PScalars[METALLICITY_INDEX]
-#define GasMetals PConservedScalars[METALLICITY_INDEX]
+#define GasMetallicity PScalars[METALS_INDEX]
+#define GasMetals PConservedScalars[METALS_INDEX]
 #endif
 
 /* cooling */
@@ -1634,17 +1688,10 @@ extern struct sph_particle_data
 #endif 
 
 #ifdef USE_GRACKLE
-  MyDouble grHI;
-  MyDouble grHII;
-  MyDouble grHeI;
-  MyDouble grHeII;
-  MyDouble grHeIII;
-  MyDouble grH2I;
-  MyDouble grH2II;
-  MyDouble grHM;
-  MyDouble grDI;
-  MyDouble grDII;
-  MyDouble grHDI;
+#if GRACKLE_CHEMISTRY >= 1
+#define GrackleSpecies(i) PScalars[GRACKLE_SPECIES_INDEX + (i)]
+#define GrackleSpeciesConserved(i) PConservedScalars[GRACKLE_SPECIES_INDEX + (i)]
+#endif
 #endif
 
 /* star formation */
@@ -1665,7 +1712,7 @@ extern struct sph_particle_data
 #endif
 
 #if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
-MyDouble StarMomentumFeed[3]; 
+  MyDouble StarMomentumFeed[3]; 
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
@@ -1673,7 +1720,7 @@ MyDouble StarMomentumFeed[3];
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
- MyDouble Kappa[WAVEBANDS];
+  MyDouble Kappa[WAVEBANDS];
   MyDouble RAD[WAVEBANDS];
 #endif
 
@@ -1699,7 +1746,8 @@ MyDouble StarMomentumFeed[3];
 #endif
 
 #ifdef JET_TRACER
-#define JetTracer PScalars[JET_INDEX]  
+#define JetTracer PScalars[JET_INDEX]
+#define JetTracerConserved PConservedScalars[JET_INDEX]    
 #endif
 } * SphP,          /*!< holds SPH particle data on local processor */
     *DomainSphBuf; /*!< buffer for SPH particle data in domain decomposition */
