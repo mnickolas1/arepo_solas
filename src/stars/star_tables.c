@@ -27,7 +27,7 @@ double ***WindVelocity = NULL;
 
 #ifdef STAR_RADIATION_ACTIVE
 // Radiation
-double ***RAD[WAVEBANDS] = {0}; // photons or energy /s
+double ***Flux[WAVEBANDS] = {0}; // photon or energy flux
 #endif 
 
 #ifdef SUPERNOVAE
@@ -67,7 +67,7 @@ void free_stellar_tables(void)
 
 #ifdef STAR_RADIATION_ACTIVE
             for(int w = 0; w < WAVEBANDS; w++)
-              free(RAD[w][z][m]);
+              free(Flux[w][z][m]);
 #endif
           }
 
@@ -89,7 +89,7 @@ void free_stellar_tables(void)
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
-            free(RAD[w][z]);
+            free(Flux[w][z]);
 #endif
 
 #ifdef SUPERNOVAE
@@ -119,7 +119,7 @@ void free_stellar_tables(void)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        free(RAD[w]);
+        free(Flux[w]);
 #endif
 
 #ifdef SUPERNOVAE
@@ -148,7 +148,7 @@ void free_stellar_tables(void)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        RAD[w] = NULL;
+        Flux[w] = NULL;
 #endif    
 
 #ifdef SUPERNOVAE
@@ -220,11 +220,11 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
   for(int w = 0; w < WAVEBANDS; w++)
-    RAD[w] = malloc(Z_COUNT * sizeof(double**));
+    Flux[w] = malloc(Z_COUNT * sizeof(double**));
 #endif
 
 #ifdef SUPERNOVAE
-  SN_MassLoss   = malloc(Z_COUNT * sizeof(double *));
+  SN_MassLoss = malloc(Z_COUNT * sizeof(double *));
 #ifdef METALS
   SN_MetalsLoss = malloc(Z_COUNT * sizeof(double *));
 #endif
@@ -248,11 +248,11 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        RAD[w] = malloc(M_COUNT * sizeof(double*));
+        Flux[w][z] = malloc(M_COUNT * sizeof(double*));
 #endif
 
 #ifdef SUPERNOVAE
-      SN_MassLoss[z]   = malloc(M_COUNT * sizeof(double));
+      SN_MassLoss[z] = malloc(M_COUNT * sizeof(double));
 #ifdef METALS
       SN_MetalsLoss[z] = malloc(M_COUNT * sizeof(double));
 #endif
@@ -337,47 +337,25 @@ void load_star_tables(const char *filename)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-              RAD[z][m] = malloc(N[z][m] * sizeof(double));
-              RAD_IonizingLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
+              hid_t d_flux = my_H5Dopen(mgrp, "Flux");
+                  
+              // Allocate a flat 2D temporary buffer
+              double (*flux_buffer)[WAVEBANDS] = malloc(N[z][m] * sizeof(*flux_buffer));
 
-              hid_t d_r = my_H5Dopen(mgrp, "RAD_IonizingRate");
-              hid_t d_l = my_H5Dopen(mgrp, "RAD_IonizingLuminosity");
+              my_H5Dread(d_flux, H5T_NATIVE_DOUBLE,
+                      H5S_ALL, H5S_ALL, H5P_DEFAULT, flux_buffer, "Flux");
+                  
+              my_H5Dclose(d_flux, "Flux");
 
-              my_H5Dread(d_r, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, RAD_IonizingRate[z][m], "RAD_IonizingRate");
-              my_H5Dclose(d_r, "RAD_IonizingRate");
-              
-              my_H5Dread(d_l, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, RAD_IonizingLuminosity[z][m], "RAD_IonizingLuminosity");
-              my_H5Dclose(d_l, "RAD_IonizingLuminosity");
-
-              RAD_UVLymanWernerLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-              RAD_UltravioletLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-
-              hid_t d_lw = my_H5Dopen(mgrp, "RAD_UVLymanWernerLuminosity");
-              hid_t d_uv = my_H5Dopen(mgrp, "RAD_UltravioletLuminosity");
-
-              my_H5Dread(d_lw, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, RAD_UVLymanWernerLuminosity[z][m], "RAD_UVLymanWernerLuminosity");
-              my_H5Dread(d_uv, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, RAD_UltravioletLuminosity[z][m], "RAD_UltravioletLuminosity");
-
-              my_H5Dclose(d_lw, "RAD_UVLymanWernerLuminosity");
-              my_H5Dclose(d_uv, "RAD_UltravioletLuminosity");
-
-              RAD_OpticalLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-              RAD_InfraredLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-
-              hid_t d_op = my_H5Dopen(mgrp, "RAD_OpticalLuminosity");
-              hid_t d_ir = my_H5Dopen(mgrp, "RAD_InfraredLuminosity");
-
-              my_H5Dread(d_op, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, RAD_OpticalLuminosity[z][m], "RAD_OpticalLuminosity");
-              my_H5Dread(d_ir, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, RAD_InfraredLuminosity[z][m], "RAD_InfraredLuminosity");
-
-              my_H5Dclose(d_op, "RAD_OpticalLuminosity");
-              my_H5Dclose(d_ir, "RAD_InfraredLuminosity");
+              // Scatter into per-band arrays
+              for(int w = 0; w < WAVEBANDS; w++)
+                {
+                  Flux[w][z][m] = malloc(N[z][m] * sizeof(double));
+                  for(int i = 0; i < N[z][m]; i++)
+                    Flux[w][z][m][i] = flux_buffer[i][w];
+                }
+                  
+              free(flux_buffer);
 #endif
 
 #ifdef SUPERNOVAE
@@ -396,7 +374,6 @@ void load_star_tables(const char *filename)
               my_H5Dclose(d_snmz, "SN_MetalsLoss");
 #endif
 #endif
-
               my_H5Gclose(mgrp, mname);
             }
           my_H5Gclose(zgrp, zname);
@@ -432,17 +409,9 @@ void load_star_tables(const char *filename)
                 WindVelocity[z][m] = malloc(N[z][m] * sizeof(double));
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-                RAD_IonizingRate[z][m] = malloc(N[z][m] * sizeof(double));
-                RAD_IonizingLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-                RAD_UVLymanWernerLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-                RAD_UltravioletLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-#endif
-#if defined(RADIATION_PRESSURE)
-                RAD_OpticalLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
-                RAD_InfraredLuminosity[z][m] = malloc(N[z][m] * sizeof(double));
+#ifdef STAR_RADIATION_ACTIVE
+                for(int w = 0; w < WAVEBANDS; w++)
+                  Flux[w][z][m] = malloc(N[z][m] * sizeof(double));
 #endif
               }
 
@@ -458,17 +427,9 @@ void load_star_tables(const char *filename)
             MPI_Bcast(WindVelocity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-            MPI_Bcast(RAD_IonizingRate[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-            MPI_Bcast(RAD_IonizingLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-            MPI_Bcast(RAD_UVLymanWernerLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-            MPI_Bcast(RAD_UltravioletLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-#if defined(RADIATION_PRESSURE)
-            MPI_Bcast(RAD_OpticalLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-            MPI_Bcast(RAD_InfraredLuminosity[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#ifdef STAR_RADIATION_ACTIVE
+            for(int w = 0; w < WAVEBANDS; w++)
+              MPI_Bcast(Flux[w][z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
           }
     }

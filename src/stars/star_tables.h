@@ -24,7 +24,7 @@ extern double ***WindVelocity;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-extern double ***RAD[WAVEBANDS];
+extern double ***Flux[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE

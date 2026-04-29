@@ -67,7 +67,7 @@ extern struct star_particle_data
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  MyDouble LUM[WAVEBANDS];
+  MyDouble RadiationEnergy[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -97,18 +97,7 @@ struct star_interpolate
 #endif
 
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_IonizingRate;
-  MyDouble RAD_IonizingLuminosity;
-#endif
-
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_UVLymanWernerLuminosity;
-  MyDouble RAD_UltravioletLuminosity;
-#endif
-
-#if defined(RADIATION_PRESSURE)
-  MyDouble RAD_OpticalLuminosity;
-  MyDouble RAD_InfraredLuminosity;
+  MyDouble LUM[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -136,19 +125,8 @@ struct star_feedback
   MyDouble WindMomentum;
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_IonizingHPhotons;
-  MyDouble RAD_Ionizing;
-#endif
-
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  MyDouble RAD_UVLymanWerner;
-  MyDouble RAD_Ultraviolet;
-#endif
-
-#if defined(RADIATION_PRESSURE)
-  MyDouble RAD_Optical;
-  MyDouble RAD_Infrared;
+#ifdef STAR_RADIATION_ACTIVE
+  MyDouble RAD[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
