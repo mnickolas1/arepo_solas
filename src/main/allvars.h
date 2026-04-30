@@ -1721,20 +1721,20 @@ extern struct sph_particle_data
 
 #ifdef STAR_RADIATION_ACTIVE
   MyDouble Kappa[WAVEBANDS];
-  MyDouble RAD[WAVEBANDS];
+  struct WavebandData Absorbed[WAVEBANDS];
 #endif
-
-#ifdef PHOTOIONIZATION
-  MyDouble HeII_IonizationRate;
-  MyDouble HeI_IonizationRate;
-  MyDouble HI_IonizationRate;
-  MyDouble PI_VolHeatingRate;
-  MyDouble H2_DissociationRate;
-#endif 
 
 #ifdef PHOTOELECTRIC_HEATING
   MyDouble PE_VolHeatingRate;
 #endif
+
+#ifdef PHOTOIONIZATION
+  MyDouble PI_VolHeatingRate;
+  MyDouble H2_DissociationRate;
+  MyDouble HI_IonizationRate;
+  MyDouble HeI_IonizationRate;
+  MyDouble HeII_IonizationRate;
+#endif 
 
 /* blackholes */    
 #ifdef BH_ACCRETION_ACTIVE

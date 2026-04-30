@@ -122,7 +122,7 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  const double *flux[WAVEBANDS];
+  const struct WavebandData *flux[WAVEBANDS];
   for(int w = 0; w < WAVEBANDS; w++)
     flux[w] = Flux[w][z_idx][m_idx];
 #endif
@@ -188,7 +188,10 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
-            feedback.Flux[w] = linear_interpolation(a, age[i], age[i + 1], flux[w][i], flux[w][i + 1]);
+            {
+              feedback.Flux[w].Energy  = linear_interpolation(a, age[i], age[i+1], flux[w][i].Energy,  flux[w][i+1].Energy);
+              feedback.Flux[w].Photons = linear_interpolation(a, age[i], age[i+1], flux[w][i].Photons, flux[w][i+1].Photons);
+            }
 #endif
 
           return feedback;
@@ -228,7 +231,10 @@ static struct star_interpolate interpolate_mass(int z_idx, double m_val, double 
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
-            feedback.Flux[w] = linear_interpolation(m_val, m0, m1, feedback0.Flux[w], feedback1.Flux[w]);
+            {
+              feedback.Flux[w].Energy = linear_interpolation(m_val, m0, m1, feedback0.Flux[w].Energy, feedback1.Flux[w].Energy);
+              feedback.Flux[w].Photons = linear_interpolation(m_val, m0, m1, feedback0.Flux[w].Photons, feedback1.Flux[w].Photons);
+            }
 #endif
 
           return feedback;
@@ -268,7 +274,10 @@ static struct star_interpolate interpolate_metallicity(double z_val, double m_va
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
-            feedback.Flux[w] = linear_interpolation(z_val, z0, z1, feedback0.Flux[w], feedback1.Flux[w]);
+            {
+              feedback.Flux[w].Energy = linear_interpolation(z_val, z0, z1, feedback0.Flux[w].Energy, feedback1.Flux[w].Energy);
+              feedback.Flux[w].Photons = linear_interpolation(z_val, z0, z1, feedback0.Flux[w].Photons, feedback1.Flux[w].Photons);
+            }
 #endif
 
           return feedback;
@@ -397,7 +406,10 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        star.RadiationEnergy[w] = feedback.Flux[w] * flux_to_luminosity * dt_rad;
+        {
+          star.Radiated[w].Energy  = feedback.Flux[w].Energy  * flux_to_luminosity * dt_rad;
+          star.Radiated[w].Photons = feedback.Flux[w].Photons * flux_to_luminosity * dt_rad;
+        }
 #endif
 
 #endif
@@ -441,13 +453,8 @@ struct star_feedback units_for_feedback(struct star_feedback star_feedback)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  star_feedback.RadiationEnergy[INFRARED] /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RadiationEnergy[OPTICAL] /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RadiationEnergy[ULTRAVIOLET] /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RadiationEnergy[LYMAN_WERNER] /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RadiationEnergy[IONIZING_HI] /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RadiationEnergy[IONIZING_HeI] /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RadiationEnergy[IONIZING_HeII] /= All.cf_UnitEnergy_in_cgs;
+  for(int w = 0; w < WAVEBANDS; w++)
+    star_feedback.Radiated[w].Energy /= All.cf_UnitEnergy_in_cgs;
 #endif
 
 #ifdef SUPERNOVAE
@@ -503,7 +510,10 @@ struct star_feedback star_particle_feedback(int index, double dt, double z, doub
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
-            star_particle.RadiationEnergy[w] += Nstars * star.RadiationEnergy[w];
+            {
+              star_particle.Radiated[w].Energy  += Nstars * star.Radiated[w].Energy;
+              star_particle.Radiated[w].Photons += Nstars * star.Radiated[w].Photons;
+            }
 #endif
           break;
 

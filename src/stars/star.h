@@ -67,7 +67,7 @@ extern struct star_particle_data
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  MyDouble RadiationEnergy[WAVEBANDS];
+  struct WavebandData Radiated[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -96,8 +96,8 @@ struct star_interpolate
   MyDouble WindVelocity;
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble Flux[WAVEBANDS];
+#ifdef STAR_RADIATION_ACTIVE
+  struct WavebandData Flux[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -126,7 +126,7 @@ struct star_feedback
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  MyDouble RadiationEnergy[WAVEBANDS];
+  struct WavebandData Radiated[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE

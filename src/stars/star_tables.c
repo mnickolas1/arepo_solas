@@ -27,7 +27,7 @@ double ***WindVelocity = NULL;
 
 #ifdef STAR_RADIATION_ACTIVE
 // Radiation
-double ***Flux[WAVEBANDS] = {0}; // photon or energy flux
+struct WavebandData ***Flux[WAVEBANDS] = {0};
 #endif 
 
 #ifdef SUPERNOVAE
@@ -220,7 +220,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
   for(int w = 0; w < WAVEBANDS; w++)
-    Flux[w] = malloc(Z_COUNT * sizeof(double**));
+    Flux[w] = malloc(Z_COUNT * sizeof(struct WavebandData**));
 #endif
 
 #ifdef SUPERNOVAE
@@ -248,7 +248,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        Flux[w][z] = malloc(M_COUNT * sizeof(double*));
+        Flux[w][z] = malloc(M_COUNT * sizeof(struct WavebandData*));
 #endif
 
 #ifdef SUPERNOVAE
@@ -337,25 +337,30 @@ void load_star_tables(const char *filename)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-              hid_t d_flux = my_H5Dopen(mgrp, "Flux");
-                  
-              // Allocate a flat 2D temporary buffer
-              double (*flux_buffer)[WAVEBANDS] = malloc(N[z][m] * sizeof(*flux_buffer));
+              hid_t d_energy  = my_H5Dopen(mgrp, "Energy");
+              hid_t d_photons = my_H5Dopen(mgrp, "Photons");
 
-              my_H5Dread(d_flux, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, flux_buffer, "Flux");
-                  
-              my_H5Dclose(d_flux, "Flux");
+              double (*energy_buf)[WAVEBANDS]  = malloc(N[z][m] * sizeof(*energy_buf));
+              double (*photon_buf)[WAVEBANDS]  = malloc(N[z][m] * sizeof(*photon_buf));
 
-              // Scatter into per-band arrays
+              my_H5Dread(d_energy,  H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, energy_buf,  "Energy");
+              my_H5Dread(d_photons, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, photon_buf,  "Photons");
+
+              my_H5Dclose(d_energy,  "Energy");
+              my_H5Dclose(d_photons, "Photons");
+
               for(int w = 0; w < WAVEBANDS; w++)
                 {
-                  Flux[w][z][m] = malloc(N[z][m] * sizeof(double));
+                  Flux[w][z][m] = malloc(N[z][m] * sizeof(struct WavebandData));
                   for(int i = 0; i < N[z][m]; i++)
-                    Flux[w][z][m][i] = flux_buffer[i][w];
+                    {
+                      Flux[w][z][m][i].Energy  = energy_buf[i][w];
+                      Flux[w][z][m][i].Photons = photon_buf[i][w];
+                    }
                 }
-                  
-              free(flux_buffer);
+
+              free(energy_buf);
+              free(photon_buf);
 #endif
 
 #ifdef SUPERNOVAE
@@ -411,7 +416,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
                 for(int w = 0; w < WAVEBANDS; w++)
-                  Flux[w][z][m] = malloc(N[z][m] * sizeof(double));
+                  Flux[w][z][m] = malloc(N[z][m] * sizeof(struct WavebandData));
 #endif
               }
 
@@ -429,7 +434,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
             for(int w = 0; w < WAVEBANDS; w++)
-              MPI_Bcast(Flux[w][z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+              MPI_Bcast(Flux[w][z][m], N[z][m] * sizeof(struct WavebandData), MPI_BYTE, 0, MPI_COMM_WORLD);
 #endif
           }
     }

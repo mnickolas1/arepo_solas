@@ -222,7 +222,10 @@ void star_prep(void)
 
 #ifdef STAR_RADIATION_ACTIVE      
       for(int w = 0; w < WAVEBANDS; w++)
-        SP[i].RadiationEnergy[w] = star_feedback.RadiationEnergy[w];
+        {
+          SP[i].Radiated[w].Photons = star_feedback.Radiated[w].Photons;
+          SP[i].Radiated[w].Energy = star_feedback.Radiated[w].Energy;
+        }
 #endif
     }
 }

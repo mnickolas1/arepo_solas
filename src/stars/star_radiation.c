@@ -457,7 +457,7 @@ static void radiation_feedback(void)
 
 #ifdef PHOTOIONIZATION
      /* H2 Dissociation */
-      double N_abs_H2 = SphP[i].RAD[LYMAN_WERNER_PHOTONS];
+      double N_abs_H2 = SphP[i].Absorbed[LYMAN_WERNER_PHOTONS];
       
       double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].H2_DissociationRate += n_H2 > 0 ? (N_abs_H2 / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_H2: 0.0;

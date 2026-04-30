@@ -24,15 +24,17 @@ typedef enum
   OPTICAL,
   ULTRAVIOLET,
   LYMAN_WERNER,
-  LYMAN_WERNER_PHOTONS,
   IONIZING_HI,
-  IONIZING_HI_PHOTONS,
   IONIZING_HeI,
-  IONIZING_HeI_PHOTONS,
   IONIZING_HeII,
-  IONIZING_HeII_PHOTONS,
   WAVEBANDS
 } Waveband;
+
+typedef struct
+{
+  double Photons;
+  double Energy;
+} WavebandData;
 
 extern double Kappa[WAVEBANDS];
 
@@ -52,8 +54,8 @@ typedef struct
   double t;
   double t_exit;
   double t_maximum;
-  double RAD[WAVEBANDS];
-  double RAD_Initial[WAVEBANDS];
+  struct WavebandData Radiated[WAVEBANDS];
+  struct WavebandData Radiated_Init[WAVEBANDS];
 
   /* Bitmask: bit w is SET while band w is still alive.
      Cleared when RAD[w] < RAD_TRUNC_FRAC * RAD_Initial[w].
@@ -89,7 +91,7 @@ typedef struct
 
 extern struct rad_resultsactiveimported_data
 {
-  double RAD[WAVEBANDS];
+  struct WavebandData Radiated[WAVEBANDS];
   double StarMomentumFeed[3];
   int index; /* local SphP index on home task */
 } *Rad_ResultsActiveImported;
