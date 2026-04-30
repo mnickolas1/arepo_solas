@@ -446,53 +446,53 @@ static void radiation_feedback(void)
       double V_cgs = volume * (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
       double dt_cgs = dt * All.cf_UnitTime_in_s;
 
+#ifdef PHOTOELECTRIC_HEATING
+      double epsilon_pe = 0.05;
+
+      double E_pe = SphP[i].AbsorbedEnergy[ULTRAVIOLET] * epsilon_pe * All.cf_UnitEnergy_in_cgs; 
+      
+      /* volumetric_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
+      SphP[i].PE_VolHeatingRate +=  E_pe / dt_cgs / V_cgs;
+#endif
+
 #ifdef PHOTOIONIZATION
-      double energy_thresh_HeII = 54.4 * ELECTRONVOLT_IN_ERGS;
-      double energy_thresh_HeI = 24.6 * ELECTRONVOLT_IN_ERGS;
-      double energy_thresh_HI = 13.6 * ELECTRONVOLT_IN_ERGS;
-
-      double N_abs_HeII = SphP[i].RAD[IONIZING_HeII_PHOTONS];
-      double N_abs_HeI = SphP[i].RAD[IONIZING_HeI_PHOTONS];
-      double N_abs_HI = SphP[i].RAD[IONIZING_HI_PHOTONS];
-      
-      double E_abs_HeII = SphP[i].RAD[IONIZING_HeII] * All.cf_UnitEnergy_in_cgs;
-      double E_abs_HeI = SphP[i].RAD[IONIZING_HeI] * All.cf_UnitEnergy_in_cgs;
-      double E_abs_HI = SphP[i].RAD[IONIZING_HI] * All.cf_UnitEnergy_in_cgs;
-
-      /* RT_ionization_rate:  1 / (time units) */
-      double n_HeII = SphP[i].GrackleSpecies(GRACKLE_HeII) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
-      SphP[i].HeII_IonizationRate += n_HeII > 0 ? (N_abs_HeII / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HeII: 0.0;
-      
-      double n_HeI = SphP[i].GrackleSpecies(GRACKLE_HeI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
-      SphP[i].HeI_IonizationRate += n_HeI > 0 ? (N_abs_HeI / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HeI: 0.0;
-      
-      double n_HI = SphP[i].GrackleSpecies(GRACKLE_HI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
-      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs_HI / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HI: 0.0;
-
-      /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
-      double E_threshold_HeII = N_abs_HeII * energy_thresh_HeII; 
-      SphP[i].PI_VolHeatingRate += (E_abs_HeII - E_threshold_HeII) > 0 ? (E_abs_HeII - E_threshold_HeII) / dt_cgs / V_cgs : 0.0;
-      
-      double E_threshold_HeI = N_abs_HeI * energy_thresh_HeI; 
-      SphP[i].PI_VolHeatingRate += (E_abs_HeI - E_threshold_HeI) > 0 ? (E_abs_HeI - E_threshold_HeI) / dt_cgs / V_cgs : 0.0;
-      
-      double E_threshold_HI = N_abs_HI * energy_thresh_HI; 
-      SphP[i].PI_VolHeatingRate += (E_abs_HI - E_threshold_HI) > 0 ? (E_abs_HI - E_threshold_HI) / dt_cgs / V_cgs : 0.0;
-
-      /* H2 Dissociation */
+     /* H2 Dissociation */
       double N_abs_H2 = SphP[i].RAD[LYMAN_WERNER_PHOTONS];
       
       double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].H2_DissociationRate += n_H2 > 0 ? (N_abs_H2 / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_H2: 0.0;
-#endif
-
-#ifdef PHOTOELECTRIC_HEATING
-      double epsilon_pe = 0.05;
-
-      double E_pe = SphP[i].RAD[ULTRAVIOLET] * epsilon_pe * All.cf_UnitEnergy_in_cgs; 
       
-      /* volumetric_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
-      SphP[i].PE_VolHeatingRate +=  E_pe / dt_cgs / V_cgs;
+      double energy_thresh_HI = 13.6 * ELECTRONVOLT_IN_ERGS;
+      double energy_thresh_HeI = 24.6 * ELECTRONVOLT_IN_ERGS;
+      double energy_thresh_HeII = 54.4 * ELECTRONVOLT_IN_ERGS;
+
+      double N_abs_HI = SphP[i].RAD[IONIZING_HI_PHOTONS];
+      double N_abs_HeI = SphP[i].RAD[IONIZING_HeI_PHOTONS];
+      double N_abs_HeII = SphP[i].RAD[IONIZING_HeII_PHOTONS];
+      
+      double E_abs_HI = SphP[i].RAD[IONIZING_HI] * All.cf_UnitEnergy_in_cgs;
+      double E_abs_HeI = SphP[i].RAD[IONIZING_HeI] * All.cf_UnitEnergy_in_cgs;
+      double E_abs_HeII = SphP[i].RAD[IONIZING_HeII] * All.cf_UnitEnergy_in_cgs;
+      
+      /* RT_ionization_rate:  1 / (time units) */
+      double n_HI = SphP[i].GrackleSpecies(GRACKLE_HI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
+      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs_HI / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HI: 0.0;
+            
+      double n_HeI = SphP[i].GrackleSpecies(GRACKLE_HeI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
+      SphP[i].HeI_IonizationRate += n_HeI > 0 ? (N_abs_HeI / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HeI: 0.0;
+
+      double n_HeII = SphP[i].GrackleSpecies(GRACKLE_HeII) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
+      SphP[i].HeII_IonizationRate += n_HeII > 0 ? (N_abs_HeII / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HeII: 0.0;
+
+      /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
+      double E_threshold_HI = N_abs_HI * energy_thresh_HI; 
+      SphP[i].PI_VolHeatingRate += (E_abs_HI - E_threshold_HI) > 0 ? (E_abs_HI - E_threshold_HI) / dt_cgs / V_cgs : 0.0;
+
+      double E_threshold_HeI = N_abs_HeI * energy_thresh_HeI; 
+      SphP[i].PI_VolHeatingRate += (E_abs_HeI - E_threshold_HeI) > 0 ? (E_abs_HeI - E_threshold_HeI) / dt_cgs / V_cgs : 0.0;
+      
+      double E_threshold_HeII = N_abs_HeII * energy_thresh_HeII; 
+      SphP[i].PI_VolHeatingRate += (E_abs_HeII - E_threshold_HeII) > 0 ? (E_abs_HeII - E_threshold_HeII) / dt_cgs / V_cgs : 0.0;
 #endif
 
       for(w = 0; w < WAVEBANDS; w++)

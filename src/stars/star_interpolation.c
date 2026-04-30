@@ -121,17 +121,10 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
   const double *windvelocity = WindVelocity[z_idx][m_idx];
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  const double *RAD_ionizingrate = RAD_IonizingRate[z_idx][m_idx];
-  const double *RAD_ionizingluminosity = RAD_IonizingLuminosity[z_idx][m_idx];
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  const double *RAD_uvlymanwernerluminosity = RAD_UVLymanWernerLuminosity[z_idx][m_idx];
-  const double *RAD_ultravioletluminosity = RAD_UltravioletLuminosity[z_idx][m_idx];
-#endif
-#if defined(RADIATION_PRESSURE)
-  const double *RAD_opticalluminosity = RAD_OpticalLuminosity[z_idx][m_idx];
-  const double *RAD_infraredluminosity = RAD_InfraredLuminosity[z_idx][m_idx];
+#ifdef STAR_RADIATION_ACTIVE
+  const double *flux[WAVEBANDS];
+  for(int w = 0; w < WAVEBANDS; w++)
+    flux[w] = Flux[w][z_idx][m_idx];
 #endif
 
   int n = N[z_idx][m_idx];
@@ -149,17 +142,9 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
       feedback.WindVelocity = windvelocity[0];
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-      feedback.RAD_IonizingRate = RAD_ionizingrate[0];
-      feedback.RAD_IonizingLuminosity = RAD_ionizingluminosity[0];
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-      feedback.RAD_UVLymanWernerLuminosity = RAD_uvlymanwernerluminosity[0];
-      feedback.RAD_UltravioletLuminosity = RAD_ultravioletluminosity[0];
-#endif
-#if defined(RADIATION_PRESSURE)
-      feedback.RAD_OpticalLuminosity = RAD_opticalluminosity[0];
-      feedback.RAD_InfraredLuminosity = RAD_infraredluminosity[0];
+#ifdef STAR_RADIATION_ACTIVE
+      for(int w = 0; w < WAVEBANDS; w++)
+        feedback.Flux[w] = flux[0];
 #endif
       
       return feedback;
@@ -178,17 +163,9 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
       feedback.WindVelocity = windvelocity[n - 1];
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-      feedback.RAD_IonizingRate = RAD_ionizingrate[n - 1];
-      feedback.RAD_IonizingLuminosity = RAD_ionizingluminosity[n - 1];
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-      feedback.RAD_UVLymanWernerLuminosity = RAD_uvlymanwernerluminosity[n - 1];
-      feedback.RAD_UltravioletLuminosity = RAD_ultravioletluminosity[n - 1];
-#endif
-#if defined(RADIATION_PRESSURE)
-      feedback.RAD_OpticalLuminosity = RAD_opticalluminosity[n - 1];
-      feedback.RAD_InfraredLuminosity = RAD_infraredluminosity[n - 1];
+#ifdef STAR_RADIATION_ACTIVE
+      for(int w = 0; w < WAVEBANDS; w++)
+        feedback.Flux[w] = flux[n - 1];
 #endif
       
       return feedback;
@@ -209,17 +186,9 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
           feedback.WindVelocity = linear_interpolation(a, age[i], age[i + 1], windvelocity[i], windvelocity[i + 1]);
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-          feedback.RAD_IonizingRate = linear_interpolation(a, age[i], age[i + 1], RAD_ionizingrate[i], RAD_ionizingrate[i + 1]);
-          feedback.RAD_IonizingLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_ionizingluminosity[i], RAD_ionizingluminosity[i + 1]);
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-          feedback.RAD_UVLymanWernerLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_uvlymanwernerluminosity[i], RAD_uvlymanwernerluminosity[i + 1]);
-          feedback.RAD_UltravioletLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_ultravioletluminosity[i], RAD_ultravioletluminosity[i + 1]);
-#endif
-#if defined(RADIATION_PRESSURE)
-          feedback.RAD_OpticalLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_opticalluminosity[i], RAD_opticalluminosity[i + 1]);
-          feedback.RAD_InfraredLuminosity = linear_interpolation(a, age[i], age[i + 1], RAD_infraredluminosity[i], RAD_infraredluminosity[i + 1]);
+#ifdef STAR_RADIATION_ACTIVE
+          for(int w = 0; w < WAVEBANDS; w++)
+            feedback.Flux[w] = linear_interpolation(a, age[i], age[i + 1], flux[w][i], flux[w][i + 1]);
 #endif
 
           return feedback;
@@ -257,17 +226,9 @@ static struct star_interpolate interpolate_mass(int z_idx, double m_val, double 
           feedback.WindVelocity = linear_interpolation(m_val, m0, m1, feedback0.WindVelocity, feedback1.WindVelocity);
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-          feedback.RAD_IonizingRate = linear_interpolation(m_val, m0, m1, feedback0.RAD_IonizingRate, feedback1.RAD_IonizingRate);
-          feedback.RAD_IonizingLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_IonizingLuminosity, feedback1.RAD_IonizingLuminosity);
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-          feedback.RAD_UVLymanWernerLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_UVLymanWernerLuminosity, feedback1.RAD_UVLymanWernerLuminosity);
-          feedback.RAD_UltravioletLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_UltravioletLuminosity, feedback1.RAD_UltravioletLuminosity);
-#endif
-#if defined(RADIATION_PRESSURE)
-          feedback.RAD_OpticalLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_OpticalLuminosity, feedback1.RAD_OpticalLuminosity);
-          feedback.RAD_InfraredLuminosity = linear_interpolation(m_val, m0, m1, feedback0.RAD_InfraredLuminosity, feedback1.RAD_InfraredLuminosity);
+#ifdef STAR_RADIATION_ACTIVE
+          for(int w = 0; w < WAVEBANDS; w++)
+            feedback.Flux[w] = linear_interpolation(m_val, m0, m1, feedback0.Flux[w], feedback1.Flux[w]);
 #endif
 
           return feedback;
@@ -305,17 +266,9 @@ static struct star_interpolate interpolate_metallicity(double z_val, double m_va
           feedback.WindVelocity = linear_interpolation(z_val, z0, z1, feedback0.WindVelocity, feedback1.WindVelocity);
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-          feedback.RAD_IonizingRate = linear_interpolation(z_val, z0, z1, feedback0.RAD_IonizingRate, feedback1.RAD_IonizingRate);
-          feedback.RAD_IonizingLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_IonizingLuminosity, feedback1.RAD_IonizingLuminosity);
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-          feedback.RAD_UVLymanWernerLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_UVLymanWernerLuminosity, feedback1.RAD_UVLymanWernerLuminosity);
-          feedback.RAD_UltravioletLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_UltravioletLuminosity, feedback1.RAD_UltravioletLuminosity);
-#endif
-#if defined(RADIATION_PRESSURE)
-          feedback.RAD_OpticalLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_OpticalLuminosity, feedback1.RAD_OpticalLuminosity);
-          feedback.RAD_InfraredLuminosity = linear_interpolation(z_val, z0, z1, feedback0.RAD_InfraredLuminosity, feedback1.RAD_InfraredLuminosity);
+#ifdef STAR_RADIATION_ACTIVE
+          for(int w = 0; w < WAVEBANDS; w++)
+            feedback.Flux[w] = linear_interpolation(z_val, z0, z1, feedback0.Flux[w], feedback1.Flux[w]);
 #endif
 
           return feedback;
@@ -442,18 +395,11 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
       double dt_rad = dt * SEC_PER_YEAR;
       double flux_to_luminosity = 4 * M_PI * feedback.Radius * feedback.Radius;  
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-      star.RAD_IonizingHPhotons = feedback.RAD_IonizingRate * flux_to_luminosity * dt_rad;
-      star.RAD_Ionizing = feedback.RAD_IonizingLuminosity * flux_to_luminosity * dt_rad;
+#ifdef STAR_RADIATION_ACTIVE
+      for(int w = 0; w < WAVEBANDS; w++)
+        star.RadiationEnergy[w] = feedback.Flux[w] * flux_to_luminosity * dt_rad;
 #endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-      star.RAD_UVLymanWerner = feedback.RAD_UVLymanWernerLuminosity * flux_to_luminosity * dt_rad;
-      star.RAD_Ultraviolet = feedback.RAD_UltravioletLuminosity * flux_to_luminosity * dt_rad;
-#endif
-#if defined(RADIATION_PRESSURE)
-      star.RAD_Optical = feedback.RAD_OpticalLuminosity * flux_to_luminosity * dt_rad;
-      star.RAD_Infrared = feedback.RAD_InfraredLuminosity * flux_to_luminosity * dt_rad;
-#endif
+
 #endif
 
       return star;
@@ -494,16 +440,14 @@ struct star_feedback units_for_feedback(struct star_feedback star_feedback)
   star_feedback.WindMomentum *= SOLAR_MASS * 1e5 / All.cf_UnitMomentum_in_cgs;
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  star_feedback.RAD_Ionizing /= All.cf_UnitEnergy_in_cgs;
-#endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-  star_feedback.RAD_UVLymanWerner /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RAD_Ultraviolet /= All.cf_UnitEnergy_in_cgs;
-#endif
-#if defined(RADIATION_PRESSURE)
-  star_feedback.RAD_Optical /= All.cf_UnitEnergy_in_cgs;
-  star_feedback.RAD_Infrared /= All.cf_UnitEnergy_in_cgs;
+#ifdef STAR_RADIATION_ACTIVE
+  star_feedback.RadiationEnergy[INFRARED] /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RadiationEnergy[OPTICAL] /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RadiationEnergy[ULTRAVIOLET] /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RadiationEnergy[LYMAN_WERNER] /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RadiationEnergy[IONIZING_HI] /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RadiationEnergy[IONIZING_HeI] /= All.cf_UnitEnergy_in_cgs;
+  star_feedback.RadiationEnergy[IONIZING_HeII] /= All.cf_UnitEnergy_in_cgs;
 #endif
 
 #ifdef SUPERNOVAE
@@ -557,19 +501,10 @@ struct star_feedback star_particle_feedback(int index, double dt, double z, doub
           star_particle.WindMomentum += Nstars * star.WindMomentum;
 #endif
 
-#if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-          star_particle.RAD_IonizingHPhotons += Nstars * star.RAD_IonizingHPhotons;
-          star_particle.RAD_Ionizing += Nstars * star.RAD_Ionizing;
+#ifdef STAR_RADIATION_ACTIVE
+          for(int w = 0; w < WAVEBANDS; w++)
+            star_particle.RadiationEnergy[w] += Nstars * star.RadiationEnergy[w];
 #endif
-#if defined(PHOTOELECTRIC_HEATING) || defined(RADIATION_PRESSURE)
-          star_particle.RAD_UVLymanWerner += Nstars * star.RAD_UVLymanWerner;
-          star_particle.RAD_Ultraviolet += Nstars * star.RAD_Ultraviolet;
-#endif
-#if defined(RADIATION_PRESSURE)
-          star_particle.RAD_Optical += Nstars * star.RAD_Optical;
-          star_particle.RAD_Infrared += Nstars * star.RAD_Infrared;
-#endif
-
           break;
 
           case 1:

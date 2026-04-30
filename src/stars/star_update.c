@@ -220,17 +220,9 @@ void star_prep(void)
       SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
 #endif
 
-#ifdef STAR_RADIATION_ACTIVE
-      double LUM[WAVEBANDS];
-      LUM[0] = star_feedback.RAD_IonizingHPhotons;
-      LUM[1] = star_feedback.RAD_Ionizing;
-      LUM[2] = star_feedback.RAD_UVLymanWerner;
-      LUM[3] = star_feedback.RAD_Ultraviolet;
-      LUM[4] = star_feedback.RAD_Optical;
-      LUM[5] = star_feedback.RAD_Infrared;
-      
+#ifdef STAR_RADIATION_ACTIVE      
       for(int w = 0; w < WAVEBANDS; w++)
-        SP[i].LUM[w] = LUM[w];
+        SP[i].RadiationEnergy[w] = star_feedback.RadiationEnergy[w];
 #endif
     }
 }

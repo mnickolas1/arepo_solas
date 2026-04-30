@@ -97,7 +97,7 @@ struct star_interpolate
 #endif
 
 #if defined(PHOTOIONIZATION) || defined(RADIATION_PRESSURE)
-  MyDouble LUM[WAVEBANDS];
+  MyDouble Flux[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -126,7 +126,7 @@ struct star_feedback
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  MyDouble RAD[WAVEBANDS];
+  MyDouble RadiationEnergy[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
