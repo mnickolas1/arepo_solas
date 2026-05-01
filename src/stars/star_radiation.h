@@ -78,7 +78,7 @@ typedef struct
 typedef struct {
   RayPacket *rays;
   int n;
-  int capacity;
+  long long capacity;
 } RayWorkStack;
 
 typedef struct 

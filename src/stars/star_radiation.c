@@ -23,21 +23,23 @@ int NRays; // 12 * NSIDE^2
                  Need to check references!
  */
 double Kappa[WAVEBANDS] = {
-  [IONIZING_H_PHOTONS] = 0.0,     /* IONIZING_H_PHOTONS     Computed directly from HI              */
-  [IONIZING]           = 0.0,     /* IONIZING               Computed directly from HI              */
-  [LYMAN_WERNER]       = 1.0e2,   /* LYMAN_WERNER [cm² g⁻¹] — FUV dust at solar Z                  */
-  [ULTRAVIOLET]        = 5.0e1,   /* ULTRAVIOLET  [cm² g⁻¹] — NUV dust at solar Z                  */
-  [OPTICAL]            = 1.0e1,   /* OPTICAL      [cm² g⁻¹] — V-band dust at solar Z               */
-  [INFRARED]           = 1.0e-1,  /* INFRARED     [cm² g⁻¹] — IR dust at T_ref=20K, beta=2, solar Z */ 
+  [INFRARED] = 1.0e-1,    /* INFRARED -> [cm² g⁻¹] — IR dust at T_ref=20K, beta=2, solar Z */ 
+  [OPTICAL] = 1.0e1,    /* OPTICAL -> [cm² g⁻¹] — V-band dust at solar Z */
+  [ULTRAVIOLET] = 5.0e1,    /* ULTRAVIOLET -> [cm² g⁻¹] — NUV dust at solar Z */
+  [LYMAN_WERNER] = 1.0e2,    /* LYMAN_WERNER -> [cm² g⁻¹] — FUV dust at solar Z */
+  [IONIZING_HI] = 0.0,    /* IONIZING_HI -> Computed directly from HI */
+  [IONIZING_HeI] = 0.0,    /* IONIZING_HeI -> Computed directly from HeI */
+  [IONIZING_HeII] = 0.0,    /* IONIZING_HeII -> Computed directly from HeII */
 };
 
 double ReradiatedFraction[WAVEBANDS] = {
-  [IONIZING_H_PHOTONS] = 0.0,     /* No momentum contribution */
-  [IONIZING]           = 0.0,     /* No reradiation->photoheating instead */
-  [LYMAN_WERNER]       = 0.95,    /* 5% goes to pe heating */
-  [ULTRAVIOLET]        = 0.95,    /* 5% goes to pe heating */
-  [OPTICAL]            = 1.0,
-  [INFRARED]           = 1.0,
+  [INFRARED] = 1.0,
+  [OPTICAL] = 1.0,
+  [ULTRAVIOLET] = 0.95,    /* 5% goes to pe heating */
+  [LYMAN_WERNER] = 0.95,    /* 5% goes to pe heating */
+  [IONIZING_HI] = 0.0,     /* No reradiation->photoheating instead */
+  [IONIZING_HeI] = 0.0,     /* No reradiation->photoheating instead */
+  [IONIZING_HeII] = 0.0,     /* No reradiation->photoheating instead */
 };
 
 void update_kappa(void)
@@ -52,12 +54,13 @@ void update_kappa(void)
 #endif
       double units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
       
-      SphP[i].Kappa[IONIZING_H_PHOTONS] = (sigma_H / PROTONMASS / units) * SphP[i].grHI; 
-      SphP[i].Kappa[IONIZING] = (sigma_H / PROTONMASS / units) * SphP[i].grHI;   
-      SphP[i].Kappa[LYMAN_WERNER] = (Kappa[LYMAN_WERNER] / units) * Z; 
-      SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;  
-      SphP[i].Kappa[OPTICAL] = (Kappa[OPTICAL] / units) * Z;  
-      SphP[i].Kappa[INFRARED] = (Kappa[INFRARED] / units) * Z;  
+      SphP[i].Kappa[INFRARED] = (Kappa[INFRARED] / units) * Z;
+      SphP[i].Kappa[OPTICAL] = (Kappa[OPTICAL] / units) * Z;
+      SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;
+      SphP[i].Kappa[LYMAN_WERNER] = (Kappa[LYMAN_WERNER] / units) * Z;       
+      SphP[i].Kappa[IONIZING_HI] = (sigma_H / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HI);
+      SphP[i].Kappa[IONIZING_HeI] = (sigma_H / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HeI); 
+      SphP[i].Kappa[IONIZING_HeII] = (sigma_H / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HeII);    
     }
 }
 
@@ -72,7 +75,7 @@ void init_healpix_rays(void)
     }
 }
 
-static RayWorkStack *init_work_stack(int capacity)
+static RayWorkStack *init_work_stack(long long capacity)
 {
   RayWorkStack *w = mymalloc_movable(&w, "RayWorkStack", sizeof(RayWorkStack));
   w->rays = mymalloc_movable(&w->rays, "WorkRays", capacity * sizeof(RayPacket));
@@ -128,9 +131,11 @@ static void init_rays_from_stars(RayWorkStack *work)
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
-              ray.RAD[w] = SP[i].LUM[w] / NRays;
+              ray.Radiated[w].Energy = SP[i].Radiated[w].Energy / NRays;
+              ray.Radiated[w].Photons = SP[i].Radiated[w].Photons / NRays;
 
-              ray.RAD_Initial[w] = SP[i].LUM[w] / NRays;
+              ray.Radiated_Init[w].Energy = SP[i].Radiated[w].Energy / NRays;
+              ray.Radiated_Init[w].Photons = SP[i].Radiated[w].Photons / NRays;
             }
   
           ray.active_bands = ALL_BANDS_ACTIVE;
@@ -172,8 +177,11 @@ int split_ray(const RayPacket *parent, RayPacket children[4])
 
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          children[k].RAD[w] = parent->RAD[w] * 0.25;
-          children[k].RAD_Initial[w] = parent->RAD_Initial[w] * 0.25;
+          children[k].Radiated[w].Energy = parent->Radiated[w].Energy * 0.25;
+          children[k].Radiated[w].Photons = parent->Radiated[w].Photons * 0.25;
+
+          children[k].Radiated_Init[w].Energy = parent->Radiated_Init[w].Energy * 0.25;
+          children[k].Radiated_Init[w].Photons = parent->Radiated_Init[w].Photons * 0.25;
         }
     }
   return 1;
@@ -312,7 +320,10 @@ static void send_results_home(void)
           Rad_ResultsActiveImported[k].StarMomentumFeed[2] = Tree_Points[n].StarMomentumFeed[2];
 
           for(int w = 0; w < WAVEBANDS; w++)
-            Rad_ResultsActiveImported[k].RAD[w] = Tree_Points[n].RAD[w];
+            {
+              Rad_ResultsActiveImported[k].Absorbed[w].Energy = Tree_Points[n].Absorbed[w].Energy;
+              Rad_ResultsActiveImported[k].Absorbed[w].Photons = Tree_Points[n].Absorbed[w].Photons;
+            }
 
           Rad_ResultsActiveImported[k].index = Tree_Points[n].index;
           Recv_count[i]++;
@@ -358,7 +369,10 @@ static void send_results_home(void)
       SphP[tmp_results[i].index].StarMomentumFeed[2] += tmp_results[i].StarMomentumFeed[2];
       
       for(int w = 0; w < WAVEBANDS; w++)
-        SphP[tmp_results[i].index].RAD[w] += tmp_results[i].RAD[w];
+        {
+          SphP[tmp_results[i].index].Absorbed[w].Energy += tmp_results[i].Absorbed[w].Energy;
+          SphP[tmp_results[i].index].Absorbed[w].Photons += tmp_results[i].Absorbed[w].Photons;
+        }
     }
 
   /* free in reverse allocation order */
@@ -376,7 +390,7 @@ static void distribute_node_rad(int no)
   int has_rad = 0;
         
   for(int w = 0; w < WAVEBANDS; w++)
-    if(RtNgb_Nodes[no].RAD[w] > 0) 
+    if(RtNgb_Nodes[no].Absorbed[w].Energy || RtNgb_Nodes[no].Absorbed[w].Photons > 0) 
       { 
         has_rad = 1; 
         break; 
@@ -401,7 +415,9 @@ static void distribute_node_rad(int no)
                 {
                   double child_tau = SphP[child].Volume * SphP[child].Density * SphP[child].Kappa[w];
                   double frac = child_tau / node_tau[w];
-                  SphP[child].RAD[w] += frac * RtNgb_Nodes[no].RAD[w];
+                  
+                  SphP[child].Absorbed[w].Energy += frac * RtNgb_Nodes[no].Absorbed[w].Energy;
+                  SphP[child].Absorbed[w].Photons += frac * RtNgb_Nodes[no].Absorbed[w].Photons;
                 }
             }
           child = Ngb_Nextnode[child];
@@ -415,7 +431,9 @@ static void distribute_node_rad(int no)
                 {
                   double child_tau = RtNgb_Nodes[child].volume * RtNgb_Nodes[child].density_kappa[w];
                   double frac = child_tau / node_tau[w];
-                  RtNgb_Nodes[child].RAD[w] += frac * RtNgb_Nodes[no].RAD[w];
+                  
+                  RtNgb_Nodes[child].Absorbed[w].Energy += frac * RtNgb_Nodes[no].Absorbed[w].Energy;
+                  RtNgb_Nodes[child].Absorbed[w].Photons += frac * RtNgb_Nodes[no].Absorbed[w].Photons;
                 }
             }
           distribute_node_rad(child);
@@ -427,8 +445,9 @@ static void distribute_node_rad(int no)
           child = Ngb_Nextnode[child - Ngb_MaxNodes];
         }
     }
+
   for(int w = 0; w < WAVEBANDS; w++)
-    RtNgb_Nodes[no].RAD[w] = 0.0;
+    RtNgb_Nodes[no].Absorbed[w].Energy = RtNgb_Nodes[no].Absorbed[w].Photons = 0.0;
 }
 #endif
 
@@ -449,7 +468,7 @@ static void radiation_feedback(void)
 #ifdef PHOTOELECTRIC_HEATING
       double epsilon_pe = 0.05;
 
-      double E_pe = SphP[i].AbsorbedEnergy[ULTRAVIOLET] * epsilon_pe * All.cf_UnitEnergy_in_cgs; 
+      double E_pe = SphP[i].Absorbed[ULTRAVIOLET].Energy * epsilon_pe * All.cf_UnitEnergy_in_cgs; 
       
       /* volumetric_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
       SphP[i].PE_VolHeatingRate +=  E_pe / dt_cgs / V_cgs;
@@ -457,7 +476,7 @@ static void radiation_feedback(void)
 
 #ifdef PHOTOIONIZATION
      /* H2 Dissociation */
-      double N_abs_H2 = SphP[i].Absorbed[LYMAN_WERNER_PHOTONS];
+      double N_abs_H2 = SphP[i].Absorbed[LYMAN_WERNER].Photons;
       
       double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].H2_DissociationRate += n_H2 > 0 ? (N_abs_H2 / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_H2: 0.0;
@@ -466,13 +485,13 @@ static void radiation_feedback(void)
       double energy_thresh_HeI = 24.6 * ELECTRONVOLT_IN_ERGS;
       double energy_thresh_HeII = 54.4 * ELECTRONVOLT_IN_ERGS;
 
-      double N_abs_HI = SphP[i].RAD[IONIZING_HI_PHOTONS];
-      double N_abs_HeI = SphP[i].RAD[IONIZING_HeI_PHOTONS];
-      double N_abs_HeII = SphP[i].RAD[IONIZING_HeII_PHOTONS];
+      double N_abs_HI = SphP[i].Absorbed[IONIZING_HI].Photons;
+      double N_abs_HeI = SphP[i].Absorbed[IONIZING_HeI].Photons;
+      double N_abs_HeII = SphP[i].Absorbed[IONIZING_HeII].Photons;
       
-      double E_abs_HI = SphP[i].RAD[IONIZING_HI] * All.cf_UnitEnergy_in_cgs;
-      double E_abs_HeI = SphP[i].RAD[IONIZING_HeI] * All.cf_UnitEnergy_in_cgs;
-      double E_abs_HeII = SphP[i].RAD[IONIZING_HeII] * All.cf_UnitEnergy_in_cgs;
+      double E_abs_HI = SphP[i].Absorbed[IONIZING_HI].Energy * All.cf_UnitEnergy_in_cgs;
+      double E_abs_HeI = SphP[i].Absorbed[IONIZING_HeI].Energy * All.cf_UnitEnergy_in_cgs;
+      double E_abs_HeII = SphP[i].Absorbed[IONIZING_HeII].Energy * All.cf_UnitEnergy_in_cgs;
       
       /* RT_ionization_rate:  1 / (time units) */
       double n_HI = SphP[i].GrackleSpecies(GRACKLE_HI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
@@ -496,7 +515,7 @@ static void radiation_feedback(void)
 #endif
 
       for(w = 0; w < WAVEBANDS; w++)
-        SphP[i].RAD[w] = 0;
+        SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
     }
 }
 
@@ -510,13 +529,13 @@ void star_radiation(void)
   /* zero RAD accumulator on all nodes before treewalk -> importnant for top nodes! */
   for(int no = Ngb_MaxPart; no < Ngb_MaxPart + Ngb_NumNodes; no++)
     for(int w = 0; w < WAVEBANDS; w++)
-      RtNgb_Nodes[no].RAD[w] = 0.0;
+      RtNgb_Nodes[no].Absorbed[w].Energy = RtNgb_Nodes[no].Absorbed[w].Photons = 0.0;
 #endif
 
   /* zero RAD accumulator on all leaves before treewalk */
   for(int i = 0; i < NumGas; i++)
      for(int w = 0; w < WAVEBANDS; w++)
-        SphP[i].RAD[w] = 0.0;
+        SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
  
   int n_stars = TimeBinsStar.NActiveParticles;
   int n_rays_local = n_stars * NRays;

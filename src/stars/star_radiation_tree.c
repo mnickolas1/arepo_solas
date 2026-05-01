@@ -86,23 +86,29 @@ static inline int ray_sphere_intersect(const double dx, const double dy, const d
   return 1;
 }
 
-static inline int ray_absorb(RayPacket *ray, double chord_length, double density_kappa[WAVEBANDS], double absorbed_RAD[WAVEBANDS], double *dtau_IR)
+static inline int ray_absorb(RayPacket *ray, double chord_length, double density_kappa[WAVEBANDS], struct WavebandData absorbed[WAVEBANDS], double *dtau_IR)
 {
   for(int w = 0; w < WAVEBANDS; w++)
     {
-      absorbed_RAD[w] = 0.0;
+      absorbed[w].Energy = absorbed[w].Photons = 0.0;
 
       if(!(ray->active_bands & (1u << w)))
         continue;
 
       double dtau = density_kappa[w] * chord_length;
-      double absorbed = ray->RAD[w] * (1.0 - exp(-dtau));
+      
+      double absorbed_energy = ray->Radiated[w].Energy * (1.0 - exp(-dtau));
+      double absorbed_photons = ray->Radiated[w].Photons * (1.0 - exp(-dtau));
 
-      absorbed_RAD[w] += absorbed;
-      ray->RAD[w] -= absorbed;  
+      absorbed[w].Energy += absorbed_energy;
+      ray->Radiated[w].Energy -= absorbed_energy;
+      
+      absorbed[w].Photons += absorbed_photons;
+      ray->Radiated[w].Photons -= absorbed_photons; 
 
       /* deactivate band if it has fallen below the dead-fraction threshold */
-      if(ray->RAD[w] < RAD_TRUNC_FRAC * ray->RAD_Initial[w])
+      if(ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy && 
+      ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons)
         ray->active_bands &= (uint8_t)(~(1u << w));
     }
     
@@ -160,32 +166,52 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           for(int w = 0; w < WAVEBANDS; w++)
             density_kappa[w] = SphP[no].Density * SphP[no].Kappa[w];
           
-          double absorbed[WAVEBANDS];
+          struct WavebandData absorbed[WAVEBANDS];
           double dtau_IR;
 
           int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
 
-          /* deposit absorbed energy into cell, one band at a time */
-
-          // Ionizing Photons
-          SphP[no].RAD[IONIZING_H_PHOTONS] += absorbed[IONIZING_H_PHOTONS];
-          
-          // Ionizing Energy
-          double dp = 0.0;
-          SphP[no].RAD[IONIZING] += absorbed[IONIZING];
-          dp += absorbed[IONIZING] / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
-              
+          /* Deposit absorbed energy into cells, one band at a time */
+          /* What to do with Lyman-Werner? -> (TODO)*/
+          /* Non Ionizing Energy */
           double dp_rerad = 0.0;
-          for(int w = 2; w < WAVEBANDS; w++)
+          for(int w = 0; w < WAVEBANDS; w++)
             {
-              SphP[no].RAD[w] += absorbed[w];
-              dp_rerad += absorbed[w] * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+              if(w = LYMAN_WERNER || w == IONIZING_HI || w == IONIZING_HeI || w == IONIZING_HeII)
+                continue;
+
+              SphP[no].Absorbed[w].Energy += absorbed[w].Energy;
+              dp_rerad += absorbed[w].Energy * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
             }
-         
+            
+          double dp = 0.0;
+
+          /* Dissociating Energy */
+          SphP[no].Absorbed[LYMAN_WERNER].Energy += absorbed[LYMAN_WERNER].Energy;
+          dp += absorbed[LYMAN_WERNER].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+
+          /* Ionizing Energy */
+          SphP[no].Absorbed[IONIZING_HI].Energy += absorbed[IONIZING_HI].Energy;
+          dp += absorbed[IONIZING_HI].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+          
+          SphP[no].Absorbed[IONIZING_HeI].Energy += absorbed[IONIZING_HeI].Energy;
+          dp += absorbed[IONIZING_HeI].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+          
+          SphP[no].Absorbed[IONIZING_HeII].Energy += absorbed[IONIZING_HeII].Energy;
+          dp += absorbed[IONIZING_HeII].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+
           SphP[no].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];
           SphP[no].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
           SphP[no].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
+          
+          /* Dissociating Photons */
+          SphP[no].Absorbed[LYMAN_WERNER].Photons += absorbed[LYMAN_WERNER].Photons;
 
+          /* Ionizing Photons */
+          SphP[no].Absorbed[IONIZING_HI].Photons += absorbed[IONIZING_HI].Photons;
+          SphP[no].Absorbed[IONIZING_HeI].Photons += absorbed[IONIZING_HeI].Photons;
+          SphP[no].Absorbed[IONIZING_HeII].Photons += absorbed[IONIZING_HeII].Photons;
+         
           ray->t = cur.t_exit;
 
           if(ray->t == ray->t_maximum) 
@@ -231,14 +257,17 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
                   for(int w = 0; w < WAVEBANDS; w++)
                     density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];  /* volume-weighted mean kappa * density */
 
-                  double absorbed[WAVEBANDS];
+                  struct WavebandData absorbed[WAVEBANDS];
                   double dtau_IR;
 
                   int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
 
                   /* accumulate for later distribution to children */
                   for(int w = 0; w < WAVEBANDS; w++)
-                    RtNgb_Nodes[no].RAD[w] += absorbed[w];
+                    {
+                      RtNgb_Nodes[no].Absorbed[w].Energy += absorbed[w].Energy;
+                      RtNgb_Nodes[no].Absorbed[w].Photons += absorbed[w].Photons;
+                    }
 
                   ray->t = cur.t_exit;
 

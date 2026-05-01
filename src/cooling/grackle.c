@@ -66,20 +66,20 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
   All.GrackleFieldData.DI_density        = malloc(sizeof(gr_float));
   All.GrackleFieldData.DII_density       = malloc(sizeof(gr_float));
   All.GrackleFieldData.HDI_density       = malloc(sizeof(gr_float));
- 
-
-  // HeII ionization rate from radiative transfer calculations (provide in units of [1/time_units]
-  All.GrackleFieldData.RT_HeII_ionization_rate = malloc(sizeof(gr_float));
-  // HeI ionization rate from radiative transfer calculations (provide in units of [1/time_units]
-  All.GrackleFieldData.RT_HeI_ionization_rate = malloc(sizeof(gr_float));
-  // HI ionization rate from radiative transfer calculations (provide in units of [ 1/time_units ]
-  All.GrackleFieldData.RT_HI_ionization_rate = malloc(sizeof(gr_float));
-  // heating rate from radiative transfer calculations (provide in units [erg s^-1 cm^-3]
-  All.GrackleFieldData.RT_heating_rate = malloc(sizeof(gr_float));
-  // H2 dissociation rate from radiative transfer calculations (provide in units of [1/time_units]
-  All.GrackleFieldData.RT_H2_dissociation_rate = malloc(sizeof(gr_float));
+   
   // volumetric heating rate (provide in units [erg s^-1 cm^-3])
   All.GrackleFieldData.volumetric_heating_rate = malloc(sizeof(gr_float));
+  // H2 dissociation rate from radiative transfer calculations (provide in units of [1/time_units]
+  All.GrackleFieldData.RT_H2_dissociation_rate = malloc(sizeof(gr_float));
+  // HI ionization rate from radiative transfer calculations (provide in units of [ 1/time_units ]
+  All.GrackleFieldData.RT_HI_ionization_rate = malloc(sizeof(gr_float));
+  // HeI ionization rate from radiative transfer calculations (provide in units of [1/time_units]
+  All.GrackleFieldData.RT_HeI_ionization_rate = malloc(sizeof(gr_float));
+  // HeII ionization rate from radiative transfer calculations (provide in units of [1/time_units]
+  All.GrackleFieldData.RT_HeII_ionization_rate = malloc(sizeof(gr_float));
+  // heating rate from radiative transfer calculations (provide in units [erg s^-1 cm^-3]
+  All.GrackleFieldData.RT_heating_rate = malloc(sizeof(gr_float));
+
   // specific heating rate (provide in units [egs s^-1 g^-1]
   All.GrackleFieldData.specific_heating_rate = malloc(sizeof(gr_float));
 #endif
@@ -133,26 +133,26 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
 #endif
 
   /* Radiation */
-#ifdef PHOTOIONIZATION
-  *All.GrackleFieldData.RT_HeII_ionization_rate = (gr_float)(SphP[target].HeII_IonizationRate);
-  *All.GrackleFieldData.RT_HeI_ionization_rate = (gr_float)(SphP[target].HeI_IonizationRate);
-  *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].HI_IonizationRate);
-  *All.GrackleFieldData.RT_heating_rate = (gr_float)(SphP[target].PI_VolHeatingRate);
-  *All.GrackleFieldData.RT_H2_dissociation_rate = (gr_float)(SphP[target].H2_DissociationRate);
-#else
-  *All.GrackleFieldData.RT_HeII_ionization_rate = 0;
-  *All.GrackleFieldData.RT_HeI_ionization_rate = 0;
-  *All.GrackleFieldData.RT_HI_ionization_rate = 0;
-  *All.GrackleFieldData.RT_heating_rate = 0;
-  *All.GrackleFieldData.RT_H2_dissociation_rate = 0;
-#endif
-
 #ifdef PHOTOELECTRIC_HEATING
   *All.GrackleFieldData.volumetric_heating_rate = (gr_float)(SphP[target].PE_VolHeatingRate);
 #else
   *All.GrackleFieldData.volumetric_heating_rate = 0;
 #endif
-     
+
+#ifdef PHOTOIONIZATION
+  *All.GrackleFieldData.RT_H2_dissociation_rate = (gr_float)(SphP[target].H2_DissociationRate);
+  *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].HI_IonizationRate);
+  *All.GrackleFieldData.RT_HeI_ionization_rate = (gr_float)(SphP[target].HeI_IonizationRate);
+  *All.GrackleFieldData.RT_HeII_ionization_rate = (gr_float)(SphP[target].HeII_IonizationRate);
+  *All.GrackleFieldData.RT_heating_rate = (gr_float)(SphP[target].PI_VolHeatingRate);
+#else
+  *All.GrackleFieldData.RT_H2_dissociation_rate = 0;
+  *All.GrackleFieldData.RT_HI_ionization_rate = 0;
+  *All.GrackleFieldData.RT_HeI_ionization_rate = 0;
+  *All.GrackleFieldData.RT_HeII_ionization_rate = 0;
+  *All.GrackleFieldData.RT_heating_rate = 0;
+#endif
+
   *All.GrackleFieldData.specific_heating_rate = 0.0; // What is this for?
 
 #endif /* GRACKLE_CHEMISTRY >= 1 */
@@ -265,12 +265,13 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
   free(All.GrackleFieldData.DII_density);
   free(All.GrackleFieldData.HDI_density);
   free(All.GrackleFieldData.volumetric_heating_rate);
-  free(All.GrackleFieldData.specific_heating_rate);
-  free(All.GrackleFieldData.RT_heating_rate);
+  free(All.GrackleFieldData.RT_H2_dissociation_rate);
   free(All.GrackleFieldData.RT_HI_ionization_rate);
   free(All.GrackleFieldData.RT_HeI_ionization_rate);
   free(All.GrackleFieldData.RT_HeII_ionization_rate);
-  free(All.GrackleFieldData.RT_H2_dissociation_rate);
+  free(All.GrackleFieldData.RT_heating_rate);
+
+  free(All.GrackleFieldData.specific_heating_rate);
 #endif
 
   return returnval;
@@ -440,13 +441,9 @@ void InitGrackle(void)
 #ifdef STAR_RADIATION_ACTIVE
   /* flag to include RT */
   my_grackle_data->use_radiative_transfer = 1;
-  my_grackle_data->radiative_transfer_hydrogen_only = 1;
-
   my_grackle_data->use_volumetric_heating_rate = 1;
 #else
   my_grackle_data->use_radiative_transfer = 0;
-  my_grackle_data->radiative_transfer_hydrogen_only = 0;
-
   my_grackle_data->use_volumetric_heating_rate = 0;
 #endif
     

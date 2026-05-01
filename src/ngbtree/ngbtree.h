@@ -65,7 +65,7 @@ extern struct RtNgbNODE
     float density_kappa[WAVEBANDS];
     
     /* RT quantities - accumulated during tree walk */
-    float RAD[WAVEBANDS];
+    struct WavebandData Absorbed[WAVEBANDS];
 } * RtNgb_Nodes;
 #endif
 
