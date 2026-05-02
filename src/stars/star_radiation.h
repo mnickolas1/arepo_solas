@@ -13,8 +13,10 @@
 
 /* Change at init_rays_from_stars */
 #define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
-#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_H_PHOTONS) & ~(1u << IONIZING)))
-#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_H_PHOTONS) | (1u << IONIZING))))
+#define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
+#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeI)))
+#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
+
 
 extern double HealpixDirs[MAX_NUM_RAYS][3];
 extern int NRays; // 12 * NSIDE^2
@@ -29,6 +31,10 @@ typedef enum
   IONIZING_HeII,
   WAVEBANDS
 } Waveband;
+
+#if WAVEBANDS > 8
+#error "active_bands is uint8_t but WAVEBANDS > 8 — use uint16_t instead"
+#endif
 
 typedef struct
 {
@@ -54,13 +60,14 @@ typedef struct
   double t;
   double t_exit;
   double t_maximum;
-  struct WavebandData Radiated[WAVEBANDS];
-  struct WavebandData Radiated_Init[WAVEBANDS];
 
   /* Bitmask: bit w is SET while band w is still alive.
-     Cleared when RAD[w] < RAD_TRUNC_FRAC * RAD_Initial[w].
-     When active_bands == 0 the ray is fully absorbed – return immediately. */
+  Cleared when RAD[w] < RAD_TRUNC_FRAC * RAD_Initial[w].
+  When active_bands == 0 the ray is fully absorbed – return immediately. */
   uint8_t  active_bands;
+
+  struct WavebandData Radiated[WAVEBANDS];
+  struct WavebandData Radiated_Init[WAVEBANDS];
 
   int ray_id;
   int home_task;

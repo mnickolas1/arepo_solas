@@ -115,7 +115,7 @@ static void init_rays_from_stars(RayWorkStack *work)
         
       // Loop over rays for this star
       for(int iray = 0; iray < NRays; iray++)
-        {   
+        {  
           // Initialize ray from star i
           RayPacket ray = {0};
 
@@ -129,6 +129,8 @@ static void init_rays_from_stars(RayWorkStack *work)
           ray.t_exit = MAX_REAL_NUMBER;
           ray.t_maximum = fmin(CLIGHT/All.cf_UnitVelocity_in_cm_per_s * dt_rad/All.cf_hubble_a, SQRT3 * All.BoxSize);
 
+          ray.active_bands = NO_IR_ACTIVE;
+
           for(int w = 0; w < WAVEBANDS; w++)
             { 
               ray.Radiated[w].Energy = SP[i].Radiated[w].Energy / NRays;
@@ -136,9 +138,10 @@ static void init_rays_from_stars(RayWorkStack *work)
 
               ray.Radiated_Init[w].Energy = SP[i].Radiated[w].Energy / NRays;
               ray.Radiated_Init[w].Photons = SP[i].Radiated[w].Photons / NRays;
+
+              if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
+                ray.active_bands &= (uint8_t)(~(1u << w));
             }
-  
-          ray.active_bands = ALL_BANDS_ACTIVE;
           
           ray.ray_id = ray_idx;
           ray.home_task = ThisTask;
