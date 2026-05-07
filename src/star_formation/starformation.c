@@ -357,7 +357,7 @@ void convert_cell_into_star(int i, double birthtime)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0 * SphP[i].Volume) / (4.0 * M_PI)); //need to check that this works!
+  SP[NumStars].Hsml = get_cell_radius(i); //need to check that this works!
   /* set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].NgbsMaxBin = P[i].TimeBinHydro; //need to check that this works!
@@ -454,7 +454,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
   // give star small random displacement
-  double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+  double cell_size = get_cell_radius(igas);
 
   double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
   double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 

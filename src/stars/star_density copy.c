@@ -8,19 +8,10 @@
 
 #include "../domain/domain.h"
 
-/* Pass counter: 1 = find host cell, 2 = gather feedback properties */
-static int pass;
-
 static int star_density_evaluate(int target, int mode, int threadid);
 static int star_density_isactive(int n);
 
 static MyFloat *StarNgbs;
-struct HostCell 
-{
-  MyDouble Distance;
-  int Index;
-  int Task;
-} *StarHostCell;
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -29,31 +20,6 @@ struct HostCell
 typedef struct
 {
   MyDouble Pos[3];
-  
-  /* Pass 2 inputs */
-  struct HostCell HostCell;
-
-#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  MyDouble TimeSN_yr;
-  MyDouble PhysicalAge_yr;
-#endif  
-
-#ifdef WINDS
-  MyDouble MassLoss;
-#ifdef METALS
-  MyDouble MetalsLoss;
-#endif
-  MyDouble WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
-  
   MyFloat Hsml;
   int Firstnode;
 } data_in;
@@ -73,33 +39,6 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPS(i).Pos[j];
-
-  /* Pass 2 inputs */  
-  in->HostCell.Distance = StarHostCell[i].Distance;
-  in->HostCell.Index = StarHostCell[i].Index;
-  in->HostCell.Task = StarHostCell[i].Task;
-
-#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  in->TimeSN_yr = SP[i].TimeSN_yr;
-  in->PhysicalAge_yr = SP[i].PhysicalAge_yr;
-#endif  
-
-#ifdef WINDS
-  in->MassLoss = SP[i].MassLoss;
-#ifdef METALS
-  in->MetalsLoss = SP[i].MetalsLoss;
-#endif
-  in->WindMomentum = SP[i].WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-  in->SN_MassLoss = SP[i].SN_MassLoss;
-#ifdef METALS
-  in->SN_MetalsLoss = SP[i].SN_MetalsLoss;
-#endif
-  in->SN_EnergyInject = SP[i].SN_EnergyInject;
-#endif
-
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
 }  
@@ -110,11 +49,9 @@ static void particle2in(data_in *in, int i, int firstnode)
  */
 typedef struct
 { 
-  /* Pass 1 outputs */
   MyDouble Ngbs;
-  struct HostCell HostCell;
-
-  /* Pass 2 outputs */
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
   int NgbsMaxBin;
 } data_out;
 
@@ -135,41 +72,18 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      /* Pass 1 outputs */
-      if(pass == 1)
-        {
-          StarNgbs[i] = out->Ngbs;
-          StarHostCell[i].Distance = out->HostCell.Distance;
-          StarHostCell[i].Index = out->HostCell.Index;
-          StarHostCell[i].Task = out->HostCell.Task;
-        }
-
-      /* Pass 2 outputs */
-      if(pass == 2)
-        {
-          SP[i].NgbsMaxBin = out->NgbsMaxBin;
-        }
+      StarNgbs[i] = out->Ngbs;
+      SP[i].NgbsMass = out->NgbsMass;
+      SP[i].NgbsVolume = out->NgbsVolume;
+      SP[i].NgbsMaxBin = out->NgbsMaxBin;
     }
   else /* combine */
     {
-      /* Pass 1 outputs */
-      if(pass == 1)
-        {
-          StarNgbs[i] += out->Ngbs;
-          if(out->HostCell.Distance < StarHostCell[i].Distance)
-            {
-              StarHostCell[i].Distance = out->HostCell.Distance;
-              StarHostCell[i].Index = out->HostCell.Index;
-              StarHostCell[i].Task = out->HostCell.Task;
-            }
-        }
-
-      /* Pass 2 outputs */
-      if(pass == 2)
-        {
-          if(out->NgbsMaxBin > SP[i].NgbsMaxBin)
-            SP[i].NgbsMaxBin = out->NgbsMaxBin;
-        }
+      StarNgbs[i] += out->Ngbs;
+      SP[i].NgbsMass += out->NgbsMass;
+      SP[i].NgbsVolume += out->NgbsVolume;
+      if(out->NgbsMaxBin > SP[i].NgbsMaxBin)
+        SP[i].NgbsMaxBin = out->NgbsMaxBin;
     }
 }
 
@@ -254,19 +168,21 @@ static void kernel_imported(void)
  */
 void star_density(void)
 {
+  MyFloat *Left, *Right;
   int idx, i, npleft, iter = 0;
   long long ntot;
   double t0, t1;
 
   CPU_Step[CPU_MISC] += measure_time();
 
-  pass = 0;
-
   StarNgbs = (MyFloat *)mymalloc("StarNgbs", NumStars * sizeof(MyFloat));
-  StarHostCell = (struct HostCell *)mymalloc("StarHostCell", NumStars * sizeof(struct HostCell));
+  Left = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
+  Right = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
 
   for(i = 0; i < NumStars; i++)
     {
+      Left[i] = Right[i] = 0;
+
       SP[i].DensityFlag = 1;
       
       if(SP[i].Hsml <= 0)
@@ -274,15 +190,9 @@ void star_density(void)
     }
 
   generic_set_MaxNexport();
-  
-  /* 
-  Pass 1 — Expand Hsml until we enclose at least one gas cell,
-           then record the closest cell as the host.
-  */
 
-  pass++;
-
-  do 
+  /* we will repeat the whole thing for those particles where we didn't find enough neighbours */
+  do
     {
       t0 = second();
 
@@ -292,17 +202,57 @@ void star_density(void)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
 
-          if(StarNgbs[i] < 1.0)
+          if(StarNgbs[i] < (All.StarDesNgb - All.StarDesDev) || StarNgbs[i] > (All.StarDesNgb + All.StarDesDev))
             {
+              /* need to redo this particle */
               npleft++;
-              
-              SP[i].Hsml *= 2;
+
+              if(Left[i] > 0 && Right[i] > 0)
+                {
+                  if((Right[i] - Left[i]) < 1.0e-3 * Left[i])
+                    {
+                      /* this one should be ok */
+                      npleft--;
+                      SP[i].DensityFlag = -1; /* Mark as inactive */
+                      continue;
+                    }
+                } 
+
+              if(StarNgbs[i] < (All.StarDesNgb - All.StarDesDev))
+                Left[i] = dmax(SP[i].Hsml, Left[i]);
+              else
+                {
+                  if(Right[i] != 0)
+                    {
+                      if(SP[i].Hsml < Right[i])
+                        Right[i] = SP[i].Hsml;
+                    }
+                  else
+                    Right[i] = SP[i].Hsml;
+                }
+
+              if(Right[i] > 0 && Left[i] > 0)
+                SP[i].Hsml = pow(0.5 * (pow(Left[i], 3) + pow(Right[i], 3)), 1.0 / 3);
+              else
+                {
+                  if(Right[i] == 0 && Left[i] == 0)
+                    terminate("should not occur");
+
+                  if(Right[i] == 0 && Left[i] > 0)
+                    {
+                      SP[i].Hsml *= 1.26;
+                    }
+
+                  if(Right[i] > 0 && Left[i] == 0)
+                    {
+                      SP[i].Hsml /= 1.26;
+                    }
+                }
             }
           else
-            /* Mark as inactive */
-            SP[i].DensityFlag = -1; 
+            SP[i].DensityFlag = -1; /* Mark as inactive */ 
         }
-     
+
       sumup_large_ints(1, &npleft, &ntot);
 
       t1 = second();
@@ -321,19 +271,8 @@ void star_density(void)
     }
   while(ntot > 0);
 
-  /* 
-  Pass 2 — Add star feedback properties to the host cell.
-  */
-
- /* Re-activate all stars */
-  for(i = 0; i < NumStars; i++)
-    SP[i].DensityFlag = 1;
-
-  pass++;
-
-  generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
-
-  myfree(StarHostCell);
+  myfree(Right);
+  myfree(Left);
   myfree(StarNgbs);
 
   /* mark as active again */
@@ -358,16 +297,13 @@ void star_density(void)
  */
 static int star_density_evaluate(int target, int mode, int threadid)
 {
-  int i, n, numnodes, *firstnode; 
+  int j, n, numnodes, *firstnode; 
   int ngbs, ngbsmaxbin = 0; 
   double h, h2, dx, dy, dz, r, r2, wk; 
-  MyDouble *pos;
-
-  MyDouble distance = MAX_REAL_NUMBER;
-  int index = -1, task = -1;
+  MyDouble *pos, ngbsmass, ngbsvolume;
 
   data_in local, *target_data;
-  data_out out = {0};
+  data_out out;
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -384,28 +320,22 @@ static int star_density_evaluate(int target, int mode, int threadid)
       generic_get_numnodes(target, &numnodes, &firstnode);
     }
 
-  pos = target_data->Pos;
-  h = target_data->Hsml;
-  h2 = h * h;
+  pos  = target_data->Pos;
+  h    = target_data->Hsml;
+  h2   = h * h;
 
-  if(pass == 2)
-    {
-      index = target_data->HostCell.Index;
-      task = target_data->HostCell.Task;
-    }
-
-  ngbs = 0;
+  ngbs = ngbsmass = ngbsvolume = 0;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
   for(n = 0; n < nfound; n++)
     {
-      i = Thread[threadid].Ngblist[n];
+      j = Thread[threadid].Ngblist[n];
 
 /* compute star->cell position vectors: posSP-posSphP */
-      dx = pos[0] - P[i].Pos[0];
-      dy = pos[1] - P[i].Pos[1];
-      dz = pos[2] - P[i].Pos[2];
+      dx = pos[0] - P[j].Pos[0];
+      dy = pos[1] - P[j].Pos[1];
+      dz = pos[2] - P[j].Pos[2];
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -431,67 +361,22 @@ static int star_density_evaluate(int target, int mode, int threadid)
 
       if(r2 < h2)
         {
-          /* Pass 1 */
-          if(pass == 1)
-            {
-              ngbs++;
-
-              r = sqrt(r2);
-              
-              if(r < distance)
-                {
-                  distance = r;
-                  index = i;
-                  task = ThisTask;
-                }
-            }
- 
-          /* Pass 2 */
-          else 
-            {          
-              if(i == index && ThisTask == task)
-                {
-                 
-                  if(ngbsmaxbin < P[i].TimeBinHydro)
-                    ngbsmaxbin = P[i].TimeBinHydro;
-
-#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-                  SphP[i].TimeSN_yr = target_data->TimeSN_yr;
-                  SphP[i].PhysicalAge_yr = target_data->PhysicalAge_yr;
-#endif
-
-#ifdef WINDS
-                  SphP[i].MassLoss = target_data->MassLoss;
-#ifdef METALS
-                  SphP[i].MetalsLoss = target_data->MetalsLoss;
-#endif
-                  SphP[i].WindMomentum = target_data->WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-                  SphP[i].SN_MassLoss = target_data->SN_MassLoss;
-#ifdef METALS
-                  SphP[i].SN_MetalsLoss = target_data->SN_MetalsLoss;
-#endif
-                  SphP[i].SN_EnergyInject = target_data->SN_EnergyInject;
-#endif
-                }
-            }
+          ngbs++;
+          
+          // compute the star-ngb-mass 
+          ngbsmass += P[j].Mass;
+          // compute the star-ngb-volume
+          ngbsvolume += SphP[j].Volume;
+          // compute the max hydro bin for neighbors   
+          if(ngbsmaxbin < P[j].TimeBinHydro)
+            ngbsmaxbin = P[j].TimeBinHydro;
         }
     }
 
-  if(pass == 1)
-    {
-      out.Ngbs = ngbs;
-      out.HostCell.Distance = distance;
-      out.HostCell.Index = index;
-      out.HostCell.Task = task;
-    }
-
-  if(pass == 2)
-    {
-      out.NgbsMaxBin = ngbsmaxbin;
-    }
+  out.Ngbs = ngbs;
+  out.NgbsMass = ngbsmass;
+  out.NgbsVolume = ngbsvolume;
+  out.NgbsMaxBin = ngbsmaxbin;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)

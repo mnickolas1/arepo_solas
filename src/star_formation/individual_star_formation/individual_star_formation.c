@@ -289,7 +289,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   
   /* prepare for star forming loop */
   SP[NumStars].MassOfStar = mass_of_star;
-  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+  SP[NumStars].Hsml = get_cell_radius(igas);
   
 #ifdef STAR_FEEDBACK_ACTIVE
   /* set timebin */
@@ -378,7 +378,7 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   // Give star small random displacement
   if(mass_of_star * All.cf_UnitMass_in_Msun > 2)
     {
-      double cell_size = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
+      double cell_size = get_cell_radius(igas);
 
       double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
       double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 

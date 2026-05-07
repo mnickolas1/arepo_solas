@@ -212,20 +212,20 @@ void star_prep(void)
       SP[i].WindMomentum = star_feedback.WindMomentum;
 #endif
 
-#ifdef SUPERNOVAE
-      SP[i].SN_MassLoss = star_feedback.SN_MassLoss;
-#ifdef METALS
-      SP[i].SN_MetalsLoss = star_feedback.SN_MetalsLoss;
-#endif
-      SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
-#endif
-
 #ifdef STAR_RADIATION_ACTIVE      
       for(int w = 0; w < WAVEBANDS; w++)
         {
           SP[i].Radiated[w].Photons = star_feedback.Radiated[w].Photons;
           SP[i].Radiated[w].Energy = star_feedback.Radiated[w].Energy;
         }
+#endif
+
+#ifdef SUPERNOVAE
+      SP[i].SN_MassLoss = star_feedback.SN_MassLoss;
+#ifdef METALS
+      SP[i].SN_MetalsLoss = star_feedback.SN_MetalsLoss;
+#endif
+      SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
 #endif
     }
 }
