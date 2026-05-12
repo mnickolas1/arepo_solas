@@ -23,6 +23,27 @@ extern int NumStars;
 extern struct TimeBinData TimeBinsStar;
 #endif
 
+#if defined(WINDS) || defined(SUPERNOVAE)
+struct MechanicalFeedback
+{
+#ifdef WINDS 
+  MyDouble MassLoss;
+#ifdef METALS
+  MyDouble MetalsLoss;
+#endif
+  MyDouble WindMomentum;
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SN_MassLoss;
+#ifdef METALS
+  MyDouble SN_MetalsLoss;
+#endif
+  MyDouble SN_EnergyInject;
+#endif
+}
+#endif
+
 extern struct star_particle_data
 {
   MyIDType PID;
@@ -52,30 +73,18 @@ extern struct star_particle_data
   MyDouble Hsml;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
-  int NgbsMaxBin;
+  int HostHydroBin;
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble PhysicalAge_yr;
 #endif
 
-#ifdef WINDS 
-  MyDouble MassLoss;
-#ifdef METALS
-  MyDouble MetalsLoss;
-#endif
-  MyDouble WindMomentum;
+#if defined(WINDS) || defined(SUPERNOVAE)
+struct MechanicalFeedback WindsAndSN;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
   struct WavebandData Radiated[WAVEBANDS];
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
 #endif
 }  *SP;
 

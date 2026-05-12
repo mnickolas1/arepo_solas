@@ -1574,13 +1574,13 @@ extern struct subfind_data
  */
 extern struct sph_particle_data
 {
-  /* conserved variables */ 
+  /* Conserved variables */ 
   MyFloat Energy;
   MyFloat Momentum[3];
   MyFloat Volume;
   MyFloat OldMass;
 
-  /* primitive variables */
+  /* Primitive variables */
   MyFloat Density;
   MyFloat Pressure; 
   MySingle Utherm;
@@ -1589,7 +1589,7 @@ extern struct sph_particle_data
   MySingle FullGravAccel[3];
 #endif 
 
-  /* mesh variables  */
+  /* Mesh variables  */
   MyDouble Center[3];    
   MySingle VelVertex[3]; 
 
@@ -1622,7 +1622,7 @@ extern struct sph_particle_data
   MySingle CurlVel; 
 #endif            
 
-/* timesteps */
+/* Timesteps */
 #ifdef TREE_BASED_TIMESTEPS
   MySingle CurrentMaxTiStep;
   MySingle Csnd;
@@ -1631,7 +1631,7 @@ extern struct sph_particle_data
 #endif
 #endif 
 
-/* refinement */
+/* Refinement */
 #ifdef REFINEMENT_HIGH_RES_GAS
   int AllowRefinement;
   MyFloat HighResMass;
@@ -1656,7 +1656,7 @@ extern struct sph_particle_data
   MyFloat Weight;
 #endif 
 
-/* magnetic field */
+/* Magnetic field */
 #ifdef MHD
   MyFloat B[3];
   MyFloat BConserved[3];
@@ -1664,19 +1664,19 @@ extern struct sph_particle_data
   MyFloat CurlB[3];
 #endif 
 
-/* passive scalars */
+/* Passive scalars */
 #ifdef PASSIVE_SCALARS
   MyFloat PScalars[PASSIVE_SCALARS];
   MyFloat PConservedScalars[PASSIVE_SCALARS];
 #endif 
 
-/* metallicity */
+/* Metallicity */
 #ifdef METALS
 #define GasMetallicity PScalars[METALS_INDEX]
 #define GasMetals PConservedScalars[METALS_INDEX]
 #endif
 
-/* cooling */
+/* Cooling */
 #ifdef COOLING
   MyFloat Ne; /* electron fraction, expressed as local electron number
                  density normalized to the hydrogen number density. Gives
@@ -1694,7 +1694,7 @@ extern struct sph_particle_data
 #endif
 #endif
 
-/* star formation */
+/* Star formation */
 #ifdef USE_SFR
   MySingle Sfr;
 #endif 
@@ -1703,7 +1703,14 @@ extern struct sph_particle_data
   MyDouble StarMassDrain;
 #endif
 
-/* stars */
+/* Stars */
+
+/* Hosts */
+#if defined(WINDS) || defined(SUPERNOVAE)
+struct MechanicalFeedback WindsAndSN;
+#endif
+
+/* Feedback */
 #if defined(WINDS) || defined(SUPERNOVAE)
   MyDouble StarMassFeed;
 #ifdef METALS
@@ -1736,7 +1743,7 @@ extern struct sph_particle_data
   MyDouble HeII_IonizationRate;
 #endif 
 
-/* blackholes */    
+/* Blackholes */    
 #ifdef BH_ACCRETION_ACTIVE
   MyDouble BhMassDrain;
 #endif

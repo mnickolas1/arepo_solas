@@ -38,21 +38,7 @@ typedef struct
   MyDouble PhysicalAge_yr;
 #endif  
 
-#ifdef WINDS
-  MyDouble MassLoss;
-#ifdef METALS
-  MyDouble MetalsLoss;
-#endif
-  MyDouble WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
+  struct MechanicalFeedback WindsAndSN;
   
   MyFloat Hsml;
   int Firstnode;
@@ -84,20 +70,8 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->PhysicalAge_yr = SP[i].PhysicalAge_yr;
 #endif  
 
-#ifdef WINDS
-  in->MassLoss = SP[i].MassLoss;
-#ifdef METALS
-  in->MetalsLoss = SP[i].MetalsLoss;
-#endif
-  in->WindMomentum = SP[i].WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-  in->SN_MassLoss = SP[i].SN_MassLoss;
-#ifdef METALS
-  in->SN_MetalsLoss = SP[i].SN_MetalsLoss;
-#endif
-  in->SN_EnergyInject = SP[i].SN_EnergyInject;
+#if defined(WINDS) || defined(SUPERNOVAE)
+  in->WindsAndSN = SP[i].WindsAndSN;
 #endif
 
   in->Hsml = SP[i].Hsml;
@@ -115,7 +89,7 @@ typedef struct
   struct HostCell HostCell;
 
   /* Pass 2 outputs */
-  int NgbsMaxBin;
+  int HostHydroBin = 0;
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -147,7 +121,7 @@ static void out2particle(data_out *out, int i, int mode)
       /* Pass 2 outputs */
       if(pass == 2)
         {
-          SP[i].NgbsMaxBin = out->NgbsMaxBin;
+          SP[i].HostHydroBin = out->HostHydroBin;
         }
     }
   else /* combine */
@@ -167,8 +141,8 @@ static void out2particle(data_out *out, int i, int mode)
       /* Pass 2 outputs */
       if(pass == 2)
         {
-          if(out->NgbsMaxBin > SP[i].NgbsMaxBin)
-            SP[i].NgbsMaxBin = out->NgbsMaxBin;
+          if(!SP[i].HostHydroBin)
+            SP[i].HostHydroBin = out->HostHydroBin;
         }
     }
 }
@@ -359,7 +333,7 @@ void star_density(void)
 static int star_density_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int ngbs, ngbsmaxbin = 0; 
+  int ngbs, hosthydrobin = 0; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos;
 
@@ -451,30 +425,32 @@ static int star_density_evaluate(int target, int mode, int threadid)
           else 
             {          
               if(i == index && ThisTask == task)
-                {
-                 
-                  if(ngbsmaxbin < P[i].TimeBinHydro)
-                    ngbsmaxbin = P[i].TimeBinHydro;
+                {                
+                  hosthydrobin = P[i].TimeBinHydro;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-                  SphP[i].TimeSN_yr = target_data->TimeSN_yr;
-                  SphP[i].PhysicalAge_yr = target_data->PhysicalAge_yr;
+                  MyDouble time_sn_yr = target_data->TimeSN_yr;
+                  MyDouble physical_age_yr = target_data->PhysicalAge_yr;
+          
+                  if(time_sn_yr < MAX_REAL_NUMBER)
+                    {
+                      double E_inject_code = 1e51 / 
+                      (All.cf_UnitMass_in_g * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s);
+
+                      double unew = SphP[i].Utherm + E_inject_code / P[i].Mass;
+
+                      double t_frac = physical_age_yr / time_sn_yr;
+                      t_frac = fmin(fmax(t_frac, 0.0), 1.0);
+
+                      double Csn = SphP[i].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[i].Csnd) * t_frac;
+          
+                      if(Csn > SphP[i].Csn)
+                        SphP[i].Csn = Csn;
+                    }
 #endif
 
-#ifdef WINDS
-                  SphP[i].MassLoss = target_data->MassLoss;
-#ifdef METALS
-                  SphP[i].MetalsLoss = target_data->MetalsLoss;
-#endif
-                  SphP[i].WindMomentum = target_data->WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-                  SphP[i].SN_MassLoss = target_data->SN_MassLoss;
-#ifdef METALS
-                  SphP[i].SN_MetalsLoss = target_data->SN_MetalsLoss;
-#endif
-                  SphP[i].SN_EnergyInject = target_data->SN_EnergyInject;
+#if defined(WINDS) || defined(SUPERNOVAE)
+                  SphP[i].WindsAndSN = target_data->WindsAndSN;
 #endif
                 }
             }
@@ -490,9 +466,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
     }
 
   if(pass == 2)
-    {
-      out.NgbsMaxBin = ngbsmaxbin;
-    }
+    out.HostHydroBin = hosthydrobin;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)

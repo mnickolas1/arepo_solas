@@ -58,7 +58,7 @@ integertime star_timestep(int i)
   double dt_grav = MAX_REAL_NUMBER;
 #endif
 
-  double dt_ngbmax = (SP[i].NgbsMaxBin ? (((integertime)1) << SP[i].NgbsMaxBin) : 0) * All.Timebase_interval;
+  double dt_ngbmax = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
   double dt_star = pow(10,4) / All.cf_UnitTime_in_yr;
 
   double dt = dt_grav;
@@ -167,7 +167,7 @@ void star_prep(void)
       i = TimeBinsStar.ActiveParticleList[idx];
 
       if(SP[i].Active == 0)
-        if(TimeBinSynchronized[SP[i].NgbsMaxBin])
+        if(TimeBinSynchronized[SP[i].HostHydroBin])
           {
             SP[i].Active = 1;
             SP[i].PhysicalAge_yr = 0.0;
@@ -205,11 +205,11 @@ void star_prep(void)
 #endif
 
 #ifdef WINDS
-      SP[i].MassLoss = star_feedback.MassLoss;
+      SP[i].WindsAndSN.MassLoss = star_feedback.MassLoss;
 #ifdef METALS
-      SP[i].MetalsLoss = star_feedback.MetalsLoss;
+      SP[i].WindsAndSN.MetalsLoss = star_feedback.MetalsLoss;
 #endif
-      SP[i].WindMomentum = star_feedback.WindMomentum;
+      SP[i].WindsAndSN.WindMomentum = star_feedback.WindMomentum;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE      
@@ -221,11 +221,11 @@ void star_prep(void)
 #endif
 
 #ifdef SUPERNOVAE
-      SP[i].SN_MassLoss = star_feedback.SN_MassLoss;
+      SP[i].WindsAndSN.SN_MassLoss = star_feedback.SN_MassLoss;
 #ifdef METALS
-      SP[i].SN_MetalsLoss = star_feedback.SN_MetalsLoss;
+      SP[i].WindsAndSN.SN_MetalsLoss = star_feedback.SN_MetalsLoss;
 #endif
-      SP[i].SN_EnergyInject = star_feedback.SN_EnergyInject;
+      SP[i].WindsAndSN.SN_EnergyInject = star_feedback.SN_EnergyInject;
 #endif
     }
 }

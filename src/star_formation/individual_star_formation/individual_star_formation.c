@@ -294,7 +294,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
 #ifdef STAR_FEEDBACK_ACTIVE
   /* set timebin */
   SP[NumStars].Active = 0;
-  SP[NumStars].NgbsMaxBin = P[igas].TimeBinHydro;
+  SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 #endif
 
@@ -371,7 +371,7 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
   SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
   /* set timebin */
   SP[NumStars].Active = 0;
-  SP[NumStars].NgbsMaxBin = P[igas].TimeBinHydro;
+  SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 
   // This is needed for lower res star by star simulations

@@ -99,7 +99,7 @@ void star_feedback(void)
 
   /* upper bound on export buffer: NumGas host cells * max Voronoi faces */
   int max_export = NumGas * 16;
-  struct FBKick *ExportBuf  = mymalloc("FBExportBuf",  max_export * sizeof(struct FBKick));
+  struct FBKick *ExportBuf = mymalloc("FBExportBuf",  max_export * sizeof(struct FBKick));
   int *ExportTask = mymalloc("FBExportTask", max_export * sizeof(int));
   int n_export = 0;
 
@@ -216,7 +216,7 @@ void star_feedback(void)
 
       if(wtot <= 0.0)
         {
-          terminate("STAR_FEEDBACK: warning — zero weight for host cell %d, skipping momentum\n", i);
+          terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
         }
 
       /* 
@@ -228,7 +228,7 @@ void star_feedback(void)
           double wbar = weights[f] / wtot;
           
           if(wbar <= 0.0) 
-            continue;
+            terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
 
           /* outward kick direction: host cell center -> face centroid */
           double dx = Mesh.VF[vf].cx - P[i].Pos[0];
@@ -315,8 +315,8 @@ void star_feedback(void)
   */
   int *SendCount = mymalloc("FBSendCount", NTask * sizeof(int));
   int *RecvCount = mymalloc("FBRecvCount", NTask * sizeof(int));
-  int *SendDisp  = mymalloc("FBSendDisp",  NTask * sizeof(int));
-  int *RecvDisp  = mymalloc("FBRecvDisp",  NTask * sizeof(int));
+  int *SendDisp = mymalloc("FBSendDisp",  NTask * sizeof(int));
+  int *RecvDisp = mymalloc("FBRecvDisp",  NTask * sizeof(int));
 
   memset(SendCount, 0, NTask * sizeof(int));
   for(int k = 0; k < n_export; k++)
