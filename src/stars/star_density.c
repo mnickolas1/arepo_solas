@@ -450,6 +450,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
+                  SphP[i].Host++;
                   SphP[i].WindsAndSN = target_data->WindsAndSN;
 #endif
                 }
