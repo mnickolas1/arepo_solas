@@ -1708,7 +1708,7 @@ extern struct sph_particle_data
 /* Hosts */
 #if defined(WINDS) || defined(SUPERNOVAE)
 int Host;
-struct MechanicalFeedback WindsAndSN;
+struct MechanicalFeedback WindsAndSN[2];
 #endif
 
 /* Feedback */

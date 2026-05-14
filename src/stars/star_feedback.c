@@ -57,8 +57,8 @@ static void apply_kick(int j, const struct FBKick *k)
 #ifdef SUPERNOVAE
 static double compute_p0_SN(int i, double *Eth_out)
 {
-  double E_SN = SphP[i].SN_EnergyInject;
-  double m_ej = SphP[i].SN_MassLoss;
+  double E_SN = SphP[i].WindsAndSN.SN_EnergyInject;
+  double m_ej = SphP[i].WindsAndSN.SN_MassLoss;
 
   double n_H  = SphP[i].Density * All.cf_UnitDensity_in_cgs / PROTONMASS;
 #ifdef METALS
@@ -112,7 +112,8 @@ void star_feedback(void)
 #ifdef METALS
       SphP[i].StarMetalsFeed += SphP[i].WindsAndSN.MetalsLoss * F_HOST;
 #endif
-      SphP[i].StarMomentumFeed += SphP[i].WindsAndSN.MassLoss * F_HOST * Vstar;
+      for(int k = 0; k < 3; k++)
+        SphP[i].StarMomentumFeed[k] += SphP[i].WindsAndSN.MassLoss * F_HOST * SphP[i].WindsAndSN.StarVelocity[k];
 #endif 
 
 #ifdef SUPERNOVAE
@@ -123,12 +124,14 @@ void star_feedback(void)
       double Eth_SN;
       double p0_SN = compute_p0_SN(i, &Eth_SN);
 
-      SphP[i].Energy += Eth_SN * F_HOST;
+      SphP[i].StarEnergyFeed += Eth_SN * F_HOST;
 #endif 
 
       /* Compute weights */
-      double nplus[3], nminus[3], Splus[3], Sminus[3], fplus[3], fminus[3];
+      double nplus[3], nminus[3], fplus[3], fminus[3];
       
+      /* Accumulate */
+      double Splus[3], Sminus[3];
       for(int k = 0; k < 3; k++)
         Splus[k] = Sminus[k] = 0;
 
@@ -158,15 +161,15 @@ void star_feedback(void)
                   {
                     n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
 
-                    double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)))
+                    double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
                     
                     for(int k = 0; k < 3; k++)
                       {
                         nplus[k] = n[k] >= 0 ? n[k] : 0;
                         nminus[k] = n[k] < 0 ? n[k] : 0; 
                         
-                        Splus[k] += omega * nplus[k];
-                        Sminus[k] += omega * nminus[k];
+                        Splus[k] += omega * fabs(nplus[k]);
+                        Sminus[k] += omega * fabs(nminus[k]);
                       }
                   }
               }
@@ -178,12 +181,14 @@ void star_feedback(void)
         }
 
       int dc_list[MAX_FACES];
-      double weights[MAX_FACES];
+      double weights[MAX_FACES][3];
       int n_faces = 0;
-      double wtot = 0.0;    
+      double wtot = 0.0; 
+      
+      double w[3];
       
       /* Second pass */
-      int q = SphP[i].first_connection;
+      q = SphP[i].first_connection;
       while(q >= 0)
         {
           if(q >= MaxNvc)
@@ -200,8 +205,6 @@ void star_feedback(void)
                 n[1] = Mesh.DP[dp].y - P[i].Pos[1];
                 n[2] = Mesh.DP[dp].z - P[i].Pos[2];
                 nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-                
-                double w = 0;
 
                 if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
                   {
@@ -211,10 +214,12 @@ void star_feedback(void)
                     
                     for(int k = 0; k < 3; k++)
                       {
-                        fplus[k] = sqrt(0.5 * (1 + Sminus*Sminus / (Splus*Splus)));
-                        fminus[k] = sqrt(0.5 * (1 + Splus*Splus / (Sminus*Sminus)));
+                        nplus[k] = n[k] >= 0 ? n[k] : 0;
+                        nminus[k] = n[k] < 0 ? n[k] : 0; 
+                        fplus[k] = sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k])));
+                        fminus[k] = sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k])));
 
-                        w += omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
+                        w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
                       }                                         
                   }
 
@@ -222,8 +227,12 @@ void star_feedback(void)
                   terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
 
                 dc_list[n_faces] = q;
-                weights[n_faces] = w;
-                wtot += w;
+                
+                for(int k = 0; k < 3; k++)
+                  weights[n_faces][k] = w[k];
+                                      
+                wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
+
                 n_faces++;
               }
 
@@ -241,39 +250,42 @@ void star_feedback(void)
         {
           q = dc_list[f];
 
-          double wbar = weights[f] / wtot;
+          double wbar[3]; 
+          
+          for(int k = 0; k < 3; k++)
+            wbar[k] = weights[f][k] / wtot;
           
           if(wbar <= 0.0) 
             terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
 
           /* Outward kick direction: host cell center -> face centroid */
-          double dx = Mesh.VF[vf].cx - P[i].Pos[0];
-          double dy = Mesh.VF[vf].cy - P[i].Pos[1];
-          double dz = Mesh.VF[vf].cz - P[i].Pos[2];
+          double n[3], nn; 
 
-          double r = sqrt(dx*dx + dy*dy + dz*dz);
+          n[0] = Mesh.DP[dp].x - P[i].Pos[0];
+          n[1] = Mesh.DP[dp].y - P[i].Pos[1];
+          n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
 
           struct FBKick kick = {0};
           kick.CellIndex = DC[q].index;
 
 #ifdef WINDS
-          kick.DeltaP_wind[0] = wbar * SphP[i].WindMomentum * nx;
-          kick.DeltaP_wind[1] = wbar * SphP[i].WindMomentum * ny;
-          kick.DeltaP_wind[2] = wbar * SphP[i].WindMomentum * nz;
-          kick.DeltaMass_wind = wbar * SphP[i].MassLoss * (1 - F_HOST);
+          kick.DeltaMass_wind = SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1 - F_HOST);
 #ifdef METALS
-          kick.DeltaMetals_wind = wbar * SphP[i].MetalsLoss * (1 - F_HOST);
-#endif
+          kick.DeltaMetals_wind = SphP[i].WindsAndSN.MetalsLoss * sqrt(wbar*wbar) * (1 - F_HOST);
+#endif    
+          for(int k = 0; k < 3; k++)
+            kick.DeltaP_wind[0] = SphP[i].WindsAndSN.WindMomentum * wbar;
 #endif
  
 #ifdef SUPERNOVAE
+          kick.DeltaMass_SN = SphP[i].WindsAndSN.SN_MassLoss * sqrt(wbar*wbar) * (1 - F_HOST);
+#ifdef METALS
+          kick.DeltaMetals_SN = SphP[i].WindsAndSN.SN_MetalsLoss * sqrt(wbar*wbar) * (1 - F_HOST);
+#endif 
           kick.DeltaP_SN[0] = wbar * p0_SN * nx;
           kick.DeltaP_SN[1] = wbar * p0_SN * ny;
           kick.DeltaP_SN[2] = wbar * p0_SN * nz;
-          kick.DeltaMass_SN = wbar * SphP[i].SN_MassLoss * (1 - F_HOST);
-#ifdef METALS
-          kick.DeltaMetals_SN = wbar * SphP[i].SN_MetalsLoss * (1 - F_HOST);
-#endif 
 #endif
 
           if(DC[q].task == ThisTask)
@@ -289,9 +301,7 @@ void star_feedback(void)
         }
 
       /* CLEAR - reset host-cell feedback flags so they don't fire again */
-
-      SphP[i].Host = 0;
-      SphP[i].WindsAndSN = {0};
+      SphP[i].WindsAndSN[SphP[i].Host--] = {0};
     }
 
   /* Exchange remote kick packets via MPI_Alltoallv */

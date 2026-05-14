@@ -204,6 +204,12 @@ void star_prep(void)
      SP[i].TimeSN_yr = star_feedback.TimeSN;
 #endif
 
+#if defined(WINDS) || defined(SUPERNOVAE)
+     for(int k = 0; k < 3; k++)
+       SP[i].WindsAndSN.StarVelocity[k] = PPS(i).Vel[k];
+#endif
+
+
 #ifdef WINDS
       SP[i].WindsAndSN.MassLoss = star_feedback.MassLoss;
 #ifdef METALS
