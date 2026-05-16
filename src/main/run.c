@@ -297,6 +297,8 @@ void run(void)
 
       exchange_primitive_variables_and_gradients();
 
+      mesh_feedback();
+
       compute_interface_fluxes(&Mesh);
 
       update_primitive_variables(); /* this effectively closes off the hydro step */

@@ -59,29 +59,45 @@ static double compute_p0_SN(int i, double *Eth_out)
 {
   double E_SN = SphP[i].WindsAndSN.SN_EnergyInject;
   double m_ej = SphP[i].WindsAndSN.SN_MassLoss;
+  
+  double E51 = E_SN * All.cf_UnitEnergy_in_cgs / 1.0e51;
+  
+  double n_H  = 0.76 * NgbsDensity * All.cf_UnitDensity_in_cgs / PROTONMASS; 
 
-  double n_H  = SphP[i].Density * All.cf_UnitDensity_in_cgs / PROTONMASS;
 #ifdef METALS
-  double Zsol = fmax(SphP[i].Metallicity / SOLAR_METALLICITY, 0.01);
+  double Zsol = fmax(NgbsMetallicity / 0.0127, 0.01);
 #else
   double Zsol = 1.0;
 #endif
 
-  /* terminal momentum: Kim & Ostriker (2015) */
-  double E51 = E_SN * All.cf_UnitEnergy_in_cgs / 1.0e51;
-  double p_term = 2.8e5  /* Msun km/s */
-                  * pow(E51,                0.93)
-                  * pow(fmax(n_H, 1.0e-4), -0.17)
-                  * pow(Zsol,              -0.14);
+  /* Terminal momentum: Kim & Ostriker (2015) */
+  double p_term = 3.0e5 /* Msun km/s */
+  * pow(E51, 16. / 17.)
+  * pow(n_H, -2. / 17.)
+  * pow(Zsol, -0.14);
+  
   p_term /= (All.cf_UnitMass_in_Msun * All.cf_UnitVelocity_in_cm_per_s / 1.0e5);
+  
+  /* Boost momentum */
+  double fkin = 0.28;
+  double a = m_ej * (sum_of_ngb_masses); 
+  double b = (m_ej / (2 * fkin * E));
+  
+
+  double fboost = fmin((sqrt(b*b + a) - b) / a, p_term / (sqrt(2 * fkin * E_SN * m_ej)));
+
+  double p_SN = fboost * sqrt(2 * fkin * E_SN * m_ej);
+
 
   /* energy-conserving limit */
   double p_egy = sqrt(2.0 * m_ej * E_SN);
 
   double p0 = fmin(p_egy, p_term);
 
+  Usnr = Esnr * (1- fkin * fboost * (fboost * a + 2 * b));
+
   /* residual thermal energy: what's left after momentum injection */
-  *Eth_out = fmax(0.0, E_SN - (p0 * p0) / (2.0 * P[i].Mass));
+  *Eth_out = Usnr;
 
   return p0;
 }
@@ -114,6 +130,15 @@ void star_feedback(void)
 #endif
       for(int k = 0; k < 3; k++)
         SphP[i].StarMomentumFeed[k] += SphP[i].WindsAndSN.MassLoss * F_HOST * SphP[i].WindsAndSN.StarVelocity[k];
+
+      double sq_vstar = SphP[i].WindsAndSN.StarVelocity[0]*SphP[i].WindsAndSN.StarVelocity[0] 
+      + SphP[i].WindsAndSN.StarVelocity[1]*SphP[i].WindsAndSN.StarVelocity[1] 
+      + SphP[i].WindsAndSN.StarVelocity[2]*SphP[i].WindsAndSN.StarVelocity[2];
+
+      double sq_vwind = SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss 
+      * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss;
+
+      SphP[i].StarEnergyFeed += 0.5 * SphP[i].WindsAndSN.MassLoss * F_HOST * (sq_vstar + sq_vwind);
 #endif 
 
 #ifdef SUPERNOVAE
@@ -121,19 +146,33 @@ void star_feedback(void)
 #ifdef METALS
       SphP[i].StarMetalsFeed += SphP[i].WindsAndSN.SN_MetalsLoss * F_HOST;
 #endif
+      for(int k = 0; k < 3; k++)
+        SphP[i].StarMomentumFeed[k] += SphP[i].WindsAndSN.SN_MassLoss * F_HOST * SphP[i].WindsAndSN.StarVelocity[k];
+
       double Eth_SN;
       double p0_SN = compute_p0_SN(i, &Eth_SN);
 
       SphP[i].StarEnergyFeed += Eth_SN * F_HOST;
 #endif 
 
+      /* We will loop over the cell faces 4 times */
+      int n_faces = 0;
+      int dc_list[MAX_FACES];     
+
       /* Compute weights */
       double nplus[3], nminus[3], fplus[3], fminus[3];
       
-      /* Accumulate */
+      /* Accumulate helper */
       double Splus[3], Sminus[3];
       for(int k = 0; k < 3; k++)
         Splus[k] = Sminus[k] = 0;
+
+      /* Ngbs properties (Start with host) */
+      int Ngbs = 1;
+      double NgbsMass, NgbsDensity, NgbsMetallicity;     
+      NgbsMass = P[i].Mass * F_HOST;
+      NgbsDensity = SphP[i].Density * F_HOST;
+      NgbsMetallicity = SphP[i].GasMetallicity * F_HOST;
 
       /* First pass */  
       int q = SphP[i].first_connection;
@@ -142,37 +181,61 @@ void star_feedback(void)
           if(q >= MaxNvc)
             terminate("star_feedback: strange connectivity q=%d MaxNvc=%d\n", q, MaxNvc);
 
-            if(DC[q].task >= 0 && DC[q].task < NTask)
-              {
-                int dp = DC[q].dp_index;
-                int vf = DC[q].vf_index;
-               
-                /* Outward face normal: vector from cell generator to neighbor
-                generator, normalized (this is the Voronoi face normal) */
+          int dp = DC[q].dp_index;
+          int vf = DC[q].vf_index;
+          int particle = Mesh.DP[dp].index;
+
+          if(particle < 0)
+            terminate("Particle < 0");
+
+          if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
+            particle -= NumGas;
+
+          /* Outward face normal: vector from cell generator to neighbor
+          generator, normalized (this is the Voronoi face normal) */
                 
-                double n[3], nn; 
+          double n[3], nn; 
 
-                n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-                n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-                n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-                nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+          n[0] = Mesh.DP[dp].x - P[i].Pos[0];
+          n[1] = Mesh.DP[dp].y - P[i].Pos[1];
+          n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
 
-                if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
-                  {
-                    n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
+          if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
+            {
+              n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
 
-                    double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
+              double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
                     
-                    for(int k = 0; k < 3; k++)
-                      {
-                        nplus[k] = n[k] >= 0 ? n[k] : 0;
-                        nminus[k] = n[k] < 0 ? n[k] : 0; 
+              for(int k = 0; k < 3; k++)
+                {
+                  nplus[k] = n[k] >= 0 ? n[k] : 0;
+                  nminus[k] = n[k] < 0 ? n[k] : 0; 
                         
-                        Splus[k] += omega * fabs(nplus[k]);
-                        Sminus[k] += omega * fabs(nminus[k]);
-                      }
-                  }
-              }
+                  Splus[k] += omega * fabs(nplus[k]);
+                  Sminus[k] += omega * fabs(nminus[k]);
+                }
+            }
+              
+          if(Mesh.DP[dp].task == ThisTask)
+            {
+              Ngbs++;
+              NgbsMass += SphP[particle].Density * SphP[particle].Volume * (1-F_HOST);
+              NgbsDensity += SphP[particle].Density * (1-F_HOST);
+              NgbsMetallicity += SphP[particle].GasMetallicity * (1-F_HOST);
+            }
+          else
+            {
+              Ngbs++;
+              NgbsMass += PrimExch[particle].Density * PrimExch[particle].Volume * (1-F_HOST);
+              NgbsDensity += PrimExch[particle].Density * (1-F_HOST);
+              NgbsMetallicity += PrimExch[particle].Scalars[METALS_INDEX] * (1-F_HOST);
+            }     
+          
+          if(n_faces >= MAX_FACES)
+            terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
+
+          dc_list[n_faces++] = q;
 
           if(q == SphP[i].last_connection) 
             break;
@@ -180,72 +243,113 @@ void star_feedback(void)
           q = DC[q].next;
         }
 
-      int dc_list[MAX_FACES];
+      NgbsMass /= Ngbs;
+      NgbsDensity /= Ngbs;
+      NgbsMetallicity /= Ngbs;     
+
       double weights[MAX_FACES][3];
-      int n_faces = 0;
       double wtot = 0.0; 
-      
       double w[3];
       
       /* Second pass */
-      q = SphP[i].first_connection;
-      while(q >= 0)
+      for(int f = 0; f < n_faces; f++)
         {
-          if(q >= MaxNvc)
-            terminate("star_feedback: strange connectivity q=%d MaxNvc=%d\n", q, MaxNvc);
-
-            if(DC[q].task >= 0 && DC[q].task < NTask)
-              {
-                int dp = DC[q].dp_index;
-                int vf = DC[q].vf_index;
-
-                double n[3], nn; 
-
-                n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-                n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-                n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-                nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-
-                if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
-                  {
-                    n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-                                        
-                    double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
-                    
-                    for(int k = 0; k < 3; k++)
-                      {
-                        nplus[k] = n[k] >= 0 ? n[k] : 0;
-                        nminus[k] = n[k] < 0 ? n[k] : 0; 
-                        fplus[k] = sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k])));
-                        fminus[k] = sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k])));
-
-                        w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
-                      }                                         
-                  }
-
-                if(n_faces >= MAX_FACES)
-                  terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
-
-                dc_list[n_faces] = q;
-                
-                for(int k = 0; k < 3; k++)
-                  weights[n_faces][k] = w[k];
-                                      
-                wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-
-                n_faces++;
-              }
-
-          if(q == SphP[i].last_connection) 
-            break;
+          q = dc_list[f];
           
-          q = DC[q].next;
+          int dp = DC[q].dp_index;
+          int vf = DC[q].vf_index;
+
+          double n[3], nn; 
+
+          n[0] = Mesh.DP[dp].x - P[i].Pos[0];
+          n[1] = Mesh.DP[dp].y - P[i].Pos[1];
+          n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+
+          if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
+            {
+              n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
+                                        
+              double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
+                    
+              for(int k = 0; k < 3; k++)
+                {
+                  nplus[k] = n[k] >= 0 ? n[k] : 0;
+                  nminus[k] = n[k] < 0 ? n[k] : 0; 
+                  fplus[k] = sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k])));
+                  fminus[k] = sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k])));
+
+                  w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
+                }                                         
+            }
+                
+          for(int k = 0; k < 3; k++)
+            weights[f][k] = w[k];
+                                    
+            wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
         }
 
       if(wtot <= 0.0)
         terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
       
+      /* Helpers for SN momentum */
+      double a, b, num, den = 0;
+
       /* Third pass */ 
+      for(int f = 0; f < n_faces; f++)
+        {
+          q = dc_list[f];
+
+          int dp = DC[q].dp_index;
+          int particle = Mesh.DP[dp].index;
+
+          if(particle < 0)
+            terminate("Particle < 0");
+
+          if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
+            particle -= NumGas;
+
+          double wbar[3]; 
+          
+          for(int k = 0; k < 3; k++)
+            wbar[k] = weights[f][k] / wtot;
+
+          sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
+        
+          num = sq_wbar;
+          
+          if(Mesh.DP[dp].task == ThisTask)
+            den = SphP[particle].Density * SphP[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
+          else
+            den = PrimExch[particle].Density * PrimExch[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
+          
+          a += num / den;
+
+          if(Mesh.DP[dp].task == ThisTask)
+            {
+              num = SphP[particle].Density * SphP[particle].Volume 
+              * ((P[particle].Vel[0] - SphP[i].WindsAndSN.StarVelocity[0]) * wbar[0] 
+              + (P[particle].Vel[1] - SphP[i].WindsAndSN.StarVelocity[1]) * wbar[1]
+              + (P[particle].Vel[2] - SphP[i].WindsAndSN.StarVelocity[2]) * wbar[2]);
+              den = SphP[particle].Density * SphP[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
+            }
+          else
+            {
+              num = PrimExch[particle].Density * PrimExch[particle].Volume 
+              * ((PrimExch[particle].VelGas[0] - SphP[i].WindsAndSN.StarVelocity[0]) * wbar[0] 
+              + (PrimExch[particle].VelGas[1] - SphP[i].WindsAndSN.StarVelocity[1]) * wbar[1]
+              + (PrimExch[particle].VelGas[2] - SphP[i].WindsAndSN.StarVelocity[2]) * wbar[2]);
+              den = PrimExch[particle].Density * PrimExch[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
+            }
+
+          b += num / den;
+        }
+
+      a *= m_ej;
+
+      b *= sqrt(m_ej / (2 * fkin * Esnr));
+ 
+      /* Fourth pass */  
       for(int f = 0; f < n_faces; f++)
         {
           q = dc_list[f];
@@ -254,10 +358,7 @@ void star_feedback(void)
           
           for(int k = 0; k < 3; k++)
             wbar[k] = weights[f][k] / wtot;
-          
-          if(wbar <= 0.0) 
-            terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
-
+      
           /* Outward kick direction: host cell center -> face centroid */
           double n[3], nn; 
 
@@ -270,22 +371,40 @@ void star_feedback(void)
           kick.CellIndex = DC[q].index;
 
 #ifdef WINDS
-          kick.DeltaMass_wind = SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1 - F_HOST);
+          kick.DeltaMass_wind = SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1-F_HOST);
 #ifdef METALS
-          kick.DeltaMetals_wind = SphP[i].WindsAndSN.MetalsLoss * sqrt(wbar*wbar) * (1 - F_HOST);
+          kick.DeltaMetals_wind = SphP[i].WindsAndSN.MetalsLoss * sqrt(wbar*wbar) * (1-F_HOST);
 #endif    
           for(int k = 0; k < 3; k++)
-            kick.DeltaP_wind[0] = SphP[i].WindsAndSN.WindMomentum * wbar;
+            kick.DeltaP_wind[k] = SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1-F_HOST) 
+            * (SphP[i].WindsAndSN.StarVelocity[k] + SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[k]);
+          
+          double sq_vstar = SphP[i].WindsAndSN.StarVelocity[0]*SphP[i].WindsAndSN.StarVelocity[0] 
+          + SphP[i].WindsAndSN.StarVelocity[1]*SphP[i].WindsAndSN.StarVelocity[1] 
+          + SphP[i].WindsAndSN.StarVelocity[2]*SphP[i].WindsAndSN.StarVelocity[2];
+
+          double sq_vwind = SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss
+          * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss; 
+
+          double cross = 2 * SphP[i].WindsAndSN.StarVelocity[0] * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[0] 
+          + SphP[i].WindsAndSN.StarVelocity[1] * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[1] 
+          + SphP[i].WindsAndSN.StarVelocity[2] * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[2];
+
+          kick.DeltaE_wind = 0.5 * SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1-F_HOST) 
+          * (sq_vstar + sq_vwind * wbar*wbar + cross);
+          
 #endif
  
 #ifdef SUPERNOVAE
-          kick.DeltaMass_SN = SphP[i].WindsAndSN.SN_MassLoss * sqrt(wbar*wbar) * (1 - F_HOST);
+          kick.DeltaMass_SN = SphP[i].WindsAndSN.SN_MassLoss * sqrt(wbar*wbar) * (1-F_HOST);
 #ifdef METALS
-          kick.DeltaMetals_SN = SphP[i].WindsAndSN.SN_MetalsLoss * sqrt(wbar*wbar) * (1 - F_HOST);
+          kick.DeltaMetals_SN = SphP[i].WindsAndSN.SN_MetalsLoss * sqrt(wbar*wbar) * (1-F_HOST);
 #endif 
-          kick.DeltaP_SN[0] = wbar * p0_SN * nx;
-          kick.DeltaP_SN[1] = wbar * p0_SN * ny;
-          kick.DeltaP_SN[2] = wbar * p0_SN * nz;
+          for(int k = 0; k < 3; k++)
+            kick.DeltaP_SN[k] = SphP[i].WindsAndSN.SNMassLoss * sqrt(wbar*wbar) * (1-F_HOST) * SphP[i].WindsAndSN.StarVelocity[k]
+            + psnr * wbar[k];
+
+          kick.DeltaE_wind = usnr * sqrt(wbar*wbar) * (1-F_HOST);
 #endif
 
           if(DC[q].task == ThisTask)

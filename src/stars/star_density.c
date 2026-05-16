@@ -310,11 +310,11 @@ void star_density(void)
   myfree(StarHostCell);
   myfree(StarNgbs);
 
-  /* mark as active again */
+  /* Mark as active */
   for(i = 0; i < NumStars; i++)
      SP[i].DensityFlag = 1;
   
-  /* collect some timing information */
+  /* Collect timing information */
   CPU_Step[CPU_INIT] += measure_time();
 }
 
