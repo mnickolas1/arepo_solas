@@ -297,7 +297,9 @@ void run(void)
 
       exchange_primitive_variables_and_gradients();
 
-      mesh_feedback();
+#if defined(WINDS) || defined(SUPERNOVAE)
+      star_feedback();
+#endif
 
       compute_interface_fluxes(&Mesh);
 
@@ -417,10 +419,6 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
       star_update_timesteps();
       
       star_prep();
-
-#if defined(WINDS) || defined(SUPERNOVAE)
-      star_feedback();
-#endif
 
 #ifdef STAR_RADIATION_ACTIVE
       star_radiation();

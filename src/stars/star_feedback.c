@@ -26,28 +26,48 @@ struct FBKick
   int CellIndex; /* cell index on the receiving task */
 
 #ifdef WINDS
-  MyDouble DeltaP_wind[3];
+  MyDouble DeltaMass;
+#ifdef METALS
+  MyDouble DeltaMetals;
+#endif
+  MyDouble DeltaP[3];
+  MyDouble DeltaE;
 #endif
 
 #ifdef SUPERNOVAE
-  MyDouble DeltaP_SN[3];
+  MyDouble SN_DeltaMass;
+#ifdef METALS
+  MyDouble SN_DeltaMetals;
+#endif
+  MyDouble SN_DeltaP[3];
+  MyDouble SN_DeltaE;
 #endif
 };
 
 /* Apply a kick packet to a local cell */
-static void apply_kick(int j, const struct FBKick *k)
+static void apply_kick(int j, const struct FBKick *kick)
 {
 #ifdef WINDS
-  P[j].Vel[0] += k->DeltaP_wind[0] / P[j].Mass;
-  P[j].Vel[1] += k->DeltaP_wind[1] / P[j].Mass;
-  P[j].Vel[2] += k->DeltaP_wind[2] / P[j].Mass;
+      SphP[j].StarMassFeed += kick->DeltaMass;
+#ifdef METALS
+      SphP[j].StarMetalsFeed += kick->DeltaMetals;
 #endif
+      for(int k = 0; k < 3; k++)
+        SphP[j].StarMomentumFeed[k] += kick->DeltaP[k];
+
+      SphP[j].StarEnergyFeed += kick->DeltaE;
+#endif 
 
 #ifdef SUPERNOVAE
-  P[j].Vel[0] += k->DeltaP_SN[0] / P[j].Mass;
-  P[j].Vel[1] += k->DeltaP_SN[1] / P[j].Mass;
-  P[j].Vel[2] += k->DeltaP_SN[2] / P[j].Mass;
+      SphP[j].StarMassFeed += kick->SN_DeltaMass;
+#ifdef METALS
+      SphP[j].StarMetalsFeed += kick->SN_DeltaMetals;
 #endif
+      for(int k = 0; k < 3; k++)
+        SphP[j].StarMomentumFeed[k] += kick->SN_DeltaP[k];
+
+      SphP[j].StarEnergyFeed += kick->SN_DeltaE;
+#endif 
 }
 
 /* Compute SN p0 = min(p_egy, p_term) and residual thermal energy
@@ -55,12 +75,25 @@ static void apply_kick(int j, const struct FBKick *k)
    density and metallicity from star_density pass 2. */
 
 #ifdef SUPERNOVAE
-static double compute_p0_SN(int i, double *Eth_out)
+static void SN_compute(int i, double NgbsDensity, double NgbsMetallicity, double epsilon, double a, double b, double *p, double *Eth)
 {
-  double E_SN = SphP[i].WindsAndSN.SN_EnergyInject;
-  double m_ej = SphP[i].WindsAndSN.SN_MassLoss;
+  struct MechanicalFeedback *WindsAndSN = &SphP[i].WindsAndSN[SphP[i].Host - 1];
   
-  double E51 = E_SN * All.cf_UnitEnergy_in_cgs / 1.0e51;
+  double E_SN = WindsAndSN->SN_EnergyInject;
+  double m_ej = WindsAndSN->SN_MassLoss;
+
+  double sq_vhost = P[i].Vel[0]*P[i].Vel[0] + P[i].Vel[1]*P[i].Vel[1] + P[i].Vel[2]*P[i].Vel[2];
+  double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
+  + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1] 
+  + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
+  double cross = 2.0 * (P[i].Vel[0]*WindsAndSN->StarVelocity[0] 
+  + P[i].Vel[1]*WindsAndSN->StarVelocity[1] 
+  + P[i].Vel[2]*WindsAndSN->StarVelocity[2]);
+  
+  double E_SNR = E_SN + 0.5 * (P[i].Mass * WindsAndSN->SN_MassLoss * F_HOST) / (P[i].Mass + WindsAndSN->SN_MassLoss * F_HOST)
+  *(sq_vhost + sq_vstar - cross) + 0.5 * epsilon;
+  
+  double E51 = E_SNR * All.cf_UnitEnergy_in_cgs / 1.0e51;
   
   double n_H  = 0.76 * NgbsDensity * All.cf_UnitDensity_in_cgs / PROTONMASS; 
 
@@ -80,26 +113,17 @@ static double compute_p0_SN(int i, double *Eth_out)
   
   /* Boost momentum */
   double fkin = 0.28;
-  double a = m_ej * (sum_of_ngb_masses); 
-  double b = (m_ej / (2 * fkin * E));
+  a *= m_ej;
+  b *= sqrt(m_ej / (2 * fkin * E_SNR));
   
+  double fboost = fmin((sqrt(b*b + a) - b) / a, p_term / (sqrt(2 * fkin * E_SNR * m_ej)));
 
-  double fboost = fmin((sqrt(b*b + a) - b) / a, p_term / (sqrt(2 * fkin * E_SN * m_ej)));
+  double p_SNR = fboost * sqrt(2 * fkin * E_SNR * m_ej);
 
-  double p_SN = fboost * sqrt(2 * fkin * E_SN * m_ej);
+  double U_SNR = E_SNR * (1 - fkin * fboost * (fboost * a + 2 * b));
 
-
-  /* energy-conserving limit */
-  double p_egy = sqrt(2.0 * m_ej * E_SN);
-
-  double p0 = fmin(p_egy, p_term);
-
-  Usnr = Esnr * (1- fkin * fboost * (fboost * a + 2 * b));
-
-  /* residual thermal energy: what's left after momentum injection */
-  *Eth_out = Usnr;
-
-  return p0;
+  *p = p_SNR;
+  *Eth = U_SNR;
 }
 #endif 
 
@@ -121,43 +145,13 @@ void star_feedback(void)
   for(int i = 0; i < NumGas; i++)
     {
       /* Not a host cell -> skip */
-      if(SphP[i].Host <= 0) continue;   
-
-#ifdef WINDS
-      SphP[i].StarMassFeed += SphP[i].WindsAndSN.MassLoss * F_HOST;
-#ifdef METALS
-      SphP[i].StarMetalsFeed += SphP[i].WindsAndSN.MetalsLoss * F_HOST;
-#endif
-      for(int k = 0; k < 3; k++)
-        SphP[i].StarMomentumFeed[k] += SphP[i].WindsAndSN.MassLoss * F_HOST * SphP[i].WindsAndSN.StarVelocity[k];
-
-      double sq_vstar = SphP[i].WindsAndSN.StarVelocity[0]*SphP[i].WindsAndSN.StarVelocity[0] 
-      + SphP[i].WindsAndSN.StarVelocity[1]*SphP[i].WindsAndSN.StarVelocity[1] 
-      + SphP[i].WindsAndSN.StarVelocity[2]*SphP[i].WindsAndSN.StarVelocity[2];
-
-      double sq_vwind = SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss 
-      * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss;
-
-      SphP[i].StarEnergyFeed += 0.5 * SphP[i].WindsAndSN.MassLoss * F_HOST * (sq_vstar + sq_vwind);
-#endif 
-
-#ifdef SUPERNOVAE
-      SphP[i].StarMassFeed += SphP[i].WindsAndSN.SN_MassLoss * F_HOST;
-#ifdef METALS
-      SphP[i].StarMetalsFeed += SphP[i].WindsAndSN.SN_MetalsLoss * F_HOST;
-#endif
-      for(int k = 0; k < 3; k++)
-        SphP[i].StarMomentumFeed[k] += SphP[i].WindsAndSN.SN_MassLoss * F_HOST * SphP[i].WindsAndSN.StarVelocity[k];
-
-      double Eth_SN;
-      double p0_SN = compute_p0_SN(i, &Eth_SN);
-
-      SphP[i].StarEnergyFeed += Eth_SN * F_HOST;
-#endif 
+      if(SphP[i].Host <= 0) continue; 
 
       /* We will loop over the cell faces 4 times */
       int n_faces = 0;
       int dc_list[MAX_FACES];     
+
+      /* GEOMETRY: passes 1 & 2 are star-independent (Voronoi mesh) */
 
       /* Compute weights */
       double nplus[3], nminus[3], fplus[3], fminus[3];
@@ -166,13 +160,6 @@ void star_feedback(void)
       double Splus[3], Sminus[3];
       for(int k = 0; k < 3; k++)
         Splus[k] = Sminus[k] = 0;
-
-      /* Ngbs properties (Start with host) */
-      int Ngbs = 1;
-      double NgbsMass, NgbsDensity, NgbsMetallicity;     
-      NgbsMass = P[i].Mass * F_HOST;
-      NgbsDensity = SphP[i].Density * F_HOST;
-      NgbsMetallicity = SphP[i].GasMetallicity * F_HOST;
 
       /* First pass */  
       int q = SphP[i].first_connection;
@@ -183,13 +170,6 @@ void star_feedback(void)
 
           int dp = DC[q].dp_index;
           int vf = DC[q].vf_index;
-          int particle = Mesh.DP[dp].index;
-
-          if(particle < 0)
-            terminate("Particle < 0");
-
-          if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
-            particle -= NumGas;
 
           /* Outward face normal: vector from cell generator to neighbor
           generator, normalized (this is the Voronoi face normal) */
@@ -216,21 +196,6 @@ void star_feedback(void)
                   Sminus[k] += omega * fabs(nminus[k]);
                 }
             }
-              
-          if(Mesh.DP[dp].task == ThisTask)
-            {
-              Ngbs++;
-              NgbsMass += SphP[particle].Density * SphP[particle].Volume * (1-F_HOST);
-              NgbsDensity += SphP[particle].Density * (1-F_HOST);
-              NgbsMetallicity += SphP[particle].GasMetallicity * (1-F_HOST);
-            }
-          else
-            {
-              Ngbs++;
-              NgbsMass += PrimExch[particle].Density * PrimExch[particle].Volume * (1-F_HOST);
-              NgbsDensity += PrimExch[particle].Density * (1-F_HOST);
-              NgbsMetallicity += PrimExch[particle].Scalars[METALS_INDEX] * (1-F_HOST);
-            }     
           
           if(n_faces >= MAX_FACES)
             terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
@@ -243,14 +208,18 @@ void star_feedback(void)
           q = DC[q].next;
         }
 
-      NgbsMass /= Ngbs;
-      NgbsDensity /= Ngbs;
-      NgbsMetallicity /= Ngbs;     
-
       double weights[MAX_FACES][3];
       double wtot = 0.0; 
-      double w[3];
-      
+
+#ifdef SUPERNOVAE
+      /* Ngbs properties (Start with host) */
+      int Ngbs = 1;
+      double NgbsMass, NgbsDensity, NgbsMetallicity;     
+      NgbsMass = P[i].Mass * F_HOST;
+      NgbsDensity = SphP[i].Density * F_HOST;
+      NgbsMetallicity = SphP[i].GasMetallicity * F_HOST;
+#endif
+  
       /* Second pass */
       for(int f = 0; f < n_faces; f++)
         {
@@ -266,6 +235,8 @@ void star_feedback(void)
           n[2] = Mesh.DP[dp].z - P[i].Pos[2];
           nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
 
+          double w[3] = {0.0, 0.0, 0.0};
+
           if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
             {
               n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
@@ -276,8 +247,8 @@ void star_feedback(void)
                 {
                   nplus[k] = n[k] >= 0 ? n[k] : 0;
                   nminus[k] = n[k] < 0 ? n[k] : 0; 
-                  fplus[k] = sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k])));
-                  fminus[k] = sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k])));
+                  fplus[k] = (Splus[k]  > 0.0) ? sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0;
+                  fminus[k] =(Sminus[k]  > 0.0) ? sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0;
 
                   w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
                 }                                         
@@ -286,21 +257,9 @@ void star_feedback(void)
           for(int k = 0; k < 3; k++)
             weights[f][k] = w[k];
                                     
-            wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-        }
+          wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
 
-      if(wtot <= 0.0)
-        terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
-      
-      /* Helpers for SN momentum */
-      double a, b, num, den = 0;
-
-      /* Third pass */ 
-      for(int f = 0; f < n_faces; f++)
-        {
-          q = dc_list[f];
-
-          int dp = DC[q].dp_index;
+#ifdef SUPERNOVAE
           int particle = Mesh.DP[dp].index;
 
           if(particle < 0)
@@ -309,133 +268,224 @@ void star_feedback(void)
           if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
             particle -= NumGas;
 
-          double wbar[3]; 
-          
-          for(int k = 0; k < 3; k++)
-            wbar[k] = weights[f][k] / wtot;
-
-          sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
-        
-          num = sq_wbar;
-          
-          if(Mesh.DP[dp].task == ThisTask)
-            den = SphP[particle].Density * SphP[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
-          else
-            den = PrimExch[particle].Density * PrimExch[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
-          
-          a += num / den;
-
           if(Mesh.DP[dp].task == ThisTask)
             {
-              num = SphP[particle].Density * SphP[particle].Volume 
-              * ((P[particle].Vel[0] - SphP[i].WindsAndSN.StarVelocity[0]) * wbar[0] 
-              + (P[particle].Vel[1] - SphP[i].WindsAndSN.StarVelocity[1]) * wbar[1]
-              + (P[particle].Vel[2] - SphP[i].WindsAndSN.StarVelocity[2]) * wbar[2]);
-              den = SphP[particle].Density * SphP[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
+              Ngbs++;
+              NgbsMass += SphP[particle].Density * SphP[particle].Volume * (1-F_HOST);
+              NgbsDensity += SphP[particle].Density * (1-F_HOST);
+              NgbsMetallicity += SphP[particle].GasMetallicity * (1-F_HOST);
             }
           else
             {
-              num = PrimExch[particle].Density * PrimExch[particle].Volume 
-              * ((PrimExch[particle].VelGas[0] - SphP[i].WindsAndSN.StarVelocity[0]) * wbar[0] 
-              + (PrimExch[particle].VelGas[1] - SphP[i].WindsAndSN.StarVelocity[1]) * wbar[1]
-              + (PrimExch[particle].VelGas[2] - SphP[i].WindsAndSN.StarVelocity[2]) * wbar[2]);
-              den = PrimExch[particle].Density * PrimExch[particle].Volume + sqrt(sq_wbar)*m_ej*(1-F_HOST);
-            }
-
-          b += num / den;
+              Ngbs++;
+              NgbsMass += PrimExch[particle].Density * PrimExch[particle].Volume * (1-F_HOST);
+              NgbsDensity += PrimExch[particle].Density * (1-F_HOST);
+              NgbsMetallicity += PrimExch[particle].Scalars[METALS_INDEX] * (1-F_HOST);
+            } 
+#endif    
         }
 
-      a *= m_ej;
+      if(wtot <= 0.0)
+        terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
 
-      b *= sqrt(m_ej / (2 * fkin * Esnr));
- 
-      /* Fourth pass */  
-      for(int f = 0; f < n_faces; f++)
+#ifdef SUPERNOVAE
+      NgbsMass /= Ngbs;
+      NgbsDensity /= Ngbs;
+      NgbsMetallicity /= Ngbs; 
+#endif
+
+      for(int h = 0; h < SphP[i].Host; h++)
         {
-          q = dc_list[f];
+          struct MechanicalFeedback *WindsAndSN = &SphP[i].WindsAndSN[h];
 
-          double wbar[3]; 
-          
-          for(int k = 0; k < 3; k++)
-            wbar[k] = weights[f][k] / wtot;
+#ifdef SUPERNOVAE      
+          /* Helpers for SN momentum */
+          double num, den;
+          double epsilon = 0.0, a = 0.0, b = 0.0;
+          double m_ej = WindsAndSN->SN_MassLoss;
       
-          /* Outward kick direction: host cell center -> face centroid */
-          double n[3], nn; 
 
-          n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-          n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-          n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-          nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+          /* Third pass */ 
+          for(int f = 0; f < n_faces; f++)
+            {
+              q = dc_list[f];
 
-          struct FBKick kick = {0};
-          kick.CellIndex = DC[q].index;
+              int dp = DC[q].dp_index;
+              int particle = Mesh.DP[dp].index;
 
+              if(particle < 0)
+                terminate("Particle < 0");
+
+              if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
+                particle -= NumGas;
+
+              double wbar[3]; 
+          
+              for(int k = 0; k < 3; k++)
+                wbar[k] = weights[f][k] / wtot;
+
+              double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
+
+              double mass, vel[3];
+              if(Mesh.DP[dp].task == ThisTask)
+                {
+                  mass = SphP[particle].Density * SphP[particle].Volume;
+                  vel[0] = P[particle].Vel[0];
+                  vel[1] = P[particle].Vel[1];
+                  vel[2] = P[particle].Vel[2];
+                }
+              else
+                {
+                  mass = PrimExch[particle].Density * PrimExch[particle].Volume;
+                  vel[0] = PrimExch[particle].VelGas[0];
+                  vel[1] = PrimExch[particle].VelGas[1];
+                  vel[2] = PrimExch[particle].VelGas[2];
+                }
+
+              double sq_vcell = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
+              double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0]
+              + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1]
+              + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
+              double cross  = 2.0 * (vel[0]*WindsAndSN->StarVelocity[0]
+              + vel[1]*WindsAndSN->StarVelocity[1]
+              + vel[2]*WindsAndSN->StarVelocity[2]);
+         
+              num = 0.5 * mass * m_ej*sqrt(sq_wbar)*(1-F_HOST) * (sq_vcell + sq_vstar - cross);
+              den = mass + m_ej*sqrt(sq_wbar)*(1-F_HOST);
+          
+              epsilon += num / den;
+               
+              num = sq_wbar;
+              den = mass + m_ej*sqrt(sq_wbar)*(1-F_HOST);
+          
+              a += num / den;
+
+              num = mass * ((vel[0] - WindsAndSN->StarVelocity[0]) * wbar[0] 
+              + (vel[1] - WindsAndSN->StarVelocity[1]) * wbar[1]
+              + (vel[2] - WindsAndSN->StarVelocity[2]) * wbar[2]);
+              den = mass + m_ej*sqrt(sq_wbar)*(1-F_HOST);
+
+              b += num / den;
+            }
+
+          double p, Eth;
+          SN_compute(i, NgbsDensity, NgbsMetallicity, epsilon, a, b, &p, &Eth);
+#endif
+      
+          /* Host feedback */
 #ifdef WINDS
-          kick.DeltaMass_wind = SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1-F_HOST);
+          SphP[i].StarMassFeed += WindsAndSN->MassLoss * F_HOST;
 #ifdef METALS
-          kick.DeltaMetals_wind = SphP[i].WindsAndSN.MetalsLoss * sqrt(wbar*wbar) * (1-F_HOST);
-#endif    
+          SphP[i].StarMetalsFeed += WindsAndSN->MetalsLoss * F_HOST;
+#endif
           for(int k = 0; k < 3; k++)
-            kick.DeltaP_wind[k] = SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1-F_HOST) 
-            * (SphP[i].WindsAndSN.StarVelocity[k] + SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[k]);
+            SphP[i].StarMomentumFeed[k] += WindsAndSN->MassLoss * F_HOST * WindsAndSN->StarVelocity[k];
+
+          double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
+          + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1] 
+          + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
+
+          double sq_vwind = WindsAndSN->WindMomentum / WindsAndSN->MassLoss 
+          * WindsAndSN->WindMomentum / WindsAndSN->MassLoss;
+
+          SphP[i].StarEnergyFeed += 0.5 * WindsAndSN->MassLoss * F_HOST * (sq_vstar + sq_vwind);
+#endif 
+
+#ifdef SUPERNOVAE
+          SphP[i].StarMassFeed += WindsAndSN->SN_MassLoss * F_HOST;
+#ifdef METALS
+          SphP[i].StarMetalsFeed += WindsAndSN->SN_MetalsLoss * F_HOST;
+#endif
+          for(int k = 0; k < 3; k++)
+            SphP[i].StarMomentumFeed[k] += WindsAndSN->SN_MassLoss * F_HOST * WindsAndSN->StarVelocity[k];
+
+          SphP[i].StarEnergyFeed += Eth * F_HOST;
+#endif 
+ 
+          /* Fourth pass */  
+          for(int f = 0; f < n_faces; f++)
+            {
+              q = dc_list[f];
+
+              double wbar[3]; 
           
-          double sq_vstar = SphP[i].WindsAndSN.StarVelocity[0]*SphP[i].WindsAndSN.StarVelocity[0] 
-          + SphP[i].WindsAndSN.StarVelocity[1]*SphP[i].WindsAndSN.StarVelocity[1] 
-          + SphP[i].WindsAndSN.StarVelocity[2]*SphP[i].WindsAndSN.StarVelocity[2];
+              for(int k = 0; k < 3; k++)
+                wbar[k] = weights[f][k] / wtot;
 
-          double sq_vwind = SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss
-          * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss; 
-
-          double cross = 2 * SphP[i].WindsAndSN.StarVelocity[0] * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[0] 
-          + SphP[i].WindsAndSN.StarVelocity[1] * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[1] 
-          + SphP[i].WindsAndSN.StarVelocity[2] * SphP[i].WindsAndSN.WindMomentum / SphP[i].WindsAndSN.MassLoss * wbar[2];
-
-          kick.DeltaE_wind = 0.5 * SphP[i].WindsAndSN.MassLoss * sqrt(wbar*wbar) * (1-F_HOST) 
-          * (sq_vstar + sq_vwind * wbar*wbar + cross);
+              double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
+      
+              struct FBKick kick = {0};
+              kick.CellIndex = DC[q].index;
+           
+              /* Mesh ngbs feedback */
+#ifdef WINDS
+              kick.DeltaMass = WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST);
+#ifdef METALS
+              kick.DeltaMetals = WindsAndSN->MetalsLoss * sqrt(sq_wbar) * (1-F_HOST);
+#endif    
+              for(int k = 0; k < 3; k++)
+                kick.DeltaP[k] = WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST) 
+                * (WindsAndSN->StarVelocity[k] + WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[k]);
           
+              double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
+              + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1] 
+              + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
+
+              double sq_vwind = WindsAndSN->WindMomentum / WindsAndSN->MassLoss
+              * WindsAndSN->WindMomentum / WindsAndSN->MassLoss; 
+
+              double cross = 2.0 * (WindsAndSN->StarVelocity[0] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[0] 
+              + WindsAndSN->StarVelocity[1] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[1] 
+              + WindsAndSN->StarVelocity[2] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[2]);
+
+              kick.DeltaE = 0.5 * WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST) 
+              * (sq_vstar + sq_vwind * sq_wbar + cross);   
 #endif
  
 #ifdef SUPERNOVAE
-          kick.DeltaMass_SN = SphP[i].WindsAndSN.SN_MassLoss * sqrt(wbar*wbar) * (1-F_HOST);
+              kick.SN_DeltaMass = WindsAndSN->SN_MassLoss * sqrt(sq_wbar) * (1-F_HOST);
 #ifdef METALS
-          kick.DeltaMetals_SN = SphP[i].WindsAndSN.SN_MetalsLoss * sqrt(wbar*wbar) * (1-F_HOST);
+              kick.SN_DeltaMetals = WindsAndSN->SN_MetalsLoss * sqrt(sq_wbar) * (1-F_HOST);
 #endif 
-          for(int k = 0; k < 3; k++)
-            kick.DeltaP_SN[k] = SphP[i].WindsAndSN.SNMassLoss * sqrt(wbar*wbar) * (1-F_HOST) * SphP[i].WindsAndSN.StarVelocity[k]
-            + psnr * wbar[k];
+              for(int k = 0; k < 3; k++)
+                kick.SN_DeltaP[k] = WindsAndSN->SN_MassLoss * sqrt(sq_wbar) * (1-F_HOST) * WindsAndSN->StarVelocity[k]
+                + p * wbar[k];
 
-          kick.DeltaE_wind = usnr * sqrt(wbar*wbar) * (1-F_HOST);
+              kick.SN_DeltaE = Eth * sqrt(sq_wbar) * (1-F_HOST);
 #endif
 
-          if(DC[q].task == ThisTask)
-            apply_kick(DC[q].index, &kick);
-          else
-            {
-              if(n_export >= max_export)
-                terminate("star_feedback: FBKick export buffer overflow\n");
-              ExportBuf[n_export] = kick;
-              ExportTask[n_export] = DC[q].task;
-              n_export++;
+              if(DC[q].task == ThisTask)
+                apply_kick(DC[q].index, &kick);
+              else
+                {
+                  if(n_export >= max_export)
+                    terminate("star_feedback: FBKick export buffer overflow\n");
+                  ExportBuf[n_export] = kick;
+                  ExportTask[n_export] = DC[q].task;
+                  n_export++;
+                }
             }
-        }
 
-      /* CLEAR - reset host-cell feedback flags so they don't fire again */
-      SphP[i].WindsAndSN[SphP[i].Host--] = {0};
+          /* Clear this star's feedback entry */
+          memset(WindsAndSN, 0, sizeof(*WindsAndSN));
+        }
+      
+      /* All stars processed: release host slot */        
+      SphP[i].Host = 0;
     }
 
-  /* Exchange remote kick packets via MPI_Alltoallv */
+  /* MPI exchange of remote kick packets via MPI_Alltoallv */
   int *SendCount = mymalloc("FBSendCount", NTask * sizeof(int));
   int *RecvCount = mymalloc("FBRecvCount", NTask * sizeof(int));
-  int *SendDisp = mymalloc("FBSendDisp",  NTask * sizeof(int));
-  int *RecvDisp = mymalloc("FBRecvDisp",  NTask * sizeof(int));
-
+  int *SendDisp  = mymalloc("FBSendDisp",  NTask * sizeof(int));
+  int *RecvDisp  = mymalloc("FBRecvDisp",  NTask * sizeof(int));
+ 
   memset(SendCount, 0, NTask * sizeof(int));
   for(int k = 0; k < n_export; k++)
     SendCount[ExportTask[k]]++;
-
-  MPI_Alltoall(SendCount, 1, MPI_INT,
-               RecvCount, 1, MPI_INT, MPI_COMM_WORLD);
-
+ 
+  MPI_Alltoall(SendCount, 1, MPI_INT, RecvCount, 1, MPI_INT, MPI_COMM_WORLD);
+ 
   SendDisp[0] = RecvDisp[0] = 0;
   for(int t = 1; t < NTask; t++)
     {
@@ -443,9 +493,10 @@ void star_feedback(void)
       RecvDisp[t] = RecvDisp[t-1] + RecvCount[t-1];
     }
   int n_recv = RecvDisp[NTask-1] + RecvCount[NTask-1];
-
-  /* Sort ExportBuf into task-contiguous order */
-  struct FBKick *SortedExport = mymalloc("FBSortedExport", fmax(n_export, 1) * sizeof(struct FBKick));
+ 
+  /* Sort ExportBuf into task-contiguous order for Alltoallv */
+  struct FBKick *SortedExport = mymalloc("FBSortedExport",
+                                          (n_export > 0 ? n_export : 1) * sizeof(struct FBKick));
   {
     int *tmp_offset = mymalloc("FBTmpOffset", NTask * sizeof(int));
     memcpy(tmp_offset, SendDisp, NTask * sizeof(int));
@@ -456,17 +507,39 @@ void star_feedback(void)
       }
     myfree(tmp_offset);
   }
-
-  struct FBKick *RecvBuf = mymalloc("FBRecvBuf", fmax(n_recv, 1) * sizeof(struct FBKick));
-
-  MPI_Alltoallv(SortedExport, SendCount, SendDisp, MPI_BYTE,
-                RecvBuf,      RecvCount, RecvDisp, MPI_BYTE,
+ 
+  struct FBKick *RecvBuf = mymalloc("FBRecvBuf",
+                                     (n_recv > 0 ? n_recv : 1) * sizeof(struct FBKick));
+ 
+  const int sz = (int)sizeof(struct FBKick);
+ 
+  int *SendCountB = mymalloc("FBSendCountB", NTask * sizeof(int));
+  int *RecvCountB = mymalloc("FBRecvCountB", NTask * sizeof(int));
+  int *SendDispB  = mymalloc("FBSendDispB",  NTask * sizeof(int));
+  int *RecvDispB  = mymalloc("FBRecvDispB",  NTask * sizeof(int));
+ 
+  for(int t = 0; t < NTask; t++)
+    {
+      SendCountB[t] = SendCount[t] * sz;
+      RecvCountB[t] = RecvCount[t] * sz;
+      SendDispB[t]  = SendDisp[t]  * sz;
+      RecvDispB[t]  = RecvDisp[t]  * sz;
+    }
+ 
+  MPI_Alltoallv(SortedExport, SendCountB, SendDispB, MPI_BYTE,
+                RecvBuf,      RecvCountB, RecvDispB, MPI_BYTE,
                 MPI_COMM_WORLD);
-
+ 
+  /* Free byte-count arrays in reverse allocation order (LIFO stack) */
+  myfree(RecvDispB);
+  myfree(SendDispB);
+  myfree(RecvCountB);
+  myfree(SendCountB);
+ 
   /* Apply received kicks to local cells */
   for(int k = 0; k < n_recv; k++)
     apply_kick(RecvBuf[k].CellIndex, &RecvBuf[k]);
-
+ 
   /* Cleanup in reverse allocation order */
   myfree(RecvBuf);
   myfree(SortedExport);
@@ -476,6 +549,6 @@ void star_feedback(void)
   myfree(SendCount);
   myfree(ExportTask);
   myfree(ExportBuf);
-
+ 
   CPU_Step[CPU_FEEDBACK] += measure_time();
 }
