@@ -192,7 +192,7 @@ void star_prep(void)
 
       SP[i].PhysicalAge_yr += star_timestep;
 
-      struct star_feedback star_feedback;
+      star_feedback star_feedback;
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
       star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, SP[i].PhysicalAge_yr));

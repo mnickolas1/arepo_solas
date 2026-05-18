@@ -22,7 +22,8 @@ int NRays; // 12 * NSIDE^2
                  
                  Need to check references!
  */
-double Kappa[WAVEBANDS] = {
+double Kappa[WAVEBANDS] = 
+{
   [INFRARED] = 1.0e-1,    /* INFRARED -> [cm² g⁻¹] — IR dust at T_ref=20K, beta=2, solar Z */ 
   [OPTICAL] = 1.0e1,    /* OPTICAL -> [cm² g⁻¹] — V-band dust at solar Z */
   [ULTRAVIOLET] = 5.0e1,    /* ULTRAVIOLET -> [cm² g⁻¹] — NUV dust at solar Z */
@@ -32,7 +33,8 @@ double Kappa[WAVEBANDS] = {
   [IONIZING_HeII] = 0.0,    /* IONIZING_HeII -> Computed directly from HeII */
 };
 
-double ReradiatedFraction[WAVEBANDS] = {
+double ReradiatedFraction[WAVEBANDS] = 
+{
   [INFRARED] = 1.0,
   [OPTICAL] = 1.0,
   [ULTRAVIOLET] = 0.95,    /* 5% goes to pe heating */

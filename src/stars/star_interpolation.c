@@ -16,14 +16,14 @@ static double next_SN_time(double tau, double z_val, double m_val, double a);
 #endif
 
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
-static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, double a);
-static struct star_interpolate interpolate_mass(int z_idx, double m_val, double a);
-static struct star_interpolate interpolate_metallicity(double z_val, double m_val, double a);
+static inline star_interpolate interpolate_age(int z_idx, int m_idx, double a);
+static star_interpolate interpolate_mass(int z_idx, double m_val, double a);
+static star_interpolate interpolate_metallicity(double z_val, double m_val, double a);
 #endif
 
 #ifdef SUPERNOVAE
-static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_val);
-static struct star_interpolate SN_interpolate_metallicity(double z_val, double m_val);
+static inline star_interpolate SN_interpolate_mass(int z_idx, double m_val);
+static star_interpolate SN_interpolate_metallicity(double z_val, double m_val);
 #endif
 
 /* Linear interpolation helper function */
@@ -95,7 +95,7 @@ static double next_SN_time(double tau, double z_val, double m_val, double a)
 { 
   if(m_val >= 8 && tau > a)
     {
-      struct star_interpolate SNfeedback = SN_interpolate_metallicity(z_val, m_val);
+      star_interpolate SNfeedback = SN_interpolate_metallicity(z_val, m_val);
       if(SNfeedback.SN_MassLoss > 0.0)
         return tau;
     }
@@ -105,9 +105,9 @@ static double next_SN_time(double tau, double z_val, double m_val, double a)
 
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
 /* Linear interpolation in age */
-static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, double a) 
+static inline star_interpolate interpolate_age(int z_idx, int m_idx, double a) 
 {
-  struct star_interpolate feedback = {0};
+  star_interpolate feedback = {0};
   
   const double *age = Age[z_idx][m_idx];
   const double *radius = Radius[z_idx][m_idx];
@@ -122,7 +122,7 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  const struct WavebandData *flux[WAVEBANDS];
+  const WavebandData *flux[WAVEBANDS];
   for(int w = 0; w < WAVEBANDS; w++)
     flux[w] = Flux[w][z_idx][m_idx];
 #endif
@@ -201,7 +201,7 @@ static inline struct star_interpolate interpolate_age(int z_idx, int m_idx, doub
 }
 
 /* Linear interpolation in mass */
-static struct star_interpolate interpolate_mass(int z_idx, double m_val, double a) 
+static star_interpolate interpolate_mass(int z_idx, double m_val, double a) 
 {
   if(m_val <= M_VALUES[0])
     return interpolate_age(z_idx, 0, a);
@@ -214,9 +214,9 @@ static struct star_interpolate interpolate_mass(int z_idx, double m_val, double 
       double m1 = M_VALUES[m + 1];
       if(m_val >= m0 && m_val <= m1)
         {
-          struct star_interpolate feedback0 = interpolate_age(z_idx, m, a);
-          struct star_interpolate feedback1 = interpolate_age(z_idx, m + 1, a);
-          struct star_interpolate feedback = {0};
+          star_interpolate feedback0 = interpolate_age(z_idx, m, a);
+          star_interpolate feedback1 = interpolate_age(z_idx, m + 1, a);
+          star_interpolate feedback = {0};
 
           feedback.Radius = linear_interpolation(m_val, m0, m1, feedback0.Radius, feedback1.Radius);
           feedback.Temperature = linear_interpolation(m_val, m0, m1, feedback0.Temperature, feedback1.Temperature);
@@ -244,7 +244,7 @@ static struct star_interpolate interpolate_mass(int z_idx, double m_val, double 
 }
 
 /* Linear interpolation in metallicity */
-static struct star_interpolate interpolate_metallicity(double z_val, double m_val, double a)
+static star_interpolate interpolate_metallicity(double z_val, double m_val, double a)
 {
   if(z_val <= Z_VALUES[0])
     return interpolate_mass(0, m_val, a);
@@ -257,9 +257,9 @@ static struct star_interpolate interpolate_metallicity(double z_val, double m_va
       double z1 = Z_VALUES[z + 1];
       if(z_val >= z0 && z_val <= z1)
         {
-          struct star_interpolate feedback0 = interpolate_mass(z, m_val, a);
-          struct star_interpolate feedback1 = interpolate_mass(z + 1, m_val, a);
-          struct star_interpolate feedback = {0};
+          star_interpolate feedback0 = interpolate_mass(z, m_val, a);
+          star_interpolate feedback1 = interpolate_mass(z + 1, m_val, a);
+          star_interpolate feedback = {0};
 
           feedback.Radius = linear_interpolation(z_val, z0, z1, feedback0.Radius, feedback1.Radius);
           feedback.Temperature = linear_interpolation(z_val, z0, z1, feedback0.Temperature, feedback1.Temperature);
@@ -289,9 +289,9 @@ static struct star_interpolate interpolate_metallicity(double z_val, double m_va
 
 #ifdef SUPERNOVAE
 /* Linear interpolation in mass */
-static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_val) 
+static inline star_interpolate SN_interpolate_mass(int z_idx, double m_val) 
 {
-  struct star_interpolate SNfeedback = {0};
+  star_interpolate SNfeedback = {0};
   
   const double *SN_massloss  = SN_MassLoss[z_idx];
 #ifdef METALS
@@ -339,7 +339,7 @@ static inline struct star_interpolate SN_interpolate_mass(int z_idx, double m_va
 }
 
 /* Linear interpolation in metallicity */
-static struct star_interpolate SN_interpolate_metallicity(double z_val, double m_val)
+static star_interpolate SN_interpolate_metallicity(double z_val, double m_val)
 {
   if(z_val <= Z_VALUES[0])
     return SN_interpolate_mass(0, m_val);
@@ -352,9 +352,9 @@ static struct star_interpolate SN_interpolate_metallicity(double z_val, double m
       double z1 = Z_VALUES[z + 1];
       if(z_val >= z0 && z_val <= z1)
         {
-          struct star_interpolate SNfeedback0 = SN_interpolate_mass(z, m_val);
-          struct star_interpolate SNfeedback1 = SN_interpolate_mass(z + 1, m_val);
-          struct star_interpolate SNfeedback = {0};
+          star_interpolate SNfeedback0 = SN_interpolate_mass(z, m_val);
+          star_interpolate SNfeedback1 = SN_interpolate_mass(z + 1, m_val);
+          star_interpolate SNfeedback = {0};
 
           SNfeedback.SN_MassLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MassLoss, SNfeedback1.SN_MassLoss);
 #ifdef METALS
@@ -370,10 +370,10 @@ static struct star_interpolate SN_interpolate_metallicity(double z_val, double m
 #endif
 
 /* Wrapper function */
-struct star_feedback star_feedback_compute(double dt, double z_val, double m_val, double a)
+star_feedback star_feedback_compute(double dt, double z_val, double m_val, double a)
 {
   double tau = lifetime(z_val, m_val);
-  struct star_feedback star = {0};
+  star_feedback star = {0};
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   star.TimeSN = MAX_REAL_NUMBER;
@@ -391,7 +391,7 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
       star.Stage = 0;
 
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
-      struct star_interpolate feedback = interpolate_metallicity(z_val, m_val, a);
+      star_interpolate feedback = interpolate_metallicity(z_val, m_val, a);
 
 #ifdef WINDS
       star.MassLoss = feedback.MassLossRate * dt;
@@ -422,7 +422,7 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
       star.Stage = 1;
 
 #ifdef SUPERNOVAE
-      struct star_interpolate SNfeedback = SN_interpolate_metallicity(z_val, m_val);
+      star_interpolate SNfeedback = SN_interpolate_metallicity(z_val, m_val);
       star.SN_MassLoss = SNfeedback.SN_MassLoss;
 #ifdef METALS
       star.SN_MetalsLoss = SNfeedback.SN_MetalsLoss;
@@ -442,7 +442,7 @@ struct star_feedback star_feedback_compute(double dt, double z_val, double m_val
   return star;
 }
 
-struct star_feedback units_for_feedback(struct star_feedback star_feedback)
+star_feedback units_for_feedback(star_feedback star_feedback)
 {
 #ifdef WINDS
   star_feedback.MassLoss /= All.cf_UnitMass_in_Msun;
@@ -469,11 +469,11 @@ struct star_feedback units_for_feedback(struct star_feedback star_feedback)
 }
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
-struct star_feedback star_particle_feedback(int index, double dt, double z, double a)
+star_feedback star_particle_feedback(int index, double dt, double z, double a)
 {  
   int i, Nstars;
   double m;
-  struct star_feedback star_particle = {0};
+  star_feedback star_particle = {0};
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   star_particle.TimeSN = MAX_REAL_NUMBER; 
@@ -489,7 +489,7 @@ struct star_feedback star_particle_feedback(int index, double dt, double z, doub
       
       m = StarMeanMassInBins[i]; 
 
-      struct star_feedback star = star_feedback_compute(dt, z, m, a);
+      star_feedback star = star_feedback_compute(dt, z, m, a);
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
       if(star.TimeSN < star_particle.TimeSN)

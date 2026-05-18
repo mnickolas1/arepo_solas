@@ -86,7 +86,7 @@ static inline int ray_sphere_intersect(const double dx, const double dy, const d
   return 1;
 }
 
-static inline int ray_absorb(RayPacket *ray, double chord_length, double density_kappa[WAVEBANDS], struct WavebandData absorbed[WAVEBANDS], double *dtau_IR)
+static inline int ray_absorb(RayPacket *ray, double chord_length, double density_kappa[WAVEBANDS], WavebandData absorbed[WAVEBANDS], double *dtau_IR)
 {
   for(int w = 0; w < WAVEBANDS; w++)
     {
@@ -166,7 +166,7 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           for(int w = 0; w < WAVEBANDS; w++)
             density_kappa[w] = SphP[no].Density * SphP[no].Kappa[w];
           
-          struct WavebandData absorbed[WAVEBANDS];
+          WavebandData absorbed[WAVEBANDS];
           double dtau_IR;
 
           int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
@@ -257,7 +257,7 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
                   for(int w = 0; w < WAVEBANDS; w++)
                     density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];  /* volume-weighted mean kappa * density */
 
-                  struct WavebandData absorbed[WAVEBANDS];
+                  WavebandData absorbed[WAVEBANDS];
                   double dtau_IR;
 
                   int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);

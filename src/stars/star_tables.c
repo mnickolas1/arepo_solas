@@ -27,7 +27,7 @@ double ***WindVelocity = NULL;
 
 #ifdef STAR_RADIATION_ACTIVE
 // Radiation
-struct WavebandData ***Flux[WAVEBANDS] = {0};
+WavebandData ***Flux[WAVEBANDS] = {0};
 #endif 
 
 #ifdef SUPERNOVAE
@@ -220,7 +220,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
   for(int w = 0; w < WAVEBANDS; w++)
-    Flux[w] = malloc(Z_COUNT * sizeof(struct WavebandData**));
+    Flux[w] = malloc(Z_COUNT * sizeof(WavebandData**));
 #endif
 
 #ifdef SUPERNOVAE
@@ -248,7 +248,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        Flux[w][z] = malloc(M_COUNT * sizeof(struct WavebandData*));
+        Flux[w][z] = malloc(M_COUNT * sizeof(WavebandData*));
 #endif
 
 #ifdef SUPERNOVAE
@@ -351,7 +351,7 @@ void load_star_tables(const char *filename)
 
               for(int w = 0; w < WAVEBANDS; w++)
                 {
-                  Flux[w][z][m] = malloc(N[z][m] * sizeof(struct WavebandData));
+                  Flux[w][z][m] = malloc(N[z][m] * sizeof(WavebandData));
                   for(int i = 0; i < N[z][m]; i++)
                     {
                       Flux[w][z][m][i].Energy  = energy_buf[i][w];
@@ -416,7 +416,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
                 for(int w = 0; w < WAVEBANDS; w++)
-                  Flux[w][z][m] = malloc(N[z][m] * sizeof(struct WavebandData));
+                  Flux[w][z][m] = malloc(N[z][m] * sizeof(WavebandData));
 #endif
               }
 
@@ -434,7 +434,7 @@ void load_star_tables(const char *filename)
 
 #ifdef STAR_RADIATION_ACTIVE
             for(int w = 0; w < WAVEBANDS; w++)
-              MPI_Bcast(Flux[w][z][m], N[z][m] * sizeof(struct WavebandData), MPI_BYTE, 0, MPI_COMM_WORLD);
+              MPI_Bcast(Flux[w][z][m], N[z][m] * sizeof(WavebandData), MPI_BYTE, 0, MPI_COMM_WORLD);
 #endif
           }
     }

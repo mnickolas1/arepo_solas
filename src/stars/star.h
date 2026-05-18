@@ -10,12 +10,12 @@ extern int NumStars;
 #include "../stars/star_particle.h"
 #endif
 
-#ifdef STAR_FEEDBACK_ACTIVE
-#include "../stars/star_tables.h"
-#endif
-
 #ifdef STAR_RADIATION_ACTIVE
 #include "../stars/star_radiation.h"
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+#include "../stars/star_tables.h"
 #endif
 
 
@@ -24,7 +24,7 @@ extern struct TimeBinData TimeBinsStar;
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-struct MechanicalFeedback
+typedef struct MechanicalFeedback
 {
   MyDouble StarVelocity[3];
 
@@ -43,10 +43,10 @@ struct MechanicalFeedback
 #endif
   MyDouble SN_EnergyInject;
 #endif
-}
+} MechanicalFeedback;
 #endif
 
-extern struct star_particle_data
+typedef struct star_particle_data
 {
   MyIDType PID;
 
@@ -82,19 +82,21 @@ extern struct star_particle_data
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-struct MechanicalFeedback WindsAndSN;
+  MechanicalFeedback WindsAndSN;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  struct WavebandData Radiated[WAVEBANDS];
+  WavebandData Radiated[WAVEBANDS];
 #endif
-}  *SP;
+} star_particle_data;
+
+extern star_particle_data *SP;
 
 #define SPP(i) SP[P[i].SID]
 #define PPS(i) P[SP[i].PID]
 
 #ifdef STAR_FEEDBACK_ACTIVE
-struct star_interpolate
+typedef struct star_interpolate
 {
   MyDouble Radius;
   MyDouble Temperature;
@@ -108,7 +110,7 @@ struct star_interpolate
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  struct WavebandData Flux[WAVEBANDS];
+  WavebandData Flux[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -118,9 +120,9 @@ struct star_interpolate
 #endif
   MyDouble SN_EnergyInject;
 #endif
-};
+} star_interpolate;
 
-struct star_feedback
+typedef struct star_feedback
 {
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   double TimeSN;
@@ -137,7 +139,7 @@ struct star_feedback
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  struct WavebandData Radiated[WAVEBANDS];
+  WavebandData Radiated[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -147,7 +149,7 @@ struct star_feedback
 #endif
   MyDouble SN_EnergyInject;
 #endif
-};
+} star_feedback;
 #endif
 
 #endif

@@ -379,7 +379,7 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #ifdef JET_TRACER
 #undef JET_INDEX
 #undef JET_NUMBER
-#define JET_INDEX (GRACKLE_SPECIES_INDEX + GRACKLE_SPECIES_NUMBER)
+#define JET_INDEX (METALS_INDEX + METALS_NUMBER + GRACKLE_SPECIES_NUMBER)
 #define JET_NUMBER 1 
 #endif 
 
@@ -530,7 +530,6 @@ typedef unsigned long long peano1D;
 #define GRACKLE_DI    8
 #define GRACKLE_DII   9
 #define GRACKLE_HDI   10
-#endif
 #endif
 
 #ifndef FOF_PRIMARY_LINK_TYPES
@@ -1707,8 +1706,8 @@ extern struct sph_particle_data
 
 /* Hosts */
 #if defined(WINDS) || defined(SUPERNOVAE)
-int Host;
-struct MechanicalFeedback WindsAndSN[2];
+  int Host;
+  MechanicalFeedback WindsAndSN[2];
 #endif
 
 /* Feedback */
@@ -1729,7 +1728,7 @@ struct MechanicalFeedback WindsAndSN[2];
 
 #ifdef STAR_RADIATION_ACTIVE
   MyDouble Kappa[WAVEBANDS];
-  struct WavebandData Absorbed[WAVEBANDS];
+  WavebandData Absorbed[WAVEBANDS];
 #endif
 
 #ifdef PHOTOELECTRIC_HEATING

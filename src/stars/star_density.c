@@ -38,7 +38,7 @@ typedef struct
   MyDouble PhysicalAge_yr;
 #endif  
 
-  struct MechanicalFeedback WindsAndSN;
+  MechanicalFeedback WindsAndSN;
   
   MyFloat Hsml;
   int Firstnode;
@@ -89,7 +89,7 @@ typedef struct
   struct HostCell HostCell;
 
   /* Pass 2 outputs */
-  int HostHydroBin = 0;
+  int HostHydroBin;
 } data_out;
 
 static data_out *DataResult, *DataOut;

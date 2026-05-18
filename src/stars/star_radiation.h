@@ -33,10 +33,10 @@ typedef enum
 } Waveband;
 
 #if WAVEBANDS > 8
-#error "active_bands is uint8_t but WAVEBANDS > 8 — use uint16_t instead"
+#error "Active_bands is uint8_t but WAVEBANDS > 8 — use uint16_t instead"
 #endif
 
-typedef struct
+typedef struct WavebandData
 {
   double Photons;
   double Energy;
@@ -46,14 +46,14 @@ extern double Kappa[WAVEBANDS];
 
 extern double ReradiatedFraction[WAVEBANDS];
 
-typedef struct 
+typedef struct StackEntry
 {
   double t_enter;
   double t_exit;
   int node;
 } StackEntry;
 
-typedef struct 
+typedef struct RayPacket
 {
   double pos[3];
   double dir[3];
@@ -66,8 +66,8 @@ typedef struct
   When active_bands == 0 the ray is fully absorbed – return immediately. */
   uint8_t  active_bands;
 
-  struct WavebandData Radiated[WAVEBANDS];
-  struct WavebandData Radiated_Init[WAVEBANDS];
+  WavebandData Radiated[WAVEBANDS];
+  WavebandData Radiated_Init[WAVEBANDS];
 
   int ray_id;
   int home_task;
@@ -82,14 +82,14 @@ typedef struct
   int healpix_pixel;   /* pixel index in nested scheme */
 } RayPacket;
 
-typedef struct 
+typedef struct RayWorkStack
 {
   RayPacket *rays;
   int n;
   long long capacity;
 } RayWorkStack;
 
-typedef struct 
+typedef struct RayExportBuffer
 {
   int n; /* number of rays to export */
   RayPacket *rays; /* ray information */
@@ -99,7 +99,7 @@ typedef struct
 
 extern struct rad_resultsactiveimported_data
 {
-  struct WavebandData Radiated[WAVEBANDS];
+  WavebandData Radiated[WAVEBANDS];
   double StarMomentumFeed[3];
   int index; /* local SphP index on home task */
 } *Rad_ResultsActiveImported;
