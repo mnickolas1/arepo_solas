@@ -24,7 +24,7 @@ extern struct TimeBinData TimeBinsStar;
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-typedef struct MechanicalFeedback
+typedef struct Mechanical_Feedback
 {
   MyDouble StarVelocity[3];
 
@@ -43,10 +43,10 @@ typedef struct MechanicalFeedback
 #endif
   MyDouble SN_EnergyInject;
 #endif
-} MechanicalFeedback;
+} Mechanical_Feedback;
 #endif
 
-typedef struct star_particle_data
+typedef struct Star_Particle_Data
 {
   MyIDType PID;
 
@@ -82,21 +82,21 @@ typedef struct star_particle_data
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-  MechanicalFeedback WindsAndSN;
+  Mechanical_Feedback WindsAndSN;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
   WavebandData Radiated[WAVEBANDS];
 #endif
-} star_particle_data;
+} Star_Particle_Data;
 
-extern star_particle_data *SP;
+extern Star_Particle_Data *SP;
 
 #define SPP(i) SP[P[i].SID]
 #define PPS(i) P[SP[i].PID]
 
 #ifdef STAR_FEEDBACK_ACTIVE
-typedef struct star_interpolate
+typedef struct Star_Interpolate
 {
   MyDouble Radius;
   MyDouble Temperature;
@@ -120,9 +120,9 @@ typedef struct star_interpolate
 #endif
   MyDouble SN_EnergyInject;
 #endif
-} star_interpolate;
+} Star_Interpolate;
 
-typedef struct star_feedback
+typedef struct Star_Feedback
 {
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   double TimeSN;
@@ -149,7 +149,7 @@ typedef struct star_feedback
 #endif
   MyDouble SN_EnergyInject;
 #endif
-} star_feedback;
+} Star_Feedback;
 #endif
 
 #endif

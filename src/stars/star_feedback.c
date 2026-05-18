@@ -77,7 +77,7 @@ static void apply_kick(int j, const struct FBKick *kick)
 #ifdef SUPERNOVAE
 static void SN_compute(int i, double NgbsDensity, double NgbsMetallicity, double epsilon, double a, double b, double *p, double *Eth)
 {
-  MechanicalFeedback *WindsAndSN = &SphP[i].WindsAndSN[SphP[i].Host - 1];
+  Mechanical_Feedback *WindsAndSN = &SphP[i].WindsAndSN[SphP[i].Host - 1];
   
   double E_SN = WindsAndSN->SN_EnergyInject;
   double m_ej = WindsAndSN->SN_MassLoss;
@@ -296,7 +296,7 @@ void star_feedback(void)
 
       for(int h = 0; h < SphP[i].Host; h++)
         {
-          MechanicalFeedback *WindsAndSN = &SphP[i].WindsAndSN[h];
+          Mechanical_Feedback *WindsAndSN = &SphP[i].WindsAndSN[h];
 
 #ifdef SUPERNOVAE      
           /* Helpers for SN momentum */

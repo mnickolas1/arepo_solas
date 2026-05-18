@@ -38,7 +38,7 @@ typedef struct
   MyDouble PhysicalAge_yr;
 #endif  
 
-  MechanicalFeedback WindsAndSN;
+  Mechanical_Feedback WindsAndSN;
   
   MyFloat Hsml;
   int Firstnode;

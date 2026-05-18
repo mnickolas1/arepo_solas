@@ -21,7 +21,7 @@ double sample_imf(double u);
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 void setup_mass_bins(void);
 void sample_star_particle(double m, int *bins);
-star_feedback star_particle_feedback(int index, double dt, double z, double a);
+Star_Feedback star_particle_feedback(int index, double dt, double z, double a);
 #endif
 
 #if STAR_PARTICLES == 0 
@@ -38,8 +38,8 @@ void sf_massdrain(void);
 /* Feedback tables interpolation */
 void load_star_tables(const char *filename);
 void free_stellar_tables(void);
-star_feedback star_feedback_compute(double dt, double z_val, double m_val, double a);
-star_feedback units_for_feedback(star_feedback star);
+Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, double a);
+Star_Feedback units_for_feedback(Star_Feedback star);
 
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 

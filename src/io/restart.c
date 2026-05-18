@@ -1255,7 +1255,7 @@ static void contents_restart_file(int modus)
     if(NumStars > 0)
     {
       /* Star-Particle data  */
-      byten(&SP[0], NumStars * sizeof(struct star_particle_data), modus);
+      byten(&SP[0], NumStars * sizeof(Star_Particle_Data), modus);
     }
 #endif
 

@@ -16,14 +16,14 @@ static double next_SN_time(double tau, double z_val, double m_val, double a);
 #endif
 
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
-static inline star_interpolate interpolate_age(int z_idx, int m_idx, double a);
-static star_interpolate interpolate_mass(int z_idx, double m_val, double a);
-static star_interpolate interpolate_metallicity(double z_val, double m_val, double a);
+static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a);
+static Star_Interpolate interpolate_mass(int z_idx, double m_val, double a);
+static Star_Interpolate interpolate_metallicity(double z_val, double m_val, double a);
 #endif
 
 #ifdef SUPERNOVAE
-static inline star_interpolate SN_interpolate_mass(int z_idx, double m_val);
-static star_interpolate SN_interpolate_metallicity(double z_val, double m_val);
+static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val);
+static Star_Interpolate SN_interpolate_metallicity(double z_val, double m_val);
 #endif
 
 /* Linear interpolation helper function */
@@ -95,8 +95,8 @@ static double next_SN_time(double tau, double z_val, double m_val, double a)
 { 
   if(m_val >= 8 && tau > a)
     {
-      star_interpolate SNfeedback = SN_interpolate_metallicity(z_val, m_val);
-      if(SNfeedback.SN_MassLoss > 0.0)
+      Star_Interpolate SN_Feedback = SN_interpolate_metallicity(z_val, m_val);
+      if(SN_Feedback.SN_MassLoss > 0.0)
         return tau;
     }
   return MAX_REAL_NUMBER; /* No SN or already past SN */
@@ -105,9 +105,9 @@ static double next_SN_time(double tau, double z_val, double m_val, double a)
 
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
 /* Linear interpolation in age */
-static inline star_interpolate interpolate_age(int z_idx, int m_idx, double a) 
+static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a) 
 {
-  star_interpolate feedback = {0};
+  Star_Interpolate Feedback = {0};
   
   const double *age = Age[z_idx][m_idx];
   const double *radius = Radius[z_idx][m_idx];
@@ -131,77 +131,77 @@ static inline star_interpolate interpolate_age(int z_idx, int m_idx, double a)
 
   if(a <= age[0])
     {
-      feedback.Radius = radius[0];
-      feedback.Temperature = temperature[0];
+      Feedback.Radius = radius[0];
+      Feedback.Temperature = temperature[0];
 
 #ifdef WINDS
-      feedback.MassLossRate = masslossrate[0];
+      Feedback.MassLossRate = masslossrate[0];
 #ifdef METALS
-      feedback.MetalsLossRate = metalslossrate[0];
+      Feedback.MetalsLossRate = metalslossrate[0];
 #endif
-      feedback.WindVelocity = windvelocity[0];
+      Feedback.WindVelocity = windvelocity[0];
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        feedback.Flux[w] = flux[0];
+        Feedback.Flux[w] = flux[0];
 #endif
       
-      return feedback;
+      return Feedback;
     }       
     
   if(a >= age[n - 1])  
     {
-      feedback.Radius = radius[n - 1];
-      feedback.Temperature = temperature[n - 1];
+      Feedback.Radius = radius[n - 1];
+      Feedback.Temperature = temperature[n - 1];
 
 #ifdef WINDS
-      feedback.MassLossRate = masslossrate[n - 1];
+      Feedback.MassLossRate = masslossrate[n - 1];
 #ifdef METALS
-      feedback.MetalsLossRate = metalslossrate[n - 1];
+      Feedback.MetalsLossRate = metalslossrate[n - 1];
 #endif
-      feedback.WindVelocity = windvelocity[n - 1];
+      Feedback.WindVelocity = windvelocity[n - 1];
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        feedback.Flux[w] = flux[n - 1];
+        Feedback.Flux[w] = flux[n - 1];
 #endif
       
-      return feedback;
+      return Feedback;
     } 
   
   for(int i = 0; i < n - 1; i++)
     {
       if(a >= age[i] && a <= age[i + 1])
         {
-          feedback.Radius = linear_interpolation(a, age[i], age[i + 1], radius[i], radius[i + 1]);
-          feedback.Temperature = linear_interpolation(a, age[i], age[i + 1], temperature[i], temperature[i + 1]);
+          Feedback.Radius = linear_interpolation(a, age[i], age[i + 1], radius[i], radius[i + 1]);
+          Feedback.Temperature = linear_interpolation(a, age[i], age[i + 1], temperature[i], temperature[i + 1]);
 
 #ifdef WINDS
-          feedback.MassLossRate = linear_interpolation(a, age[i], age[i + 1], masslossrate[i], masslossrate[i + 1]);
+          Feedback.MassLossRate = linear_interpolation(a, age[i], age[i + 1], masslossrate[i], masslossrate[i + 1]);
 #ifdef METALS
-          feedback.MetalsLossRate = linear_interpolation(a, age[i], age[i + 1], metalslossrate[i], metalslossrate[i + 1]);
+          Feedback.MetalsLossRate = linear_interpolation(a, age[i], age[i + 1], metalslossrate[i], metalslossrate[i + 1]);
 #endif
-          feedback.WindVelocity = linear_interpolation(a, age[i], age[i + 1], windvelocity[i], windvelocity[i + 1]);
+          Feedback.WindVelocity = linear_interpolation(a, age[i], age[i + 1], windvelocity[i], windvelocity[i + 1]);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              feedback.Flux[w].Energy  = linear_interpolation(a, age[i], age[i+1], flux[w][i].Energy,  flux[w][i+1].Energy);
-              feedback.Flux[w].Photons = linear_interpolation(a, age[i], age[i+1], flux[w][i].Photons, flux[w][i+1].Photons);
+              Feedback.Flux[w].Energy  = linear_interpolation(a, age[i], age[i+1], flux[w][i].Energy,  flux[w][i+1].Energy);
+              Feedback.Flux[w].Photons = linear_interpolation(a, age[i], age[i+1], flux[w][i].Photons, flux[w][i+1].Photons);
             }
 #endif
 
-          return feedback;
+          return Feedback;
         } 
     }
   terminate("Interpolate_age: failed to bracket age");
 }
 
 /* Linear interpolation in mass */
-static star_interpolate interpolate_mass(int z_idx, double m_val, double a) 
+static Star_Interpolate interpolate_mass(int z_idx, double m_val, double a) 
 {
   if(m_val <= M_VALUES[0])
     return interpolate_age(z_idx, 0, a);
@@ -210,41 +210,41 @@ static star_interpolate interpolate_mass(int z_idx, double m_val, double a)
 
   for(int m = 0; m < M_COUNT - 1; m++)
     {
-      double m0 = M_VALUES[m];
+    double m0 = M_VALUES[m];
       double m1 = M_VALUES[m + 1];
       if(m_val >= m0 && m_val <= m1)
         {
-          star_interpolate feedback0 = interpolate_age(z_idx, m, a);
-          star_interpolate feedback1 = interpolate_age(z_idx, m + 1, a);
-          star_interpolate feedback = {0};
+          Star_Interpolate Feedback0 = interpolate_age(z_idx, m, a);
+          Star_Interpolate Feedback1 = interpolate_age(z_idx, m + 1, a);
+          Star_Interpolate Feedback = {0};
 
-          feedback.Radius = linear_interpolation(m_val, m0, m1, feedback0.Radius, feedback1.Radius);
-          feedback.Temperature = linear_interpolation(m_val, m0, m1, feedback0.Temperature, feedback1.Temperature);
+          Feedback.Radius = linear_interpolation(m_val, m0, m1, Feedback0.Radius, Feedback1.Radius);
+          Feedback.Temperature = linear_interpolation(m_val, m0, m1, Feedback0.Temperature, Feedback1.Temperature);
 
 #ifdef WINDS
-          feedback.MassLossRate = linear_interpolation(m_val, m0, m1, feedback0.MassLossRate, feedback1.MassLossRate);
+          Feedback.MassLossRate = linear_interpolation(m_val, m0, m1, Feedback0.MassLossRate, Feedback1.MassLossRate);
 #ifdef METALS
-          feedback.MetalsLossRate = linear_interpolation(m_val, m0, m1, feedback0.MetalsLossRate, feedback1.MetalsLossRate);
+          Feedback.MetalsLossRate = linear_interpolation(m_val, m0, m1, Feedback0.MetalsLossRate, Feedback1.MetalsLossRate);
 #endif
-          feedback.WindVelocity = linear_interpolation(m_val, m0, m1, feedback0.WindVelocity, feedback1.WindVelocity);
+          Feedback.WindVelocity = linear_interpolation(m_val, m0, m1, Feedback0.WindVelocity, Feedback1.WindVelocity);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              feedback.Flux[w].Energy = linear_interpolation(m_val, m0, m1, feedback0.Flux[w].Energy, feedback1.Flux[w].Energy);
-              feedback.Flux[w].Photons = linear_interpolation(m_val, m0, m1, feedback0.Flux[w].Photons, feedback1.Flux[w].Photons);
+              Feedback.Flux[w].Energy = linear_interpolation(m_val, m0, m1, Feedback0.Flux[w].Energy, Feedback1.Flux[w].Energy);
+              Feedback.Flux[w].Photons = linear_interpolation(m_val, m0, m1, Feedback0.Flux[w].Photons, Feedback1.Flux[w].Photons);
             }
 #endif
 
-          return feedback;
+          return Feedback;
         }
     }
   terminate("Interpolate_mass: failed to bracket mass");
 }
 
 /* Linear interpolation in metallicity */
-static star_interpolate interpolate_metallicity(double z_val, double m_val, double a)
+static Star_Interpolate interpolate_metallicity(double z_val, double m_val, double a)
 {
   if(z_val <= Z_VALUES[0])
     return interpolate_mass(0, m_val, a);
@@ -257,30 +257,30 @@ static star_interpolate interpolate_metallicity(double z_val, double m_val, doub
       double z1 = Z_VALUES[z + 1];
       if(z_val >= z0 && z_val <= z1)
         {
-          star_interpolate feedback0 = interpolate_mass(z, m_val, a);
-          star_interpolate feedback1 = interpolate_mass(z + 1, m_val, a);
-          star_interpolate feedback = {0};
+          Star_Interpolate Feedback0 = interpolate_mass(z, m_val, a);
+          Star_Interpolate Feedback1 = interpolate_mass(z + 1, m_val, a);
+          Star_Interpolate Feedback = {0};
 
-          feedback.Radius = linear_interpolation(z_val, z0, z1, feedback0.Radius, feedback1.Radius);
-          feedback.Temperature = linear_interpolation(z_val, z0, z1, feedback0.Temperature, feedback1.Temperature);
+          Feedback.Radius = linear_interpolation(z_val, z0, z1, Feedback0.Radius, Feedback1.Radius);
+          Feedback.Temperature = linear_interpolation(z_val, z0, z1, Feedback0.Temperature, Feedback1.Temperature);
 
 #ifdef WINDS
-          feedback.MassLossRate = linear_interpolation(z_val, z0, z1, feedback0.MassLossRate, feedback1.MassLossRate);
+          Feedback.MassLossRate = linear_interpolation(z_val, z0, z1, Feedback0.MassLossRate, Feedback1.MassLossRate);
 #ifdef METALS
-          feedback.MetalsLossRate = linear_interpolation(z_val, z0, z1, feedback0.MetalsLossRate, feedback1.MetalsLossRate);
+          Feedback.MetalsLossRate = linear_interpolation(z_val, z0, z1, Feedback0.MetalsLossRate, Feedback1.MetalsLossRate);
 #endif
-          feedback.WindVelocity = linear_interpolation(z_val, z0, z1, feedback0.WindVelocity, feedback1.WindVelocity);
+          Feedback.WindVelocity = linear_interpolation(z_val, z0, z1, Feedback0.WindVelocity, Feedback1.WindVelocity);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              feedback.Flux[w].Energy = linear_interpolation(z_val, z0, z1, feedback0.Flux[w].Energy, feedback1.Flux[w].Energy);
-              feedback.Flux[w].Photons = linear_interpolation(z_val, z0, z1, feedback0.Flux[w].Photons, feedback1.Flux[w].Photons);
+              Feedback.Flux[w].Energy = linear_interpolation(z_val, z0, z1, Feedback0.Flux[w].Energy, Feedback1.Flux[w].Energy);
+              Feedback.Flux[w].Photons = linear_interpolation(z_val, z0, z1, Feedback0.Flux[w].Photons, Feedback1.Flux[w].Photons);
             }
 #endif
 
-          return feedback;
+          return Feedback;
         }
     }
   terminate("Interpolate_metallicity: failed to bracket metallicity");
@@ -289,9 +289,9 @@ static star_interpolate interpolate_metallicity(double z_val, double m_val, doub
 
 #ifdef SUPERNOVAE
 /* Linear interpolation in mass */
-static inline star_interpolate SN_interpolate_mass(int z_idx, double m_val) 
+static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val) 
 {
-  star_interpolate SNfeedback = {0};
+  Star_Interpolate SN_Feedback = {0};
   
   const double *SN_massloss  = SN_MassLoss[z_idx];
 #ifdef METALS
@@ -300,24 +300,24 @@ static inline star_interpolate SN_interpolate_mass(int z_idx, double m_val)
 
   if(m_val <= M_VALUES[0])
     {
-      SNfeedback.SN_MassLoss = SN_massloss[0];
+      SN_Feedback.SN_MassLoss = SN_massloss[0];
 #ifdef METALS
-      SNfeedback.SN_MetalsLoss = SN_metalsloss[0];
+      SN_Feedback.SN_MetalsLoss = SN_metalsloss[0];
 #endif
-      SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+      SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
       
-      return SNfeedback;
+      return SN_Feedback;
     }       
     
   if(m_val >= M_VALUES[M_COUNT - 1])
     {
-      SNfeedback.SN_MassLoss = SN_massloss[M_COUNT - 1];
+      SN_Feedback.SN_MassLoss = SN_massloss[M_COUNT - 1];
 #ifdef METALS
-      SNfeedback.SN_MetalsLoss = SN_metalsloss[M_COUNT - 1];
+      SN_Feedback.SN_MetalsLoss = SN_metalsloss[M_COUNT - 1];
 #endif
-      SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+      SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
       
-      return SNfeedback;
+      return SN_Feedback;
     } 
   
   for(int m = 0; m < M_COUNT - 1; m++)
@@ -326,20 +326,20 @@ static inline star_interpolate SN_interpolate_mass(int z_idx, double m_val)
       double m1 = M_VALUES[m + 1];
       if(m_val >= m0 && m_val <= m1)
         {
-          SNfeedback.SN_MassLoss = linear_interpolation(m_val, m0, m1, SN_massloss[m], SN_massloss[m + 1]);
+          SN_Feedback.SN_MassLoss = linear_interpolation(m_val, m0, m1, SN_massloss[m], SN_massloss[m + 1]);
 #ifdef METALS
-          SNfeedback.SN_MetalsLoss = linear_interpolation(m_val, m0, m1, SN_metalsloss[m], SN_metalsloss[m + 1]);
+          SN_Feedback.SN_MetalsLoss = linear_interpolation(m_val, m0, m1, SN_metalsloss[m], SN_metalsloss[m + 1]);
 #endif
-          SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+          SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
           
-          return SNfeedback;
+          return SN_Feedback;
         } 
     }
   terminate("SN_interpolate_mass: failed to bracket mass");
 }
 
 /* Linear interpolation in metallicity */
-static star_interpolate SN_interpolate_metallicity(double z_val, double m_val)
+static Star_Interpolate SN_interpolate_metallicity(double z_val, double m_val)
 {
   if(z_val <= Z_VALUES[0])
     return SN_interpolate_mass(0, m_val);
@@ -352,17 +352,17 @@ static star_interpolate SN_interpolate_metallicity(double z_val, double m_val)
       double z1 = Z_VALUES[z + 1];
       if(z_val >= z0 && z_val <= z1)
         {
-          star_interpolate SNfeedback0 = SN_interpolate_mass(z, m_val);
-          star_interpolate SNfeedback1 = SN_interpolate_mass(z + 1, m_val);
-          star_interpolate SNfeedback = {0};
+          Star_Interpolate SNfeedback0 = SN_interpolate_mass(z, m_val);
+          Star_Interpolate SNfeedback1 = SN_interpolate_mass(z + 1, m_val);
+          Star_Interpolate SN_Feedback = {0};
 
-          SNfeedback.SN_MassLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MassLoss, SNfeedback1.SN_MassLoss);
+          SN_Feedback.SN_MassLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MassLoss, SNfeedback1.SN_MassLoss);
 #ifdef METALS
-          SNfeedback.SN_MetalsLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MetalsLoss, SNfeedback1.SN_MetalsLoss);
+          SN_Feedback.SN_MetalsLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MetalsLoss, SNfeedback1.SN_MetalsLoss);
 #endif
-          SNfeedback.SN_EnergyInject = (SNfeedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+          SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
           
-          return SNfeedback;
+          return SN_Feedback;
         }
     }
   terminate("SN_interpolate_metallicity: failed to bracket metallicity");
@@ -370,113 +370,113 @@ static star_interpolate SN_interpolate_metallicity(double z_val, double m_val)
 #endif
 
 /* Wrapper function */
-star_feedback star_feedback_compute(double dt, double z_val, double m_val, double a)
+Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, double a)
 {
   double tau = lifetime(z_val, m_val);
-  star_feedback star = {0};
+  Star_Feedback Star = {0};
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  star.TimeSN = MAX_REAL_NUMBER;
+  Star.TimeSN = MAX_REAL_NUMBER;
 #endif
 
   if(m_val <= 2)
-    return star;
+    return Star;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  star.TimeSN = next_SN_time(tau, z_val, m_val, a);
+  Star.TimeSN = next_SN_time(tau, z_val, m_val, a);
 #endif
 
   if(a < tau)
     {
-      star.Stage = 0;
+      Star.Stage = 0;
 
 #if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
-      star_interpolate feedback = interpolate_metallicity(z_val, m_val, a);
+      Star_Interpolate Feedback = interpolate_metallicity(z_val, m_val, a);
 
 #ifdef WINDS
-      star.MassLoss = feedback.MassLossRate * dt;
+      Star.MassLoss = Feedback.MassLossRate * dt;
 #ifdef METALS
-      star.MetalsLoss = feedback.MetalsLossRate * dt;
+      Star.MetalsLoss = Feedback.MetalsLossRate * dt;
 #endif
-      star.WindMomentum = star.MassLoss * feedback.WindVelocity;
+      Star.WindMomentum = Feedback.MassLossRate * dt * Feedback.WindVelocity;
 #endif
       
       double dt_rad = dt * SEC_PER_YEAR;
-      double flux_to_luminosity = 4 * M_PI * feedback.Radius * feedback.Radius;  
+      double flux_to_luminosity = 4 * M_PI * Feedback.Radius * Feedback.Radius;  
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          star.Radiated[w].Energy  = feedback.Flux[w].Energy  * flux_to_luminosity * dt_rad;
-          star.Radiated[w].Photons = feedback.Flux[w].Photons * flux_to_luminosity * dt_rad;
+          Star.Radiated[w].Energy  = Feedback.Flux[w].Energy  * flux_to_luminosity * dt_rad;
+          Star.Radiated[w].Photons = Feedback.Flux[w].Photons * flux_to_luminosity * dt_rad;
         }
 #endif
 
 #endif
 
-      return star;
+      return Star;
     }
 
   if(a >= tau && a < (tau+dt)) 
     {
-      star.Stage = 1;
+      Star.Stage = 1;
 
 #ifdef SUPERNOVAE
-      star_interpolate SNfeedback = SN_interpolate_metallicity(z_val, m_val);
-      star.SN_MassLoss = SNfeedback.SN_MassLoss;
+      Star_Interpolate SN_Feedback = SN_interpolate_metallicity(z_val, m_val);
+      Star.SN_MassLoss = SN_Feedback.SN_MassLoss;
 #ifdef METALS
-      star.SN_MetalsLoss = SNfeedback.SN_MetalsLoss;
+      Star.SN_MetalsLoss = SN_Feedback.SN_MetalsLoss;
 #endif
-      star.SN_EnergyInject = SNfeedback.SN_EnergyInject;
+      Star.SN_EnergyInject = SN_Feedback.SN_EnergyInject;
 #endif
 
-      return star;
+      return Star;
     }
   
   if(a >= tau+dt)
     {
-      star.Stage = 2;
+      Star.Stage = 2;
 
-      return star;
+      return Star;
     }
-  return star;
+  return Star;
 }
 
-star_feedback units_for_feedback(star_feedback star_feedback)
+Star_Feedback units_for_feedback(Star_Feedback StarFeedback)
 {
 #ifdef WINDS
-  star_feedback.MassLoss /= All.cf_UnitMass_in_Msun;
+  StarFeedback.MassLoss /= All.cf_UnitMass_in_Msun;
 #ifdef METALS
-  star_feedback.MetalsLoss /= All.cf_UnitMass_in_Msun;
+  StarFeedback.MetalsLoss /= All.cf_UnitMass_in_Msun;
 #endif
-  star_feedback.WindMomentum *= SOLAR_MASS * 1e5 / All.cf_UnitMomentum_in_cgs;
+  StarFeedback.WindMomentum *= SOLAR_MASS * 1e5 / All.cf_UnitMomentum_in_cgs;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
   for(int w = 0; w < WAVEBANDS; w++)
-    star_feedback.Radiated[w].Energy /= All.cf_UnitEnergy_in_cgs;
+    StarFeedback.Radiated[w].Energy /= All.cf_UnitEnergy_in_cgs;
 #endif
 
 #ifdef SUPERNOVAE
-  star_feedback.SN_MassLoss /= All.cf_UnitMass_in_Msun;
+  StarFeedback.SN_MassLoss /= All.cf_UnitMass_in_Msun;
 #ifdef METALS
-  star_feedback.SN_MetalsLoss /= All.cf_UnitMass_in_Msun;
+  StarFeedback.SN_MetalsLoss /= All.cf_UnitMass_in_Msun;
 #endif
-  star_feedback.SN_EnergyInject /= All.cf_UnitEnergy_in_cgs;
+  StarFeedback.SN_EnergyInject /= All.cf_UnitEnergy_in_cgs;
 #endif
 
-  return star_feedback;
+  return StarFeedback;
 }
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
-star_feedback star_particle_feedback(int index, double dt, double z, double a)
+Star_Feedback star_particle_feedback(int index, double dt, double z, double a)
 {  
   int i, Nstars;
   double m;
-  star_feedback star_particle = {0};
+  Star_Feedback StarParticle = {0};
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  star_particle.TimeSN = MAX_REAL_NUMBER; 
+  StarParticle.TimeSN = MAX_REAL_NUMBER; 
 #endif
 
   // Add feedback contributions for each bin 
@@ -489,30 +489,30 @@ star_feedback star_particle_feedback(int index, double dt, double z, double a)
       
       m = StarMeanMassInBins[i]; 
 
-      star_feedback star = star_feedback_compute(dt, z, m, a);
+      Star_Feedback Star = star_feedback_compute(dt, z, m, a);
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-      if(star.TimeSN < star_particle.TimeSN)
-      star_particle.TimeSN = star.TimeSN;
+      if(Star.TimeSN < StarParticle.TimeSN)
+      StarParticle.TimeSN = Star.TimeSN;
 #endif
 
-      switch(star.Stage)
+      switch(Star.Stage)
         {
           case 0:
 
 #ifdef WINDS
-          star_particle.MassLoss += Nstars * star.MassLoss;
+          StarParticle.MassLoss += Nstars * Star.MassLoss;
 #ifdef METALS
-          star_particle.MetalsLoss += Nstars * star.MetalsLoss;
+          StarParticle.MetalsLoss += Nstars * Star.MetalsLoss;
 #endif
-          star_particle.WindMomentum += Nstars * star.WindMomentum;
+          StarParticle.WindMomentum += Nstars * Star.WindMomentum;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              star_particle.Radiated[w].Energy  += Nstars * star.Radiated[w].Energy;
-              star_particle.Radiated[w].Photons += Nstars * star.Radiated[w].Photons;
+              StarParticle.Radiated[w].Energy  += Nstars * Star.Radiated[w].Energy;
+              StarParticle.Radiated[w].Photons += Nstars * Star.Radiated[w].Photons;
             }
 #endif
           break;
@@ -520,11 +520,11 @@ star_feedback star_particle_feedback(int index, double dt, double z, double a)
           case 1:
 
 #ifdef SUPERNOVAE
-          star_particle.SN_MassLoss += Nstars * star.SN_MassLoss;
+          StarParticle.SN_MassLoss += Nstars * Star.SN_MassLoss;
 #ifdef METALS
-          star_particle.SN_MetalsLoss += Nstars * star.SN_MetalsLoss;
+          StarParticle.SN_MetalsLoss += Nstars * Star.SN_MetalsLoss;
 #endif
-          star_particle.SN_EnergyInject += Nstars * star.SN_EnergyInject;   
+          StarParticle.SN_EnergyInject += Nstars * Star.SN_EnergyInject;   
 #endif
 
           break;
@@ -534,6 +534,6 @@ star_feedback star_particle_feedback(int index, double dt, double z, double a)
           break;
         }
     }
-  return star_particle;
+  return StarParticle;
 }
 #endif

@@ -162,7 +162,7 @@ void domain_exchange(void)
   int count_togo_stars = 0, count_get_stars = 0;
   int *count_stars, *offset_stars;
   int *count_recv_stars, *offset_recv_stars;
-  struct star_particle_data *sBuf;
+  Star_Particle_Data *sBuf;
 #endif
 
 #ifdef BLACKHOLES
@@ -259,7 +259,7 @@ void domain_exchange(void)
   sphBuf  = (struct sph_particle_data *)mymalloc_movable(&sphBuf, "sphBuf", count_togo_sph * sizeof(struct sph_particle_data));
 
 #ifdef STARS
-  sBuf = (struct star_particle_data *)mymalloc_movable(&sBuf, "sBuf", count_togo_stars * sizeof(struct star_particle_data));
+  sBuf = (Star_Particle_Data *)mymalloc_movable(&sBuf, "sBuf", count_togo_stars * sizeof(Star_Particle_Data));
 #endif
 
 #ifdef BLACKHOLES
@@ -530,8 +530,8 @@ void domain_exchange(void)
 #ifdef STARS
 if(count_stars[target] > 0 || count_recv_stars[target] > 0)
             {
-              MPI_Sendrecv(sBuf + offset_stars[target], count_stars[target] * sizeof(struct star_particle_data), MPI_BYTE, target,
-                           TAG_BHDATA, SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(struct star_particle_data),
+              MPI_Sendrecv(sBuf + offset_stars[target], count_stars[target] * sizeof(Star_Particle_Data), MPI_BYTE, target,
+                           TAG_BHDATA, SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(Star_Particle_Data),
                            MPI_BYTE, target, TAG_STARDATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
 #endif
@@ -585,7 +585,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
 #ifdef STARS
           if(count_recv_stars[target] > 0)
             {
-              MPI_Irecv(SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(struct star_particle_data), MPI_BYTE, target,
+              MPI_Irecv(SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(Star_Particle_Data), MPI_BYTE, target,
                         TAG_STARDATA, MPI_COMM_WORLD, &requests[n_requests++]);
             }
 #endif
@@ -634,7 +634,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
 #ifdef STARS
           if(count_stars[target] > 0)
             {
-              MPI_Isend(sBuf + offset_stars[target], count_stars[target] * sizeof(struct star_particle_data), MPI_BYTE, target,
+              MPI_Isend(sBuf + offset_stars[target], count_stars[target] * sizeof(Star_Particle_Data), MPI_BYTE, target,
                         TAG_STARDATA, MPI_COMM_WORLD, &requests[n_requests++]);
             }
 #endif
@@ -673,7 +673,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
   myMPI_Alltoallv(keyBuf, count_sph, offset_sph, Key, count_recv_sph, offset_recv_sph, sizeof(peanokey), 0, MPI_COMM_WORLD);
 
 #ifdef STARS
- myMPI_Alltoallv(sBuf, count_stars, offset_stars, SP, count_recv_stars, offset_recv_stars, sizeof(struct star_particle_data), 0,
+ myMPI_Alltoallv(sBuf, count_stars, offset_stars, SP, count_recv_stars, offset_recv_stars, sizeof(Star_Particle_Data), 0,
                   MPI_COMM_WORLD);
 #endif
 

@@ -6,4 +6,4 @@ int NumStars;
 struct TimeBinData TimeBinsStar;
 #endif
 
-struct star_particle_data *SP;
+Star_Particle_Data *SP;

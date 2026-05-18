@@ -192,16 +192,16 @@ void star_prep(void)
 
       SP[i].PhysicalAge_yr += star_timestep;
 
-      star_feedback star_feedback;
+      Star_Feedback Star_Feedback;
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
-      star_feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, SP[i].PhysicalAge_yr));
+      Star_Feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, SP[i].PhysicalAge_yr));
 #elif STAR_PARTICLES == 2     
-      star_feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, SP[i].PhysicalAge_yr));
+      Star_Feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, SP[i].PhysicalAge_yr));
 #endif
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-     SP[i].TimeSN_yr = star_feedback.TimeSN;
+     SP[i].TimeSN_yr = Star_Feedback.TimeSN;
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
@@ -211,27 +211,27 @@ void star_prep(void)
 
 
 #ifdef WINDS
-      SP[i].WindsAndSN.MassLoss = star_feedback.MassLoss;
+      SP[i].WindsAndSN.MassLoss = Star_Feedback.MassLoss;
 #ifdef METALS
-      SP[i].WindsAndSN.MetalsLoss = star_feedback.MetalsLoss;
+      SP[i].WindsAndSN.MetalsLoss = Star_Feedback.MetalsLoss;
 #endif
-      SP[i].WindsAndSN.WindMomentum = star_feedback.WindMomentum;
+      SP[i].WindsAndSN.WindMomentum = Star_Feedback.WindMomentum;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE      
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          SP[i].Radiated[w].Photons = star_feedback.Radiated[w].Photons;
-          SP[i].Radiated[w].Energy = star_feedback.Radiated[w].Energy;
+          SP[i].Radiated[w].Photons = Star_Feedback.Radiated[w].Photons;
+          SP[i].Radiated[w].Energy = Star_Feedback.Radiated[w].Energy;
         }
 #endif
 
 #ifdef SUPERNOVAE
-      SP[i].WindsAndSN.SN_MassLoss = star_feedback.SN_MassLoss;
+      SP[i].WindsAndSN.SN_MassLoss = Star_Feedback.SN_MassLoss;
 #ifdef METALS
-      SP[i].WindsAndSN.SN_MetalsLoss = star_feedback.SN_MetalsLoss;
+      SP[i].WindsAndSN.SN_MetalsLoss = Star_Feedback.SN_MetalsLoss;
 #endif
-      SP[i].WindsAndSN.SN_EnergyInject = star_feedback.SN_EnergyInject;
+      SP[i].WindsAndSN.SN_EnergyInject = Star_Feedback.SN_EnergyInject;
 #endif
     }
 }

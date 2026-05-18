@@ -94,7 +94,7 @@ void allocate_memory(void)
 
 #ifdef STARS
   mpi_printf("ALLOCATE: initial allocation for MaxPartStars = %d\n", All.MaxPartStars);
-  SP=(struct star_particle_data *)mymalloc_movable(&SP, "SP", All.MaxPartStars*sizeof(struct star_particle_data));
+  SP=(Star_Particle_Data *)mymalloc_movable(&SP, "SP", All.MaxPartStars*sizeof(Star_Particle_Data));
 #endif
 
 #ifdef BLACKHOLES
@@ -123,7 +123,7 @@ void allocate_memory(void)
   memset(SphP, 0, All.MaxPartSph * sizeof(struct sph_particle_data));
 
 #ifdef STARS
-  memset(SP, 0, All.MaxPartStars * sizeof(struct star_particle_data));
+  memset(SP, 0, All.MaxPartStars * sizeof(Star_Particle_Data));
 #endif
 
 #ifdef BLACKHOLES
@@ -164,7 +164,7 @@ void reallocate_memory_maxpartstars(void)
 {
   mpi_printf("ALLOCATE: Changing to MaxPartStars= %d\n", All.MaxPartStars);
 
-  SP = (struct star_particle_data *)myrealloc_movable(SP, All.MaxPartStars * sizeof(struct star_particle_data));
+  SP = (Star_Particle_Data *)myrealloc_movable(SP, All.MaxPartStars * sizeof(Star_Particle_Data));
 
 #ifdef STAR_FEEDBACK_ACTIVE
   timebins_reallocate(&TimeBinsStar);
