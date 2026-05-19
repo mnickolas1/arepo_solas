@@ -17,7 +17,7 @@
  *     3 == calculate and return pressure
  *     4 == calculate and return gamma (only valid when GRACKLE_CHEMISTRY>0, also it makes sense only when you have molecules)
  */
-double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int target, int mode)
+double CallGrackle(double u_old, double rho, double dt, int target, int mode)
 {
   gr_initialize_field_data(&All.GrackleFieldData);
     
@@ -101,7 +101,7 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
 #if (GRACKLE_CHEMISTRY >= 1)
 
   /* electron density */
-  *All.GrackleFieldData.e_density = *ne_guess * *All.GrackleFieldData.density;
+  //*All.GrackleFieldData.e_density = *ne_guess * *All.GrackleFieldData.density;
  
   /* H and He species */
   *All.GrackleFieldData.HI_density = SphP[target].GrackleSpecies(GRACKLE_HI) * *All.GrackleFieldData.density;
@@ -131,6 +131,23 @@ double CallGrackle(double u_old, double rho, double dt, double *ne_guess, int ta
   *All.GrackleFieldData.DII_density = GRACKLE_TINY * *All.GrackleFieldData.density;
   *All.GrackleFieldData.HDI_density = GRACKLE_TINY * *All.GrackleFieldData.density;
 #endif
+
+  double e_density = 0;
+
+  e_density += *All.GrackleFieldData.HII_density;
+  e_density += *All.GrackleFieldData.HeII_density / 4.0;
+  e_density += *All.GrackleFieldData.HeIII_density / 2.0;
+
+#if (GRACKLE_CHEMISTRY >= 2)
+  e_density += *All.GrackleFieldData.H2II_density / 2.0;
+  e_density -= *All.GrackleFieldData.HM_density;
+#endif
+
+#if (GRACKLE_CHEMISTRY >= 3)
+  e_density += *All.GrackleFieldData.DII_density / 2.0;
+#endif
+
+  *All.GrackleFieldData.e_density = e_density;
 
   /* Radiation */
 #ifdef PHOTOELECTRIC_HEATING
@@ -465,39 +482,84 @@ void init_state(void)
     {
       /* Fully neutral initial conditions -> might want to set different ones */
       SphP[i].Ne = GRACKLE_TINY;
-      
+
+#if (GRACKLE_CHEMISTRY >= 1)
       SphP[i].GrackleSpecies(GRACKLE_HI) = HYDROGEN_MASSFRAC; // all H is neutral
       SphP[i].GrackleSpecies(GRACKLE_HII) = GRACKLE_TINY;
       SphP[i].GrackleSpecies(GRACKLE_HeI) = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
       SphP[i].GrackleSpecies(GRACKLE_HeII) = GRACKLE_TINY;
       SphP[i].GrackleSpecies(GRACKLE_HeIII) = GRACKLE_TINY;
+#endif
+
+#if (GRACKLE_CHEMISTRY >= 2)
       SphP[i].GrackleSpecies(GRACKLE_H2I) = GRACKLE_TINY;
       SphP[i].GrackleSpecies(GRACKLE_H2II) = GRACKLE_TINY;
       SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
+#endif
+
+#if (GRACKLE_CHEMISTRY >= 3)
       SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
       SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
       SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
+#endif
     }
 }
 
-double compute_mu(int i)
+ddouble compute_mu(int i)
 {
-  /* Grab mass fractions from Grackle */
-  double Xe  = SphP[i].Ne; // electron fraction
-  double XH  = SphP[i].GrackleSpecies(GRACKLE_HI) + SphP[i].GrackleSpecies(GRACKLE_HII) + SphP[i].GrackleSpecies(GRACKLE_HM); // atomic hydrogen fraction
-  double XH2 = SphP[i].GrackleSpecies(GRACKLE_H2I) + SphP[i].GrackleSpecies(GRACKLE_H2II); // molecular hydrogen fraction 
-  double XD  = SphP[i].GrackleSpecies(GRACKLE_DI) + SphP[i].GrackleSpecies(GRACKLE_DII); // atomic deuterium fraction
-  double XHD = SphP[i].GrackleSpecies(GRACKLE_HDI); // hydrogen deuteride fraction
-  double XHe = SphP[i].GrackleSpecies(GRACKLE_HeI) + SphP[i].GrackleSpecies(GRACKLE_HeII) + SphP[i].GrackleSpecies(GRACKLE_HeIII); // helium fraction
+  double Xe = SphP[i].Ne;
 
-  /* Optional: include metals if desired (usually negligible) */
-#ifdef METALS    
-  double Z = SphP[i].GasMetallicity;
+  /* Level 1: atomic H and He */
+#if (GRACKLE_CHEMISTRY >= 1)
+  double XHI    = SphP[i].GrackleSpecies(GRACKLE_HI);
+  double XHII   = SphP[i].GrackleSpecies(GRACKLE_HII);
+  double XHeI   = SphP[i].GrackleSpecies(GRACKLE_HeI);
+  double XHeII  = SphP[i].GrackleSpecies(GRACKLE_HeII);
+  double XHeIII = SphP[i].GrackleSpecies(GRACKLE_HeIII);
 #else
-  double Z = 0;
-#endif    
+  /* Fall back to fully neutral cosmic abundances */
+  double XHI    = HYDROGEN_MASSFRAC;
+  double XHII   = 0.0;
+  double XHeI   = 1.0 - HYDROGEN_MASSFRAC;
+  double XHeII  = 0.0;
+  double XHeIII = 0.0;
+#endif
 
-  /* Compute mean molecular weight: g per particle */
-  /* 1 H atom = m_H, 1 He atom = 4*m_H, electrons = m_H (counted as particles for n) */
-  return 1.0 / (XH + XH2/2.0 + XD/2.0 + XHD/3.0 + XHe/4.0 + Xe + Z/16.0); // -> Dimensionless mu
+  /* Level 2: molecular H and H- */
+#if (GRACKLE_CHEMISTRY >= 2)
+  double XH2I  = SphP[i].GrackleSpecies(GRACKLE_H2I);
+  double XH2II = SphP[i].GrackleSpecies(GRACKLE_H2II);
+  double XHM   = SphP[i].GrackleSpecies(GRACKLE_HM);
+#else
+  double XH2I  = 0.0;
+  double XH2II = 0.0;
+  double XHM   = 0.0;
+#endif
+
+  /* Level 3: deuterium species */
+#if (GRACKLE_CHEMISTRY >= 3)
+  double XDI  = SphP[i].GrackleSpecies(GRACKLE_DI);
+  double XDII = SphP[i].GrackleSpecies(GRACKLE_DII);
+  double XHDI = SphP[i].GrackleSpecies(GRACKLE_HDI);
+#else
+  double XDI  = 0.0;
+  double XDII = 0.0;
+  double XHDI = 0.0;
+#endif
+
+  /* --- Assemble grouped mass fractions --- */
+  double XH  = XHI + XHII + XHM;        /*   m_H */
+  double XH2 = XH2I + XH2II;            /* 2 m_H */
+  double XD  = XDI + XDII;              /* 2 m_H */
+  double XHD = XHDI;                    /* 3 m_H */
+  double XHe = XHeI + XHeII + XHeIII;   /* 4 m_H */
+
+#ifdef METALS
+  double Z = SphP[i].GasMetallicity;    /* metals, approximated as 16 m_H */
+#else
+  double Z = 0.0;
+#endif
+
+  /* mu = 1 / sum_s (X_s / A_s), where A_s is the atomic mass in units of m_H */
+  return 1.0 / (Xe + XH + XH2/2.0 + XD/2.0 + XHD/3.0 + XHe/4.0 + Z/16.0);
 }

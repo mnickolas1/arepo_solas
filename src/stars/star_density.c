@@ -38,7 +38,9 @@ typedef struct
   MyDouble PhysicalAge_yr;
 #endif  
 
+#if defined(WINDS) || defined(SUPERNOVAE)
   Mechanical_Feedback WindsAndSN;
+#endif
   
   MyFloat Hsml;
   int Firstnode;

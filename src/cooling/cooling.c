@@ -97,7 +97,7 @@ double DoCooling(double u_old, double rho, double dt, double *ne_guess, int i)
   if (dt == 0.)
     return u_old;
   
-  u = CallGrackle(u_old, rho, dt, ne_guess, i, 0);
+  u = CallGrackle(u_old, rho, dt, i, 0);
   return u;
 
 #endif /* ifdef USE_GRACKLE */
@@ -209,7 +209,7 @@ double GetCoolingTime(double u_old, double rho, double *ne_guess, int i)
   
 #ifdef USE_GRACKLE
 
-  LambdaNet = CallGrackle(u_old, rho, 0.0, ne_guess, i, 1);
+  LambdaNet = CallGrackle(u_old, rho, 0.0, i, 1);
   if(LambdaNet >= 0) 
       LambdaNet = 0.0;
     

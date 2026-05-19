@@ -371,8 +371,6 @@ $(shell $(call add_define,PHOTOELECTRIC_HEATING))
 $(shell $(call add_define,RADIATION_PRESSURE))
 endif
 
-CONFIGVARS := $(sort $(CONFIGVARS))
-
 STAR_FEEDBACK_ACTIVE = WINDS PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE SUPERNOVAE
 
 STAR_RADIATION_ACTIVE = PHOTOIONIZATION PHOTOELECTRIC_HEATING RADIATION_PRESSURE
@@ -405,10 +403,8 @@ $(error STAR_PARTICLES requires USE_SFR or STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
-GRACKLE_LEVEL := $(word 2,$(filter GRACKLE_CHEMISTRY %,$(CONFIGVARS)))
-
 ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
-ifeq ($(shell [ $(GRACKLE_LEVEL) -ge 2 ] && echo yes),)
+ifeq ($(strip $(findstring GRACKLE_CHEMISTRY 2,$(CONFIGVARS))$(findstring GRACKLE_CHEMISTRY 3,$(CONFIGVARS))),)
 $(error STAR_RADIATION_ACTIVE requires GRACKLE_CHEMISTRY >= 2)
 endif
 endif
@@ -418,9 +414,8 @@ OBJS += stars/star_particle.o
 INCL += stars/star_particle.h  
 endif
 
-ifneq (,$(filter $(STAR_FEEDBACK_ACTIVE),$(CONFIGVARS)))
+ifneq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 OBJS += stars/star_density.o \
-        stars/star_feedback.o \
         stars/star_update.o \
         stars/star_interpolation.o \
         stars/star_tables.o
@@ -428,7 +423,11 @@ INCL += stars/star_proto.h \
         stars/star_tables.h
 endif
 
-ifneq (,$(filter $(STAR_RADIATION_ACTIVE),$(CONFIGVARS)))
+ifneq (,$(filter WINDS SUPERNOVAE,$(CONFIGVARS)))
+OBJS += stars/star_feedback.o 
+endif
+
+ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
 OBJS += extern/chealpix.o \
         stars/star_radiation.o \
         stars/star_radiation_tree.o
@@ -448,18 +447,16 @@ ifneq (,$(filter BH_FEEDBACK,$(CONFIGVARS)))
 CONFIGVARS += BH_THERMAL_FEEDBACK BH_JET_FEEDBACK 
 endif
 
-CONFIGVARS := $(sort $(CONFIGVARS))
-
 BH_ACCRETION_ACTIVE = BONDI_ACCRETION TORQUE_ACCRETION ADP_ACCRETION
 
 BH_FEEDBACK_ACTIVE = BH_THERMAL_FEEDBACK BH_JET_FEEDBACK 
 
-ifneq (,$(filter $(BH_ACCRETION_ACTIVE),$(CONFIGVARS)))
+ifneq (,$(filter BH_ACCRETION_ACTIVE,$(CONFIGVARS)))
 CONFIGVARS += BH_ACCRETION_ACTIVE
 $(shell $(call add_define,BH_ACCRETION_ACTIVE))
 endif
 
-ifneq (,$(filter $(BH_FEEDBACK_ACTIVE),$(CONFIGVARS)))
+ifneq (,$(filter BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 CONFIGVARS += BH_FEEDBACK_ACTIVE
 $(shell $(call add_define,BH_FEEDBACK_ACTIVE))
 endif
@@ -550,7 +547,7 @@ DOCS_CHECK = $(BUILD_DIR)/README.check
 ################
 #create subdirs#
 ################
-RESULT := $(shell mkdir -p $(SUBDIRS)  )
+RESULT := $(shell mkdir -p $(SUBDIRS))
 
 
 #############

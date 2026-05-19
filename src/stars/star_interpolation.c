@@ -144,7 +144,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        Feedback.Flux[w] = flux[0];
+        Feedback.Flux[w] = flux[w][0];
 #endif
       
       return Feedback;
@@ -165,7 +165,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        Feedback.Flux[w] = flux[n - 1];
+        Feedback.Flux[w] = flux[w][n - 1];
 #endif
       
       return Feedback;
