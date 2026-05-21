@@ -1,11 +1,11 @@
 # AREPO Makefile
-EXEC   = Arepo
+EXEC = Arepo
 LIBRARY = arepo
-CONFIG   = Config.sh
+CONFIG = Config.sh
 BUILD_DIR = build
 SRC_DIR = src
 
-SYSTYPE ?= LINUX
+SYSTYPE ?= "LINUX"
 
 MAKEFILES = Makefile config-makefile
 ifeq ($(wildcard Makefile.systype), Makefile.systype)
@@ -22,10 +22,10 @@ $(info EXEC: $(EXEC))
 $(info )
 
 PYTHON = python3
-PERL   = /usr/bin/perl
-RESULT     := $(shell CONFIG=$(CONFIG) PERL=$(PERL) BUILD_DIR=$(BUILD_DIR) make -f config-makefile)
+PERL = /usr/bin/perl
+RESULT := $(shell CONFIG=$(CONFIG) PERL=$(PERL) BUILD_DIR=$(BUILD_DIR) make -f config-makefile)
 CONFIGVARS := $(shell cat $(BUILD_DIR)/arepoconfig.h)
-RESULT     := $(shell SRC_DIR=$(SRC_DIR) BUILD_DIR=$(BUILD_DIR) ./git_version.sh)
+RESULT := $(shell SRC_DIR=$(SRC_DIR) BUILD_DIR=$(BUILD_DIR) ./git_version.sh)
 
 # Default
 MPICH_INCL =
@@ -77,8 +77,8 @@ endif
 #Mac OS using MacPorts modules for openmpi, fftw, gsl, hdf5 and hwloc
 ifeq ($(SYSTYPE),"Darwin")
 # compiler and its optimization options
-CC        =  mpicc   # sets the C-compiler
-OPTIMIZE  =  -std=c11 -ggdb -O3 -Wall -Wno-format-security -Wno-unknown-pragmas -Wno-unused-function
+CC        = mpicc   # sets the C-compiler
+OPTIMIZE  = -std=c11 -ggdb -g -O0 -fno-omit-frame-pointer -Wall -Wno-format-security -Wno-unknown-pragmas -Wno-unused-function
 
 MPICH_LIB = -lmpi
 GSL_INCL  = -I/opt/local/include
@@ -100,8 +100,8 @@ BREW := /opt/homebrew/bin/brew
 $(info BREW: $(BREW))
 
 # compiler and its optimization options
-CC        =  mpicc   # sets the C-compiler
-OPTIMIZE  =  -std=c11 -ggdb -g -O0 -fno-omit-frame-pointer -Wall -Wno-format-security -Wno-unknown-pragmas -Wno-unused-function
+CC        = mpicc   # sets the C-compiler
+OPTIMIZE  = -std=c11 -ggdb -g -O0 -fno-omit-frame-pointer -Wall -Wno-format-security -Wno-unknown-pragmas -Wno-unused-function
 
 MPICH_LIB = #-lmpi
 GSL_INCL  = -I$(shell $(BREW) --prefix gsl)/include
@@ -122,8 +122,8 @@ endif
 #Linux
 ifeq ($(SYSTYPE),"LINUX")
 # compiler and its optimization options
-CC        =  mpicc
-OPTIMIZE  =  -std=c11 -ggdb -O3 -Wall -Wno-format-security -Wno-unknown-pragmas -Wno-unused-function
+CC        = mpicc
+OPTIMIZE  = -std=c11 -ggdb -g -O0 -fno-omit-frame-pointer -Wall -Wno-format-security -Wno-unknown-pragmas -Wno-unused-function
 
 MPICH_INCL= -I/usr/lib/x86_64-linux-gnu/openmpi/include/
 MPICH_LIB = -L/usr/lib/x86_64-linux-gnu/openmpi/lib/ -lmpi

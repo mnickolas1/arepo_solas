@@ -505,52 +505,52 @@ void init_state(void)
     }
 }
 
-ddouble compute_mu(int i)
+double compute_mu(int i)
 {
   double Xe = SphP[i].Ne;
 
   /* Level 1: atomic H and He */
 #if (GRACKLE_CHEMISTRY >= 1)
-  double XHI    = SphP[i].GrackleSpecies(GRACKLE_HI);
-  double XHII   = SphP[i].GrackleSpecies(GRACKLE_HII);
-  double XHeI   = SphP[i].GrackleSpecies(GRACKLE_HeI);
-  double XHeII  = SphP[i].GrackleSpecies(GRACKLE_HeII);
+  double XHI = SphP[i].GrackleSpecies(GRACKLE_HI);
+  double XHII = SphP[i].GrackleSpecies(GRACKLE_HII);
+  double XHeI = SphP[i].GrackleSpecies(GRACKLE_HeI);
+  double XHeII = SphP[i].GrackleSpecies(GRACKLE_HeII);
   double XHeIII = SphP[i].GrackleSpecies(GRACKLE_HeIII);
 #else
   /* Fall back to fully neutral cosmic abundances */
-  double XHI    = HYDROGEN_MASSFRAC;
-  double XHII   = 0.0;
-  double XHeI   = 1.0 - HYDROGEN_MASSFRAC;
-  double XHeII  = 0.0;
+  double XHI = HYDROGEN_MASSFRAC;
+  double XHII = 0.0;
+  double XHeI = 1.0 - HYDROGEN_MASSFRAC;
+  double XHeII = 0.0;
   double XHeIII = 0.0;
 #endif
 
   /* Level 2: molecular H and H- */
 #if (GRACKLE_CHEMISTRY >= 2)
-  double XH2I  = SphP[i].GrackleSpecies(GRACKLE_H2I);
+  double XH2I = SphP[i].GrackleSpecies(GRACKLE_H2I);
   double XH2II = SphP[i].GrackleSpecies(GRACKLE_H2II);
-  double XHM   = SphP[i].GrackleSpecies(GRACKLE_HM);
+  double XHM = SphP[i].GrackleSpecies(GRACKLE_HM);
 #else
-  double XH2I  = 0.0;
+  double XH2I = 0.0;
   double XH2II = 0.0;
-  double XHM   = 0.0;
+  double XHM = 0.0;
 #endif
 
   /* Level 3: deuterium species */
 #if (GRACKLE_CHEMISTRY >= 3)
-  double XDI  = SphP[i].GrackleSpecies(GRACKLE_DI);
+  double XDI = SphP[i].GrackleSpecies(GRACKLE_DI);
   double XDII = SphP[i].GrackleSpecies(GRACKLE_DII);
   double XHDI = SphP[i].GrackleSpecies(GRACKLE_HDI);
 #else
-  double XDI  = 0.0;
+  double XDI = 0.0;
   double XDII = 0.0;
   double XHDI = 0.0;
 #endif
 
   /* --- Assemble grouped mass fractions --- */
-  double XH  = XHI + XHII + XHM;        /*   m_H */
+  double XH = XHI + XHII + XHM;        /*   m_H */
   double XH2 = XH2I + XH2II;            /* 2 m_H */
-  double XD  = XDI + XDII;              /* 2 m_H */
+  double XD = XDI + XDII;              /* 2 m_H */
   double XHD = XHDI;                    /* 3 m_H */
   double XHe = XHeI + XHeII + XHeIII;   /* 4 m_H */
 

@@ -248,6 +248,9 @@ void star_density(void)
       if(SP[i].Hsml <= 0)
         SP[i].Hsml = All.SofteningTable[PPS(i).SofteningType]; // is this comoving?
     }
+  
+  for(i = 0; i < NumGas; i++)
+    SphP[i].Host = 0;
 
   generic_set_MaxNexport();
   

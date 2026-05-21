@@ -304,7 +304,6 @@ void star_feedback(void)
           double epsilon = 0.0, a = 0.0, b = 0.0;
           double m_ej = WindsAndSN->SN_MassLoss;
       
-
           /* Third pass */ 
           for(int f = 0; f < n_faces; f++)
             {
