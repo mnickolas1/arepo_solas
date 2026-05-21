@@ -52,32 +52,23 @@ double gaussian_weight(double r, double h)
 
 integertime star_timestep(int i)
 { 
-#ifdef SELFGRAVITY  
-  double dt_grav = (PPS(i).TimeBinGrav ? (((integertime)1) << PPS(i).TimeBinGrav) : 0) * All.Timebase_interval;
-#else 
-  double dt_grav = MAX_REAL_NUMBER;
-#endif
-
-  double dt_ngbmax = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
+  double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
   double dt_star = pow(10,4) / All.cf_UnitTime_in_yr;
 
-  double dt = dt_grav;
-
-  if(dt_ngbmax < dt)
-    dt = dt_ngbmax;
+  double dt = dt_host;
 
   if(dt_star < dt)
     dt = dt_star;
 
-  double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
+  //double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
 
   // This deactivates low mass stars
-  if (star_mass < 2)
-    dt = TIMEBASE * All.Timebase_interval;
+  //if(star_mass < 2)
+  //  dt = TIMEBASE * All.Timebase_interval;
 
   // This sets the timestep of less massive stars at 1 Myr
-  if(star_mass < 8)
-    dt = pow(10,6) / All.cf_UnitTime_in_yr;
+  //if(star_mass < 8)
+  //  dt = pow(10,6) / All.cf_UnitTime_in_yr;
 
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
   
@@ -92,10 +83,8 @@ void star_update_timesteps(void)
 for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
-
-      ti_step = star_timestep(i);
     
-      SP[i].TimeBinStar = get_timestep_bin(ti_step);
+      SP[i].TimeBinStar = PPS(i).TimeBinGrav;
     }
     
   star_reconstruct_timebins();
@@ -167,7 +156,7 @@ void star_prep(void)
       i = TimeBinsStar.ActiveParticleList[idx];
 
       if(SP[i].Active == 0)
-        if(TimeBinSynchronized[SP[i].HostHydroBin])
+        //if(TimeBinSynchronized[SP[i].HostHydroBin])
           {
             SP[i].Active = 1;
             SP[i].PhysicalAge_yr = 0.0;
@@ -178,30 +167,36 @@ void star_prep(void)
       
       MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
 
+      MyDouble star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
+
+      /* This deactivates low mass stars */
+      if(star_mass < 2)
+        star_timestep = TIMEBASE * All.Timebase_interval;
+
+      /* This sets the timestep of less massive stars at 1 Myr */
+      if(star_mass < 8)
+        star_timestep = pow(10,6) / All.cf_UnitTime_in_yr;
+
+      star_timestep *= All.cf_UnitTime_in_yr;
+
 #ifdef METALS 
       MyDouble star_metallicity = SP[i].Metallicity;
 #else 
       MyDouble star_metallicity = 0;
 #endif
 
-      MyDouble star_mass = PPS(i).Mass;
-    
-      // Convert units (-> solar masses and years)
-      star_timestep *= All.cf_UnitTime_in_yr;
-      star_mass *= All.cf_UnitMass_in_Msun;
-
       SP[i].PhysicalAge_yr += star_timestep;
 
-      Star_Feedback Star_Feedback;
+      Star_Feedback StarFeedback;
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
-      Star_Feedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, SP[i].PhysicalAge_yr));
+      StarFeedback = units_for_feedback(star_particle_feedback(i, star_timestep, star_metallicity, SP[i].PhysicalAge_yr));
 #elif STAR_PARTICLES == 2     
-      Star_Feedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, SP[i].PhysicalAge_yr));
+      StarFeedback = units_for_feedback(star_feedback_compute(star_timestep, star_metallicity, star_mass, SP[i].PhysicalAge_yr));
 #endif
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-     SP[i].TimeSN_yr = Star_Feedback.TimeSN;
+     SP[i].TimeSN_yr = StarFeedback.TimeSN;
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
@@ -209,29 +204,28 @@ void star_prep(void)
        SP[i].WindsAndSN.StarVelocity[k] = PPS(i).Vel[k];
 #endif
 
-
 #ifdef WINDS
-      SP[i].WindsAndSN.MassLoss = Star_Feedback.MassLoss;
+      SP[i].WindsAndSN.MassLoss = StarFeedback.MassLoss;
 #ifdef METALS
-      SP[i].WindsAndSN.MetalsLoss = Star_Feedback.MetalsLoss;
+      SP[i].WindsAndSN.MetalsLoss = StarFeedback.MetalsLoss;
 #endif
-      SP[i].WindsAndSN.WindMomentum = Star_Feedback.WindMomentum;
+      SP[i].WindsAndSN.WindMomentum = StarFeedback.WindMomentum;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE      
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          SP[i].Radiated[w].Photons = Star_Feedback.Radiated[w].Photons;
-          SP[i].Radiated[w].Energy = Star_Feedback.Radiated[w].Energy;
+          SP[i].Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
+          SP[i].Radiated[w].Energy = StarFeedback.Radiated[w].Energy;
         }
 #endif
 
 #ifdef SUPERNOVAE
-      SP[i].WindsAndSN.SN_MassLoss = Star_Feedback.SN_MassLoss;
+      SP[i].WindsAndSN.SN_MassLoss = StarFeedback.SN_MassLoss;
 #ifdef METALS
-      SP[i].WindsAndSN.SN_MetalsLoss = Star_Feedback.SN_MetalsLoss;
+      SP[i].WindsAndSN.SN_MetalsLoss = StarFeedback.SN_MetalsLoss;
 #endif
-      SP[i].WindsAndSN.SN_EnergyInject = Star_Feedback.SN_EnergyInject;
+      SP[i].WindsAndSN.SN_EnergyInject = StarFeedback.SN_EnergyInject;
 #endif
     }
 }

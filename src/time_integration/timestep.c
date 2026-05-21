@@ -172,6 +172,17 @@ void find_timesteps_without_gravity(void)
         continue;
 
       ti_step = get_timestep_gravity(i);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      if(P[i].Type == 4)
+        {
+          double ti_star_step = star_timestep(i);
+          
+          if(ti_star_step < ti_step)
+            ti_step = ti_star_step;
+        }
+#endif
+
       if(ti_step < globTimeStep)
         globTimeStep = ti_step;
     }
@@ -531,6 +542,16 @@ int test_if_grav_timestep_is_too_large(int p, int bin)
   integertime ti_step_bin = bin ? (((integertime)1) << bin) : 0;
 
   integertime ti_step = get_timestep_gravity(p);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  if(P[i].Type == 4)
+    {
+      double ti_star_step = star_timestep(i);
+          
+      if(ti_star_step < ti_step)
+        ti_step = ti_star_step;
+    }
+#endif
 
   if(P[p].Type == 0)
     {

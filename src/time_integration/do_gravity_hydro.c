@@ -293,6 +293,17 @@ void find_gravity_timesteps_and_do_gravity_step_first_half(void)
       int bin    = -1;
 
       ti_step = get_timestep_gravity(i);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      if(P[i].Type == 4)
+        {
+          double ti_star_step = star_timestep(i);
+          
+          if(ti_star_step < ti_step)
+            ti_step = ti_star_step;
+        }
+#endif
+
       timebins_get_bin_and_do_validity_checks(ti_step, &bin, P[i].TimeBinGrav);
 
       if(P[i].Type == 0)
