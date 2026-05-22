@@ -401,10 +401,10 @@ Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, doubl
       Star.WindMomentum = Feedback.MassLossRate * dt * Feedback.WindVelocity;
 #endif
       
-      double dt_rad = dt * SEC_PER_YEAR;
-      double flux_to_luminosity = 4 * M_PI * Feedback.Radius * Feedback.Radius;  
-
 #ifdef STAR_RADIATION_ACTIVE
+      double dt_rad = dt * SEC_PER_YEAR;
+      double flux_to_luminosity = 4 * M_PI * Feedback.Radius * Feedback.Radius;
+        
       for(int w = 0; w < WAVEBANDS; w++)
         {
           Star.Radiated[w].Energy  = Feedback.Flux[w].Energy  * flux_to_luminosity * dt_rad;

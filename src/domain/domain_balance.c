@@ -143,9 +143,29 @@ double domain_star_tot_costfactor(int i)
 {
   double w = 0;
   if(P[i].Type == 4)
-    for(int bin = SPP(i).TimeBinStar; bin <= All.HighestOccupiedTimeBin; bin++)
-      if(domain_to_be_balanced[bin])
-        w += domain_star_weight[bin];
+    {
+      double factor = 1;
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+      factor *= 1;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      factor *= 2;
+#endif
+      
+      double star_mass = P[i].Mass * All.cf_UnitMass_in_Msun;
+
+      if(star_mass < 8)
+        factor *= 0.1;
+      
+      if(star_mass < 2)
+        factor *= 0;
+
+      for(int bin = SPP(i).TimeBinStar; bin <= All.HighestOccupiedTimeBin; bin++)
+        if(domain_to_be_balanced[bin])
+          w += domain_star_weight[bin] * factor;
+    }
   return w;
 }
 #endif

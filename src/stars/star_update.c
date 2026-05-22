@@ -62,13 +62,13 @@ integertime star_timestep(int i)
 
   //double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
 
-  // This deactivates low mass stars
-  //if(star_mass < 2)
-  //  dt = TIMEBASE * All.Timebase_interval;
-
   // This sets the timestep of less massive stars at 1 Myr
   //if(star_mass < 8)
   //  dt = pow(10,6) / All.cf_UnitTime_in_yr;
+
+  // This deactivates low mass stars
+  //if(star_mass < 2)
+  //  dt = TIMEBASE * All.Timebase_interval;
 
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
   
@@ -78,9 +78,8 @@ integertime star_timestep(int i)
 void star_update_timesteps(void)
 {
   int idx, i;
-  integertime ti_step;
 
-for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
+  for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
     
@@ -169,13 +168,13 @@ void star_prep(void)
 
       MyDouble star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
 
-      /* This deactivates low mass stars */
-      if(star_mass < 2)
-        star_timestep = TIMEBASE * All.Timebase_interval;
-
       /* This sets the timestep of less massive stars at 1 Myr */
       if(star_mass < 8)
         star_timestep = pow(10,6) / All.cf_UnitTime_in_yr;
+
+      /* This deactivates low mass stars */
+      if(star_mass < 2)
+        star_timestep = TIMEBASE * All.Timebase_interval;
 
       star_timestep *= All.cf_UnitTime_in_yr;
 

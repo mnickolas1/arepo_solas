@@ -544,9 +544,9 @@ int test_if_grav_timestep_is_too_large(int p, int bin)
   integertime ti_step = get_timestep_gravity(p);
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  if(P[i].Type == 4)
+  if(P[p].Type == 4)
     {
-      double ti_star_step = star_timestep(i);
+      double ti_star_step = star_timestep(p);
           
       if(ti_star_step < ti_step)
         ti_step = ti_star_step;
