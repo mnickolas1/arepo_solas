@@ -11,11 +11,11 @@
 #define F_HOST (1.0 / 20.0) 
 
 /* 
-   star_feedback.c
+star_feedback.c
 
-   Loops over gas cells. Any cell with SphP[i].Host > 0 was marked by
-   star_density() as hosting a star, and already carries the feedback
-   quantities (MassLoss, WindMomentum, SN_EnergyInject, ...).
+Loops over gas cells. Any cell with SphP[i].Host > 0 was marked by
+star_density() as hosting a star, and already carries the feedback
+quantities (MassLoss, WindMomentum, SN_EnergyInject, ...).
 */
 
 /* Kick packet sent to remote face-neighbor cells

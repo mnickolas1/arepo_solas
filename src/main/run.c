@@ -444,7 +444,6 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 
 #ifdef JET_FEEDBACK
       bh_jet_density();
-      
       bh_jet_feedback();
 #endif
     }
