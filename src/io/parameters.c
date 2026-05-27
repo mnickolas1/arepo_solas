@@ -620,6 +620,11 @@ void read_parameter_file(char *fname)
 #endif  
 
 #if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_CONSTANT_RADIUS
+      strcpy(tag[nt], "BhRadius");
+      addr[nt] = &All.BhRadius;
+      id[nt++] = REAL;
+#else
       strcpy(tag[nt], "BhDesNgb");
       addr[nt] = &All.BhDesNgb;
       id[nt++] = REAL;
@@ -632,6 +637,7 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.HMaxFactor;
       id[nt++] = REAL;
 #endif
+#endif
 
 #ifdef BH_ACCRETION_ACTIVE
       strcpy(tag[nt], "Epsilon_r");
@@ -640,17 +646,17 @@ void read_parameter_file(char *fname)
 #endif            
 
 #ifdef TORQUE_ACCRETION
-      strcpy(tag[nt], "Epsilon_T"); // NORMALIZATION FOR TORQUE_ACCRETION
+      strcpy(tag[nt], "Epsilon_T"); /* Normalization for Torque Accretion */
       addr[nt] = &All.Epsilon_T;
       id[nt++] = REAL;
 #endif
 
 #ifdef ADP_ACCRETION
-      strcpy(tag[nt], "ADP_tvisc");         /* viscous timescale */
+      strcpy(tag[nt], "ADP_tvisc"); /* Viscous timescale */
       addr[nt] = &All.ADP_tvisc;
       id[nt++] = REAL;
 
-      strcpy(tag[nt], "ADP_tcap");         /* capture timescale */
+      strcpy(tag[nt], "ADP_tcap"); /* Capture timescale */
       addr[nt] = &All.ADP_tcap;
       id[nt++] = REAL;
 

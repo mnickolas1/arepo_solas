@@ -70,15 +70,12 @@ typedef struct
 #ifdef TORQUE_ACCRETION
   MyDouble TorqueMgas;
   MyDouble TorqueMstar;
-  MyDouble TorqueMgasDisk;      /* Disk component gas mass */
-  MyDouble TorqueMstarDisk;     /* Disk component stellar mass */ 
-  MyDouble GasCircularVelocity[3];
+  MyDouble TorqueMgasDisk; /* Disk component gas mass */
+  MyDouble TorqueMstarDisk; /* Disk component stellar mass */ 
 #endif
 
 #ifdef ADP_ACCRETION
   MyDouble ADP_CapturedMass;
-  //MyDouble GasVelocity[3];
-  //MyDouble GasCircularVelocity[3];
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -118,17 +115,10 @@ static void out2particle(data_out *out, int i, int mode)
       BhP[i].TorqueMstar = out->TorqueMstar;
       BhP[i].TorqueMgasDisk = out->TorqueMgasDisk;
       BhP[i].TorqueMstarDisk = out->TorqueMstarDisk;
-      for(int j = 0; j < 3; j++)
-        BhP[i].GasCircularVelocity[j] = out->GasCircularVelocity[j];
 #endif
 
 #ifdef ADP_ACCRETION
       BhP[i].ADP_CapturedMass = out->ADP_CapturedMass;
-      //for(int j = 0; j < 3; j++)
-      //  {
-      //    BhP[i].GasVelocity[j] = out->GasVelocity[j];
-      //    BhP[i].GasCircularVelocity[j] = out->GasCircularVelocity[j];
-      //  }
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -152,17 +142,10 @@ static void out2particle(data_out *out, int i, int mode)
       BhP[i].TorqueMstar += out->TorqueMstar;
       BhP[i].TorqueMgasDisk += out->TorqueMgasDisk;
       BhP[i].TorqueMstarDisk += out->TorqueMstarDisk;
-      for(int j = 0; j < 3; j++)
-        BhP[i].GasCircularVelocity[j] += out->GasCircularVelocity[j];
 #endif
 
 #ifdef ADP_ACCRETION
       BhP[i].ADP_CapturedMass += out->ADP_CapturedMass;
-      //for(int j = 0; j < 3; j++)
-      //  {
-      //    BhP[i].GasVelocity[j] += out->GasVelocity[j];
-      //    BhP[i].GasCircularVelocity[j] += out->GasCircularVelocity[j];
-      //  }
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -327,18 +310,10 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   MyDouble torque_Mstar = 0.0;  /* Total stellar mass within R0 */
   MyDouble torque_Mgas_disk = 0.0;  /* Disk component gas mass */
   MyDouble torque_Mstar_disk = 0.0;  /* Disk component stellar mass */
-  MyDouble R0_torque = All.TorqueR0;   // 0.2-0.3 kpc in code units
-  MyDouble R0_torque2 = R0_torque * R0_torque;
-  /* For angular momentum accretion tracking */
-  MyDouble gas_circular_velocity[3];
-  for(int j = 0; j < 3; j++)
-    gas_circular_velocity[j] = 0;
 #endif
 
 #ifdef ADP_ACCRETION
   MyDouble adp_captured_mass = 0.0;
-  MyDouble Racc = h * 24; //??
-  MyDouble Racc2 = Racc * Racc;
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -358,7 +333,11 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
 
+#ifdef BH_CONSTANT_RADIUS
+  int nfound = ngb_treefind_variable_threads(pos, All.BhRadius, target, mode, threadid, numnodes, firstnode);
+#else
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+#endif
 
   for(n = 0; n < nfound; n++)
     {
@@ -412,7 +391,7 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
           double rho = (SphP[i].Density > 0) ? SphP[i].Density : 1;
 
 #ifdef BONDI_ACCRETION
-          /* comute relative velocities, 
+          /* Comute relative velocities, 
           relative specific angular momenta and internal energy of gas */
 
           gas_velocity[0] += dvx * P[i].Mass * wk / rho;
@@ -429,25 +408,18 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 #endif
 
 #ifdef TORQUE_ACCRETION
-          if(r2 < R0_torque2)
+          double v_phi = (v_cross[0]*gas_angular_momentum[0] + v_cross[1]*gas_angular_momentum[1] + v_cross[2]*gas_angular_momentum[2]) / r;
+          
+          int is_disk = (v_phi > 0.0);
+          
+          /* Accumulate total masses */
+          if(P[i].Type == 0)  /* Gas */
             {
-              double v_phi = (v_cross[0]*gas_angular_momentum[0] + v_cross[1]*gas_angular_momentum[1] + v_cross[2]*gas_angular_momentum[2]) / r;
-          
-              int is_disk = (v_phi > 0.0);
-          
-              /* Accumulate total masses */
-              if(P[i].Type == 0)  /* Gas */
-                {
-                  torque_Mgas += P[i].Mass; 
+              torque_Mgas += P[i].Mass; 
                   
-                  if(is_disk)
-                    torque_Mgas_disk += P[i].Mass; 
-              
-                  /* Accumulate circular velocity for angular momentum tracking */
-                  gas_circular_velocity[0] += v_cross[0] * P[i].Mass * wk / rho;
-                  gas_circular_velocity[1] += v_cross[1] * P[i].Mass * wk / rho;
-                  gas_circular_velocity[2] += v_cross[2] * P[i].Mass * wk / rho;
-                }
+              if(is_disk)
+                torque_Mgas_disk += P[i].Mass; 
+            }
           
             /*else if(P[i].Type == 4) TODO
             {
@@ -455,13 +427,10 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
               if(is_disk)
                 torque_Mstar_disk += P[i].Mass; 
             }*/
-            
-            }
 #endif 
 
 #ifdef ADP_ACCRETION
-          if(r2 < Racc2) //??
-            adp_captured_mass += P[i].Mass;
+          adp_captured_mass += P[i].Mass;
 #endif
 
 //#ifdef INFALL_ACCRETION
@@ -491,9 +460,6 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
   out.TorqueMstar = torque_Mstar;
   out.TorqueMgasDisk = torque_Mgas_disk;
   out.TorqueMstarDisk = torque_Mstar_disk;
-  //?? out.TorqueR0 = h; 
-  for(int j = 0; j < 3; j++) 
-    out.GasCircularVelocity[j] = gas_circular_velocity[j];
 #endif
 
 #ifdef ADP_ACCRETION
@@ -516,7 +482,7 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 #if defined(BONDI_ACCRETION) 
 static void update_bh_accretion_rate(void)
 {
-  /* calculate bondi accretion rate */
+  /* Calculate bondi accretion rate */
   int idx, i;
   double gas_density, gas_pressure, gas_sound_speed, gas_velocity_norm;
   double denominator, denominator_inv, BondiRate, EddingtonRate;
@@ -530,13 +496,13 @@ static void update_bh_accretion_rate(void)
       
       double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
 
-      /* get pressure */
+      /* Get pressure */
       if(BhP[i].GasDensity > 0)
         {  
           gas_density = BhP[i].GasDensity;
           gas_pressure = GAMMA_MINUS1 * gas_density * BhP[i].GasInternalEnergy;
 
-          /* get soundspeed */
+          /* Get soundspeed */
           gas_sound_speed = sqrt(GAMMA * gas_pressure / gas_density);
       
           gas_velocity_norm = sqrt(BhP[i].GasVelocity[0]*BhP[i].GasVelocity[0] + 
@@ -546,8 +512,8 @@ static void update_bh_accretion_rate(void)
           if(denominator > 0)
             {
               denominator_inv = 1. / sqrt(denominator);
-              BondiRate = 4. * M_PI * All.G * All.G * PPB(i).Mass * PPB(i).Mass * gas_density *
-              denominator_inv * denominator_inv * denominator_inv;
+              BondiRate = 4.0 * M_PI * All.G * All.G * PPB(i).Mass * PPB(i).Mass * gas_density 
+              * denominator_inv*denominator_inv*denominator_inv;
             }
           else
             terminate("Invalid denominator in Bondi Accretion Rate");
@@ -555,9 +521,9 @@ static void update_bh_accretion_rate(void)
       else
         BondiRate = 0;
   
-      /* limit by Eddington accretion rate */
-      EddingtonRate = 4. * M_PI * GRAVITY * (PPB(i).Mass * All.UnitMass_in_g) * PROTONMASS / (All.Epsilon_r * CLIGHT * THOMPSON);
-      EddingtonRate *=  (All.UnitTime_in_s / All.UnitMass_in_g);
+      /* Limit by Eddington accretion rate */
+      EddingtonRate = 4. * M_PI * GRAVITY * (PPB(i).Mass * All.cf_UnitMass_in_g) * PROTONMASS / (All.Epsilon_r * CLIGHT * THOMPSON);
+      EddingtonRate *= (All.cf_UnitTime_in_s / All.cf_UnitMass_in_g);
       accretion_rate = fmin(BondiRate, EddingtonRate);
       
       /* Store the accretion */
@@ -591,13 +557,18 @@ static void update_bh_accretion_rate(void)
 
       double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
 
-      M_BH        = PPB(i).Mass;
-      M_gas       = BhP[i].TorqueMgas;       // Total gas mass within R0
-      M_star      = BhP[i].TorqueMstar;      // Total stellar mass within R0
-      M_gas_disk  = BhP[i].TorqueMgasDisk;   // Disk component gas mass 
-      M_star_disk = BhP[i].TorqueMstarDisk;  // Disk component stellar mass 
-      R0          = BhP[i].TorqueR0;         // Aperture radius
-      f_d         = BhP[i].TorqueFd;         // Disk fraction
+      M_BH = PPB(i).Mass;
+      M_gas = BhP[i].TorqueMgas; // Total gas mass within R0
+      M_star = BhP[i].TorqueMstar; // Total stellar mass within R0
+      M_gas_disk = BhP[i].TorqueMgasDisk; // Disk component gas mass 
+      M_star_disk = BhP[i].TorqueMstarDisk; // Disk component stellar mass
+      f_d = BhP[i].TorqueFd; // Disk fraction
+
+#ifdef BH_CONSTANT_RADIUS
+      R0 = All.BhRadius; 
+#else
+      R0 = BhP[i].Hsml;
+#endif
 
       if(R0 <= 0 || (M_gas + M_star) <= 0)
         {
@@ -619,9 +590,9 @@ static void update_bh_accretion_rate(void)
         
       /* Gas fraction within disk */
       if(M_disk > 0)
-        f_gas = M_gas_disk / M_disk;  // Only disk gas / disk mass
+        f_gas = M_gas_disk / M_disk; // Only disk gas / disk mass
       else
-        f_gas = 1.0;  // Default to pure gas if no disk
+        f_gas = 1.0; // Default to pure gas if no disk
 
       /* Ensure physical values */
       if(f_d < 0.0) f_d = 0.0;
@@ -638,32 +609,30 @@ static void update_bh_accretion_rate(void)
 
       /* Computing f0 */
       /* f0 ≈ 0.31 * f_d^2 * (M_disk / 10^9 Msun)^(-1/3) */
-      f0 = 0.31 * f_d * f_d * pow(M_disk * All.UnitMass_in_g / 1e9 / SOLAR_MASS, -1.0/3.0);
+      f0 = 0.31 * f_d * f_d * pow(M_disk * All.cf_UnitMass_in_g / 1e9 / SOLAR_MASS, -1.0/3.0);
 
       /* Suppression factor */
       double suppression = 1.0;
       if(f_gas > 0)
         suppression = 1.0 / (1.0 + f0 / f_gas);
       else
-        suppression = 0.0;  // No gas, no accretion
+        suppression = 0.0; // No gas, no accretion
 
       /* Torque-limited accretion rate (Angles-Alcazar et al. 2016, Equation 2) */
 
-      torque_rate = All.Epsilon_T                                      /* Normalization */
-                  * pow(f_d, 2.5)                                      /* f_d^(5/2) */
-                  * pow(M_BH * All.UnitMass_in_g / 1e8 / SOLAR_MASS, 1.0/6.0)  /* (M_BH/1e8 Msun)^(1/6) */
-                  * (M_disk * All.UnitMass_in_g / 1e9 / SOLAR_MASS)   /* (M_disk/1e9 Msun) */
-                  * pow(R0 * All.UnitLength_in_cm / (100.0 * PARSEC), -1.5)    /* (R0/100pc)^(-3/2) */
-                  * suppression;                                       /* 1/(1 + f0/f_gas) */
+      torque_rate = All.Epsilon_T /* Normalization */
+      * pow(f_d, 2.5) /* f_d^(5/2) */
+      * pow(M_BH * All.cf_UnitMass_in_g / 1e8 / SOLAR_MASS, 1.0/6.0) /* (M_BH/1e8 Msun)^(1/6) */
+      * (M_disk * All.cf_UnitMass_in_g / 1e9 / SOLAR_MASS) /* (M_disk/1e9 Msun) */
+      * pow(R0 * All.cf_UnitLength_in_cm / (100.0 * PARSEC), -1.5) /* (R0/100pc)^(-3/2) */
+      * suppression; /* 1/(1 + f0/f_gas) */
 
       /* Convert from Msun/yr to code units (code mass / code time) */
-      torque_rate *= SOLAR_MASS / All.UnitMass_in_g;         
-      torque_rate *= All.UnitTime_in_s / SEC_PER_YEAR;       
+      torque_rate /= All.cf_UnitMass_in_Msun / All.cf_UnitTime_in_yr;       
 
       /* Eddington limit (can allow up to 10× super-Eddington as in paper) */
-      EddingtonRate = 4.0 * M_PI * GRAVITY * (M_BH * All.UnitMass_in_g) * PROTONMASS
-                      / (All.Epsilon_r * CLIGHT * THOMPSON);
-      EddingtonRate *= (All.UnitTime_in_s / All.UnitMass_in_g);
+      EddingtonRate = 4.0 * M_PI * GRAVITY * (M_BH * All.cf_UnitMass_in_g) * PROTONMASS/ (All.Epsilon_r * CLIGHT * THOMPSON);
+      EddingtonRate *= (All.cf_UnitTime_in_s / All.cf_UnitMass_in_g);
       
       /* Allow up to 10× Eddington (Angles-Alcazar et al. 2016, Section 2.3) */
       double max_accretion = 10.0 * EddingtonRate;
@@ -703,23 +672,23 @@ static void update_bh_accretion_rate(void)
 
       M_BH = PPB(i).Mass;
 
-      Mcap = BhP[i].ADP_CapturedMass;   /* set by bh_density this step    */
-      M_res = BhP[i].ADP_ReservoirMass;  /* carried over from previous step */
-      M_disc = BhP[i].ADP_DiscMass;       /* carried over from previous step */
+      Mcap = BhP[i].ADP_CapturedMass; /* set by bh_density this step    */
+      M_res = BhP[i].ADP_ReservoirMass; /* carried over from previous step */
+      M_disc = BhP[i].ADP_DiscMass; /* carried over from previous step */
 
       if(Mcap < 0) Mcap = 0;
 
-      /* 
-       * Stage 1 → 2: Captured mass enters the reservoir immediately.
-           Gas that crossed Racc is not yet on the disc — it still has angular
-           momentum and must circularise first.  The reservoir drains into the
-           disc on the dynamical / capture timescale ADP_tcap. */
+      /* Stage 1 → 2: Captured mass enters the reservoir immediately.
+      Gas that crossed Racc is not yet on the disc — it still has angular
+      momentum and must circularise first.  The reservoir drains into the
+      disc on the dynamical / capture timescale ADP_tcap */
+
       M_res += Mcap;
       BhP[i].ADP_CapturedMass = 0;
 
       /* How much flows from reservoir → disc this timestep?
-         dM = M_res * (dt / tcap).
-         If ADP_tcap == 0 (instantaneous) dump everything at once. */
+      dM = M_res * (dt / tcap).
+      If ADP_tcap == 0 (instantaneous) dump everything at once */
       if(All.ADP_tcap > 0)
         dM_to_disc = M_res * (bh_timestep / All.ADP_tcap);
       else
@@ -736,13 +705,12 @@ static void update_bh_accretion_rate(void)
       if(All.ADP_tvisc > 0)
         mdot_visc = M_disc / All.ADP_tvisc;
       else
-        mdot_visc = (bh_timestep > 0) ? M_disc / bh_timestep : 0;   /* fallback: drain in one step */
+        mdot_visc = (bh_timestep > 0) ? M_disc / bh_timestep : 0; /* fallback: drain in one step */
 
       if(mdot_visc < 0) mdot_visc = 0;
 
-      EddingtonRate = 4.0 * M_PI * GRAVITY * (M_BH * All.UnitMass_in_g) * PROTONMASS
-                    / (All.Epsilon_r * CLIGHT * THOMPSON);
-      EddingtonRate *= (All.UnitTime_in_s / All.UnitMass_in_g);
+      EddingtonRate = 4.0 * M_PI * GRAVITY * (M_BH * All.cf_UnitMass_in_g) * PROTONMASS / (All.Epsilon_r * CLIGHT * THOMPSON);
+      EddingtonRate *= (All.cf_UnitTime_in_s / All.cf_UnitMass_in_g);
 
       mdot_cap = All.ADP_EddFactor * EddingtonRate;
 

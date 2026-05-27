@@ -277,7 +277,7 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
 
           bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          factor = P[i].Mass * wk / ngbsmass;
+          factor = P[i].Mass / ngbsmass;
 
           if(accretion * factor > 0.9 * P[i].Mass)
             {
@@ -293,7 +293,6 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
               
               accretion_limited += accretion * factor;
             }
-
         } // if(r2 < h2)
     } // for(n = 0; n < nfound; n++)
 

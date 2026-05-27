@@ -1406,9 +1406,13 @@ double InitMetallicityinSolar;
 
 #if defined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
   /* for parameter file */
+#ifdef BH_CONSTANT_RADIUS
+  double BhRadius;
+#else
   double BhDesNgb;
   double BhDesDev;
   double HMaxFactor;
+#endif
 #endif
 
 #ifdef BH_ACCRETION_ACTIVE
@@ -1421,14 +1425,12 @@ double InitMetallicityinSolar;
 #ifdef TORQUE_ACCRETION
   /* for parameter file */
   double Epsilon_T;
-  double TorqueR0; //??What is this??
 #endif
 
 #ifdef ADP_ACCRETION
-  double ADP_Racc;        /* capture radius (code length units)  ??Hardcoded?? */
-  double ADP_tcap;        /* reservoir to disc transfer timescale (code time units); 0 = instant */
-  double ADP_tvisc;       /* disc viscous timescale (code time units) */
-  double ADP_EddFactor;   /* multiplier on Eddington cap (default 1) */
+  double ADP_tcap; /* reservoir to disc transfer timescale (code time units); 0 = instant */
+  double ADP_tvisc; /* disc viscous timescale (code time units) */
+  double ADP_EddFactor; /* multiplier on Eddington cap (default 1) */
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE

@@ -21,7 +21,7 @@ extern struct bh_particle_data
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
   MyDouble AngularMomentum[3];
-  int NgbsMaxBin;
+  int NgbsMinBin;
   int DensityFlag;
   signed char TimeBinBh;
 #endif
@@ -43,7 +43,6 @@ extern struct bh_particle_data
   MyDouble TorqueMstar;
   MyDouble TorqueMgasDisk;
   MyDouble TorqueMstarDisk;
-  MyDouble TorqueR0;
   MyDouble TorqueFd;
   MyDouble GasAngularMomentum[3];
   MyDouble GasCircularVelocity[3];

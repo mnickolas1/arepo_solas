@@ -47,7 +47,7 @@ void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
 integertime bh_timestep(int i)
 { 
   double dt_grav = (PPB(i).TimeBinGrav ? (((integertime)1) << PPB(i).TimeBinGrav) : 0) * All.Timebase_interval;
-  double dt_ngbmax = (BhP[i].NgbsMaxBin ? (((integertime)1) << BhP[i].NgbsMaxBin) : 0) * All.Timebase_interval;
+  double dt_ngbmax = (BhP[i].NgbsMinBin ? (((integertime)1) << BhP[i].NgbsMinBin) : 0) * All.Timebase_interval;
   
   double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
   double dt_bh = PPB(i).Mass / (BhP[i].Accretion / bh_timestep);

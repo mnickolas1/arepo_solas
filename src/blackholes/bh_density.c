@@ -56,7 +56,7 @@ typedef struct
   MyDouble Ngbs;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
-  int NgbsMaxBin;
+  int Ngbsminbin;
 
 #ifdef TORQUE_ACCRETION
   MyDouble GasAngularMomentum[3];
@@ -83,7 +83,7 @@ static void out2particle(data_out *out, int i, int mode)
       BhNgbs[i] = out->Ngbs;
       BhP[i].NgbsMass = out->NgbsMass;
       BhP[i].NgbsVolume = out->NgbsVolume;
-      BhP[i].NgbsMaxBin = out->NgbsMaxBin;
+      BhP[i].NgbsMinBin = out->NgbsMinBin;
 
 #ifdef TORQUE_ACCRETION
       for(int j = 0; j < 3; j++)
@@ -95,8 +95,8 @@ static void out2particle(data_out *out, int i, int mode)
       BhNgbs[i] += out->Ngbs;
       BhP[i].NgbsMass += out->NgbsMass;
       BhP[i].NgbsVolume += out->NgbsVolume;
-      if(out->NgbsMaxBin > BhP[i].NgbsMaxBin)
-        BhP[i].NgbsMaxBin = out->NgbsMaxBin;
+      if(out->NgbsMinBin < BhP[i].NgbsMinBin)
+        BhP[i].NgbsMinBin = out->NgbsMinBin;
 
 #ifdef TORQUE_ACCRETION
       for(int j = 0; j < 3; j++)
@@ -188,7 +188,15 @@ void bh_density(void)
 
   CPU_Step[CPU_MISC] += measure_time();
 
+  mpi_printf("BH_DENSITY: Start density and neighbour search for %d black holes.\n", NumBhs);
+
   BhNgbs = (MyFloat *)mymalloc("BhNgbs", NumBhs * sizeof(MyFloat));
+
+#ifdef BH_CONSTANT_RADIUS
+  generic_set_MaxNexport();
+  generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
+#else
+
   Left = (MyFloat *)mymalloc("Left", NumBhs * sizeof(MyFloat));
   Right = (MyFloat *)mymalloc("Right", NumBhs * sizeof(MyFloat));
 
@@ -198,8 +206,6 @@ void bh_density(void)
       BhP[i].DensityFlag = 1;
     }
 
-  mpi_printf("BH_DENSITY: Start density and neighbour search for %d black holes.\n", NumBhs);
-
   generic_set_MaxNexport();
 
   for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
@@ -207,9 +213,9 @@ void bh_density(void)
       i = TimeBinsBh.ActiveParticleList[idx];
       if(BhP[i].Hsml <= 0)
         {
-          mpi_printf("BH_ACCRETION: WARNING! BH %d has invalid Hsml=%g, ... reinitializing\n", i, BhP[i].Hsml);
+          //mpi_printf("BH_ACCRETION: WARNING! BH %d has invalid Hsml=%g, ... reinitializing\n", i, BhP[i].Hsml);
           // Use softening as fallback
-          BhP[i].Hsml = All.SofteningTable[PPB(i).SofteningType]; // is this comoving?
+          BhP[i].Hsml = All.SofteningTable[PPB(i).SofteningType];
         }
     }
  
@@ -284,7 +290,7 @@ void bh_density(void)
             BhP[i].DensityFlag = -1; /* Mark as inactive */ 
       
           /* Limit smoothing length */
-          double hmax = All.HMaxFactor * All.SofteningTable[PPB(i).SofteningType]; // is this comoving?
+          double hmax = All.HMaxFactor * All.SofteningTable[PPB(i).SofteningType]; 
        
           if(BhP[i].Hsml > hmax)
             {
@@ -313,12 +319,14 @@ void bh_density(void)
 
   myfree(Right);
   myfree(Left);
-  myfree(BhNgbs);
 
   /* mark as active again */
   for(i = 0; i < NumBhs; i++)
     BhP[i].DensityFlag = 1;
+#endif
   
+  myfree(BhNgbs);
+
   /* collect some timing information */
   CPU_Step[CPU_INIT] += measure_time();
 }
@@ -338,7 +346,7 @@ void bh_density(void)
 static int bh_density_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int ngbs, ngbsmaxbin = 0; 
+  int ngbs, ngbsminbin = TIMEBINS; 
   double h, h2, r, r2, wk;
   double dx, dy, dz, dvx, dvy, dvz; 
   MyDouble *pos, *vel, ngbsmass, ngbsvolume;
@@ -384,7 +392,11 @@ static int bh_density_evaluate(int target, int mode, int threadid)
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
 
+#ifdef BH_CONSTANT_RADIUS
+  int nfound = ngb_treefind_variable_threads(pos, All.BhRadius, target, mode, threadid, numnodes, firstnode);
+#else
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+#endif
 
   for(n = 0; n < nfound; n++)
     {
@@ -433,13 +445,13 @@ static int bh_density_evaluate(int target, int mode, int threadid)
           ngbs++;
           
           // compute the bh-ngbs-mass 
-          ngbsmass += P[i].Mass * wk;
+          ngbsmass += P[i].Mass;
           // compute the bh-ngbs-volume
-          ngbsvolume += SphP[i].Volume * wk;
+          ngbsvolume += SphP[i].Volume;
 
           // compute the max hydro bin for neighbors   
-          if(ngbsmaxbin < P[i].TimeBinHydro)
-            ngbsmaxbin = P[i].TimeBinHydro;
+          if(P[i].TimeBinHydro < ngbsminbin)
+            ngbsminbin = P[i].TimeBinHydro;
 
 #ifdef TORQUE_ACCRETION           
           gas_angular_momentum[0] += P[i].Mass * (dy * dvz - dz * dvy);
@@ -452,7 +464,7 @@ static int bh_density_evaluate(int target, int mode, int threadid)
   out.Ngbs = ngbs;
   out.NgbsMass = ngbsmass;
   out.NgbsVolume = ngbsvolume;
-  out.NgbsMaxBin = ngbsmaxbin;
+  out.NgbsMinBin = ngbsminbin;
 
 #ifdef TORQUE_ACCRETION 
   for(int j = 0; j < 3; j++)
