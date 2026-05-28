@@ -376,7 +376,11 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 
       r2 = dx * dx + dy * dy + dz * dz;
 
+#ifdef BH_CONSTANT_RADIUS
+      if(r2 < All.BhRadius*All.BhRadius)
+#else
       if(r2 < h2)
+#endif
         {
           r = sqrt(r2);
           u = r * hinv;

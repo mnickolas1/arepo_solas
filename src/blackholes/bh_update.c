@@ -168,7 +168,7 @@ void bh_perform_end_of_step_physics(void)
       
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
-      i = TimeBinsHydro.ActiveParticleList[idx];
+      i = TimeBinsHydro.ActiveParticleList[idx];   /* Do we want to subtract mass from all cells, not just active ones? */  
 
       if(i < 0)
         continue;
@@ -199,7 +199,7 @@ void bh_perform_end_of_step_physics(void)
   else
       pvd.atime = pvd.hubble_a = pvd.a3inv = 1.0;
     
-  // Inject feedback to ngb cells 
+  /* Inject feedback to ngb cells */ 
 
   if(All.FeedbackFlag > 0)
     {
@@ -250,7 +250,6 @@ void bh_perform_end_of_step_physics(void)
               SphP[i].PScalars[JET_INDEX] = 1;
               SphP[i].PConservedScalars[JET_INDEX] = P[i].Mass;
 #endif
-
             }
         }
 #ifdef BURST_MODE

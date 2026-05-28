@@ -236,7 +236,11 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
 #endif /* #ifndef  TWODIMS #else */
   hinv4 = hinv3 * hinv;
 
+#ifdef BH_CONSTANT_RADIUS
+  int nfound = ngb_treefind_variable_threads(pos, All.BhRadius, target, mode, threadid, numnodes, firstnode);
+#else
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+#endif
 
   for(n = 0; n < nfound; n++)
     {
@@ -270,7 +274,11 @@ static int bh_swallow_evaluate(int target, int mode, int threadid)
 
       r2 = dx * dx + dy * dy + dz * dz;
 
+#ifdef BH_CONSTANT_RADIUS
+      if(r2 < All.BhRadius*All.BhRadius)
+#else
       if(r2 < h2)
+#endif
         {
           r = sqrt(r2);
           u = r * hinv;
