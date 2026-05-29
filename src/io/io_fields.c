@@ -809,7 +809,7 @@ void init_io_fields()
   init_snapshot_type(IO_BHID, SN_MINI);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   init_field(IO_BHHSML, "BHHS", "BlackholeHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_BH, &BhP[0].Hsml, 0, BHS_ONLY);
   init_units(IO_BHHSML, 1., -1., 1., 0., 0., All.UnitLength_in_cm);
   init_snapshot_type(IO_BHHSML, SN_MINI);

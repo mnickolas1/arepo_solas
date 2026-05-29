@@ -155,7 +155,7 @@ int domain_hydro_weight[TIMEBINS];
 int domain_star_weight[TIMEBINS];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 int domain_bh_weight[TIMEBINS];
 #endif
 

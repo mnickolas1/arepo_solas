@@ -7,7 +7,7 @@
 void reallocate_memory_maxpartbhs(void);
 void domain_resize_storage_bhs(int count_get_bh);
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 /* Timesteps */
 integertime bh_timestep(int p);
 void bh_update_timesteps(void);

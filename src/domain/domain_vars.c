@@ -60,7 +60,7 @@ double normsum_work, normsum_load, normsum_worksph;
 double normsum_workstar, fac_workstar, totstarcost, starcost;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 double normsum_workbh, fac_workbh, totbhcost, bhcost;
 #endif
 

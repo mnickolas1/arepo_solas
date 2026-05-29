@@ -8,15 +8,15 @@ extern int NumBhs;
 
 extern FILE *FdBlackHoles; 
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 extern struct TimeBinData TimeBinsBh;
 #endif
 
-extern struct bh_particle_data
+typedef struct Bh_Particle_Data
 {
   MyIDType PID;
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   MyDouble Hsml;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
@@ -58,7 +58,9 @@ extern struct bh_particle_data
 //#ifdef INFALL_ACCRETION
 //  MyDouble Accretion;
 //#endif
-}  *BhP;
+} Bh_Particle_Data; 
+
+extern Bh_Particle_Data *BhP;
 
 #define BPP(i) BhP[P[i].BhID]
 #define PPB(i) P[BhP[i].PID]

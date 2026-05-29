@@ -46,16 +46,14 @@ void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
 
 integertime bh_timestep(int i)
 { 
-  double dt_grav = (PPB(i).TimeBinGrav ? (((integertime)1) << PPB(i).TimeBinGrav) : 0) * All.Timebase_interval;
-  double dt_ngbmax = (BhP[i].NgbsMinBin ? (((integertime)1) << BhP[i].NgbsMinBin) : 0) * All.Timebase_interval;
+  /* When we don't have ngbs -> NgbsMinBin == 0 -> TIMEBASE */
+  double dt_ngbmin = (BhP[i].NgbsMinBin ? (((integertime)1) << BhP[i].NgbsMinBin) : TIMEBASE) * All.Timebase_interval;
   
+  /* Accretion timescale */
   double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
   double dt_bh = PPB(i).Mass / (BhP[i].Accretion / bh_timestep);
 
-  double dt = dt_grav;
-
-  if(dt_ngbmax < dt)
-    dt = dt_ngbmax;
+  double dt = dt_ngbmin;
 
   if(dt_bh < dt)
     dt = dt_bh;
@@ -68,15 +66,12 @@ integertime bh_timestep(int i)
 void bh_update_timesteps(void)
 {
   int idx, i;
-  integertime ti_step;
 
   for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
     {
       i = TimeBinsBh.ActiveParticleList[idx];
-
-      ti_step = bh_timestep(i);
     
-      BhP[i].TimeBinBh = get_timestep_bin(ti_step);
+      BhP[i].TimeBinBh = PPB(i).TimeBinGrav;
     }
     
   bh_reconstruct_timebins();
@@ -136,16 +131,6 @@ void bh_update_list_of_active_particles(void)
     }
 
     mysort(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles, sizeof(int), int_compare);
-
-  /*n = 1;
-  int in;
-  long long out;
-
-  in = TimeBinsBh.NActiveParticles;
-
-  sumup_large_ints(n, &in, &out);
-
-  TimeBinsBh.GlobalNActiveParticles = out;*/
 }
 
 void bh_perform_end_of_step_physics(void)

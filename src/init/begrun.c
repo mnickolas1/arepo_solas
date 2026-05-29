@@ -155,7 +155,7 @@ void begrun1(void)
   timebins_init(&TimeBinsStar, "Star", &All.MaxPartStars);
 #endif 
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   timebins_init(&TimeBinsBh, "Bh", &All.MaxPartBhs);
 #endif 
 

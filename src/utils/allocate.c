@@ -114,7 +114,7 @@ void allocate_memory(void)
   timebins_allocate(&TimeBinsStar);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   timebins_allocate(&TimeBinsBh);
 #endif
 
@@ -179,7 +179,7 @@ void reallocate_memory_maxpartbhs(void)
 
   BhP = (struct bh_particle_data *)myrealloc_movable(BhP, All.MaxPartBhs * sizeof(struct bh_particle_data));
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   timebins_reallocate(&TimeBinsBh);
 #endif
 }

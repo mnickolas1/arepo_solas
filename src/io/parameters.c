@@ -619,7 +619,7 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif  
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 #ifdef BH_CONSTANT_RADIUS
       strcpy(tag[nt], "BhRadius");
       addr[nt] = &All.BhRadius;

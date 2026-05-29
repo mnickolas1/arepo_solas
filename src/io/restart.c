@@ -1279,7 +1279,7 @@ static void contents_restart_file(int modus)
     }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   in(&TimeBinsBh.NActiveParticles, modus);
   byten(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles * sizeof(int), modus);
   byten(TimeBinsBh.NextInTimeBin, NumBhs * sizeof(int), modus);

@@ -181,7 +181,7 @@ void domain_Decomposition(void)
   star_update_list_of_active_particles();;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   bh_reconstruct_timebins();
   bh_update_list_of_active_particles();;
 #endif
@@ -302,7 +302,7 @@ void domain_find_total_cost(void)
   double starpartcount = 0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   bhcost = 0;
   double bhpartcount = 0;
 #endif
@@ -330,7 +330,7 @@ void domain_find_total_cost(void)
         starpartcount += 1.0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       double bcost = domain_bh_tot_costfactor(i);
       bhcost += bcost;
       if(bcost > 0)
@@ -344,7 +344,7 @@ void domain_find_total_cost(void)
   nloc += 2;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   nloc += 2;
 #endif
 
@@ -360,7 +360,7 @@ void domain_find_total_cost(void)
   loc[idx++] = starpartcount;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   loc[idx++] = bhcost;
   loc[idx++] = bhpartcount;
 #endif
@@ -378,7 +378,7 @@ void domain_find_total_cost(void)
   double totstarpartcount = sum[idx++];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   totbhcost = sum[idx++];
   double totbhpartcount = sum[idx++];
 #endif
@@ -392,7 +392,7 @@ void domain_find_total_cost(void)
   if(totstarcost > 0) nchannels++;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   if(totbhcost > 0) nchannels++;
 #endif
 
@@ -411,7 +411,7 @@ void domain_find_total_cost(void)
   fac_workstar = (totstarcost > 0) ? normsum_workstar / totstarcost : 0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   normsum_workbh = (totbhcost > 0) ? w : 0;
   fac_workbh = (totbhcost > 0) ? normsum_workbh / totbhcost : 0;
 #endif

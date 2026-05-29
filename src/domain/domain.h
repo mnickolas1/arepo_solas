@@ -92,7 +92,7 @@ extern double totgravcost, totpartcount, gravcost, totsphcost, sphcost;
 extern double normsum_workstar, fac_workstar, totstarcost, starcost;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 extern double normsum_workbh, fac_workbh, totbhcost, bhcost;
 #endif
 
@@ -108,7 +108,7 @@ extern struct domain_cost_data
   float WorkStar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   float WorkBh;
 #endif
 } * DomainLeaveNode;
@@ -142,7 +142,7 @@ double domain_hydro_tot_costfactor(int i);
 double domain_star_tot_costfactor(int i);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 double domain_bh_tot_costfactor(int i);
 #endif
 

@@ -424,15 +424,14 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
     }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
+  bh_update_timesteps();
   bh_density();
 
 #ifdef BH_ACCRETION_ACTIVE
   bh_accretion();
   bh_swallow();
 #endif
-
-  bh_update_timesteps();
 #endif
 
 #ifdef BH_FEEDBACK_ACTIVE

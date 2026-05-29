@@ -839,7 +839,7 @@ extern int domain_hydro_weight[TIMEBINS];
 extern int domain_star_weight[TIMEBINS];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 extern int domain_bh_weight[TIMEBINS];
 #endif
 
@@ -2068,7 +2068,7 @@ enum iofields
 #ifdef BLACKHOLES
   IO_BHID,
 #endif
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   IO_BHHSML,
   IO_BH_NGBSMASS,
 #endif

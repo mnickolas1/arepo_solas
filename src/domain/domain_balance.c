@@ -170,7 +170,7 @@ double domain_star_tot_costfactor(int i)
 }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
 double domain_bh_tot_costfactor(int i)
 {
   double w = 0;
@@ -207,7 +207,7 @@ void domain_init_sum_cost(void)
   sumup_large_ints(TIMEBINS, TimeBinsStar.TimeBinCount, tot_count_star);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   long long tot_count_bh[TIMEBINS];
   sumup_large_ints(TIMEBINS, TimeBinsBH.TimeBinCount, tot_count_bh);
 #endif
@@ -251,7 +251,7 @@ void domain_init_sum_cost(void)
       domain_star_weight[i] = 1;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       domain_bh_weight[i] = 1;
 #endif
     }
@@ -266,7 +266,7 @@ void domain_init_sum_cost(void)
   domain_star_weight[All.HighestActiveTimeBin] = 1;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   domain_bh_weight[All.HighestActiveTimeBin] = 1;
 #endif
 
@@ -296,7 +296,7 @@ void domain_init_sum_cost(void)
         domain_star_weight[i] = weight;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       if(tot_count_bh[i] > 0)
         domain_bh_weight[i] = weight;
 #endif
@@ -312,7 +312,7 @@ void domain_init_sum_cost(void)
   domain_star_weight[All.HighestActiveTimeBin] = 1;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   domain_bh_weight[All.HighestActiveTimeBin] = 1;
 #endif
 
@@ -332,7 +332,7 @@ void domain_init_sum_cost(void)
         domain_star_weight[i] = weight;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       if(tot_count_bh[i] > 0)
         domain_bh_weight[i] = weight;
 #endif
@@ -431,7 +431,7 @@ void domain_sumCost(void)
       listCost[p].WorkStar += domain_star_tot_costfactor(n);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       listCost[p].WorkBh += domain_bh_tot_costfactor(n);
 #endif
 
@@ -499,7 +499,7 @@ void domain_sumCost(void)
       loc_DomainLeaveNode[j].WorkStar += import_node_data[i].WorkStar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       loc_DomainLeaveNode[j].WorkBh += import_node_data[i].WorkBh;
 #endif
     }
@@ -590,7 +590,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
     }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   int nabove_bh = 0;
   double todistribute_bh = 0.0;
   double weightsum_bh    = 0.0;
@@ -616,7 +616,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
     double workstar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
     double workbh;
 #endif
   };
@@ -656,7 +656,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
         }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       leaf[i].workbh = DomainLeaveNode[i].WorkBh;
 
       if(fac_workbh > 0 && weightsum_bh > 0)
@@ -682,7 +682,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
       work += fac_workstar * leaf[end].workstar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       work += fac_workbh * leaf[end].workbh;
 #endif
    while(1)
@@ -697,7 +697,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
 #ifdef STAR_FEEDBACK_ACTIVE
               next_work += fac_workstar * leaf[end + 1].workstar;
 #endif
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
               next_work += fac_workbh * leaf[end + 1].workbh;
 #endif
             }
@@ -719,7 +719,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
           work += fac_workstar * leaf[end].workstar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           work += fac_workbh * leaf[end].workbh;
 #endif
         }
@@ -754,7 +754,7 @@ static struct domain_segments_data
   double bin_StarCost[TIMEBINS];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   double bin_BhCost[TIMEBINS];
 #endif
 
@@ -766,7 +766,7 @@ static struct domain_segments_data
   double workstar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   double workbh;
 #endif
   double normalized_load;
@@ -783,7 +783,7 @@ struct tasklist_data
   double bin_StarCost[TIMEBINS];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   double bin_BhCost[TIMEBINS];
 #endif
 
@@ -795,7 +795,7 @@ struct tasklist_data
   double workstar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   double workbh;
 #endif
   int count;
@@ -898,7 +898,7 @@ void domain_combine_multipledomains(void)
       tasklist[ta].workstar = 0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       tasklist[ta].workbh = 0;
 #endif
 
@@ -913,7 +913,7 @@ void domain_combine_multipledomains(void)
           tasklist[ta].bin_StarCost[i] = 0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           tasklist[ta].bin_BhCost[i] = 0;
 #endif
         }
@@ -937,7 +937,7 @@ void domain_combine_multipledomains(void)
     double StarCost;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
     double BhCost;
 #endif
   } * loc_bin_Cost, *glob_bin_Cost;
@@ -1008,7 +1008,7 @@ void domain_combine_multipledomains(void)
         }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       if(P[i].Type == 5)
         {
           for(int bin = BPP(i).TimeBinBh; bin <= All.HighestActiveTimeBin; bin++)
@@ -1024,7 +1024,7 @@ void domain_combine_multipledomains(void)
   cost_data_nfields += 1;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   cost_data_nfields += 1;
 #endif
 
@@ -1042,7 +1042,7 @@ void domain_combine_multipledomains(void)
   double tot_workstar = 0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   double tot_workbh = 0;
 #endif
 
@@ -1058,7 +1058,7 @@ void domain_combine_multipledomains(void)
       domainAssign[n].workstar = 0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       domainAssign[n].workbh = 0;
 #endif
 
@@ -1071,7 +1071,7 @@ void domain_combine_multipledomains(void)
           domainAssign[n].bin_StarCost[i] = glob_bin_Cost[i * ndomains + n].StarCost;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           domainAssign[n].bin_BhCost[i] = glob_bin_Cost[i * ndomains + n].BhCost;
 #endif
         }
@@ -1086,7 +1086,7 @@ void domain_combine_multipledomains(void)
           domainAssign[n].workstar += DomainLeaveNode[i].WorkStar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           domainAssign[n].workbh += DomainLeaveNode[i].WorkBh;
 #endif
         }
@@ -1099,7 +1099,7 @@ void domain_combine_multipledomains(void)
       tot_workstar += domainAssign[n].workstar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       tot_workbh += domainAssign[n].workbh;
 #endif
     }
@@ -1114,7 +1114,7 @@ void domain_combine_multipledomains(void)
       domainAssign[n].normalized_load += domainAssign[n].workstar / (tot_workstar + MIN_FLOAT_NUMBER);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       domainAssign[n].normalized_load += domainAssign[n].workbh / (tot_workbh + MIN_FLOAT_NUMBER);
 #endif
     }
@@ -1132,7 +1132,7 @@ void domain_combine_multipledomains(void)
   double max_StarCost[TIMEBINS];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   double max_BhCost[TIMEBINS];
 #endif
 
@@ -1145,7 +1145,7 @@ void domain_combine_multipledomains(void)
       max_StarCost[i] = 0;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       max_BhCost[i] = 0;
 #endif
     }
@@ -1166,7 +1166,7 @@ void domain_combine_multipledomains(void)
   struct mydata *nstar[TIMEBINS];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
   struct mytree queue_bhcost[TIMEBINS];
   struct mydata *nbh[TIMEBINS];
 #endif
@@ -1186,7 +1186,7 @@ void domain_combine_multipledomains(void)
           nstar[bin] = mymalloc("nstar[bin]", NTask * sizeof(struct mydata));
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           RB_INIT(&queue_bhcost[bin]);
           nbh[bin] = mymalloc("nbh[bin]", NTask * sizeof(struct mydata));
 #endif
@@ -1225,7 +1225,7 @@ void domain_combine_multipledomains(void)
           RB_INSERT(mytree, &queue_starcost[bin], &nstar[bin][i]);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           nbh[bin][i].pri    = 0;
           nbh[bin][i].target = i;
           RB_INSERT(mytree, &queue_bhcost[bin], &nbh[bin][i]);
@@ -1284,7 +1284,7 @@ void domain_combine_multipledomains(void)
                 continue;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
               else if(set == 3)
                 {
                   for(np = RB_MIN(mytree, &queue_bhcost[bin]), rep = 0; np && rep < n_lowest;
@@ -1330,7 +1330,7 @@ void domain_combine_multipledomains(void)
                     }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
                   for(int i = 0; i < TIMEBINS; i++)
                     {
                       double sum = domainAssign[n].bin_BhCost[i] + tasklist[target].bin_BhCost[i];
@@ -1396,7 +1396,7 @@ void domain_combine_multipledomains(void)
             }
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           for(int i = 0; i < TIMEBINS; i++)
             {
               double sum = domainAssign[n].bin_BhCost[i] + tasklist[target].bin_BhCost[i];
@@ -1434,7 +1434,7 @@ void domain_combine_multipledomains(void)
       tasklist[target].workstar += domainAssign[n].workstar;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
       tasklist[target].workbh += domainAssign[n].workbh;
 #endif
 
@@ -1460,7 +1460,7 @@ void domain_combine_multipledomains(void)
               tasklist[target].bin_StarCost[bin] += domainAssign[n].bin_StarCost[bin];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
               tasklist[target].bin_BhCost[bin] += domainAssign[n].bin_BhCost[bin];
 #endif
 
@@ -1473,7 +1473,7 @@ void domain_combine_multipledomains(void)
               double eps_star = 1.0e-9 * (domainAssign[n].load / totpartcount) * totstarcost;
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
               double eps_bh = 1.0e-9 * (domainAssign[n].load / totpartcount) * totbhcost;
 #endif 
 
@@ -1491,7 +1491,7 @@ void domain_combine_multipledomains(void)
               RB_INSERT(mytree, &queue_starcost[bin], &nstar[bin][target]);
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
               RB_REMOVE(mytree, &queue_bhcost[bin], &nbh[bin][target]);
               nbh[bin][target].pri = nbh[bin][target].pri + domainAssign[n].bin_BhCost[bin] + eps_bh;
               RB_INSERT(mytree, &queue_bhcost[bin], &nbh[bin][target]);
@@ -1508,7 +1508,7 @@ void domain_combine_multipledomains(void)
                 max_StarCost[bin] = tasklist[target].bin_StarCost[bin];
 #endif
 
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
               if(max_BhCost[bin] < tasklist[target].bin_BhCost[bin])
                 max_BhCost[bin] = tasklist[target].bin_BhCost[bin];
 #endif 
@@ -1524,7 +1524,7 @@ void domain_combine_multipledomains(void)
     {
       if(domain_to_be_balanced[bin])
         {
-#if defined(BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+#ifdef BH_ACTIVE
           myfree(nbh[bin]);
 #endif
 
