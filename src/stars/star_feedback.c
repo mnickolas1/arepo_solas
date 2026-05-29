@@ -21,7 +21,7 @@ quantities (MassLoss, WindMomentum, SN_EnergyInject, ...).
 /* Kick packet sent to remote face-neighbor cells
    Carries momentum contributions from each active feedback channel. */
 
-struct FBKick
+struct Feedback_Kick
 {
   int CellIndex; /* cell index on the receiving task */
 
@@ -45,28 +45,28 @@ struct FBKick
 };
 
 /* Apply a kick packet to a local cell */
-static void apply_kick(int j, const struct FBKick *kick)
+static void apply_kick(int j, const struct Feedback_Kick *Kick)
 {
 #ifdef WINDS
-      SphP[j].StarMassFeed += kick->DeltaMass;
+      SphP[j].StarMassFeed += Kick->DeltaMass;
 #ifdef METALS
-      SphP[j].StarMetalsFeed += kick->DeltaMetals;
+      SphP[j].StarMetalsFeed += Kick->DeltaMetals;
 #endif
       for(int k = 0; k < 3; k++)
-        SphP[j].StarMomentumFeed[k] += kick->DeltaP[k];
+        SphP[j].StarMomentumFeed[k] += Kick->DeltaP[k];
 
-      SphP[j].StarEnergyFeed += kick->DeltaE;
+      SphP[j].StarEnergyFeed += Kick->DeltaE;
 #endif 
 
 #ifdef SUPERNOVAE
-      SphP[j].StarMassFeed += kick->SN_DeltaMass;
+      SphP[j].StarMassFeed += Kick->SN_DeltaMass;
 #ifdef METALS
-      SphP[j].StarMetalsFeed += kick->SN_DeltaMetals;
+      SphP[j].StarMetalsFeed += Kick->SN_DeltaMetals;
 #endif
       for(int k = 0; k < 3; k++)
-        SphP[j].StarMomentumFeed[k] += kick->SN_DeltaP[k];
+        SphP[j].StarMomentumFeed[k] += Kick->SN_DeltaP[k];
 
-      SphP[j].StarEnergyFeed += kick->SN_DeltaE;
+      SphP[j].StarEnergyFeed += Kick->SN_DeltaE;
 #endif 
 }
 
@@ -137,8 +137,8 @@ void star_feedback(void)
 #define MAX_FACES 128
 
   int max_export = NumGas * 16;
-  struct FBKick *ExportBuf = mymalloc("FBExportBuf",  max_export * sizeof(struct FBKick));
-  int *ExportTask = mymalloc("FBExportTask", max_export * sizeof(int));
+  struct Feedback_Kick *ExportBuf = mymalloc("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
+  int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
   int n_export = 0;
 
   /* Loop over gas cells; act on host cells */
@@ -413,17 +413,17 @@ void star_feedback(void)
 
               double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
       
-              struct FBKick kick = {0};
-              kick.CellIndex = DC[q].index;
+              struct Feedback_Kick Kick = {0};
+              Kick.CellIndex = DC[q].index;
            
               /* Mesh ngbs feedback */
 #ifdef WINDS
-              kick.DeltaMass = WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST);
+              Kick.DeltaMass = WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST);
 #ifdef METALS
-              kick.DeltaMetals = WindsAndSN->MetalsLoss * sqrt(sq_wbar) * (1-F_HOST);
+              Kick.DeltaMetals = WindsAndSN->MetalsLoss * sqrt(sq_wbar) * (1-F_HOST);
 #endif    
               for(int k = 0; k < 3; k++)
-                kick.DeltaP[k] = WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST) 
+                Kick.DeltaP[k] = WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST) 
                 * (WindsAndSN->StarVelocity[k] + WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[k]);
           
               double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
@@ -437,28 +437,28 @@ void star_feedback(void)
               + WindsAndSN->StarVelocity[1] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[1] 
               + WindsAndSN->StarVelocity[2] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[2]);
 
-              kick.DeltaE = 0.5 * WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST) 
+              Kick.DeltaE = 0.5 * WindsAndSN->MassLoss * sqrt(sq_wbar) * (1-F_HOST) 
               * (sq_vstar + sq_vwind * sq_wbar + cross);   
 #endif
  
 #ifdef SUPERNOVAE
-              kick.SN_DeltaMass = WindsAndSN->SN_MassLoss * sqrt(sq_wbar) * (1-F_HOST);
+              Kick.SN_DeltaMass = WindsAndSN->SN_MassLoss * sqrt(sq_wbar) * (1-F_HOST);
 #ifdef METALS
-              kick.SN_DeltaMetals = WindsAndSN->SN_MetalsLoss * sqrt(sq_wbar) * (1-F_HOST);
+              Kick.SN_DeltaMetals = WindsAndSN->SN_MetalsLoss * sqrt(sq_wbar) * (1-F_HOST);
 #endif 
               for(int k = 0; k < 3; k++)
-                kick.SN_DeltaP[k] = WindsAndSN->SN_MassLoss * sqrt(sq_wbar) * (1-F_HOST) * WindsAndSN->StarVelocity[k]
+                Kick.SN_DeltaP[k] = WindsAndSN->SN_MassLoss * sqrt(sq_wbar) * (1-F_HOST) * WindsAndSN->StarVelocity[k]
                 + p * wbar[k];
 
-              kick.SN_DeltaE = Eth * sqrt(sq_wbar) * (1-F_HOST);
+              Kick.SN_DeltaE = Eth * sqrt(sq_wbar) * (1-F_HOST);
 #endif
 
               if(DC[q].task == ThisTask)
-                apply_kick(DC[q].index, &kick);
+                apply_kick(DC[q].index, &Kick);
               else
                 {
                   if(n_export >= max_export)
-                    terminate("star_feedback: FBKick export buffer overflow\n");
+                    terminate("star_feedback: Feedback_Kick export buffer overflow\n");
                   ExportBuf[n_export] = kick;
                   ExportTask[n_export] = DC[q].task;
                   n_export++;
@@ -476,8 +476,8 @@ void star_feedback(void)
   /* MPI exchange of remote kick packets via MPI_Alltoallv */
   int *SendCount = mymalloc("FBSendCount", NTask * sizeof(int));
   int *RecvCount = mymalloc("FBRecvCount", NTask * sizeof(int));
-  int *SendDisp  = mymalloc("FBSendDisp",  NTask * sizeof(int));
-  int *RecvDisp  = mymalloc("FBRecvDisp",  NTask * sizeof(int));
+  int *SendDisp = mymalloc("FBSendDisp",  NTask * sizeof(int));
+  int *RecvDisp = mymalloc("FBRecvDisp",  NTask * sizeof(int));
  
   memset(SendCount, 0, NTask * sizeof(int));
   for(int k = 0; k < n_export; k++)
@@ -494,28 +494,26 @@ void star_feedback(void)
   int n_recv = RecvDisp[NTask-1] + RecvCount[NTask-1];
  
   /* Sort ExportBuf into task-contiguous order for Alltoallv */
-  struct FBKick *SortedExport = mymalloc("FBSortedExport",
-                                          (n_export > 0 ? n_export : 1) * sizeof(struct FBKick));
-  {
-    int *tmp_offset = mymalloc("FBTmpOffset", NTask * sizeof(int));
-    memcpy(tmp_offset, SendDisp, NTask * sizeof(int));
-    for(int k = 0; k < n_export; k++)
-      {
-        int t = ExportTask[k];
-        SortedExport[tmp_offset[t]++] = ExportBuf[k];
-      }
-    myfree(tmp_offset);
-  }
+  struct Feedback_Kick *SortedExport = mymalloc("FBSortedExport", (n_export > 0 ? n_export : 1) * sizeof(struct Feedback_Kick));
+  
+  int *tmp_offset = mymalloc("FBTmpOffset", NTask * sizeof(int));
+  memcpy(tmp_offset, SendDisp, NTask * sizeof(int));
+  for(int k = 0; k < n_export; k++)
+    {
+      int t = ExportTask[k];
+      SortedExport[tmp_offset[t]++] = ExportBuf[k];
+    }
+  myfree(tmp_offset);
  
-  struct FBKick *RecvBuf = mymalloc("FBRecvBuf",
-                                     (n_recv > 0 ? n_recv : 1) * sizeof(struct FBKick));
+  struct Feedback_Kick *RecvBuf = mymalloc("RecvBuf",
+  (n_recv > 0 ? n_recv : 1) * sizeof(struct Feedback_Kick));
  
-  const int sz = (int)sizeof(struct FBKick);
+  const int sz = (int)sizeof(struct Feedback_Kick);
  
-  int *SendCountB = mymalloc("FBSendCountB", NTask * sizeof(int));
-  int *RecvCountB = mymalloc("FBRecvCountB", NTask * sizeof(int));
-  int *SendDispB  = mymalloc("FBSendDispB",  NTask * sizeof(int));
-  int *RecvDispB  = mymalloc("FBRecvDispB",  NTask * sizeof(int));
+  int *SendCountB = mymalloc("SendCountB", NTask * sizeof(int));
+  int *RecvCountB = mymalloc("RecvCountB", NTask * sizeof(int));
+  int *SendDispB  = mymalloc("SendDispB",  NTask * sizeof(int));
+  int *RecvDispB  = mymalloc("RecvDispB",  NTask * sizeof(int));
  
   for(int t = 0; t < NTask; t++)
     {
@@ -526,8 +524,8 @@ void star_feedback(void)
     }
  
   MPI_Alltoallv(SortedExport, SendCountB, SendDispB, MPI_BYTE,
-                RecvBuf,      RecvCountB, RecvDispB, MPI_BYTE,
-                MPI_COMM_WORLD);
+  RecvBuf, RecvCountB, RecvDispB, MPI_BYTE,
+  MPI_COMM_WORLD);
  
   /* Free byte-count arrays in reverse allocation order (LIFO stack) */
   myfree(RecvDispB);
