@@ -181,12 +181,12 @@ static void kernel_imported(void)
  */
 void bh_density(void)
 {
+  TIMER_START(CPU_BLACKHOLES_DENSITY);
+
   MyFloat *Left, *Right;
   int idx, i, npleft, iter = 0;
   long long ntot;
   double t0, t1;
-
-  CPU_Step[CPU_MISC] += measure_time();
 
   mpi_printf("BH_DENSITY: Start density and neighbour search for %d black holes.\n", NumBhs);
 
@@ -327,8 +327,7 @@ void bh_density(void)
   
   myfree(BhNgbs);
 
-  /* collect some timing information */
-  CPU_Step[CPU_INIT] += measure_time();
+  TIMER_STOP(CPU_BLACKHOLES_DENSITY);
 }
 
 /*! \brief Inner function of the SPH density calculation

@@ -229,9 +229,9 @@ static void kernel_imported(void)
  */
 void bh_accretion(void)
 {
-  int i, idx;
+  TIMER_START(CPU_BLACKHOLES_ACCRETION);
 
-  CPU_Step[CPU_MISC] += measure_time();
+  int i, idx;
 
   generic_set_MaxNexport();
 
@@ -249,7 +249,7 @@ void bh_accretion(void)
 
   update_bh_accretion_rate();
 
-  CPU_Step[CPU_INIT] += measure_time();
+  TIMER_STOP(CPU_BLACKHOLES_ACCRETION);
 }
 
 /*! \brief Inner function of the SPH density calculation

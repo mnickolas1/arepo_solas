@@ -526,9 +526,9 @@ static void radiation_feedback(void)
 
 void star_radiation(void)
 {
-  double t0, t1;
+  TIMER_START(CPU_STARS_RADIATION);
 
-  CPU_Step[CPU_MISC] += measure_time();
+  double t0, t1;
 
 #ifdef RAD_OPENING_ANGLE
   /* zero RAD accumulator on all nodes before treewalk -> importnant for top nodes! */
@@ -597,4 +597,6 @@ void star_radiation(void)
 
   free_export_buffer(export_buf);
   free_work_stack(work);
+
+  TIMER_STOP(CPU_STARS_RADIATION);
 }

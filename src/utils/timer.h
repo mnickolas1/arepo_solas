@@ -212,6 +212,23 @@ TIMER_CREATE(CPU_TREE_TIMESTEPS, "treetimesteps", CPU_ALL, 'Y', 'u')
 TIMER_CREATE(CPU_SNAPSHOT, "i/o", CPU_ALL, 'Z', 't')
 TIMER_CREATE(CPU_LOGS, "logs", CPU_ALL, '1', 's')
 TIMER_CREATE(CPU_COOLINGSFR, "sfrcool", CPU_ALL, '2', 'r')
+
+#ifdef STARS
+TIMER_CREATE(CPU_STARS, "stars", CPU_ALL, '3', 'o')
+TIMER_CREATE(CPU_STARS_PREP, "stars_prep", CPU_STARS, '5', 'n')
+TIMER_CREATE(CPU_STARS_DENSITY, "stars_density", CPU_STARS, '6', 'l')
+TIMER_CREATE(CPU_STARS_RADIATION, "stars_radiation", CPU_STARS, '7', 'k')
+TIMER_CREATE(CPU_STARS_FEEDBACK, "stars_feedback", CPU_STARS, '8', 'i')
+#endif
+
+#ifdef BLACKHOLES
+TIMER_CREATE(CPU_BLACKHOLES, "blackholes", CPU_ALL, '3', 'o')
+TIMER_CREATE(CPU_BLACKHOLES_DENSITY, "blackholes_density", CPU_BLACKHOLES, '6', 'l')
+TIMER_CREATE(CPU_BLACKHOLES_ACCRETION, "blackholes_accretion", CPU_BLACKHOLES, '5', 'n')
+TIMER_CREATE(CPU_BLACKHOLES_SWALLOW, "blackholes_swallow", CPU_BLACKHOLES, '7', 'k')
+TIMER_CREATE(CPU_BLACKHOLES_FEEDBACK, "blackholes_feedback", CPU_BLACKHOLES, '8', 'i')
+#endif
+
 #ifdef FOF
 TIMER_CREATE(CPU_FOF, "fof", CPU_ALL, '#', 'h')
 #endif /* #ifdef FOF */

@@ -189,9 +189,13 @@ static void kernel_imported(void)
 
 void star_feedback(void)
 {
+  TIMER_START(CPU_STARS_FEEDBACK);
+  
   generic_set_MaxNexport();
 
   generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
+
+  TIMER_STOP(CPU_STARS_FEEDBACK);
 }
 
 static int star_feedback_evaluate(int target, int mode, int threadid)

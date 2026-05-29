@@ -415,8 +415,10 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
   if(All.Time > All.FeedbackTime) 
     {
       star_update_timesteps();
-      star_density(); 
+      
       star_prep();
+
+      star_density(); 
 
 #ifdef STAR_RADIATION_ACTIVE
       star_radiation();

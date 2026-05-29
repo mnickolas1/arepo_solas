@@ -168,12 +168,12 @@ static void kernel_imported(void)
  */
 void star_density(void)
 {
+  TIMER_START(CPU_STARS_DENSITY);
+
   MyFloat *Left, *Right;
   int idx, i, npleft, iter = 0;
   long long ntot;
   double t0, t1;
-
-  CPU_Step[CPU_MISC] += measure_time();
 
   StarNgbs = (MyFloat *)mymalloc("StarNgbs", NumStars * sizeof(MyFloat));
   Left = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
@@ -280,7 +280,7 @@ void star_density(void)
      SP[i].DensityFlag = 1;
   
   /* collect some timing information */
-  CPU_Step[CPU_INIT] += measure_time();
+  TIMER_STOP(CPU_STARS_DENSITY);
 }
 
 /*! \brief Inner function of the SPH density calculation

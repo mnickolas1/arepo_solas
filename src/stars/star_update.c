@@ -150,6 +150,10 @@ void star_update_list_of_active_particles(void)
 /* Compute feedback properties of active stars */
 void star_prep(void)
 {
+  TIMER_START(CPU_STARS);
+
+  TIMER_START(CPU_STARS_PREP);
+
   int idx, i;
   
   for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
@@ -232,6 +236,8 @@ void star_prep(void)
       SP[i].WindsAndSN.SN_EnergyInject = StarFeedback.SN_EnergyInject;
 #endif
     }
+
+  TIMER_STOP(CPU_STARS_PREP);
 }
 
 void star_perform_end_of_step_physics(void)
@@ -313,5 +319,5 @@ void star_perform_end_of_step_physics(void)
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",
                All.StarFeedbackGlobal[1], All.StarFeedbackGlobal[4]);
     mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n",
-               All.StarFeedbackGlobal[2], All.StarFeedbackGlobal[5]);   
+               All.StarFeedbackGlobal[2], All.StarFeedbackGlobal[5]);
 } 

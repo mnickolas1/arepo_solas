@@ -132,7 +132,7 @@ star_feedback() -> main entry point
 */
 void star_feedback(void)
 {
-  CPU_Step[CPU_MISC] += measure_time();
+  TIMER_START(CPU_STARS_RADIATION);
 
 #define MAX_FACES 128
 
@@ -547,5 +547,7 @@ void star_feedback(void)
   myfree(ExportTask);
   myfree(ExportBuf);
  
-  CPU_Step[CPU_MISC] += measure_time();
+  TIMER_STOP(CPU_STARS_FEEDBACK);
+
+  TIMER_STOP(CPU_STARS);
 }

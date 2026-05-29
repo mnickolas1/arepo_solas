@@ -138,13 +138,13 @@ static void kernel_imported(void)
 
 void bh_feedback(void)
 {
-  CPU_Step[CPU_MISC] += measure_time();
+  TIMER_START(CPU_BLACKHOLES_FEEDBACK);
 
   generic_set_MaxNexport();
 
   generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
 
-  CPU_Step[CPU_MISC] += measure_time();
+  TIMER_STOP(CPU_BLACKHOLES_FEEDBACK);
 }
 
 static int bh_feedback_evaluate(int target, int mode, int threadid)

@@ -158,9 +158,9 @@ static void kernel_imported(void)
  */
 void bh_swallow(void)
 {
-  int i, idx;
+  TIMER_START(CPU_BLACKHOLES_SWALLOW);
 
-  CPU_Step[CPU_MISC] += measure_time();
+  int i, idx;
 
   AccretionLimited = (MyFloat *)mymalloc("AccretionLimited", NumBhs * sizeof(MyFloat));
 
@@ -178,7 +178,7 @@ void bh_swallow(void)
 
   myfree(AccretionLimited);
 
-  CPU_Step[CPU_INIT] += measure_time();
+  TIMER_STOP(CPU_BLACKHOLES_SWALLOW);
 }
 
 /*! \brief Inner function of the SPH density calculation

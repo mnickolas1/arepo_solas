@@ -230,11 +230,11 @@ static void kernel_imported(void)
  */
 void star_density(void)
 {
+  TIMER_START(CPU_STARS_DENSITY);
+  
   int idx, i, npleft, iter = 0;
   long long ntot;
   double t0, t1;
-
-  CPU_Step[CPU_MISC] += measure_time();
 
   pass = 0;
 
@@ -320,7 +320,7 @@ void star_density(void)
      SP[i].DensityFlag = 1;
   
   /* Collect timing information */
-  CPU_Step[CPU_INIT] += measure_time();
+  TIMER_STOP(CPU_STARS_DENSITY);
 }
 
 /*! \brief Inner function of the SPH density calculation
