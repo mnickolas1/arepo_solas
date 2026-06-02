@@ -548,6 +548,4 @@ void star_feedback(void)
   myfree(ExportBuf);
  
   TIMER_STOP(CPU_STARS_FEEDBACK);
-
-  TIMER_STOP(CPU_STARS);
 }

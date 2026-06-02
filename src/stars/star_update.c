@@ -150,8 +150,6 @@ void star_update_list_of_active_particles(void)
 /* Compute feedback properties of active stars */
 void star_prep(void)
 {
-  TIMER_START(CPU_STARS);
-
   TIMER_START(CPU_STARS_PREP);
 
   int idx, i;
