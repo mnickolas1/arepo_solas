@@ -132,6 +132,10 @@ gsl_rng *random_generator_aux; /*!< an auxialiary random number generator for us
 int Stars_converted; /*!< current number of star particles in gas particle block */
 #endif
 
+#ifdef REFINEMENT
+char *FlagDoNotRefine;
+#endif 
+
 #ifdef TOLERATE_WRITE_ERROR
 int WriteErrorFlag;
 char AlternativeOutputDir[MAXLEN_PATH];

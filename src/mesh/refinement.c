@@ -37,10 +37,6 @@
 #ifdef REFINEMENT
 #include "../main/proto.h"
 
-#if defined(REFINEMENT_MERGE_CELLS) && defined(REFINEMENT_SPLIT_CELLS)
-char *FlagDoNotRefine;
-#endif /* #if defined (REFINEMENT_MERGE_CELLS) && defined (REFINEMENT_SPLIT_CELLS) */
-
 static void refinement_prepare();
 static void refinement_cleanup();
 

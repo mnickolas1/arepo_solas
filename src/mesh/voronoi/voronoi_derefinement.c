@@ -146,10 +146,6 @@ static struct ngb_data
 static int n_tri, max_n_tri;
 static triangle *trilist;
 
-#ifdef REFINEMENT_SPLIT_CELLS
-extern char *FlagDoNotRefine;
-#endif /* #ifdef REFINEMENT_SPLIT_CELLS */
-
 /*! \brief Adds cell in list ngb.
  *
  *  \param[in] edge Element 'edge' in ngb.
