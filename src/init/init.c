@@ -785,7 +785,7 @@ void setup_smoothinglengths(void)
 #endif /* #ifdef FIX_SPH_PARTICLES_AT_IDENTICAL_COORDINATES */
 }
 
-#if defined(BH_FEEDBACK_ACTIVE) || defined(STAR_FEEDBACK_ACTIVE)
+#ifdef TODO
 /*! \brief This function is used to find an initial SPH smoothing length for
  *         stars and black holes
  *

@@ -46,14 +46,25 @@ void bh_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk)
 
 integertime bh_timestep(int i)
 { 
-  /* When we don't have ngbs -> NgbsMinBin == 0 -> TIMEBASE */
-  double dt_ngbmin = (BhP[i].NgbsMinBin ? (((integertime)1) << BhP[i].NgbsMinBin) : TIMEBASE) * All.Timebase_interval;
+  /* Neighbours Minimum Bin */
+  double dt_ngbmin = (BhP[i].NgbsMinBin ? (((integertime)1) << BhP[i].NgbsMinBin) : 0) * All.Timebase_interval;
   
+  double dt;
+  
+  if(dt_ngbmin != 0)
+    dt = dt_ngbmin;
+  else 
+    dt = TIMEBASE * All.Timebase_interval;
+
   /* Accretion timescale */
   double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
-  double dt_bh = PPB(i).Mass / (BhP[i].Accretion / bh_timestep);
-
-  double dt = dt_ngbmin;
+  
+  double dt_bh;
+  
+  if(BhP[i].Accretion != 0.0 && bh_timestep != 0.0)
+    dt_bh = PPB(i).Mass / (BhP[i].Accretion / bh_timestep);
+  else
+    dt_bh = TIMEBASE * All.Timebase_interval;
 
   if(dt_bh < dt)
     dt = dt_bh;
@@ -92,7 +103,6 @@ void bh_reconstruct_timebins(void)
   
   for(i = 0; i < NumBhs; i++)
     {
-      
       bin = BhP[i].TimeBinBh;
       if(bin >= TIMEBINS)
         continue;

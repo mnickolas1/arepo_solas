@@ -2075,7 +2075,7 @@ enum iofields
   IO_BHHSML,
   IO_BH_NGBSMASS,
 #endif
-#ifdef BONDI_ACCRETION
+#ifdef BH_ACCRETION_ACTIVE
   IO_ACCRETION_RATE,
 #endif
 #ifdef OUTPUT_TIMEBIN_BH

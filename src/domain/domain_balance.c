@@ -209,7 +209,7 @@ void domain_init_sum_cost(void)
 
 #ifdef BH_ACTIVE
   long long tot_count_bh[TIMEBINS];
-  sumup_large_ints(TIMEBINS, TimeBinsBH.TimeBinCount, tot_count_bh);
+  sumup_large_ints(TIMEBINS, TimeBinsBh.TimeBinCount, tot_count_bh);
 #endif
 
   for(int i = 0; i < TIMEBINS; i++)

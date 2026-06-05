@@ -56,7 +56,7 @@ typedef struct
   MyDouble Ngbs;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
-  int Ngbsminbin;
+  int NgbsMinBin;
 
 #ifdef TORQUE_ACCRETION
   MyDouble GasAngularMomentum[3];
@@ -188,7 +188,7 @@ void bh_density(void)
   long long ntot;
   double t0, t1;
 
-  mpi_printf("BH_DENSITY: Start density and neighbour search for %d black holes.\n", NumBhs);
+  //mpi_printf("BH_DENSITY: Start density and neighbour search for %d black holes.\n", NumBhs);
 
   BhNgbs = (MyFloat *)mymalloc("BhNgbs", NumBhs * sizeof(MyFloat));
 

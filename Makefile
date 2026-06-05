@@ -436,13 +436,13 @@ INCL += extern/chealpix.h \
 SUBDIRS += extern
 endif
 
+#BLACKHOLES
 ifneq (,$(filter BLACKHOLES,$(CONFIGVARS)))
 OBJS += blackholes/bh.o
 INCL += blackholes/bh.h
 SUBDIRS += blackholes
 endif
 
-#BLACKHOLES
 ifneq (,$(filter BH_FEEDBACK,$(CONFIGVARS)))
 CONFIGVARS += BH_THERMAL_FEEDBACK BH_JET_FEEDBACK 
 endif
@@ -451,20 +451,38 @@ BH_ACCRETION_ACTIVE = BONDI_ACCRETION TORQUE_ACCRETION ADP_ACCRETION
 
 BH_FEEDBACK_ACTIVE = BH_THERMAL_FEEDBACK BH_JET_FEEDBACK 
 
-ifneq (,$(filter BH_ACCRETION_ACTIVE,$(CONFIGVARS)))
+ifneq (,$(filter $(BH_ACCRETION_ACTIVE),$(CONFIGVARS)))
 CONFIGVARS += BH_ACCRETION_ACTIVE
 $(shell $(call add_define,BH_ACCRETION_ACTIVE))
 endif
 
-ifneq (,$(filter BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+ifneq (,$(filter $(BH_FEEDBACK_ACTIVE),$(CONFIGVARS)))
 CONFIGVARS += BH_FEEDBACK_ACTIVE
 $(shell $(call add_define,BH_FEEDBACK_ACTIVE))
 endif
 
 ifneq (,$(filter BH_ACCRETION_ACTIVE BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
-ifeq (,$(filter BLACKHOLES,$(CONFIGVARS)))
-$(error BH_ACCRETION_ACTIVE or BH_FEEDBACK_ACTIVE requires BLACKHOLES)
+CONFIGVARS += BH_ACTIVE
+$(shell $(call add_define,BH_ACTIVE))
 endif
+
+ifneq (,$(filter BH_ACTIVE,$(CONFIGVARS)))
+ifeq (,$(filter BLACKHOLES,$(CONFIGVARS)))
+$(error BH_ACTIVE requires BLACKHOLES)
+endif
+endif
+
+ifneq (,$(filter BH_JET_FEEDBACK,$(CONFIGVARS)))
+ifneq (,$(filter BH_CONSTANT_RADIUS,$(CONFIGVARS)))
+$(error BH_CONSTANT_RADIUS DOES NOT WORK WITH BH_JET_FEEDBACK YET)
+endif
+endif
+
+# Ensure at most one BH accretion model is enabled
+ACCR_SELECTED := $(filter $(BH_ACCRETION_ACTIVE),$(CONFIGVARS))
+ACCR_SELECTED_COUNT := $(words $(ACCR_SELECTED))
+ifneq (,$(shell test $(ACCR_SELECTED_COUNT) -gt 1 2>/dev/null && echo yes))
+$(error ONLY ONE ACCRETION MODEL MAY BE ACTIVE; FOUND: $(ACCR_SELECTED))
 endif
 
 ifneq (,$(filter BH_ACCRETION_ACTIVE BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
