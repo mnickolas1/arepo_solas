@@ -459,7 +459,7 @@ void star_feedback(void)
                 {
                   if(n_export >= max_export)
                     terminate("star_feedback: Feedback_Kick export buffer overflow\n");
-                  ExportBuf[n_export] = kick;
+                  ExportBuf[n_export] = Kick;
                   ExportTask[n_export] = DC[q].task;
                   n_export++;
                 }

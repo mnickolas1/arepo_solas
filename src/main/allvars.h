@@ -1707,8 +1707,11 @@ extern struct sph_particle_data
 /* Stars */
 
 /* Hosts */
-#if defined(WINDS) || defined(SUPERNOVAE)
+#ifdef STAR_FEEDBACK_ACTIVE
   int Host;
+#endif
+
+#if defined(WINDS) || defined(SUPERNOVAE)
   Mechanical_Feedback WindsAndSN[2];
 #endif
 
