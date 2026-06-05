@@ -169,7 +169,7 @@ void domain_exchange(void)
   int count_togo_bhs = 0, count_get_bhs = 0;
   int *count_bhs, *offset_bhs;
   int *count_recv_bhs, *offset_recv_bhs;
-  struct bh_particle_data *bhBuf;
+  struct Bh_Particle_Data *bhBuf;
 #endif
 
   peanokey *keyBuf;
@@ -263,7 +263,7 @@ void domain_exchange(void)
 #endif
 
 #ifdef BLACKHOLES
-  bhBuf = (struct bh_particle_data *)mymalloc_movable(&bhBuf, "bhBuf", count_togo_bhs * sizeof(struct bh_particle_data));
+  bhBuf = (struct Bh_Particle_Data *)mymalloc_movable(&bhBuf, "bhBuf", count_togo_bhs * sizeof(struct Bh_Particle_Data));
 #endif
   
   keyBuf = (peanokey *)mymalloc_movable(&keyBuf, "keyBuf", count_togo * sizeof(peanokey));
@@ -539,8 +539,8 @@ if(count_stars[target] > 0 || count_recv_stars[target] > 0)
 #ifdef BLACKHOLES
 if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
             {
-              MPI_Sendrecv(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct bh_particle_data), MPI_BYTE, target,
-                           TAG_BHDATA, BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct bh_particle_data),
+              MPI_Sendrecv(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct Bh_Particle_Data), MPI_BYTE, target,
+                           TAG_BHDATA, BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct Bh_Particle_Data),
                            MPI_BYTE, target, TAG_BHDATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
 #endif
@@ -593,7 +593,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
 #ifdef BLACKHOLES
           if(count_recv_bhs[target] > 0)
             {
-              MPI_Irecv(BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct bh_particle_data), MPI_BYTE, target,
+              MPI_Irecv(BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct Bh_Particle_Data), MPI_BYTE, target,
                         TAG_BHDATA, MPI_COMM_WORLD, &requests[n_requests++]);
             }
 #endif
@@ -642,7 +642,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
 #ifdef BLACKHOLES
           if(count_bhs[target] > 0)
             {
-              MPI_Isend(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct bh_particle_data), MPI_BYTE, target,
+              MPI_Isend(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct Bh_Particle_Data), MPI_BYTE, target,
                         TAG_BHDATA, MPI_COMM_WORLD, &requests[n_requests++]);
             }
 #endif
@@ -678,7 +678,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
 #endif
 
 #ifdef BLACKHOLES
- myMPI_Alltoallv(bhBuf, count_bhs, offset_bhs, BhP, count_recv_bhs, offset_recv_bhs, sizeof(struct bh_particle_data), 0,
+ myMPI_Alltoallv(bhBuf, count_bhs, offset_bhs, BhP, count_recv_bhs, offset_recv_bhs, sizeof(struct Bh_Particle_Data), 0,
                   MPI_COMM_WORLD);
 #endif
 

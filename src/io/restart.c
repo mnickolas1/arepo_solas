@@ -1275,7 +1275,7 @@ static void contents_restart_file(int modus)
     if(NumBhs > 0)
     {
       /* Bh-Particle data  */
-      byten(&BhP[0], NumBhs * sizeof(struct bh_particle_data), modus);
+      byten(&BhP[0], NumBhs * sizeof(struct Bh_Particle_Data), modus);
     }
 #endif
 
