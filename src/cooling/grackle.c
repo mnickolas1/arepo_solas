@@ -104,7 +104,7 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   double X_H = 0, Y_He = 0;
 
   /* electron density */
-  //*All.GrackleFieldData.e_density = *ne_guess * *All.GrackleFieldData.density;
+  *All.GrackleFieldData.e_density = SphP[target].Ne * *All.GrackleFieldData.density;
 
   /* H and He species */
   *All.GrackleFieldData.HI_density    = SphP[target].GrackleSpecies(GRACKLE_HI) * *All.GrackleFieldData.density;
@@ -145,23 +145,6 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
 #endif
 
   Y_He = 1 - X_H - SphP.GasMetallicity;
-
-  double e_density = 0;
-
-  e_density += *All.GrackleFieldData.HII_density;
-  e_density += *All.GrackleFieldData.HeII_density / 4.0;
-  e_density += *All.GrackleFieldData.HeIII_density / 2.0;
-
-#if (GRACKLE_CHEMISTRY >= 2)
-  e_density += *All.GrackleFieldData.H2II_density / 2.0;
-  e_density -= *All.GrackleFieldData.HM_density;
-#endif
-
-#if (GRACKLE_CHEMISTRY >= 3)
-  e_density += *All.GrackleFieldData.DII_density / 2.0;
-#endif
-
-  *All.GrackleFieldData.e_density = e_density;
 
   /* Radiation */
 #ifdef PHOTOELECTRIC_HEATING
@@ -209,9 +192,27 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           // For He: Y/(X+Y) divided value in grackle 0.24
           gr_float fhe_correct = (Y_He / HHemassfrac) / 0.24;
 
+          double e_density = 0;
+
+          e_density += *All.GrackleFieldData.HII_density;
+          e_density += *All.GrackleFieldData.HeII_density / 4.0;
+          e_density += *All.GrackleFieldData.HeIII_density / 2.0;
+
+#if (GRACKLE_CHEMISTRY >= 2)
+          e_density += *All.GrackleFieldData.H2II_density / 2.0;
+          e_density -= *All.GrackleFieldData.HM_density;
+#endif
+
+#if (GRACKLE_CHEMISTRY >= 3)
+          e_density += *All.GrackleFieldData.DII_density / 2.0;
+#endif
+
+          *All.GrackleFieldData.e_density = e_density;
+
           /* if non-eq chemistry assign abundances back */
 #if (GRACKLE_CHEMISTRY >= 1)
-          SphP[target].Ne                            = *All.GrackleFieldData.e_density / *All.GrackleFieldData.density;
+          // We balance the charges to get the proper Ne once all the abundances are assigned.
+          // SphP[target].Ne                            = *All.GrackleFieldData.e_density / *All.GrackleFieldData.density;
           SphP[target].GrackleSpecies(GRACKLE_HI)    = *All.GrackleFieldData.HI_density / *All.GrackleFieldData.density;
           SphP[target].GrackleSpecies(GRACKLE_HII)   = *All.GrackleFieldData.HII_density / *All.GrackleFieldData.density;
           SphP[target].GrackleSpecies(GRACKLE_HeI)   = *All.GrackleFieldData.HeI_density / *All.GrackleFieldData.density;
@@ -223,6 +224,9 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           SphP[target].GrackleSpecies(GRACKLE_HeI) *= fhe_correct;
           SphP[target].GrackleSpecies(GRACKLE_HeII) *= fhe_correct;
           SphP[target].GrackleSpecies(GRACKLE_HeIII) *= fhe_correct;
+
+          SphP[target].Ne = SphP[target].GrackleSpecies(GRACKLE_HII) + SphP[target].GrackleSpecies(GRACKLE_HeII) / 4. +
+                            SphP[target].GrackleSpecies(GRACKLE_HeIII) / 2.;
 #endif
 
 #if (GRACKLE_CHEMISTRY >= 2)
@@ -233,6 +237,8 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           SphP[target].GrackleSpecies(GRACKLE_H2I) *= fh_correct;
           SphP[target].GrackleSpecies(GRACKLE_H2II) *= fh_correct;
           SphP[target].GrackleSpecies(GRACKLE_HM) *= fh_correct;
+
+          SphP[target].Ne += SphP[target].GrackleSpecies(GRACKLE_H2II) / 2. - SphP[target].GrackleSpecies(GRACKLE_HM);
 #endif
 
 #if (GRACKLE_CHEMISTRY >= 3)
@@ -243,6 +249,9 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           SphP[target].GrackleSpecies(GRACKLE_DI) *= fh_correct;
           SphP[target].GrackleSpecies(GRACKLE_DII) *= fh_correct;
           SphP[target].GrackleSpecies(GRACKLE_HDI) *= fh_correct;
+
+          SphP[target].Ne += SphP[target].GrackleSpecies(GRACKLE_DII) / 2.;
+
 #endif
 
           returnval = *All.GrackleFieldData.internal_energy;
