@@ -192,23 +192,6 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           // For He: Y/(X+Y) divided value in grackle 0.24
           gr_float fhe_correct = (Y_He / HHemassfrac) / 0.24;
 
-          double e_density = 0;
-
-          e_density += *All.GrackleFieldData.HII_density;
-          e_density += *All.GrackleFieldData.HeII_density / 4.0;
-          e_density += *All.GrackleFieldData.HeIII_density / 2.0;
-
-#if (GRACKLE_CHEMISTRY >= 2)
-          e_density += *All.GrackleFieldData.H2II_density / 2.0;
-          e_density -= *All.GrackleFieldData.HM_density;
-#endif
-
-#if (GRACKLE_CHEMISTRY >= 3)
-          e_density += *All.GrackleFieldData.DII_density / 2.0;
-#endif
-
-          *All.GrackleFieldData.e_density = e_density;
-
           /* if non-eq chemistry assign abundances back */
 #if (GRACKLE_CHEMISTRY >= 1)
           // We balance the charges to get the proper Ne once all the abundances are assigned.
