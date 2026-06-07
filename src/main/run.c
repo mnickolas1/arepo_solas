@@ -439,11 +439,11 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 #ifdef BH_FEEDBACK_ACTIVE
   if(All.Time > All.FeedbackTime)
     {   
-#ifdef THERMAL_FEEDBACK
+#ifdef BH_THERMAL_FEEDBACK
       bh_feedback();
 #endif
 
-#ifdef JET_FEEDBACK
+#ifdef BH_JET_FEEDBACK
       bh_jet_density();
       bh_jet_feedback();
 #endif

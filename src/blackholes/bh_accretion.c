@@ -9,7 +9,7 @@
 #include "../domain/domain.h"
 
 static int bh_accretion_evaluate(int target, int mode, int threadid);
-static void update_bh_accretion_rate(void);
+static void bh_accretion_rate(void);
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -175,11 +175,6 @@ static void kernel_local(void)
     {
       if(Thread[threadid].ExportSpace < MinSpace)
         break;
-
-      //i = NextParticle++;
-
-      //if(i >= NumBhs)
-      //break;
         
       idx = NextParticle++;
 
@@ -245,7 +240,7 @@ void bh_accretion(void)
     }
 #endif
 
-  update_bh_accretion_rate();
+  bh_accretion_rate();
 
   TIMER_STOP(CPU_BLACKHOLES_ACCRETION);
 }
@@ -482,13 +477,13 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 }
 
 #if defined(BONDI_ACCRETION) 
-static void update_bh_accretion_rate(void)
+static void bh_accretion_rate(void)
 {
   /* Calculate bondi accretion rate */
   int idx, i;
   double gas_density, gas_pressure, gas_sound_speed, gas_velocity_norm;
   double denominator, denominator_inv, BondiRate, EddingtonRate;
-  long long active_bhs = 0;
+  long long bh_active = 0;
   double accretion_rate = 0, acc_max = 0, acc_rate_for_print = 0;
 
   for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
@@ -535,21 +530,21 @@ static void update_bh_accretion_rate(void)
         acc_max = accretion_rate;
     }
  
-  MPI_Allreduce(&active_bhs, &TimeBinsBh.NActiveParticles, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&acc_max, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max Bondi accretion rate: %e (code units)\n", active_bhs, acc_rate_for_print);
+  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max Bondi accretion rate: %e (code units)\n", bh_active, acc_rate_for_print);
 }
 
 #elif defined(TORQUE_ACCRETION)
-static void update_bh_accretion_rate(void)
+static void bh_accretion_rate(void)
 {
   /* Calculate Torque-limited accretion rate */
   int idx, i;
   double M_BH, M_gas, M_star, M_enc, M_gas_disk, M_star_disk, M_disk;
   double R0, f_d, f_gas, f0;
   double torque_rate, EddingtonRate;
-  long long active_bhs = 0;
+  long long bh_active = 0;
   double accretion_rate = 0, acc_max = 0, acc_rate_for_print = 0;
 
   for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
@@ -609,7 +604,7 @@ static void update_bh_accretion_rate(void)
         }
 
       /* Computing f0 */
-      /* f0 ≈ 0.31 * f_d^2 * (M_disk / 10^9 Msun)^(-1/3) */
+      /* f0 ≈ 0.31 * f_d^2 * (M_disk / 10^9 Msun)^(-1/3) */ 
       f0 = 0.31 * f_d * f_d * pow(M_disk * All.cf_UnitMass_in_g / 1e9 / SOLAR_MASS, -1.0/3.0);
 
       /* Suppression factor */
@@ -649,20 +644,20 @@ static void update_bh_accretion_rate(void)
         acc_max = accretion_rate;
     }
  
-  MPI_Allreduce(&active_bhs, &TimeBinsBh.NActiveParticles, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&acc_max, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max Torque-limited accretion rate: %e (code units)\n", active_bhs, acc_rate_for_print);
+  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max Torque-limited accretion rate: %e (code units)\n", bh_active, acc_rate_for_print);
 }
 
 #elif defined(ADP_ACCRETION)
-static void update_bh_accretion_rate(void)
+static void bh_accretion_rate(void)
 {
   int idx, i;
   double M_BH, Mcap, M_res, M_disc;
   double dM_to_disc, mdot_visc, mdot_cap, dM_bh;
   double EddingtonRate; 
-  long long active_bhs = 0;
+  long long bh_active = 0;
   double accretion_rate = 0, acc_max = 0, acc_rate_for_print = 0;
 
   for(idx = 0; idx < TimeBinsBh.NActiveParticles; idx++)
@@ -743,9 +738,9 @@ static void update_bh_accretion_rate(void)
         acc_max = accretion_rate;
     }
  
-  MPI_Allreduce(&active_bhs, &TimeBinsBh.NActiveParticles, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&acc_max, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max ADP accretion rate: %e (code units)\n", active_bhs, acc_rate_for_print);
+  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max ADP accretion rate: %e (code units)\n", bh_active, acc_rate_for_print);
 }
 #endif

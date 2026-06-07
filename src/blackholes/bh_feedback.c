@@ -96,11 +96,6 @@ static void kernel_local(void)
     {
       if(Thread[threadid].ExportSpace < MinSpace)
         break;
-
-      //i = NextParticle++;
-
-      //if(i >= NumBhs)
-      //break;
         
       idx = NextParticle++;
 
@@ -179,7 +174,7 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
 
   factor = 0;
   mass_feed = All.Mload * All.Epsilon_r * accretion; 
-  energy_feed = All.Epsilon_f * (1 - All.Mload) * All.Epsilon_r  * accretion * (CLIGHT*CLIGHT / (All.cf_UnitVelocity_in_cm_per_s*All.cf_UnitVelocity_in_cm_per_s));
+  energy_feed = All.Epsilon_f * (1.0 - All.Mload) * All.Epsilon_r  * accretion * (CLIGHT*CLIGHT / (All.cf_UnitVelocity_in_cm_per_s*All.cf_UnitVelocity_in_cm_per_s));
 
   double hinv, hinv3, hinv4, u, dwk;
 

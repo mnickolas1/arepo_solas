@@ -140,7 +140,7 @@ void bh_update_list_of_active_particles(void)
         }
     }
 
-    mysort(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles, sizeof(int), int_compare);
+  mysort(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles, sizeof(int), int_compare);
 }
 
 void bh_perform_end_of_step_physics(void)
@@ -248,7 +248,7 @@ void bh_perform_end_of_step_physics(void)
             }
         }
 #ifdef BURST_MODE
-            All.FeedbackFlag = -1;
+          All.FeedbackFlag = -1;
 #endif
     } // if(All.FeedbackFlag>0)
         

@@ -126,11 +126,6 @@ static void kernel_local(void)
     {
       if(Thread[threadid].ExportSpace < MinSpace)
         break;
-
-      //i = NextParticle++;
-
-      //if(i >= NumBhs)
-      //break;
         
       idx = NextParticle++;
 
