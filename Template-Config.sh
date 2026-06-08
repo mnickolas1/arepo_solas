@@ -11,7 +11,7 @@
 #--------------------------------------- Star options
 #STARS                  # General stars framework flag
 
-#STAR_PARTICLES=1     # Star particles model flag: set to 1 for massive star particles, set to 2 for resolved individual stars
+#STAR_PARTICLES=1       # Star particles model flag: set to 0, 1 for massive star particles, set to 2 for resolved individual stars
 
 #STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
 
@@ -33,26 +33,28 @@
 #INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars (need STAR_PARTICLES=2 AND USE_SFR)
 
 #--------------------------------------- Blackhole options
-#BLACKHOLES
-#BH_ACCRETION_ACTIVE
-#BONDI_ACCRETION
-#INFALL_ACCRETION
-#BLACKHOLES_FEEDBACK_ACTIVE
+#BLACKHOLES             # General blackholes framework flag
 
-#BURST_MODE
+#BH_CONSTANT_RADIUS     # Accretion and thermal feedback in a set radius
 
-#OUTPUT_TIMEBIN_BH
+#BONDI_ACCRETION        # Accretion models
+#TORQUE_ACCRETION
+#ADP_ACCRETION
 
-#REFINEMENT_AROUND_BH
+#BH_FEEDBACK            # Include full bh feedback (thermal + jet)
+
+#BH_THERMAL_FEEDBACK    # Only thermal
+
+#BH_JET_FEEDBACK        # Only jet (not operational yet)
+#BURST_MODE             # Only turn on for jet (not operational yet)
+
+#REFINEMENT_AROUND_BH   # BH refinement options
 #MIN_REFINEMENT_BH_MASS
 #REFINEMENT_AROUND_BH_FIXED
 #REFINEMENT_AROUND_BH_HYBRID
 #BH_JET_FEEDBACK
 #BH_JET_REFINEMENT
 #OUTPUT_REFBHCOUNTER
-
-#OUTPUT_TIMEBIN_STAR
-#OUTPUTTIMESTEP_BH
 
 #--------------------------------------- Cooling parameters
 #USE_GRACKLE
