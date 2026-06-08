@@ -6,7 +6,21 @@
 
 #--------------------------------------- SOLAS additions
 
-#FEEDBACK_TESTING_RESTRICT_SNAPSHOTS     # Only dump snapshots after a feedback event
+#--------------------------------------- Metal parameters
+#PASSIVE_SCALARS=1      # Number of passive scalar fields advected with fluid (default: 0)
+#METALS                 # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS
+
+#--------------------------------------- Cooling parameters
+#USE_GRACKLE
+#GRACKLE_CHEMISTRY=0    # Curretly only grackle mode=0 (lookup tables) with no chemistry network is supported
+
+#--------------------------------------- Star Formation options
+#EEOS_SF                # Default SF scheme in Arepo
+#AGORA_SF               # Agora based SF
+#JEANS_SF               # Jeans length based SF
+#JEANS_MASS_BASED       # Jeans mass based SF
+
+#INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars (need STAR_PARTICLES=2 AND USE_SFR)
 
 #--------------------------------------- Star options
 #STARS                  # General stars framework flag
@@ -17,20 +31,12 @@
 
 #WINDS                  # Only winds
 
-#STAR_RADIATION         # Full radiation
+#RADIATION              # Full radiation
 #PHOTOIONIZATION        # Only photoionization
 #PHOTOELECTRIC_HEATING  # Only photoelectric
 #RADIATION_PRESSURE     # Only radiation pressure
 
 #SUPERNOVAE             # Only supernovae
-
-#--------------------------------------- Star Formation options
-#EEOS_SF                # Default SF scheme in Arepo
-#AGORA_SF               # Agora based SF
-#JEANS_SF               # Jeans length based SF
-#JEANS_MASS_BASED       # Jeans mass based SF
-
-#INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars (need STAR_PARTICLES=2 AND USE_SFR)
 
 #--------------------------------------- Blackhole options
 #BLACKHOLES             # General blackholes framework flag
@@ -47,6 +53,7 @@
 
 #BH_JET_FEEDBACK        # Only jet (not operational yet)
 #BURST_MODE             # Only turn on for jet (not operational yet)
+#JET_TRACER             # Only turn on for jet (not operational yet)
 
 #REFINEMENT_AROUND_BH   # BH refinement options
 #MIN_REFINEMENT_BH_MASS
@@ -56,16 +63,14 @@
 #BH_JET_REFINEMENT
 #OUTPUT_REFBHCOUNTER
 
-#--------------------------------------- Cooling parameters
-#USE_GRACKLE
-#GRACKLE_CHEMISTRY=0 # Curretly only grackle mode=0 (lookup tables) with no chemistry network is supported
-#NOUVBACKGROUND 
-
-#--------------------------------------- Metal parameters
-#METALS # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS.
+#--------------------------------------- Special behaviour
+#FEEDBACK_TESTING_RESTRICT_SNAPSHOTS     # Only dump snapshots after a feedback event
 
 #--------------------------------------- Inline halo finding
 #FIND_HALOS
+
+
+#--------------------------------------- Arepo public
 
 #--------------------------------------- Basic operation mode of code; default: 3d with 6 particle types; type 0: gas >0: only gravitationally interacting
 #NTYPES=6                      # number of particle types
@@ -85,7 +90,6 @@
 #NOHYDRO                       # No hydrodynamics calculation
 #GAMMA=1.4                     # Adiabatic index of gas; 5/3 if not set
 #ISOTHERM_EQS                  # Isothermal gas
-#PASSIVE_SCALARS=3             # number of passive scalar fields advected with fluid (default: 0)
 #NO_SCALAR_GRADIENTS           # disables time and spatial extrapolation for passive scalar fields (use only if you know why you're doing this)
 
 #--------------------------------------- Magnetohydrodynamics
