@@ -460,7 +460,7 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
-#if defined(WINDS) || defined(SUPERNOVAE)
+#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
   if(All.Time > All.FeedbackTime) 
     star_perform_end_of_step_physics();
 #endif
