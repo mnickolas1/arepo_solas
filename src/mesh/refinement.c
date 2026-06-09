@@ -170,12 +170,12 @@ void move_collisionless_particle(int new_i, int old_i)
   P[new_i] = P[old_i];
 
 #ifdef STARS
-  if(P[new_i].Type==4)
+  if(P[new_i].Type == 4)
     SPP(new_i).PID = new_i;
 #endif
 
 #ifdef BLACKHOLES
-  if(P[new_i].Type==5)
+  if(P[new_i].Type == 5)
     BPP(new_i).PID = new_i;
 #endif
 
