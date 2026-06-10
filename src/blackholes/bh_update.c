@@ -252,8 +252,8 @@ void bh_perform_end_of_step_physics(void)
     MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&All.BhFeedbackLocal, &All.BhFeedbackGlobal, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   
-    mpi_printf("BLACK_HOLES: Number of active blackholes = %lld \n", bh_active);
-    mpi_printf("BLACK_HOLES: Energy given by BHs = %e, Energy taken up by gas particles = %e \n",
+    mpi_printf("BLACKHOLES: Number of active blackholes = %lld \n", bh_active);
+    mpi_printf("BLACKHOLES: Energy given by BHs = %e, Energy taken up by gas particles = %e \n",
     All.BhFeedbackGlobal[0], All.BhFeedbackGlobal[1]);
 
 #ifdef BURST_MODE

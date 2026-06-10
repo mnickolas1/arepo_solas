@@ -515,7 +515,7 @@ static void bh_accretion_rate(void)
               * denominator_inv*denominator_inv*denominator_inv;
             }
           else
-            terminate("Invalid denominator in Bondi Accretion Rate");
+            terminate("Invalid denominator in Bondi Accretion Rate!");
         }
       else
         BondiRate = 0;
@@ -536,7 +536,7 @@ static void bh_accretion_rate(void)
   MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&acc_max, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max Bondi accretion rate: %e (code units)\n", bh_active, acc_rate_for_print);
+  mpi_printf("BLACKHOLES: Number of active blackholes = %lld, Black hole max Bondi accretion rate = %e (code units)\n", bh_active, acc_rate_for_print);
 }
 
 #elif defined(TORQUE_ACCRETION)
@@ -650,7 +650,7 @@ static void bh_accretion_rate(void)
   MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&acc_max, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max Torque-limited accretion rate: %e (code units)\n", bh_active, acc_rate_for_print);
+  mpi_printf("BLACKHOLES: Number of active blackholes = %lld, Black hole max Torque-limited accretion rate = %e (code units)\n", bh_active, acc_rate_for_print);
 }
 
 #elif defined(ADP_ACCRETION)
@@ -744,6 +744,6 @@ static void bh_accretion_rate(void)
   MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&acc_max, &acc_rate_for_print, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-  mpi_printf("BLACK_HOLES: Number of active blackholes: %lld, Black hole max ADP accretion rate: %e (code units)\n", bh_active, acc_rate_for_print);
+  mpi_printf("BLACKHOLES: Number of active blackholes = %lld, Black hole max ADP accretion rate = %e (code units)\n", bh_active, acc_rate_for_print);
 }
 #endif
