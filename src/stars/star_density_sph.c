@@ -332,6 +332,9 @@ static int star_density_evaluate(int target, int mode, int threadid)
     {
       j = Thread[threadid].Ngblist[n];
 
+      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+        continue;
+
 /* compute star->cell position vectors: posSP-posSphP */
       dx = pos[0] - P[j].Pos[0];
       dy = pos[1] - P[j].Pos[1];

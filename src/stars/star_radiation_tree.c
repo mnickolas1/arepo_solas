@@ -160,6 +160,9 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
       /* ---- real particle ---- */
       if(no < Ngb_MaxPart)
         {     
+          if(P[no].Type != 0 || P[no].Mass == 0 || P[no].ID == 0)
+            continue;
+
           double chord_length = cur.t_exit - cur.t_enter;
               
           double density_kappa[WAVEBANDS];

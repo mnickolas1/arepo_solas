@@ -197,6 +197,9 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
     {
       i = Thread[threadid].Ngblist[n];
 
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
 /* compute bh->cell position vectors: posBhP-posSphP */
       dx = pos[0] - P[i].Pos[0];
       dy = pos[1] - P[i].Pos[1];

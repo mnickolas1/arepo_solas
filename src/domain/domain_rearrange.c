@@ -75,7 +75,7 @@ void domain_rearrange_particle_sequence(void)
             Key[NumGas - 1] = key;
 
 #ifdef STARS
-            SPP(NumGas-1).PID = NumGas-1;
+            SPP(NumGas - 1).PID = NumGas - 1;
 #endif
             NumGas--;
             i--;
@@ -106,12 +106,12 @@ void domain_rearrange_particle_sequence(void)
             Key[NumGas - 1] = Key[NumPart - 1];
 
 #ifdef STARS
-            if (P[NumGas - 1].Type == 4)
+            if(P[NumGas - 1].Type == 4)
               SPP(NumGas - 1).PID = NumGas - 1;
 #endif
 
 #ifdef BLACKHOLES
-            if (P[NumGas - 1].Type == 5)
+            if(P[NumGas - 1].Type == 5)
               BPP(NumGas - 1).PID = NumGas - 1;
 #endif
 

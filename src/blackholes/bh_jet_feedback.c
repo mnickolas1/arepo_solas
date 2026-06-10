@@ -207,6 +207,9 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
     {
       j = Thread[threadid].Ngblist[n];
 
+      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+        continue;
+
       dx = pos[0] - P[j].Pos[0];
       dy = pos[1] - P[j].Pos[1];
       dz = pos[2] - P[j].Pos[2];

@@ -255,6 +255,9 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
     {
       j = Thread[threadid].Ngblist[n];
 
+      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+        continue;
+
       dx = P[j].Pos[0] - pos[0];
       dy = P[j].Pos[1] - pos[1]; 
       dz = P[j].Pos[2] - pos[2]; 
