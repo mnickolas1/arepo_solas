@@ -52,25 +52,21 @@ double gaussian_weight(double r, double h)
 
 integertime star_timestep(int i)
 { 
-  /* When we don't have host -> HostHydroBin == 0 -> TIMEBASE */
-  double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : TIMEBASE) * All.Timebase_interval;
+ /* Host Hydro Bin */
+  double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
+  
+  double dt;
+  
+  if(dt_host != 0)
+    dt = dt_host;
+  else 
+    dt = TIMEBASE * All.Timebase_interval;
+
   /* Set a maximum star timestep at 0.01 Myr */
   double dt_star = pow(10,4) / All.cf_UnitTime_in_yr;
 
-  double dt = dt_host;
-
   if(dt_star < dt)
     dt = dt_star;
-
-  //double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
-
-  // This sets the timestep of less massive stars at 1 Myr
-  //if(star_mass < 8)
-  //  dt = pow(10,6) / All.cf_UnitTime_in_yr;
-
-  // This deactivates low mass stars
-  //if(star_mass < 2)
-  //  dt = TIMEBASE * All.Timebase_interval;
 
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
   

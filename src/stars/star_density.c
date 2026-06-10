@@ -379,7 +379,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
 
   for(n = 0; n < nfound; n++)
     {
-      i = Thread[threadid].Ngblist[n];z
+      i = Thread[threadid].Ngblist[n];
 
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
