@@ -49,24 +49,30 @@ static void apply_kick(int j, const struct Feedback_Kick *Kick)
 {
 #ifdef WINDS
       SphP[j].StarMassFeed += Kick->DeltaMass;
+      All.StarFeedbackLocal[0] += Kick->DeltaMass;
 #ifdef METALS
       SphP[j].StarMetalsFeed += Kick->DeltaMetals;
+      All.StarFeedbackLocal[1] += Kick->DeltaMetals;
 #endif
       for(int k = 0; k < 3; k++)
         SphP[j].StarMomentumFeed[k] += Kick->DeltaP[k];
 
       SphP[j].StarEnergyFeed += Kick->DeltaE;
+      All.StarFeedbackLocal[2] += Kick->DeltaE;
 #endif 
 
 #ifdef SUPERNOVAE
       SphP[j].StarMassFeed += Kick->SN_DeltaMass;
+      All.StarFeedbackLocal[0] += Kick->SN_DeltaMass;
 #ifdef METALS
       SphP[j].StarMetalsFeed += Kick->SN_DeltaMetals;
+      All.StarFeedbackLocal[1] += Kick->SN_DeltaMetals;
 #endif
       for(int k = 0; k < 3; k++)
         SphP[j].StarMomentumFeed[k] += Kick->SN_DeltaP[k];
 
       SphP[j].StarEnergyFeed += Kick->SN_DeltaE;
+      All.StarFeedbackLocal[2] += Kick->SN_DeltaE;
 #endif 
 }
 
@@ -423,8 +429,10 @@ void star_feedback(void)
           if(flag_winds)
             {
               SphP[i].StarMassFeed += WindsAndSN->MassLoss * F_HOST;
+              All.StarFeedbackLocal[0] += WindsAndSN->MassLoss * F_HOST;
 #ifdef METALS
               SphP[i].StarMetalsFeed += WindsAndSN->MetalsLoss * F_HOST;
+              All.StarFeedbackLocal[1] += WindsAndSN->MetalsLoss * F_HOST;
 #endif
               for(int k = 0; k < 3; k++)
                 SphP[i].StarMomentumFeed[k] += WindsAndSN->MassLoss * F_HOST * WindsAndSN->StarVelocity[k];
@@ -437,6 +445,7 @@ void star_feedback(void)
               * WindsAndSN->WindMomentum / WindsAndSN->MassLoss;
 
               SphP[i].StarEnergyFeed += 0.5 * WindsAndSN->MassLoss * F_HOST * (sq_vstar + sq_vwind);
+              All.StarFeedbackLocal[2] += 0.5 * WindsAndSN->MassLoss * F_HOST * (sq_vstar + sq_vwind);
             }
 #endif 
 
@@ -444,13 +453,16 @@ void star_feedback(void)
           if(flag_sn)
             {
               SphP[i].StarMassFeed += WindsAndSN->SN_MassLoss * F_HOST;
+              All.StarFeedbackLocal[0] += WindsAndSN->SN_MassLoss * F_HOST;
 #ifdef METALS
               SphP[i].StarMetalsFeed += WindsAndSN->SN_MetalsLoss * F_HOST;
+              All.StarFeedbackLocal[1] += WindsAndSN->SN_MetalsLoss * F_HOST;
 #endif
               for(int k = 0; k < 3; k++)
                 SphP[i].StarMomentumFeed[k] += WindsAndSN->SN_MassLoss * F_HOST * WindsAndSN->StarVelocity[k];
 
               SphP[i].StarEnergyFeed += Eth * F_HOST;
+              All.StarFeedbackLocal[2] += Eth * F_HOST;
             }
 #endif 
  
