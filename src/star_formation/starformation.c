@@ -345,20 +345,21 @@ void convert_cell_into_star(int i, double birthtime)
 
   voronoi_remove_connection(i);
 
+#ifdef STARS
+  /* Zero star struct */
+  memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
+  /* Assign star_ids */
+  P[i].SID = NumStars;
+  SP[NumStars].PID = i;
 #ifdef METALS 
   SP[NumStars].Metallicity = SphP[i].GasMetallicity;
 #endif 
-
-#ifdef STARS
-  /* assign star_ids */
-  P[i].SID = NumStars;
-  SP[NumStars].PID = i;
 #endif 
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  /* assign density loop properties */
+  /* Assign density loop properties */
   SP[NumStars].Hsml = get_cell_radius(i); //need to check that this works!
-  /* set timebin */
+  /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].HostHydroBin = P[i].TimeBinHydro; //need to check that this works!
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
@@ -435,25 +436,26 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
     *(MyFloat *)(((char *)(&SphP[igas])) + scalar_elements[s].offset_mass) *= fac;
 #endif /* #ifdef MAXSCALARS */
 
+#ifdef STARS
+  /* Zero star struct */
+  memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
+  /* Assign star_ids */
+  P[istar].SID = NumStars;
+  SP[NumStars].PID = istar;
 #ifdef METALS 
   SP[NumStars].Metallicity = SphP[igas].GasMetallicity;
 #endif
-
-#ifdef STARS
-  /* assign star_ids */
-  P[istar].SID = NumStars;
-  SP[NumStars].PID = istar;
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
-  /* set timebin */
+  /* Assign density loop properties */
+  SP[NumStars].Hsml = get_cell_radius(igas);
+  /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
-  // give star small random displacement
+  /* Give star small random displacement */
   double cell_size = get_cell_radius(igas);
 
   double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;

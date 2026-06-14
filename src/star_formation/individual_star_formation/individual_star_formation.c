@@ -283,16 +283,18 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
 
   timebin_add_particle(&TimeBinsGravity, istar, igas, P[istar].TimeBinGrav, TimeBinSynchronized[P[istar].TimeBinGrav]);
   
-  /* assign star_ids */
+  /* Zero star struct */
+  memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
+  /* Assign star_ids */
   P[istar].SID = NumStars;
   SP[NumStars].PID = istar;
   
-  /* prepare for star forming loop */
+  /* Prepare for star forming loop */
   SP[NumStars].MassOfStar = mass_of_star;
   SP[NumStars].Hsml = get_cell_radius(igas);
   
 #ifdef STAR_FEEDBACK_ACTIVE
-  /* set timebin */
+  /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
@@ -358,7 +360,9 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
     *(MyFloat *)(((char *)(&SphP[igas])) + scalar_elements[s].offset_mass) *= fac;
 #endif /* #ifdef MAXSCALARS */
 
-  /* assign star_ids */
+  /* Zero star struct */
+  memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
+  /* Assign star_ids */
   P[istar].SID = NumStars;
   SP[NumStars].PID = istar;
 
@@ -367,15 +371,15 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));
-  /* set timebin */
+  /* Assign density loop properties */
+  SP[NumStars].Hsml = get_cell_radius(igas);
+  /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 
-  // This is needed for lower res star by star simulations
-  // Give star small random displacement
+  /* This is needed for lower res star by star simulations
+     Give star small random displacement */
   if(mass_of_star * All.cf_UnitMass_in_Msun > 2)
     {
       double cell_size = get_cell_radius(igas);

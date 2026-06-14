@@ -162,8 +162,8 @@ void sf_starbystar()
       Left[i] = Right[i] = 0;
       SP[i].DensityFlag = 1;
       
-      if(SP[i].Hsml == 0)
-        SP[i].Hsml = cbrt((3.0*All.MeanVolume)/(4.0*M_PI));
+      if(SP[i].Hsml <= 0)
+        SP[i].Hsml = All.SofteningTable[PPS(i).SofteningType];
     }
 
   generic_set_MaxNexport();
@@ -180,10 +180,10 @@ void sf_starbystar()
           if(PPS(i).Mass != 0)
             continue;
           
-          if(SP[i].Hsml > 10*cbrt((3.0*All.MeanVolume)/(4.0*M_PI)))
+          if(SP[i].Hsml > 10 * All.SofteningTable[PPS(i).SofteningType])
             terminate("Star formation radius too large!");
 
-          if(SP[i].NgbsMass < (5*SP[i].MassOfStar) || SP[i].NgbsMass > (10*SP[i].MassOfStar))
+          if(SP[i].NgbsMass < (5 * SP[i].MassOfStar) || SP[i].NgbsMass > (10 * SP[i].MassOfStar))
             {
               /* need to redo this particle */
               npleft++;
@@ -199,7 +199,7 @@ void sf_starbystar()
                     }
                 } 
 
-              if(SP[i].NgbsMass < (5*SP[i].MassOfStar))
+              if(SP[i].NgbsMass < (5 * SP[i].MassOfStar))
                 Left[i] = dmax(SP[i].Hsml, Left[i]);
               else
                 {

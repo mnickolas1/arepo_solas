@@ -123,13 +123,6 @@ static void kernel_local(void)
 
       if(i >= NumStars)
         break;
-        
-      //idx = NextParticle++;
-
-      //if(idx >= TimeBinsStar.NActiveParticles)
-      //  break;
-
-      //i = TimeBinsStar.ActiveParticleList[idx];
 
       if(PPS(i).Mass == 0)
         sf_massdrain_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
