@@ -326,11 +326,14 @@ static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val)
       double m1 = M_VALUES[m + 1];
       if(m_val >= m0 && m_val <= m1)
         {
-          SN_Feedback.SN_MassLoss = linear_interpolation(m_val, m0, m1, SN_massloss[m], SN_massloss[m + 1]);
+          if(SN_massloss[m] > 0 && SN_massloss[m + 1] > 0)
+            {
+              SN_Feedback.SN_MassLoss = linear_interpolation(m_val, m0, m1, SN_massloss[m], SN_massloss[m + 1]);
 #ifdef METALS
-          SN_Feedback.SN_MetalsLoss = linear_interpolation(m_val, m0, m1, SN_metalsloss[m], SN_metalsloss[m + 1]);
+              SN_Feedback.SN_MetalsLoss = linear_interpolation(m_val, m0, m1, SN_metalsloss[m], SN_metalsloss[m + 1]);
 #endif
-          SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+              SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+            }
           
           return SN_Feedback;
         } 
@@ -356,11 +359,14 @@ static Star_Interpolate SN_interpolate_metallicity(double z_val, double m_val)
           Star_Interpolate SNfeedback1 = SN_interpolate_mass(z + 1, m_val);
           Star_Interpolate SN_Feedback = {0};
 
-          SN_Feedback.SN_MassLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MassLoss, SNfeedback1.SN_MassLoss);
+          if(SNfeedback0.SN_MassLoss > 0.0 && SNfeedback1.SN_MassLoss > 0.0)
+            {
+              SN_Feedback.SN_MassLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MassLoss, SNfeedback1.SN_MassLoss);
 #ifdef METALS
-          SN_Feedback.SN_MetalsLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MetalsLoss, SNfeedback1.SN_MetalsLoss);
+              SN_Feedback.SN_MetalsLoss = linear_interpolation(z_val, z0, z1, SNfeedback0.SN_MetalsLoss, SNfeedback1.SN_MetalsLoss);
 #endif
-          SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+              SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? 1e51 : 0.0;
+            }
           
           return SN_Feedback;
         }
