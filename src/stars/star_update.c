@@ -287,19 +287,11 @@ void star_perform_end_of_step_physics(void)
       SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
 #endif
 
-#if defined(RADIATION_PRESSURE) && !defined(WINDS) && !defined(SUPERNOVAE) 
-      // Update total energy
-      double Eold = SphP[i].Energy;
-      SphP[i].Energy = 0.5*P[i].Mass*(P[i].Vel[0]*P[i].Vel[0] + P[i].Vel[1]*P[i].Vel[1] + P[i].Vel[2]*P[i].Vel[2])
-      + P[i].Mass * SphP[i].Utherm;
-      All.StarFeedbackLocal[5] += SphP[i].Energy - Eold;
-#else       
       // Update total energy
       SphP[i].Energy += SphP[i].StarEnergyFeed;
       All.StarFeedbackLocal[5] += SphP[i].StarEnergyFeed;
       // Set feed flags to zero
       SphP[i].StarEnergyFeed = 0;
-#endif
       // Update internal energy 
       update_internal_energy(P, SphP, i, &pvd);
       // Update pressure

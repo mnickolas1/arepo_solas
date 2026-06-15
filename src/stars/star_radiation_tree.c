@@ -207,6 +207,15 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           SphP[no].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
           SphP[no].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
           
+          double sq_momentum = (dp + dp_rerad) * ray->dir[0]*(dp + dp_rerad) * ray->dir[0] 
+          + (dp + dp_rerad) * ray->dir[1]*(dp + dp_rerad) * ray->dir[1]
+          + (dp + dp_rerad) * ray->dir[2]*(dp + dp_rerad) * ray->dir[2];
+          double cross = (dp + dp_rerad) * ray->dir[0] * P[no].Vel[0]  
+          + (dp + dp_rerad) * ray->dir[1] * P[no].Vel[1] 
+          + (dp + dp_rerad) * ray->dir[2] * P[no].Vel[2];
+          SphP[no].StarEnergyFeed += sq_momentum / (2 * P[no].Mass) + 2 * cross / (2 * P[no].Mass);
+          All.StarFeedbackLocal[2] += sq_momentum / (2 * P[no].Mass) + 2 * cross / (2 * P[no].Mass);
+          
           /* Dissociating Photons */
           SphP[no].Absorbed[LYMAN_WERNER].Photons += absorbed[LYMAN_WERNER].Photons;
 
