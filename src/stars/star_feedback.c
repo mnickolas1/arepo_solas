@@ -331,7 +331,7 @@ void star_feedback(void)
       NgbsMetallicity /= Ngbs; 
 #endif
       
-      int flag_winds = 0, flag_sn = 0;
+      flag_winds = 0; flag_sn = 0;
       for(int h = 0; h < SphP[i].Host; h++)
         {
           Mechanical_Feedback *WindsAndSN = &SphP[i].WindsAndSN[h];
