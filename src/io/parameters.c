@@ -600,6 +600,12 @@ void read_parameter_file(char *fname)
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
+      strcpy(tag[nt], "StarTablesFile");
+      addr[nt] = All.StarTablesFile;
+      id[nt++] = STRING;
+#endif
+
+#ifdef STAR_FEEDBACK_SPH
       strcpy(tag[nt], "StarDesNgb");
       addr[nt] = &All.StarDesNgb;
       id[nt++] = REAL;
@@ -607,10 +613,6 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "StarDesDev");
       addr[nt] = &All.StarDesDev;
       id[nt++] = REAL;
-
-      strcpy(tag[nt], "StarTablesFile");
-      addr[nt] = All.StarTablesFile;
-      id[nt++] = STRING;
 #endif
 
 #ifdef RAD_OPENING_ANGLE

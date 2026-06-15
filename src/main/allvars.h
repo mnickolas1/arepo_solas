@@ -1395,11 +1395,14 @@ double InitMetallicityinSolar;
   double StarFeedbackGlobal[6];
   
   /* for parameter file */
+  char StarTablesFile[MAXLEN_PATH];
+#endif 
+
+#ifdef STAR_FEEDBACK_SPH
   double StarDesNgb;
   double StarDesDev;
-  char StarTablesFile[MAXLEN_PATH];
-#endif  
-
+#endif
+ 
 #ifdef RAD_OPENING_ANGLE
   double RadOpeningAngle;
 #endif

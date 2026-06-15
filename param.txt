@@ -87,47 +87,47 @@ MultipleDomains                         8
 TopNodeFactor                           2.5
 ActivePartFracForNewDomainDecomp        0.01
  
-%---- Initial density estimate
-DesNumNgb                               64
-MaxNumNgbDeviation                      4
+ %---- Initial density estimate
+ DesNumNgb                               64
+ MaxNumNgbDeviation                      4
 
-%---- System of units
-UnitLength_in_cm                        3.085678e21    %  1.0 kpc
-UnitMass_in_g                           1.989e42       %  1.0e9 solar masses
-UnitVelocity_in_cm_per_s                1e5            %  1 km/sec
-GravityConstantInternal                 0
+ %---- System of units
+ UnitLength_in_cm                        3.085678e21    %  1.0 kpc
+ UnitMass_in_g                           1.989e42       %  1.0e9 solar masses
+ UnitVelocity_in_cm_per_s                1e5            %  1 km/sec
+ GravityConstantInternal                 0
 
-%---- Gravitational softening lengths
-SofteningComovingType0                  0.08
-SofteningComovingType1                  0.08
-SofteningComovingType2                  0.08
-SofteningComovingType3                  0.08
+ %---- Gravitational softening lengths
+ SofteningComovingType0                  0.08
+ SofteningComovingType1                  0.08
+ SofteningComovingType2                  0.08
+ SofteningComovingType3                  0.08
 
-SofteningMaxPhysType0                   0.08
-SofteningMaxPhysType1                   0.08
-SofteningMaxPhysType2                   0.08
-SofteningMaxPhysType3                   0.08
+ SofteningMaxPhysType0                   0.08
+ SofteningMaxPhysType1                   0.08
+ SofteningMaxPhysType2                   0.08
+ SofteningMaxPhysType3                   0.08
 
-GasSoftFactor                           2.5
+ GasSoftFactor                           2.5
 
-SofteningTypeOfPartType0                0
-SofteningTypeOfPartType1                1
-SofteningTypeOfPartType2                2
-SofteningTypeOfPartType3                3
-SofteningTypeOfPartType4                3
-SofteningTypeOfPartType5                1
+ SofteningTypeOfPartType0                0
+ SofteningTypeOfPartType1                1
+ SofteningTypeOfPartType2                2
+ SofteningTypeOfPartType3                3
+ SofteningTypeOfPartType4                3
+ SofteningTypeOfPartType5                1
 
-MinimumComovingHydroSoftening           1.0
-AdaptiveHydroSofteningSpacing           1.2
+ MinimumComovingHydroSoftening           1.0
+ AdaptiveHydroSofteningSpacing           1.2
 
-%---- Mesh regularization options
-CellShapingSpeed                        0.5
-CellMaxAngleFactor                      2.25
-ReferenceGasPartMass                    8.59322e-05
-TargetGasMassFactor                     1
-RefinementCriterion                     1
-DerefinementCriterion                   1
-MeanVolume                              421875
-MaxVolumeDiff                           10      % avoid strong resolution gradients
-MinVolume                               1 
-MaxVolume                               1.0e9   % no limits
+ %---- Mesh regularization options
+ CellShapingSpeed                        0.5
+ CellMaxAngleFactor                      2.25
+ ReferenceGasPartMass                    8.59322e-05
+ TargetGasMassFactor                     1
+ RefinementCriterion                     1
+ DerefinementCriterion                   1
+ MeanVolume                              421875
+ MaxVolumeDiff                           10      % avoid strong resolution gradients
+ MinVolume                               1 
+ MaxVolume                               1.0e9   % no limits
