@@ -56,6 +56,7 @@ integertime bh_timestep(int i)
   else 
     dt = TIMEBASE * All.Timebase_interval;
 
+#ifdef BH_ACCRETION_ACTIVE
   /* Accretion timescale */
   double bh_timestep = (BhP[i].TimeBinBh ? (((integertime)1) << BhP[i].TimeBinBh) : 0) * All.Timebase_interval;
   
@@ -68,6 +69,7 @@ integertime bh_timestep(int i)
 
   if(dt_bh < dt)
     dt = dt_bh;
+#endif
 
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
   
@@ -82,7 +84,13 @@ void bh_update_timesteps(void)
     {
       i = TimeBinsBh.ActiveParticleList[idx];
     
+#if defined(SELFGRAVITY) ||  defined(EXTERNALGRAVITY) || defined(EXACT_GRAVITY_FOR_PARTICLE_TYPE)
       BhP[i].TimeBinBh = PPB(i).TimeBinGrav;
+#else
+      int bin;
+      timebins_get_bin_and_do_validity_checks(bh_timestep(i), &bin, BhP[i].TimeBinBh);
+      BhP[i].TimeBinBh = bin;
+#endif
     }
     
   bh_reconstruct_timebins();

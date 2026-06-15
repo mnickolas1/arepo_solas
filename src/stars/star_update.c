@@ -80,8 +80,14 @@ void star_update_timesteps(void)
   for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
-    
+
+#if defined(SELFGRAVITY) ||  defined(EXTERNALGRAVITY) || defined(EXACT_GRAVITY_FOR_PARTICLE_TYPE)
       SP[i].TimeBinStar = PPS(i).TimeBinGrav;
+#else
+      int bin;
+      timebins_get_bin_and_do_validity_checks(star_timestep(i), &bin, SP[i].TimeBinStar);
+      SP[i].TimeBinStar = bin;
+#endif
     }
     
   star_reconstruct_timebins();
