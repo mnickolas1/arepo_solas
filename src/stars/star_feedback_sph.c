@@ -59,10 +59,10 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  for(int j = 0; j < 3; j++)
+  for(int k = 0; k < 3; k++)
     {  
-      in->Pos[j] = PPS(i).Pos[j];
-      in->Vel[j] = PPS(i).Vel[j];
+      in->Pos[k] = PPS(i).Pos[k];
+      in->Vel[k] = PPS(i).Vel[k];
     }
   in->NgbsMass = SP[i].NgbsMass;
   in->NgbsVolume = SP[i].NgbsVolume;
@@ -195,7 +195,7 @@ void star_feedback(void)
 
 static int star_feedback_evaluate(int target, int mode, int threadid)
 {
-  int j, n, numnodes, *firstnode; 
+  int i, n, numnodes, *firstnode; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, *vel, ngbsmass, ngbsvolume, factor;
   
@@ -248,14 +248,15 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
-      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
-
-      dx = P[j].Pos[0] - pos[0];
-      dy = P[j].Pos[1] - pos[1]; 
-      dz = P[j].Pos[2] - pos[2]; 
+      
+      /* compute cell->star position vectors */
+      dx = P[i].Pos[0] - pos[0];
+      dy = P[i].Pos[1] - pos[1]; 
+      dz = P[i].Pos[2] - pos[2]; 
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -284,7 +285,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
         {
           r = sqrt(r2);
 
-          factor = SphP[j].Volume / ngbsvolume;
+          factor = SphP[i].Volume / ngbsvolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
           if(time_sn_yr < MAX_REAL_NUMBER)
@@ -292,34 +293,34 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
               double E_inject_code = 1e51 / 
               (All.cf_UnitMass_in_g * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s);
 
-              double unew = SphP[j].Utherm + E_inject_code * factor / P[j].Mass;
+              double unew = SphP[i].Utherm + E_inject_code * factor / P[i].Mass;
 
               double t_frac = physical_age_yr / time_sn_yr;
               t_frac = fmin(fmax(t_frac, 0.0), 1.0);
 
-              double Csn = SphP[j].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[j].Csnd) * t_frac;
+              double Csn = SphP[i].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[i].Csnd) * t_frac;
           
-              if(Csn > SphP[j].Csn)
-                SphP[j].Csn = Csn;
+              if(Csn > SphP[i].Csn)
+                SphP[i].Csn = Csn;
             }
 #endif
               
 #ifdef WINDS
           if(massloss > 0)
             {  
-              SphP[j].StarMassFeed += massloss * factor;
+              SphP[i].StarMassFeed += massloss * factor;
               All.StarFeedbackLocal[0] += massloss * factor;
 #ifdef METALS
-              SphP[j].StarMetalsFeed += metalsloss * factor;
+              SphP[i].StarMetalsFeed += metalsloss * factor;
               All.StarFeedbackLocal[1] += metalsloss * factor;
 #endif
-              SphP[j].StarMomentumFeed[0] += (windmomentum * dx/r + massloss * vel[0] / All.cf_atime) * factor;
-              SphP[j].StarMomentumFeed[1] += (windmomentum * dy/r + massloss * vel[1] / All.cf_atime) * factor;
-              SphP[j].StarMomentumFeed[2] += (windmomentum * dz/r + massloss * vel[2] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[0] += (windmomentum * dx/r + massloss * vel[0] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[1] += (windmomentum * dy/r + massloss * vel[1] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[2] += (windmomentum * dz/r + massloss * vel[2] / All.cf_atime) * factor;
               
               double vsq = vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2];
               double vdotp = vel[0] * (dx / r) + vel[1] * (dy / r) + vel[2] * (dz / r);
-              SphP[j].StarEnergyFeed += (windmomentum * windmomentum / (2.0 * massloss) // wind KE
+              SphP[i].StarEnergyFeed += (windmomentum * windmomentum / (2.0 * massloss) // wind KE
                                      + 0.5 * massloss * vsq / All.cf_atime / All.cf_atime       // bulk KE
                                      + windmomentum * vdotp / All.cf_atime) * factor;       // cross
               All.StarFeedbackLocal[2] += (windmomentum * windmomentum / (2.0 * massloss) 
@@ -331,10 +332,10 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #ifdef SUPERNOVAE
           if(SNmassloss > 0)
             {
-              SphP[j].StarMassFeed += SNmassloss * factor;
+              SphP[i].StarMassFeed += SNmassloss * factor;
               All.StarFeedbackLocal[0] += SNmassloss * factor;
 #ifdef METALS
-              SphP[j].StarMetalsFeed += SNmetalsloss * factor;
+              SphP[i].StarMetalsFeed += SNmetalsloss * factor;
               All.StarFeedbackLocal[1] += SNmetalsloss * factor;
 #endif
 
@@ -342,11 +343,11 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
               double vsq = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
               double vdotp = vel[0]*(dx/r) + vel[1]*(dy/r) + vel[2]*(dz/r);
 
-              SphP[j].StarMomentumFeed[0] += (pSN * dx/r + SNmassloss * vel[0] / All.cf_atime) * factor;
-              SphP[j].StarMomentumFeed[1] += (pSN * dy/r + SNmassloss * vel[1] / All.cf_atime) * factor;
-              SphP[j].StarMomentumFeed[2] += (pSN * dz/r + SNmassloss * vel[2] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[0] += (pSN * dx/r + SNmassloss * vel[0] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[1] += (pSN * dy/r + SNmassloss * vel[1] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[2] += (pSN * dz/r + SNmassloss * vel[2] / All.cf_atime) * factor;
 
-              SphP[j].StarEnergyFeed += (SNenergyinject                              // thermal/KE in star frame
+              SphP[i].StarEnergyFeed += (SNenergyinject                              // thermal/KE in star frame
                                      + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime  // bulk KE
                                      + pSN * vdotp / All.cf_atime) * factor;             // cross
               All.StarFeedbackLocal[2] += (SNenergyinject       
@@ -358,21 +359,21 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #ifdef SUPERNOVAE_THERMAL
           if(SNmassloss > 0)
             {
-              SphP[j].StarMassFeed += SNmassloss * factor;
+              SphP[i].StarMassFeed += SNmassloss * factor;
               All.StarFeedbackLocal[0] += SNmassloss * factor;
 #ifdef METALS
-              SphP[j].StarMetalsFeed += SNmetalsloss * factor;
+              SphP[i].StarMetalsFeed += SNmetalsloss * factor;
               All.StarFeedbackLocal[1] += SNmetalsloss * factor;
 #endif
               double vsq = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
 
               // Momentum in sim frame = bulk motion of ejected mass only 
-              SphP[j].StarMomentumFeed[0] += SNmassloss * vel[0] / All.cf_atime * factor;
-              SphP[j].StarMomentumFeed[1] += SNmassloss * vel[1] / All.cf_atime * factor;
-              SphP[j].StarMomentumFeed[2] += SNmassloss * vel[2] / All.cf_atime * factor;
+              SphP[i].StarMomentumFeed[0] += SNmassloss * vel[0] / All.cf_atime * factor;
+              SphP[i].StarMomentumFeed[1] += SNmassloss * vel[1] / All.cf_atime * factor;
+              SphP[i].StarMomentumFeed[2] += SNmassloss * vel[2] / All.cf_atime * factor;
 
               // Energy = thermal (in star frame) + bulk KE of ejected mass (no cross term)
-              SphP[j].StarEnergyFeed += (SNenergyinject
+              SphP[i].StarEnergyFeed += (SNenergyinject
                                      + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime) * factor;
               All.StarFeedbackLocal[2] += (SNenergyinject
                                        + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime) * factor;

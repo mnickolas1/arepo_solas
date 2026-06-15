@@ -277,7 +277,7 @@ void sf_starbystar()
  */
 static int sf_starbystar_evaluate(int target, int mode, int threadid)
 {
-  int j, n, numnodes, *firstnode; 
+  int i, n, numnodes, *firstnode; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, ngbsmass;
 
@@ -309,12 +309,15 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
 
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
-/* compute star->cell position vectors: posSP-posSphP */
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
+      /* compute cell->star position vectors */
+      dx = P[i].Pos[0] - pos[0];
+      dy = P[i].Pos[1] - pos[1]; 
+      dz = P[i].Pos[2] - pos[2]; 
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -336,16 +339,17 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
       if(dz < -boxHalf_Z)
         dz += boxSize_Z;
 #endif /* #ifndef REFLECTIVE_Z */
+
       r2 = dx * dx + dy * dy + dz * dz;
 
       if(r2 < h2)
         {
-          double mu = compute_mu(j); 
+          double mu = compute_mu(i); 
 
-          number_dens = (SphP[j].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;;
+          number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;;
       
           double u_to_temp_fac = mu * PROTONMASS / BOLTZMANN * GAMMA_MINUS1;
-          temp = (SphP[j].Utherm * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s)* u_to_temp_fac;
+          temp = (SphP[i].Utherm * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s)* u_to_temp_fac;
 
           if(number_dens < All.NumberDensThreshold / 10.0 || temp > All.TemperatureThreshold * 10)
             continue;
@@ -357,7 +361,7 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
           wk = gaussian_weight(r, h);
 
           // compute the star-ngb-mass 
-          ngbsmass += P[j].Mass * wk;
+          ngbsmass += P[i].Mass * wk;
         }
     }
 

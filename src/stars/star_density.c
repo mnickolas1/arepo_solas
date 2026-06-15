@@ -379,10 +379,10 @@ static int star_density_evaluate(int target, int mode, int threadid)
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
 
-/* compute star->cell position vectors: posSP-posSphP */
-      dx = pos[0] - P[i].Pos[0];
-      dy = pos[1] - P[i].Pos[1];
-      dz = pos[2] - P[i].Pos[2];
+      /* compute cell->star position vectors */
+      dx = P[i].Pos[0] - pos[0];
+      dy = P[i].Pos[1] - pos[1]; 
+      dz = P[i].Pos[2] - pos[2]; 
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)

@@ -37,8 +37,8 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  for(int j = 0; j < 3; j++)
-    in->Pos[j] = PPS(i).Pos[j];
+  for(int k = 0; k < 3; k++)
+    in->Pos[k] = PPS(i).Pos[k];
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
 }  
@@ -297,7 +297,7 @@ void star_density(void)
  */
 static int star_density_evaluate(int target, int mode, int threadid)
 {
-  int j, n, numnodes, *firstnode; 
+  int i, n, numnodes, *firstnode; 
   int ngbs, ngbsmaxbin = 0; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, ngbsmass, ngbsvolume;
@@ -330,15 +330,15 @@ static int star_density_evaluate(int target, int mode, int threadid)
 
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
-      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
 
-/* compute star->cell position vectors: posSP-posSphP */
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      /* compute cell->star position vectors */
+      dx = P[i].Pos[0] - pos[0];
+      dy = P[i].Pos[1] - pos[1]; 
+      dz = P[i].Pos[2] - pos[2]; 
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -368,12 +368,12 @@ static int star_density_evaluate(int target, int mode, int threadid)
           ngbs++;
           
           // compute the star-ngb-mass 
-          ngbsmass += P[j].Mass;
+          ngbsmass += P[i].Mass;
           // compute the star-ngb-volume
-          ngbsvolume += SphP[j].Volume;
+          ngbsvolume += SphP[i].Volume;
           // compute the max hydro bin for neighbors   
-          if(ngbsmaxbin < P[j].TimeBinHydro)
-            ngbsmaxbin = P[j].TimeBinHydro;
+          if(ngbsmaxbin < P[i].TimeBinHydro)
+            ngbsmaxbin = P[i].TimeBinHydro;
         }
     }
 

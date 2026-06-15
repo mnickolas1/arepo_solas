@@ -185,7 +185,7 @@ void sf_massdrain()
  */
 static int sf_massdrain_evaluate(int target, int mode, int threadid)
 {
-  int j, n, numnodes, *firstnode; 
+  int i, n, numnodes, *firstnode; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, massofstar, ngbsmass, factor;
   MyDouble cm[3], vm[3];
@@ -215,8 +215,9 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   massofstar = target_data->MassOfStar;
   ngbsmass = target_data->NgbsMass;
 
-  for(j = 0; j < 3; j++)
-    cm[j] = vm[j] = 0;
+  for(int k = 0; k < 3; k++) 
+    cm[k] = vm[k] = 0;
+
 #ifdef METALS
   MyDouble metals = 0;
 #endif
@@ -225,12 +226,15 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
-/* compute star->cell position vectors: posSP-posSphP */
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
+      /* compute cell->star position vectors */
+      dx = P[i].Pos[0] - pos[0];
+      dy = P[i].Pos[1] - pos[1]; 
+      dz = P[i].Pos[2] - pos[2]; 
 
 #ifndef REFLECTIVE_X
       if(dx > boxHalf_X)
@@ -252,6 +256,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
       if(dz < -boxHalf_Z)
         dz += boxSize_Z;
 #endif /* #ifndef REFLECTIVE_Z */
+
       r2 = dx * dx + dy * dy + dz * dz;
 
       if(r2 < h2)
@@ -260,20 +265,20 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
 
           wk = gaussian_weight(r, h);
 
-          factor = P[j].Mass * wk / ngbsmass;
+          factor = P[i].Mass * wk / ngbsmass;
 
           // compute the mass drain
-          SphP[j].StarMassDrain += massofstar * factor;
+          SphP[i].StarMassDrain += massofstar * factor;
           // compute center of mass and velocity
-          cm[0] += P[j].Pos[0] * factor;
-          cm[1] += P[j].Pos[1] * factor;
-          cm[2] += P[j].Pos[2] * factor;
+          cm[0] += P[i].Pos[0] * factor;
+          cm[1] += P[i].Pos[1] * factor;
+          cm[2] += P[i].Pos[2] * factor;
 
-          vm[0] += P[j].Vel[0] * factor;
-          vm[1] += P[j].Vel[1] * factor;
-          vm[2] += P[j].Vel[2] * factor;
+          vm[0] += P[i].Vel[0] * factor;
+          vm[1] += P[i].Vel[1] * factor;
+          vm[2] += P[i].Vel[2] * factor;
 #ifdef METALS
-          metals += SphP[j].GasMetallicity * P[j].Mass * factor;
+          metals += SphP[i].GasMetallicity * P[i].Mass * factor;
 #endif
         }
     }
