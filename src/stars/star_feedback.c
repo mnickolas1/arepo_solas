@@ -146,7 +146,7 @@ void star_feedback(void)
 
 #define MAX_FACES 128
 
-  int max_export = NumGas * 16;
+  int max_export = 100 * NTask;
   struct Feedback_Kick *ExportBuf = mymalloc("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
   int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
   int n_export = 0;
