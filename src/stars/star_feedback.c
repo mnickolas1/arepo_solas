@@ -154,8 +154,12 @@ void star_feedback(void)
   /* Loop over gas cells; act on host cells */
   for(int i = 0; i < NumGas; i++)
     {
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
       /* Not a host cell -> skip */
-      if(SphP[i].Host <= 0) continue;
+      if(SphP[i].Host <= 0) 
+        continue;
 
       int flag_winds = 0, flag_sn = 0;
       for(int h = 0; h < SphP[i].Host; h++)

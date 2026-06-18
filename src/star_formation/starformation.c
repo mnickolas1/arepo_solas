@@ -358,10 +358,10 @@ void convert_cell_into_star(int i, double birthtime)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   /* Assign density loop properties */
-  SP[NumStars].Hsml = get_cell_radius(i); //need to check that this works!
+  SP[NumStars].Hsml = get_cell_radius(i); 
   /* Set timebin */
   SP[NumStars].Active = 0;
-  SP[NumStars].HostHydroBin = P[i].TimeBinHydro; //need to check that this works!
+  SP[NumStars].HostHydroBin = P[i].TimeBinHydro; 
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
 #endif
 

@@ -47,7 +47,10 @@ double ReradiatedFraction[WAVEBANDS] =
 void update_kappa(void)
 {
   for(int i = 0; i < NumGas; i++)
-    { 
+    {
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
       double sigma_H = 6.3e-18; // at Lyman limit
 #ifdef METALS
       double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
@@ -360,10 +363,10 @@ static void send_results_home(void)
       if(recvTask < NTask)
         if(Send_count[recvTask] > 0 || Recv_count[recvTask] > 0)
           MPI_Sendrecv(&Rad_ResultsActiveImported[Recv_offset[recvTask]],
-                       Recv_count[recvTask] * sizeof(struct rad_resultsactiveimported_data), MPI_BYTE, recvTask, TAG_RAD,
-                       &tmp_results[Send_offset[recvTask]],
-                       Send_count[recvTask] * sizeof(struct rad_resultsactiveimported_data), MPI_BYTE, recvTask, TAG_RAD,
-                       MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          Recv_count[recvTask] * sizeof(struct rad_resultsactiveimported_data), MPI_BYTE, recvTask, TAG_RAD,
+          &tmp_results[Send_offset[recvTask]],
+          Send_count[recvTask] * sizeof(struct rad_resultsactiveimported_data), MPI_BYTE, recvTask, TAG_RAD,
+          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
   /* apply results to local particles */
@@ -391,7 +394,7 @@ static void send_results_home(void)
 #ifdef RAD_OPENING_ANGLE
 static void distribute_node_rad(int no)
 {
-  /* quick check — skip empty nodes */
+  /* Quick check - skip empty nodes */
   int has_rad = 0;
         
   for(int w = 0; w < WAVEBANDS; w++)
@@ -411,9 +414,12 @@ static void distribute_node_rad(int no)
   int child = Ngb_Nodes[no].u.d.nextnode;
   while(child != Ngb_Nodes[no].u.d.sibling && child >= 0)
     {
+      /* Leaf particle - deposit directly */
       if(child < Ngb_MaxPart)
         {
-          /* leaf particle — deposit directly */
+          if(P[child].Type != 0 || P[child].Mass == 0 || P[child].ID == 0)
+            continue;
+          
           for(int w = 0; w < WAVEBANDS; w++)
             {
               if(node_tau[w] > 0)
@@ -427,9 +433,9 @@ static void distribute_node_rad(int no)
             }
           child = Ngb_Nextnode[child];
         }
+      /* Internal node - pass fraction down recursively */
       else if(child < Ngb_MaxPart + Ngb_MaxNodes)
         {
-          /* internal node — pass fraction down recursively */
           for(int w = 0; w < WAVEBANDS; w++)
             {
               if(node_tau[w] > 0)
@@ -444,9 +450,9 @@ static void distribute_node_rad(int no)
           distribute_node_rad(child);
           child = Ngb_Nodes[child].u.d.sibling;
         }
+      /* Pseudo-particle - skip, handled by export */
       else
-        {
-          /* pseudo-particle — skip, handled by export */
+        {    
           child = Ngb_Nextnode[child - Ngb_MaxNodes];
         }
     }
@@ -462,7 +468,10 @@ static void radiation_feedback(void)
   int i, w;
   
   for(i = 0; i < NumGas; i++)
-    {     
+    {
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
       double volume = SphP[i].Volume;
       double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval; //do we want the particle dt?
 
@@ -533,14 +542,25 @@ void star_radiation(void)
 #ifdef RAD_OPENING_ANGLE
   /* zero RAD accumulator on all nodes before treewalk -> importnant for top nodes! */
   for(int no = Ngb_MaxPart; no < Ngb_MaxPart + Ngb_NumNodes; no++)
-    for(int w = 0; w < WAVEBANDS; w++)
-      RtNgb_Nodes[no].Absorbed[w].Energy = RtNgb_Nodes[no].Absorbed[w].Photons = 0.0;
+    {
+      for(int w = 0; w < WAVEBANDS; w++)
+        {
+          RtNgb_Nodes[no].Absorbed[w].Energy = RtNgb_Nodes[no].Absorbed[w].Photons = 0.0;
+        }
+    }
 #endif
 
   /* zero RAD accumulator on all leaves before treewalk */
   for(int i = 0; i < NumGas; i++)
-     for(int w = 0; w < WAVEBANDS; w++)
-        SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
+    {
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
+      for(int w = 0; w < WAVEBANDS; w++)
+        {
+          SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
+        }
+    }
  
   int n_stars = TimeBinsStar.NActiveParticles;
   int n_rays_local = n_stars * NRays;
