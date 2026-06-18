@@ -121,8 +121,7 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.H2II_density = SphP[target].GrackleSpecies(GRACKLE_H2II) * *All.GrackleFieldData.density;
   *All.GrackleFieldData.HM_density   = SphP[target].GrackleSpecies(GRACKLE_HM) * *All.GrackleFieldData.density;
 
-  X_H +=
-      SphP[target].GrackleSpecies(GRACKLE_H2I) + SphP[target].GrackleSpecies(GRACKLE_H2II) + SphP[target].GrackleSpecies(GRACKLE_HM);
+  X_H += SphP[target].GrackleSpecies(GRACKLE_H2I) + SphP[target].GrackleSpecies(GRACKLE_H2II) + SphP[target].GrackleSpecies(GRACKLE_HM);
 
 #else
   *All.GrackleFieldData.H2I_density  = GRACKLE_TINY * *All.GrackleFieldData.density;
@@ -144,7 +143,7 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.HDI_density = GRACKLE_TINY * *All.GrackleFieldData.density;
 #endif
 
-  Y_He = 1 - X_H - SphP.GasMetallicity;
+  Y_He = 1 - X_H - SphP[target].GasMetallicity;
 
   /* Radiation */
 #ifdef PHOTOELECTRIC_HEATING
