@@ -21,7 +21,9 @@ double sample_imf(double u);
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 void setup_mass_bins(void);
 void sample_star_particle(double m, int *bins);
+#ifdef STAR_FEEDBACK_ACTIVE
 Star_Feedback star_particle_feedback(int index, double dt, double z, double a);
+#endif
 #endif
 
 #if STAR_PARTICLES == 0 
