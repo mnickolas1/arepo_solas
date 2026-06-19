@@ -3,45 +3,47 @@
 
 #include "../extern/chealpix.h"
 
-double HealpixDirs[MAX_NUM_RAYS][3];
-int NRays; // 12 * NSIDE^2
 
-/* Reference opacity coefficients [cm² g⁻¹ of gas] at solar metallicity.
+double HealpixDirs[MAX_NUM_RAYS][3];
+/* 12*NSIDE^2 */
+int NRays; 
+
+/* Reference opacity coefficients [cm^2/g of gas] at solar metallicity
  *
- * LYMAN_WERNER: FUV dust opacity (~912-2000 Å), dust-to-gas = 0.01 at solar Z.
+ * LYMAN_WERNER: FUV dust opacity (~912-2000 Ang), dust-to-gas = 0.01 at solar Z
  *               Ref: Draine (2003), Weingartner & Draine (2001)
  *
- * ULTRAVIOLET:  NUV dust opacity (~2000-4000 Å).
+ * ULTRAVIOLET:  NUV dust opacity (~2000-4000 Ang)
  *               Ref: Draine (2003)
  *
- * OPTICAL:      Visual band (~4000-8000 Å), close to standard V-band extinction.
+ * OPTICAL:      Visual band (~4000-8000 Ang), close to standard V-band extinction
  *               Ref: Cardelli, Clayton & Mathis (1989)
  *
- * INFRARED:     Modified blackbody at T_DUST_REF = 20 K, beta = 2.
+ * INFRARED:     Modified blackbody at T_DUST_REF = 20 K, beta = 2
  *               Ref: Semenov et al. (2003), Planck Collaboration XI (2014)
                  
                  Need to check references!
  */
 double Kappa[WAVEBANDS] = 
 {
-  [INFRARED] = 1.0e-1,    /* INFRARED -> [cm² g⁻¹] — IR dust at T_ref=20K, beta=2, solar Z */ 
-  [OPTICAL] = 1.0e1,    /* OPTICAL -> [cm² g⁻¹] — V-band dust at solar Z */
-  [ULTRAVIOLET] = 5.0e1,    /* ULTRAVIOLET -> [cm² g⁻¹] — NUV dust at solar Z */
-  [LYMAN_WERNER] = 1.0e2,    /* LYMAN_WERNER -> [cm² g⁻¹] — FUV dust at solar Z */
-  [IONIZING_HI] = 0.0,    /* IONIZING_HI -> Computed directly from HI */
-  [IONIZING_HeI] = 0.0,    /* IONIZING_HeI -> Computed directly from HeI */
-  [IONIZING_HeII] = 0.0,    /* IONIZING_HeII -> Computed directly from HeII */
+  [INFRARED] = 1.0e-1, /* INFRARED -> [cm^2/g] - IR dust at T_ref=20K, beta=2, solar Z */ 
+  [OPTICAL] = 1.0e1, /* OPTICAL -> [cm^2/g] - V-band dust at solar Z */
+  [ULTRAVIOLET] = 5.0e1, /* ULTRAVIOLET -> [cm^2/g] - NUV dust at solar Z */
+  [LYMAN_WERNER] = 1.0e2, /* LYMAN_WERNER -> [cm^2/g] - FUV dust at solar Z */
+  [IONIZING_HI] = 0.0, /* IONIZING_HI -> Computed directly from HI */
+  [IONIZING_HeI] = 0.0, /* IONIZING_HeI -> Computed directly from HeI */
+  [IONIZING_HeII] = 0.0, /* IONIZING_HeII -> Computed directly from HeII */
 };
 
 double ReradiatedFraction[WAVEBANDS] = 
 {
   [INFRARED] = 1.0,
   [OPTICAL] = 1.0,
-  [ULTRAVIOLET] = 0.95,    /* 5% goes to pe heating */
-  [LYMAN_WERNER] = 0.95,    /* 5% goes to pe heating */
-  [IONIZING_HI] = 0.0,     /* No reradiation->photoheating instead */
-  [IONIZING_HeI] = 0.0,     /* No reradiation->photoheating instead */
-  [IONIZING_HeII] = 0.0,     /* No reradiation->photoheating instead */
+  [ULTRAVIOLET] = 0.95, /* 5% goes to pe heating */
+  [LYMAN_WERNER] = 0.0, /* No reradiation->dissociation instead */
+  [IONIZING_HI] = 0.0, /* No reradiation->photoionization instead */
+  [IONIZING_HeI] = 0.0, /* No reradiation->photoionization instead */
+  [IONIZING_HeII] = 0.0, /* No reradiation->photoionization instead */
 };
 
 void update_kappa(void)
@@ -50,8 +52,9 @@ void update_kappa(void)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
-
-      double sigma_H = 6.3e-18; // at Lyman limit
+      
+      /* At Lyman limit */  
+      double sigma_H = 6.3e-18; 
 #ifdef METALS
       double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
 #else
@@ -111,17 +114,17 @@ static void init_rays_from_stars(RayWorkStack *work)
     
   int ray_idx = 0;
     
-  // Loop over all stars
+  /* Loop over all stars */
   for(int idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       int i = TimeBinsStar.ActiveParticleList[idx];
 
       double dt_rad = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
         
-      // Loop over rays for this star
+      /* Loop over rays for this star */
       for(int iray = 0; iray < NRays; iray++)
         {  
-          // Initialize ray from star i
+          /* Initialize ray from star i */
           RayPacket ray = {0};
 
           ray.pos[0] = PPS(i).Pos[0];      
@@ -166,7 +169,7 @@ static void init_rays_from_stars(RayWorkStack *work)
     }
 }
 
-/* Returns 4 child rays by value. Returns 0 if at NSIDE_MAX. */
+/* Returns 4 child rays by value - returns 0 if at NSIDE_MAX */
 int split_ray(const RayPacket *parent, RayPacket children[4])
 {
   if(parent->nside >= NSIDE_MAX)
@@ -176,7 +179,8 @@ int split_ray(const RayPacket *parent, RayPacket children[4])
 
   for(int k = 0; k < 4; k++)
     {
-      children[k] = *parent;   /* copy all state including t, active_bands etc. */
+      /* Copy all state including t, active_bands etc */
+      children[k] = *parent;   
 
       children[k].nside = new_nside;
       children[k].healpix_pixel = 4 * parent->healpix_pixel + k;
@@ -214,7 +218,7 @@ static void free_export_buffer(RayExportBuffer *buf)
 
 static void sort_by_task(RayExportBuffer *buf)
 {
-  /* build index array */
+  /* Build index array */
   int *idx = malloc(buf->n * sizeof(int));
   RayPacket *sorted_rays = malloc(buf->n * sizeof(RayPacket));
   int *sorted_task = malloc(buf->n * sizeof(int));
@@ -222,7 +226,7 @@ static void sort_by_task(RayExportBuffer *buf)
   for(int i = 0; i < buf->n; i++)
     idx[i] = i;
 
-  /* insertion sort on idx by task */
+  /* Insertion sort on idx by task */
   for(int i = 1; i < buf->n; i++)
     {
       int key = idx[i];
@@ -235,7 +239,7 @@ static void sort_by_task(RayExportBuffer *buf)
       idx[j+1] = key;
     }
 
-  /* apply permutation to both arrays */
+  /* Apply permutation to both arrays */
   for(int i = 0; i < buf->n; i++)
     {
       sorted_rays[i] = buf->rays[idx[i]];
@@ -255,14 +259,14 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
   int send_count[NTask], recv_count[NTask];
   int send_offset[NTask], recv_offset[NTask];
 
-  /* count how many rays go to each task */
+  /* Count how many rays go to each task */
   memset(send_count, 0, NTask * sizeof(int));
   for(int i = 0; i < send->n; i++)
     send_count[send->task[i]]++;
 
   MPI_Alltoall(send_count, 1, MPI_INT, recv_count, 1, MPI_INT, MPI_COMM_WORLD);
 
-  /* compute offsets */
+  /* Compute offsets */
   send_offset[0] = recv_offset[0] = 0;
   int total_recv = recv_count[0];
     
@@ -273,7 +277,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
       total_recv += recv_count[i];
     }
 
-  /* grow work array to fit incoming rays */
+  /* Grow work array to fit incoming rays */
   while(work->n + total_recv > work->capacity)
     {
       work->capacity *= 2;
@@ -288,10 +292,10 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
       recv_offset[i] *= sizeof(RayPacket);
     }
 
-  /* sort send buffer by task */
+  /* Sort send buffer by task */
   sort_by_task(send);
 
-  /* exchange ray data */
+  /* Exchange ray data */
   MPI_Alltoallv(send->rays, send_count, send_offset, MPI_BYTE, work->rays + work->n, recv_count, recv_offset, MPI_BYTE, MPI_COMM_WORLD);
 
   work->n += total_recv;
@@ -308,14 +312,14 @@ static void send_results_home(void)
   int *Recv_offset = malloc(NTask * sizeof(int));
   int *Send_offset = malloc(NTask * sizeof(int));
 
-  /* count gas cells among imported particles */
+  /* Count gas cells among imported particles */
   for(i = 0, ncount = 0; i < Tree_NumPartImported; i++)
     if(Tree_Points[i].Type == 0)
       ncount++;
 
   Rad_ResultsActiveImported = malloc(ncount * sizeof(struct rad_resultsactiveimported_data));
 
-  /* pack gas cell results, count per task */
+  /* Pack gas cell results */
   for(j = 0; j < NTask; j++)
     Recv_count[j] = 0;
 
@@ -356,7 +360,7 @@ static void send_results_home(void)
   struct rad_resultsactiveimported_data *tmp_results =
     malloc(Nexport * sizeof(struct rad_resultsactiveimported_data));
 
-  /* exchange results back to home ranks */
+  /* Exchange results back to home ranks */
   for(int ngrp = 1; ngrp < (1 << PTask); ngrp++)
     {
       int recvTask = ThisTask ^ ngrp;
@@ -369,7 +373,7 @@ static void send_results_home(void)
           MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-  /* apply results to local particles */
+  /* Apply results to local particles */
   for(i = 0; i < Nexport; i++)
     {  
       SphP[tmp_results[i].index].StarMomentumFeed[0] += tmp_results[i].StarMomentumFeed[0];
@@ -383,7 +387,7 @@ static void send_results_home(void)
         }
     }
 
-  /* free in reverse allocation order */
+  /* Free in reverse allocation order */
   free(tmp_results);
   free(Rad_ResultsActiveImported);
   free(Send_offset); free(Recv_offset);
@@ -475,7 +479,7 @@ static void radiation_feedback(void)
       double volume = SphP[i].Volume;
       double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval; //do we want the particle dt?
 
-      /* in cgs */
+      /* In cgs */
       double V_cgs = volume * (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
       double dt_cgs = dt * All.cf_UnitTime_in_s;
 
@@ -484,12 +488,12 @@ static void radiation_feedback(void)
 
       double E_pe = SphP[i].Absorbed[ULTRAVIOLET].Energy * epsilon_pe * All.cf_UnitEnergy_in_cgs; 
       
-      /* volumetric_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
+      /* Volumetric_heating_rate: docs say erg/(s cm^3), straight CGS, no conversion */
       SphP[i].PE_VolHeatingRate +=  E_pe / dt_cgs / V_cgs;
 #endif
 
 #ifdef PHOTOIONIZATION
-     /* H2 Dissociation */
+      /* H2 Dissociation */
       double N_abs_H2 = SphP[i].Absorbed[LYMAN_WERNER].Photons;
       
       double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
@@ -517,7 +521,7 @@ static void radiation_feedback(void)
       double n_HeII = SphP[i].GrackleSpecies(GRACKLE_HeII) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].HeII_IonizationRate += n_HeII > 0 ? (N_abs_HeII / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HeII: 0.0;
 
-      /* RT_heating_rate: docs say erg s⁻¹ cm⁻³, straight CGS, no conversion */
+      /* RT_heating_rate: docs say erg/(s cm^3), straight CGS, no conversion */
       double E_threshold_HI = N_abs_HI * energy_thresh_HI; 
       SphP[i].PI_VolHeatingRate += (E_abs_HI - E_threshold_HI) > 0 ? (E_abs_HI - E_threshold_HI) / dt_cgs / V_cgs : 0.0;
 
@@ -540,7 +544,7 @@ void star_radiation(void)
   double t0, t1;
 
 #ifdef RAD_OPENING_ANGLE
-  /* zero RAD accumulator on all nodes before treewalk -> importnant for top nodes! */
+  /* Zero RAD accumulator on all nodes before treewalk - important for top nodes! */
   for(int no = Ngb_MaxPart; no < Ngb_MaxPart + Ngb_NumNodes; no++)
     {
       for(int w = 0; w < WAVEBANDS; w++)
@@ -550,7 +554,7 @@ void star_radiation(void)
     }
 #endif
 
-  /* zero RAD accumulator on all leaves before treewalk */
+  /* Zero RAD accumulator on all leaves before treewalk */
   for(int i = 0; i < NumGas; i++)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
@@ -587,14 +591,13 @@ void star_radiation(void)
           raytrace_treewalk(&ray, work, export_buf);
         }
 
-      /* send rays to remote ranks, receive rays from remote ranks */
+      /* Send rays to remote ranks, receive rays from remote ranks */
       exchange_rays(export_buf, work);
 
-      /* reset export buffer for this round */
+      /* Reset export buffer for this round */
       export_buf->n = 0;
 
-       /* check if anyone still has rays in flight */
-
+      /* Check if anyone still has rays in flight */
       sumup_large_ints(1, &work->n, &n_global);
 
       t1 = second();
@@ -603,7 +606,7 @@ void star_radiation(void)
 
       if(n_global > 0 && iter > 0)
         mpi_printf("STAR_RADIATION: Rad iteration %3d: need to repeat for %12lld rays. (took %g sec)\n", iter, n_global,
-                       timediff(t0, t1));
+        timediff(t0, t1));
       
     } while(n_global > 0);
     

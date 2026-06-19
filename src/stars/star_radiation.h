@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+
 #define TAG_RAD 18
 #define RAD_TRUNC_FRAC 0.01 
 #define MAX_NUM_RAYS 12288 
@@ -19,7 +20,8 @@
 
 
 extern double HealpixDirs[MAX_NUM_RAYS][3];
-extern int NRays; // 12 * NSIDE^2
+/* 12*NSIDE^2 */
+extern int NRays;
 
 typedef enum
 { INFRARED = 0,
@@ -33,7 +35,7 @@ typedef enum
 } Waveband;
 
 #if WAVEBANDS > 8
-#error "Active_bands is uint8_t but WAVEBANDS > 8 — use uint16_t instead"
+#error "Active_bands is uint8_t but WAVEBANDS > 8 - use uint16_t instead"
 #endif
 
 typedef struct WavebandData
@@ -61,9 +63,9 @@ typedef struct RayPacket
   double t_exit;
   double t_maximum;
 
-  /* Bitmask: bit w is SET while band w is still alive.
-  Cleared when RAD[w] < RAD_TRUNC_FRAC * RAD_Initial[w].
-  When active_bands == 0 the ray is fully absorbed – return immediately. */
+  /* Bitmask: bit w is SET while band w is still alive */
+  /* Cleared when RAD[w] < RAD_TRUNC_FRAC * RAD_Initial[w] */
+  /* When active_bands == 0 the ray is fully absorbed - return immediately */
   uint8_t  active_bands;
 
   WavebandData Radiated[WAVEBANDS];
@@ -72,14 +74,14 @@ typedef struct RayPacket
   int ray_id;
   int home_task;
   
-  /* pending top-level nodes still to traverse after current domain */
+  /* Pending top-level nodes still to traverse after current domain */
   StackEntry pending[RAY_STACK_SIZE];
   int n_pending;
   int target_node;
   int is_paused;
   
-  int nside;           /* current HEALPix nside level */
-  int healpix_pixel;   /* pixel index in nested scheme */
+  int nside; /* Current HEALPix nside level */
+  int healpix_pixel; /* Pixel index in nested scheme */
 } RayPacket;
 
 typedef struct RayWorkStack
@@ -91,17 +93,17 @@ typedef struct RayWorkStack
 
 typedef struct RayExportBuffer
 {
-  int n; /* number of rays to export */
-  RayPacket *rays; /* ray information */
-  int *task; /* which task to send each ray to */
-  int capacity; /* allocated capacity */
+  int n; /* Number of rays to export */
+  RayPacket *rays; /* Ray information */
+  int *task; /* Which task to send each ray to */
+  int capacity; /* Allocated capacity */
 } RayExportBuffer;
 
 extern struct rad_resultsactiveimported_data
 {
   WavebandData Radiated[WAVEBANDS];
   double StarMomentumFeed[3];
-  int index; /* local SphP index on home task */
+  int index; /* Local SphP index on home task */
 } *Rad_ResultsActiveImported;
 
 #endif

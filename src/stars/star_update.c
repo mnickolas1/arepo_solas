@@ -261,14 +261,14 @@ void star_perform_end_of_step_physics(void)
       if(i < 0)
         continue;
 
-      // Dump mass, momentum and energy injected by stars 
+      /* Dump mass, momentum and energy injected by stars */ 
 #if defined(WINDS) || defined(SUPERNOVAE)
-      // Add mass 
+      /* Add mass */ 
       P[i].Mass += SphP[i].StarMassFeed;
       All.StarFeedbackLocal[3] += SphP[i].StarMassFeed;
       SphP[i].StarMassFeed = 0;
 #ifdef METALS
-      // Add metals
+      /* Add metals */
       SphP[i].GasMetals += SphP[i].StarMetalsFeed;
       SphP[i].GasMetallicity = SphP[i].GasMetals / P[i].Mass;
       All.StarFeedbackLocal[4] += SphP[i].StarMetalsFeed;
@@ -277,24 +277,24 @@ void star_perform_end_of_step_physics(void)
 #endif
             
 #if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE) 
-      // Update momentum 
+      /* Update momentum */ 
       SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0];
       SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1];
       SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2];
-      // Update velocities 
+      /* Update velocities */ 
       update_primitive_variables_single(P, SphP, i, &pvd);
-      // Set feed flags to zero
+      /* Set feed flags to zero */
       SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
 #endif
 
-      // Update total energy
+      /* Update total energy */
       SphP[i].Energy += SphP[i].StarEnergyFeed;
       All.StarFeedbackLocal[5] += SphP[i].StarEnergyFeed;
-      // Set feed flags to zero
+      /* Set feed flags to zero */
       SphP[i].StarEnergyFeed = 0;
-      // Update internal energy 
+      /* Update internal energy */ 
       update_internal_energy(P, SphP, i, &pvd);
-      // Update pressure
+      /* Update pressure */
       set_pressure_of_cell_internal(P, SphP, i);
 
     } // for(idx...
