@@ -1385,11 +1385,6 @@ double InitMetallicityinSolar;
   int IMF;
 #endif
 
-#if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-  /* for parameter file */
-  double FeedbackTime;
-#endif
-
 #ifdef STAR_FEEDBACK_ACTIVE
   double StarFeedbackLocal[6];
   double StarFeedbackGlobal[6];

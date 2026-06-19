@@ -16,9 +16,6 @@ StarFormationNumberDensityThreshold	10
 IMF                     1
 StarTablesFile          star_feedback_tables.hdf5
 
-FeedbackTime		    0.0
-
-
 %----  Arepo public
 
 %----  Relevant files

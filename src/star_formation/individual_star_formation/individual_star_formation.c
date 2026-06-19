@@ -83,9 +83,10 @@ void individual_starbystar_formation(void)
       i = TimeBinsHydro.ActiveParticleList[idx];
       if(i < 0)
         continue;
-
+      
+      /* skip cells that have been swallowed or eliminated */
       if(P[i].Mass == 0 && P[i].ID == 0)
-        continue; /* skip cells that have been swallowed or eliminated */
+        continue; 
 
       dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
       dt /= All.cf_hubble_a;

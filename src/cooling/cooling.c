@@ -94,7 +94,7 @@ double DoCooling(double u_old, double rho, double dt, double *ne_guess, int i)
 #ifdef USE_GRACKLE
   
   /* NOTE: This protects against the call at the very first time-step of the run. dt = 0 and grackle will complain */
-  if (dt == 0.)
+  if (dt == 0.0)
     return u_old;
   
   u = CallGrackle(u_old, rho, dt, i, 0);

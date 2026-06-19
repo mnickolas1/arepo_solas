@@ -173,13 +173,8 @@ void run(void)
 
           flush_everything();
 
-/*Create snapshots after feedback injections*/ 
-#ifdef FEEDBACK_TESTING_RESTRICT_SNAPSHOTS
-          if(All.Time >= All.FeedbackTime)
-            create_snapshot_if_desired();
-#else
           create_snapshot_if_desired();
-#endif
+
           if(All.Ti_Current >= TIMEBASE) /* we reached the final time */
             {
               mpi_printf("\nFinal time=%g reached. Simulation ends.\n", All.TimeMax);
@@ -394,51 +389,48 @@ void calculate_non_standard_physics_with_valid_gravity_tree_always(void) {}
  */
 void calculate_non_standard_physics_prior_mesh_construction(void)
 {
-#ifdef FIND_HALOS
-    if(All.Time>=All.NextTimeOfHaloFinding)
+  if(All.Time > 0) 
     {
-        fof_seeding();
-        mpi_printf("FOF_SEEDING: Found %d FOF groups at %g...\n",TotNgroups,All.Time);
-        All.NextTimeOfHaloFinding*=All.TimeBetweenHaloFinding;
-    }
+#ifdef FIND_HALOS
+      if(All.Time>=All.NextTimeOfHaloFinding)
+        {
+          fof_seeding();
+          mpi_printf("FOF_SEEDING: Found %d FOF groups at %g...\n",TotNgroups, All.Time);
+          All.NextTimeOfHaloFinding *= All.TimeBetweenHaloFinding;
+        }
 #endif
 
 #if defined(COOLING) && defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
-  sfr_create_star_particles();
+      sfr_create_star_particles();
 #endif 
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
-  individual_starbystar_formation();
+      individual_starbystar_formation();
 #endif
 
+
 #ifdef STAR_FEEDBACK_ACTIVE
-  if(All.Time > All.FeedbackTime) 
-    {
       star_update_timesteps();
       
       star_prep();
 
-      star_density(); 
+      star_density();
+#endif 
 
 #ifdef STAR_RADIATION_ACTIVE
       star_radiation();
 #endif
-    }
-#endif
 
 #ifdef BH_ACTIVE
-  bh_update_timesteps();
-  bh_density();
+      bh_update_timesteps();
+      bh_density();
+#endif
 
 #ifdef BH_ACCRETION_ACTIVE
-  bh_accretion();
-  bh_swallow();
+      bh_accretion();
+      bh_swallow();
 #endif
-#endif
-
-#ifdef BH_FEEDBACK_ACTIVE
-  if(All.Time > All.FeedbackTime)
-    {   
+ 
 #ifdef BH_THERMAL_FEEDBACK
       bh_feedback();
 #endif
@@ -448,7 +440,6 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
       bh_jet_feedback();
 #endif
     }
-#endif
 }
 
 /*! \brief Calls extra modules at the end of the run loop.
@@ -460,27 +451,28 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
  */
 void calculate_non_standard_physics_end_of_step(void)
 {
+  if(All.Time > 0)
+    { 
 #if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
-  if(All.Time > All.FeedbackTime) 
-    star_perform_end_of_step_physics();
+      star_perform_end_of_step_physics();
 #endif
 
 #ifdef BH_ACTIVE
-  if(All.Time > All.FeedbackTime)
-    bh_perform_end_of_step_physics();
+      bh_perform_end_of_step_physics();
 #endif
 
 #ifdef COOLING
 #ifdef USE_SFR
-  cooling_and_starformation();
+      cooling_and_starformation();
 #else  /* #ifdef USE_SFR */
-  cooling_only();
+      cooling_only();
 #endif /* #ifdef USE_SFR #else */
 #endif /* #ifdef COOLING */
 
 #ifdef STAR_RADIATION_ACTIVE
-  update_kappa();
+      update_kappa();
 #endif
+    }
 }
 
 /*! \brief Checks whether the run must interrupted.

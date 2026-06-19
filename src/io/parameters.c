@@ -592,12 +592,6 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.IMF;
       id[nt++] = INT;
 #endif
-        
-#if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-      strcpy(tag[nt], "FeedbackTime");
-      addr[nt] = &All.FeedbackTime;
-      id[nt++] = REAL;
-#endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
       strcpy(tag[nt], "StarTablesFile");

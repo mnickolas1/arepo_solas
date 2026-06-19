@@ -357,8 +357,7 @@ static void send_results_home(void)
         }
     }
 
-  struct rad_resultsactiveimported_data *tmp_results =
-    malloc(Nexport * sizeof(struct rad_resultsactiveimported_data));
+  struct rad_resultsactiveimported_data *tmp_results = malloc(Nexport * sizeof(struct rad_resultsactiveimported_data));
 
   /* Exchange results back to home ranks */
   for(int ngrp = 1; ngrp < (1 << PTask); ngrp++)
