@@ -170,12 +170,11 @@ void bh_perform_end_of_step_physics(void)
       //BhP[i].AngularMomentum[2] += BhP[i].Accretion * BhP[i].VelocityGasCircular[2];
     }
       
-  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+  for(i = 0; i < NumGas; i++)
     {
-      i = TimeBinsHydro.ActiveParticleList[idx];   /* Do we want to subtract mass from all cells, not just active ones? */  
-      if(i < 0)
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
-        
+
       double original_mass = P[i].Mass;
 
       P[i].Mass -= SphP[i].BhMassDrain;
