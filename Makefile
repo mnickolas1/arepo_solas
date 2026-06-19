@@ -485,7 +485,7 @@ ifneq (,$(shell test $(ACCR_SELECTED_COUNT) -gt 1 2>/dev/null && echo yes))
 $(error ONLY ONE ACCRETION MODEL MAY BE ACTIVE; FOUND: $(ACCR_SELECTED))
 endif
 
-ifneq (,$(filter BH_ACCRETION_ACTIVE BH_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+ifneq (,$(filter BH_ACTIVE,$(CONFIGVARS)))
 OBJS += blackholes/bh_density.o \
         blackholes/bh_update.o 
 INCL += blackholes/bh_proto.h 

@@ -465,7 +465,7 @@ void calculate_non_standard_physics_end_of_step(void)
     star_perform_end_of_step_physics();
 #endif
 
-#ifdef BH_FEEDBACK_ACTIVE
+#ifdef BH_ACTIVE
   if(All.Time > All.FeedbackTime)
     bh_perform_end_of_step_physics();
 #endif
