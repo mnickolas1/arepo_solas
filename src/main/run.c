@@ -408,7 +408,6 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
       individual_starbystar_formation();
 #endif
 
-
 #ifdef STAR_FEEDBACK_ACTIVE
       star_update_timesteps();
       

@@ -6,6 +6,7 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+
 /* Feedback tables interpolation */
 static inline double linear_interpolation(double x, double x0, double x1, double y0, double y1);
 static inline double star_lifetime(int z_idx, double m_val);

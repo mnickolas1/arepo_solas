@@ -1,5 +1,6 @@
 #include "../main/allvars.h"
 
+
 int NumStars;
 
 #ifdef STAR_FEEDBACK_ACTIVE

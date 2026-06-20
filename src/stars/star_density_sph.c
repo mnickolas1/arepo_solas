@@ -8,6 +8,7 @@
 
 #include "../domain/domain.h"
 
+
 static int star_density_evaluate(int target, int mode, int threadid);
 static int star_density_isactive(int n);
 

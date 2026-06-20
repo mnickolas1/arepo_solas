@@ -8,6 +8,7 @@
 
 #include "../domain/domain.h"
 
+
 static int bh_swallow_evaluate(int target, int mode, int threadid);
 
 static MyFloat *AccretionLimited;

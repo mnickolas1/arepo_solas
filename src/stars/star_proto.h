@@ -1,6 +1,7 @@
 #ifndef STAR_PROTO_H
 #define STAR_PROTO_H
 
+
 /* star functions */
 
 /* Memory allocation */

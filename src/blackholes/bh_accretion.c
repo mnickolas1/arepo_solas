@@ -8,6 +8,7 @@
 
 #include "../domain/domain.h"
 
+
 static int bh_accretion_evaluate(int target, int mode, int threadid);
 static void bh_accretion_rate(void);
 

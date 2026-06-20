@@ -8,6 +8,7 @@
 
 #include "../domain/domain.h"
 
+
 static int bh_feedback_evaluate(int target, int mode, int threadid);
 
 /*! \brief Local data structure for collecting particle/cell data that is sent

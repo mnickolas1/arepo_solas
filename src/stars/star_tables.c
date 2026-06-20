@@ -3,6 +3,7 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+
 // Main Sequence
 int Z_COUNT = 0;
 int M_COUNT = 0;

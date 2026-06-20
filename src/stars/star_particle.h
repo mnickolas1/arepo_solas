@@ -1,6 +1,7 @@
 #ifndef STAR_PARTICLE_H
 #define STAR_PARTICLE_H
 
+
 #define NBINS 114
 #define MMIN 0.10
 #define MMAX 120.0

@@ -1,6 +1,7 @@
 #ifndef BH_PROTO_H
 #define BH_PROTO_H
 
+
 /* black hole functions */
 
 /* Memory allocation */

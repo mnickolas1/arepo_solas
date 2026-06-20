@@ -7,6 +7,7 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+
 /* Fraction of feedback scalars that go to the host cell */
 #define F_HOST (1.0 / 20.0) 
 

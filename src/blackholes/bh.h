@@ -6,6 +6,7 @@ extern int NumBhs;
 
 #include "../main/allvars.h"
 
+
 extern FILE *FdBlackHoles; 
 
 #ifdef BH_ACTIVE

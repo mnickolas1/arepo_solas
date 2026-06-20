@@ -8,6 +8,7 @@
 
 #include "../domain/domain.h"
 
+
 /* Pass counter: 1 = find host cell, 2 = gather feedback properties */
 static int pass;
 

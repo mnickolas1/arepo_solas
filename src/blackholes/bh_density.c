@@ -8,6 +8,7 @@
 
 #include "../domain/domain.h"
 
+
 static int bh_density_evaluate(int target, int mode, int threadid);
 static int bh_density_isactive(int n);
 

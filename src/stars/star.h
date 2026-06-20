@@ -1,6 +1,7 @@
 #ifndef STAR_H
 #define STAR_H
 
+
 #define ALLOC_STAR_ROOM 64
 extern int NumStars;
 
