@@ -454,7 +454,17 @@ static int star_density_evaluate(int target, int mode, int threadid)
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-                  SphP[i].WindsAndSN[SphP[i].Host++] = target_data->WindsAndSN;
+                  SphP[i].Host++;
+
+                  if(MechanicalFeedbackEvents.NumEvents >= MechanicalFeedbackEvents.MaxEvents)
+                    terminate("MechanicalFeedbackEvents overflow!");
+
+                  Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[MechanicalFeedbackEvents.NumEvents++];
+
+                  data->StarIndex = target; 
+                  data->HostIndex = index;
+                  data->HostTask = task;
+                  data->WindsAndSN = target_data->WindsAndSN;
 #endif
                 }
             }

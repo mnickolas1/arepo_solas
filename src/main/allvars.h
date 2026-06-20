@@ -1713,10 +1713,6 @@ extern struct sph_particle_data
   int Host;
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-  Mechanical_Feedback WindsAndSN[2];
-#endif
-
 /* Feedback */
 #if defined(WINDS) || defined(SUPERNOVAE)
   MyDouble StarMassFeed;

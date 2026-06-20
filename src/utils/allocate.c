@@ -114,6 +114,10 @@ void allocate_memory(void)
   timebins_allocate(&TimeBinsStar);
 #endif
 
+#if defined(WINDS) || defined(SUPERNOVAE)
+  feedback_allocate(&MechanicalFeedbackEvents, 1.2 * All.MaxPartStars);
+#endif
+
 #ifdef BH_ACTIVE
   timebins_allocate(&TimeBinsBh);
 #endif
@@ -168,6 +172,10 @@ void reallocate_memory_maxpartstars(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   timebins_reallocate(&TimeBinsStar);
+#endif
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+  feedback_reallocate(&MechanicalFeedbackEvents, 1.2 * All.MaxPartStars);
 #endif
 }
 #endif

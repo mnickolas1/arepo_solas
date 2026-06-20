@@ -35,6 +35,7 @@ void setup_imf_integrals(void);
 void individual_starbystar_formation(void);
 void sf_starbystar(void);
 void sf_massdrain(void);
+double gaussian_weight(double r, double h);
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
@@ -55,11 +56,17 @@ void star_update_list_of_active_particles(void);
 /* Density-Feedback loop */
 void star_density(void);
 void star_prep(void);
-void star_feedback(void);
-void star_perform_end_of_step_physics(void);
+#endif
 
-double gaussian_weight(double r, double h);
-//void star_kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
+#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
+void star_perform_end_of_step_physics(void);
+#endif
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+void star_feedback(void);
+void feedback_init(struct Mechanical_Feedback_Pack *MFPack);
+void feedback_allocate(struct Mechanical_Feedback_Pack *MFPack, int MaxEvents);
+void feedback_reallocate(struct Mechanical_Feedback_Pack *MFPack, int NewMaxEvents);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE

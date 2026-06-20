@@ -149,6 +149,33 @@ void star_update_list_of_active_particles(void)
     mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
 }
 
+#if defined(WINDS) || defined(SUPERNOVAE)
+void feedback_init(struct Mechanical_Feedback_Pack *MFPack)
+{
+  MFPack->NumEvents = 0;
+  MFPack->MaxEvents = 0;
+  MFPack->Data = NULL;
+}
+
+void feedback_allocate(struct Mechanical_Feedback_Pack *MFPack, int MaxEvents)
+{
+  MFPack->MaxEvents = MaxEvents;
+
+  MFPack->Data = (Mechanical_Feedback_Data *)
+  mymalloc_movable(&MFPack->Data, "Mechanical_Feedback_Events_Pack_Data",
+  MFPack->MaxEvents * sizeof(Mechanical_Feedback_Data));
+}
+
+void feedback_reallocate(struct Mechanical_Feedback_Pack *MFPack, int NewMaxEvents)
+{
+  MFPack->MaxEvents = NewMaxEvents;
+
+  MFPack->Data = (Mechanical_Feedback_Data *)
+  myrealloc_movable(MFPack->Data,
+  MFPack->MaxEvents * sizeof(Mechanical_Feedback_Data));
+}
+#endif
+
 /* Compute feedback properties of active stars */
 void star_prep(void)
 {

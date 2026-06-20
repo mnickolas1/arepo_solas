@@ -1,10 +1,6 @@
 #ifndef STAR_H
 #define STAR_H
 
-
-#define ALLOC_STAR_ROOM 64
-extern int NumStars;
-
 #include "../main/allvars.h"
 
 #ifdef STAR_PARTICLES
@@ -19,6 +15,9 @@ extern int NumStars;
 #include "../stars/star_tables.h"
 #endif
 
+
+#define ALLOC_STAR_ROOM 64
+extern int NumStars;
 
 #ifdef STAR_FEEDBACK_ACTIVE
 extern struct TimeBinData TimeBinsStar;
@@ -45,6 +44,25 @@ typedef struct Mechanical_Feedback
   MyDouble SN_EnergyInject;
 #endif
 } Mechanical_Feedback;
+
+typedef struct Mechanical_Feedback_Data
+{
+  int StarIndex; /* local star index */
+  int HostIndex; /* local gas-cell index */
+  int HostTask; /* task that owns the host cell */
+
+  Mechanical_Feedback WindsAndSN;
+} Mechanical_Feedback_Data;
+
+typedef struct Mechanical_Feedback_Pack
+{
+  int NumEvents;
+  int MaxEvents;
+
+  Mechanical_Feedback_Data *Data;
+} Mechanical_Feedback_Pack;
+
+extern Mechanical_Feedback_Pack MechanicalFeedbackEvents;
 #endif
 
 typedef struct Star_Particle_Data

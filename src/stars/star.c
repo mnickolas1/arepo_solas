@@ -7,4 +7,8 @@ int NumStars;
 struct TimeBinData TimeBinsStar;
 #endif
 
+#if defined(WINDS) || defined(SUPERNOVAE)
+Mechanical_Feedback_Pack MechanicalFeedbackEvents;
+#endif
+
 Star_Particle_Data *SP;
