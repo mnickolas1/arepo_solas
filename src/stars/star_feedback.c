@@ -79,9 +79,12 @@ static void apply_kick(int j, const struct Feedback_Kick *Kick)
    density and metallicity from star_density pass 2 */
 
 #ifdef SUPERNOVAE
-static void SN_compute(int i, double e, double a, double b, double NgbsDensity, double NgbsMetallicity, double *p, double *Eth)
+static void SN_compute(int ev, int h, double e, double a, double b, double NgbsDensity, double NgbsMetallicity, double *p, double *Eth)
 {
-  Mechanical_Feedback *WindsAndSN = &SphP[i].WindsAndSN[SphP[i].Host - 1];
+  int i = MechanicalFeedbackEvents.Data[ev].HostIndex;
+
+  Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
+  Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
   
   double E_SN = WindsAndSN->SN_EnergyInject;
   double m_ej = WindsAndSN->SN_MassLoss;
@@ -145,42 +148,45 @@ void star_feedback(void)
 {
   TIMER_START(CPU_STARS_FEEDBACK);
 
-#define MAX_FACES 128
+  #define MAX_FACES 128
 
   int max_export = 100 * NTask;
   struct Feedback_Kick *ExportBuf = mymalloc("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
   int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
   int n_export = 0;
 
-  /* Loop over gas cells; act on host cells */
-  for(int i = 0; i < NumGas; i++)
+  /*  Act on host cells */
+  for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
     {
-      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
-        continue;
+      int i = MechanicalFeedbackEvents.Data[ev].HostIndex;
 
-      /* Not a host cell -> skip */
-      if(SphP[i].Host <= 0) 
-        continue;
-
-      int flag_winds = 0, flag_sn = 0;
+      int flag_winds_any = 0, flag_sn_any = 0;
       for(int h = 0; h < SphP[i].Host; h++)
         {
-          Mechanical_Feedback *WindsAndSN = &SphP[i].WindsAndSN[h];
+          Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
+          Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
 
 #ifdef WINDS
           if(WindsAndSN->MassLoss)
-            flag_winds++;
+            flag_winds_any++;
 #endif
 
 #ifdef SUPERNOVAE
           if(WindsAndSN->SN_MassLoss || WindsAndSN->SN_EnergyInject)
-            flag_sn++;
+            flag_sn_any++;
 #endif
         }
       
-      /* This cell contains dead stars */  
-      if(!flag_winds && !flag_sn)
-        continue;
+      /* This cell only contains dead stars */  
+      if(!flag_winds_any && !flag_sn_any)
+        {
+          /* Go to next host */
+          ev += SphP[i].Host;
+          /* All stars processed: release host slot */        
+          SphP[i].Host = 0;
+
+          continue;
+        }
 
       /* We will loop over the cell faces 4 times */
       int n_faces = 0;
@@ -203,10 +209,11 @@ void star_feedback(void)
           int dp = DC[q].dp_index;
           int vf = DC[q].vf_index;
           int particle = Mesh.DP[dp].index;
-
+          
+          /* Cell has been removed */
           if(particle < 0)
             {
-              /* Cell has been removed */
+              /* Move to next ngb */
               q = DC[q].next;
               continue;
             }
@@ -294,10 +301,12 @@ void star_feedback(void)
       if(wtot <= 0.0)
         terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
       
-      flag_winds = 0; flag_sn = 0;
       for(int h = 0; h < SphP[i].Host; h++)
         {
-          Mechanical_Feedback *WindsAndSN = &SphP[i].WindsAndSN[h];
+          int flag_winds = 0, flag_sn = 0;
+
+          Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[e + h];
+          Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
 
 #ifdef WINDS
           if(WindsAndSN->MassLoss)
@@ -310,8 +319,8 @@ void star_feedback(void)
 #endif
 
           /* Dead star */
-          if(!flag_winds && !flag_sn) 
-            continue; 
+          if(!flag_winds && !flag_sn)
+            continue;
 
 #ifdef SUPERNOVAE     
           double p, Eth;
@@ -408,7 +417,7 @@ void star_feedback(void)
                     }  
                 }
 
-              SN_compute(i, e, a, b, NgbsDensity, NgbsMetallicity, &p, &Eth);
+              SN_compute(ev, h, e, a, b, NgbsDensity, NgbsMetallicity, &p, &Eth);
             }
 #endif
       
@@ -527,11 +536,13 @@ void star_feedback(void)
 
           /* Clear this star's feedback entry */
           memset(WindsAndSN, 0, sizeof(*WindsAndSN));
-        }
+        } //for(int h = 0; h < SphP[i].Host; h++)
       
+      /* Go to next host */
+      ev += SphP[i].Host;
       /* All stars processed: release host slot */        
       SphP[i].Host = 0;
-    }
+    } //for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
 
   /* MPI exchange of remote kick packets via MPI_Alltoallv */
   int *SendCount = mymalloc("FBSendCount", NTask * sizeof(int));

@@ -15,6 +15,23 @@ static int pass;
 static int star_density_evaluate(int target, int mode, int threadid);
 static int star_density_isactive(int n);
 
+static int feedback_compare(const void *a, const void *b)
+{
+  const Mechanical_Feedback_Data *da = a;
+  const Mechanical_Feedback_Data *db = b;
+
+  if(da->HostTask < db->HostTask) return -1;
+  if(da->HostTask > db->HostTask) return  1;
+
+  if(da->HostIndex < db->HostIndex) return -1;
+  if(da->HostIndex > db->HostIndex) return  1;
+
+  if(da->StarIndex < db->StarIndex) return -1;
+  if(da->StarIndex > db->StarIndex) return  1;
+
+  return 0;
+}
+
 static MyFloat *StarNgbs;
 struct HostCell 
 {
@@ -250,10 +267,8 @@ void star_density(void)
 
   generic_set_MaxNexport();
   
-  /* 
-  Pass 1 — Expand Hsml until we enclose at least one gas cell,
-           then record the closest cell as the host.
-  */
+  /* Pass 1 - Expand Hsml until we enclose at least one gas cell,
+     then record the closest cell as the host */
 
   pass++;
 
@@ -296,17 +311,19 @@ void star_density(void)
     }
   while(ntot > 0);
 
-  /* 
-  Pass 2 — Add star feedback properties to the host cell.
-  */
+  /* Pass 2 - Add star feedback properties to the host cell */
 
- /* Re-activate all stars */
+  /* Re-activate all stars */
   for(i = 0; i < NumStars; i++)
     SP[i].DensityFlag = 1;
 
   pass++;
 
   generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
+
+  /* Sort the hosts list */
+  mysort(MechanicalFeedbackEvents.Data, MechanicalFeedbackEvents.NumEvents, 
+  sizeof(Mechanical_Feedback_Data), feedback_compare);
 
   myfree(StarHostCell);
   myfree(StarNgbs);
