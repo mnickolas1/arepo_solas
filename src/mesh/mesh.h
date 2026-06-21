@@ -135,7 +135,13 @@ extern struct primexch
   MySingle ActiveArea;
   /*  int task, index; */
   short int TimeBinHydro;
-} * PrimExch;
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+  MyDouble MassFeed;
+  MyDouble MetalsFeed;
+  MyDouble MomentumFeed[3];
+#endif
+} *PrimExch;
 
 #ifdef REFINEMENT
 extern struct refdata

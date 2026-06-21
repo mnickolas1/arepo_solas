@@ -278,6 +278,15 @@ void exchange_primitive_variables(void)
                   tmpPrimExch[off].Center[j] = SphP[place].Center[j];
                 }
               tmpPrimExch[off].Csnd = get_sound_speed(place);
+
+#if defined(WINDS) || defined(SUPERNOVAE) 
+              tmpPrimExch[off].MassFeed = SphP[place].StarMassFeed;
+              tmpPrimExch[off].MetalsFeed = SphP[place].StarMetalsFeed;
+              
+              for(int k = 0; k < 3; k++)
+                tmpPrimExch[off].MomentumFeed[k] = SphP[place].StarMomentumFeed[k];
+#endif
+
             }
           listp = ListExports[listp].nextexport;
         }

@@ -98,15 +98,24 @@ static void SN_compute(int ev, int h, double e, double a, double b, double NgbsD
       return;
     }
 
-  double sq_vhost = P[i].Vel[0]*P[i].Vel[0] + P[i].Vel[1]*P[i].Vel[1] + P[i].Vel[2]*P[i].Vel[2];
+  double mhost, vhost[3];
+
+  mhost = P[i].Mass + SphP[i].StarMassFeed;
+  
+  for(int k = 0; k < 3; k++)
+    vhost[k] = (SphP[i].Momentum[k] + SphP[i].StarMomentumFeed[k]) / mhost;
+
+  double sq_vhost = vhost[0]*vhost[0] + vhost[1]*vhost[1] + vhost[2]*vhost[2];
+
   double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
   + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1] 
   + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
-  double cross = 2.0 * (P[i].Vel[0]*WindsAndSN->StarVelocity[0] 
-  + P[i].Vel[1]*WindsAndSN->StarVelocity[1] 
-  + P[i].Vel[2]*WindsAndSN->StarVelocity[2]);
+
+  double cross = 2.0 * (vhost[0]*WindsAndSN->StarVelocity[0] 
+  + vhost[1]*WindsAndSN->StarVelocity[1] 
+  + vhost[2]*WindsAndSN->StarVelocity[2]);
   
-  double E_SNR = E_SN + 0.5 * (P[i].Mass * WindsAndSN->SN_MassLoss * F_HOST) / (P[i].Mass + WindsAndSN->SN_MassLoss * F_HOST)
+  double E_SNR = E_SN + 0.5 * (mhost * WindsAndSN->SN_MassLoss * F_HOST) / (mhost + WindsAndSN->SN_MassLoss * F_HOST)
   * (sq_vhost + sq_vstar - cross) + e;
   
   double E51 = E_SNR * All.cf_UnitEnergy_in_cgs / 1.0e51;
@@ -155,7 +164,7 @@ void star_feedback(void)
   int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
   int n_export = 0;
 
-  /*  Act on host cells */
+  /* Act on host cells */
   for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
     {
       int i = MechanicalFeedbackEvents.Data[ev].HostIndex;
@@ -219,13 +228,13 @@ void star_feedback(void)
             }
 
           /* Outward face normal: vector from cell generator to neighbor
-          generator, normalized (this is the Voronoi face normal) */
-                
+             generator, normalized (this is the Voronoi face normal) */
           double n[3], nn; 
 
           n[0] = Mesh.DP[dp].x - P[i].Pos[0];
           n[1] = Mesh.DP[dp].y - P[i].Pos[1];
           n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          
           nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
 
           if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
@@ -271,6 +280,7 @@ void star_feedback(void)
           n[0] = Mesh.DP[dp].x - P[i].Pos[0];
           n[1] = Mesh.DP[dp].y - P[i].Pos[1];
           n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          
           nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
 
           double w[3] = {0.0, 0.0, 0.0};
@@ -328,18 +338,20 @@ void star_feedback(void)
           if(flag_sn)
             {
               /* Helpers for supernovae injection */
-              double num, den;
-              double e = 0.0, a = 0.0, b = 0.0;
+              double num, den, e = 0.0, a = 0.0, b = 0.0;
               double m_ej = WindsAndSN->SN_MassLoss;
               
               /* Ngbs properties (Start with host) */
-              int Ngbs;
-              double NgbsMass, NgbsDensity, NgbsMetallicity;  
+              int Ngbs = 0;
+              double NgbsMass = 0.0, NgbsDensity = 0.0, NgbsMetallicity = 0.0;
+            
+              double mhost = (P[i].Mass + SphP[i].StarMassFeed);
 
-              Ngbs = 1;
-              NgbsMass = P[i].Mass * F_HOST;
-              NgbsDensity = SphP[i].Density * F_HOST;
-              NgbsMetallicity = SphP[i].GasMetallicity * F_HOST;
+              Ngbs += 1;
+              NgbsMass += mhost * F_HOST;
+              NgbsDensity += mhost / SphP[i].Volume * F_HOST;
+#ifdef METALS
+              NgbsMetallicity += (P[i].Mass * SphP[i].GasMetallicity + SphP[i].StarMetalsFeed) / mhost * F_HOST;
    
               /* Third pass */ 
               for(int f = 0; f < n_faces; f++)
@@ -360,60 +372,70 @@ void star_feedback(void)
                   double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
                   double sqrtsq_wbar = sqrt(sq_wbar);  
 
-                  double mass, vel[3];
+                  double mj, vj[3];
                   if(Mesh.DP[dp].task == ThisTask)
                     {
-                      mass = SphP[particle].Density * SphP[particle].Volume;
-                      vel[0] = P[particle].Vel[0];
-                      vel[1] = P[particle].Vel[1];
-                      vel[2] = P[particle].Vel[2];
+                      mj = P[particle].Mass + SphP[i].StarMassFeed;
+                      
+                      for(int k = 0; k < 3; k++)
+                        vj[k] = (SphP[particle].Momentum[k] + SphP[particle].StarMomentumFeed[k]) / mj;   
                     }
                   else
                     {
-                      mass = PrimExch[particle].Density * PrimExch[particle].Volume;
-                      vel[0] = PrimExch[particle].VelGas[0];
-                      vel[1] = PrimExch[particle].VelGas[1];
-                      vel[2] = PrimExch[particle].VelGas[2];
+                      mj = PrimExch[particle].Density * PrimExch[particle].Volume + PrimExch[particle].MassFeed;
+                      
+                      for(int k = 0; k < 3; k++)
+                        vj[k] = (PrimExch[particle].Density * PrimExch[particle].Volume * PrimExch[particle].VelGas[k]
+                        + PrimExch[particle].MomentumFeed[k]) / mj;
+
                     }
 
-                  double sq_vcell = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
+                  double sq_vj = vj[0]*vj[0] + vj[1]*vj[1] + vj[2]*vj[2];
+                  
                   double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0]
                   + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1]
                   + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
-                  double cross  = 2.0 * (vel[0]*WindsAndSN->StarVelocity[0]
-                  + vel[1]*WindsAndSN->StarVelocity[1]
-                  + vel[2]*WindsAndSN->StarVelocity[2]);
+                  
+                  double cross = 2.0 * (vj[0]*WindsAndSN->StarVelocity[0]
+                  + vj[1]*WindsAndSN->StarVelocity[1]
+                  + vj[2]*WindsAndSN->StarVelocity[2]);
          
-                  num = 0.5 * mass * m_ej*sqrtsq_wbar*(1-F_HOST) * (sq_vcell + sq_vstar - cross);
-                  den = mass + m_ej*sqrtsq_wbar*(1-F_HOST);
+                  num = 0.5 * mj * m_ej*sqrtsq_wbar*(1-F_HOST) * (sq_vj + sq_vstar - cross);
+                  den = mj + m_ej*sqrtsq_wbar*(1-F_HOST);
           
                   e += num / den;
                
                   num = sq_wbar;
-                  den = mass + m_ej*sqrtsq_wbar*(1-F_HOST);
+                  den = mj + m_ej*sqrtsq_wbar*(1-F_HOST);
           
                   a += num / den;
 
-                  num = mass * ((vel[0] - WindsAndSN->StarVelocity[0]) * wbar[0] 
-                  + (vel[1] - WindsAndSN->StarVelocity[1]) * wbar[1]
-                  + (vel[2] - WindsAndSN->StarVelocity[2]) * wbar[2]);
-                  den = mass + m_ej*sqrtsq_wbar*(1-F_HOST);
+                  num = mj * ((vj[0] - WindsAndSN->StarVelocity[0]) * wbar[0] 
+                  + (vj[1] - WindsAndSN->StarVelocity[1]) * wbar[1]
+                  + (vj[2] - WindsAndSN->StarVelocity[2]) * wbar[2]);
+                  den = mj + m_ej*sqrtsq_wbar*(1-F_HOST);
 
                   b += num / den;
 
                   if(Mesh.DP[dp].task == ThisTask)
                     {
                       Ngbs++;
-                      NgbsMass += mass * sqrtsq_wbar * (1-F_HOST);
-                      NgbsDensity += SphP[particle].Density * sqrtsq_wbar * (1-F_HOST);
-                      NgbsMetallicity += SphP[particle].GasMetallicity * sqrtsq_wbar * (1-F_HOST);
+                      NgbsMass += mj * sqrtsq_wbar * (1-F_HOST);
+                      NgbsDensity += mj / SphP[particle].Volume * sqrtsq_wbar * (1-F_HOST);
+#ifdef METALS
+                      NgbsMetallicity += (P[particle].Mass * SphP[particle].GasMetallicity + SphP[particle].StarMetalsFeed)
+                      / mj * sqrtsq_wbar * (1-F_HOST);
+#endif
                     }
                   else
                     {
                       Ngbs++;
-                      NgbsMass += mass * sqrtsq_wbar * (1-F_HOST);
-                      NgbsDensity += PrimExch[particle].Density * sqrtsq_wbar * (1-F_HOST);
-                      NgbsMetallicity += PrimExch[particle].Scalars[METALS_INDEX] * sqrtsq_wbar * (1-F_HOST);
+                      NgbsMass += mj * sqrtsq_wbar * (1-F_HOST);
+                      NgbsDensity +=  mj / PrimExch[particle].Volume * sqrtsq_wbar * (1-F_HOST);
+#ifdef METALS
+                      NgbsMetallicity += (PrimExch[particle].Density * PrimExch[particle].Volume * PrimExch[particle].Scalars[METALS_INDEX] 
+                      + PrimExch[particle].MetalsFeed) / mj * sqrtsq_wbar * (1-F_HOST);
+#endif
                     }  
                 }
 
