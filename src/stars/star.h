@@ -26,6 +26,7 @@ extern struct TimeBinData TimeBinsStar;
 #if defined(WINDS) || defined(SUPERNOVAE)
 typedef struct Mechanical_Feedback
 {
+  MyDouble StarPosition[3];
   MyDouble StarVelocity[3];
 
 #ifdef WINDS 

@@ -46,31 +46,31 @@ struct Feedback_Kick
 static void apply_kick(int j, const struct Feedback_Kick *Kick)
 {
 #ifdef WINDS
-      SphP[j].StarMassFeed += Kick->DeltaMass;
-      All.StarFeedbackLocal[0] += Kick->DeltaMass;
+  SphP[j].StarMassFeed += Kick->DeltaMass;
+  All.StarFeedbackLocal[0] += Kick->DeltaMass;
 #ifdef METALS
-      SphP[j].StarMetalsFeed += Kick->DeltaMetals;
-      All.StarFeedbackLocal[1] += Kick->DeltaMetals;
+  SphP[j].StarMetalsFeed += Kick->DeltaMetals;
+  All.StarFeedbackLocal[1] += Kick->DeltaMetals;
 #endif
-      for(int k = 0; k < 3; k++)
-        SphP[j].StarMomentumFeed[k] += Kick->DeltaP[k];
+  for(int k = 0; k < 3; k++)
+    SphP[j].StarMomentumFeed[k] += Kick->DeltaP[k];
 
-      SphP[j].StarEnergyFeed += Kick->DeltaE;
-      All.StarFeedbackLocal[2] += Kick->DeltaE;
+  SphP[j].StarEnergyFeed += Kick->DeltaE;
+  All.StarFeedbackLocal[2] += Kick->DeltaE;
 #endif 
 
 #ifdef SUPERNOVAE
-      SphP[j].StarMassFeed += Kick->SN_DeltaMass;
-      All.StarFeedbackLocal[0] += Kick->SN_DeltaMass;
+  SphP[j].StarMassFeed += Kick->SN_DeltaMass;
+  All.StarFeedbackLocal[0] += Kick->SN_DeltaMass;
 #ifdef METALS
-      SphP[j].StarMetalsFeed += Kick->SN_DeltaMetals;
-      All.StarFeedbackLocal[1] += Kick->SN_DeltaMetals;
+  SphP[j].StarMetalsFeed += Kick->SN_DeltaMetals;
+  All.StarFeedbackLocal[1] += Kick->SN_DeltaMetals;
 #endif
-      for(int k = 0; k < 3; k++)
-        SphP[j].StarMomentumFeed[k] += Kick->SN_DeltaP[k];
+  for(int k = 0; k < 3; k++)
+    SphP[j].StarMomentumFeed[k] += Kick->SN_DeltaP[k];
 
-      SphP[j].StarEnergyFeed += Kick->SN_DeltaE;
-      All.StarFeedbackLocal[2] += Kick->SN_DeltaE;
+  SphP[j].StarEnergyFeed += Kick->SN_DeltaE;
+  All.StarFeedbackLocal[2] += Kick->SN_DeltaE;
 #endif 
 }
 
@@ -154,18 +154,20 @@ void star_feedback(void)
 
   #define MAX_FACES 128
 
-  int max_export = 100 * NTask;
-  struct Feedback_Kick *ExportBuf = mymalloc("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
-  int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
+  int ev, h, i, k, q, f;
+
   int n_export = 0;
+  int max_export = 100 * NTask;
+  int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
+  struct Feedback_Kick *ExportBuf = mymalloc("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
 
   /* Act on host cells */
-  for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
+  for(ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
     {
-      int i = MechanicalFeedbackEvents.Data[ev].HostIndex;
+      i = MechanicalFeedbackEvents.Data[ev].HostIndex;
 
       int flag_winds_any = 0, flag_sn_any = 0;
-      for(int h = 0; h < SphP[i].Host; h++)
+      for(h = 0; h < SphP[i].Host; h++)
         {
           Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
           Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
@@ -192,122 +194,8 @@ void star_feedback(void)
           continue;
         }
 
-      /* We will loop over the cell faces 4 times */
-      int n_faces = 0;
-      int dc_list[MAX_FACES];     
-
-      /* GEOMETRY: passes 1 & 2 are star-independent (Voronoi mesh) */
-
-      /* Compute weights */
-      double nplus[3], nminus[3], fplus[3], fminus[3];
-      
-      /* Accumulate helper */
-      double Splus[3], Sminus[3];
-      for(int k = 0; k < 3; k++)
-        Splus[k] = Sminus[k] = 0;
-
-      /* First pass */  
-      int q = SphP[i].first_connection;
-      while(q >= 0)
-        {
-          int dp = DC[q].dp_index;
-          int vf = DC[q].vf_index;
-          int particle = Mesh.DP[dp].index;
-          
-          /* Cell has been removed */
-          if(particle < 0)
-            {
-              /* Move to next ngb */
-              q = DC[q].next;
-              continue;
-            }
-
-          /* Outward face normal: vector from cell generator to neighbor
-             generator, normalized (this is the Voronoi face normal) */
-          double n[3], nn; 
-
-          n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-          n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-          n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-          
-          nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-
-          if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
-            {
-              n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-
-              double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
-                    
-              for(int k = 0; k < 3; k++)
-                {
-                  nplus[k] = n[k] >= 0 ? n[k] : 0;
-                  nminus[k] = n[k] < 0 ? n[k] : 0; 
-                        
-                  Splus[k] += omega * fabs(nplus[k]);
-                  Sminus[k] += omega * fabs(nminus[k]);
-                }
-            }
-          
-          if(n_faces >= MAX_FACES)
-            terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
-
-          dc_list[n_faces++] = q;
-
-          if(q == SphP[i].last_connection) 
-            break;
-          
-          q = DC[q].next;
-        }
-
-      double weights[MAX_FACES][3];
-      double wtot = 0.0; 
-  
-      /* Second pass */
-      for(int f = 0; f < n_faces; f++)
-        {
-          q = dc_list[f];
-          
-          int dp = DC[q].dp_index;
-          int vf = DC[q].vf_index;
-
-          double n[3], nn; 
-
-          n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-          n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-          n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-          
-          nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-
-          double w[3] = {0.0, 0.0, 0.0};
-
-          if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
-            {
-              n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-                                        
-              double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
-                    
-              for(int k = 0; k < 3; k++)
-                {
-                  nplus[k] = n[k] >= 0 ? n[k] : 0;
-                  nminus[k] = n[k] < 0 ? n[k] : 0; 
-                  fplus[k] = (Splus[k]  > 0.0) ? sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0;
-                  fminus[k] =(Sminus[k]  > 0.0) ? sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0;
-
-                  w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
-                }                                         
-            }
-                
-          for(int k = 0; k < 3; k++)
-            weights[f][k] = w[k];
-                                    
-          wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-        }
-
-      if(wtot <= 0.0)
-        terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
-      
-      for(int h = 0; h < SphP[i].Host; h++)
-        {
+      for(h = 0; h < SphP[i].Host; h++)
+        {                    
           int flag_winds = 0, flag_sn = 0;
 
           Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[e + h];
@@ -322,11 +210,139 @@ void star_feedback(void)
           if(WindsAndSN->SN_MassLoss || WindsAndSN->SN_EnergyInject)
             flag_sn++;
 #endif
-
+          
           /* Dead star */
           if(!flag_winds && !flag_sn)
             continue;
 
+          /* We will loop over the cell faces 4 times */
+          int n_faces = 0;
+          int dc_list[MAX_FACES];     
+
+          /* GEOMETRY: passes 1 & 2 (Voronoi mesh) */
+
+          /* Compute weights */
+          double nplus[3], nminus[3], fplus[3], fminus[3];
+      
+          /* Accumulate helper */
+          double Splus[3], Sminus[3];
+          for(k = 0; k < 3; k++)
+            Splus[k] = Sminus[k] = 0;
+
+          /* First pass */  
+          q = SphP[i].first_connection;
+          while(q >= 0)
+            {
+              int dp = DC[q].dp_index;
+              int vf = DC[q].vf_index;
+              int particle = Mesh.DP[dp].index;
+          
+              /* Cell has been removed */
+              if(particle < 0)
+                {
+                  /* Move to next ngb */
+                  q = DC[q].next;
+                  continue;
+                }
+
+              /* Face normal - from cell generator to cell generator */
+              double n[3], nn; 
+
+              n[0] = Mesh.DP[dp].x - P[i].Pos[0];
+              n[1] = Mesh.DP[dp].y - P[i].Pos[1];
+              n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          
+              nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+
+              /* Star-to-face direction */
+              double d[3], dd; 
+                  
+              d[0] = Mesh.VF[vf].cx - WindsAndSN->StarPosition[0];
+              d[1] = Mesh.VF[vf].cy - WindsAndSN->StarPosition[1];
+              d[2] = Mesh.VF[vf].cz - WindsAndSN->StarPosition[2];
+              
+              dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+
+              if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
+                {
+                  n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
+                  
+                  d[0] /= dd;  d[1] /= dd;  d[2] /= dd;
+
+                  double costheta = n[0]*d[0] + n[1]*d[1] + n[2]*d[2];
+                  if(costheta < 0.0) costheta = 0.0;
+            
+                  double omega = 0.5 * (1 - 1 / sqrt(1 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
+                    
+                  /* these need to change! */
+                  for(k = 0; k < 3; k++)
+                    {
+                      nplus[k] = n[k] >= 0 ? n[k] : 0;
+                      nminus[k] = n[k] < 0 ? n[k] : 0; 
+                        
+                      Splus[k] += omega * fabs(nplus[k]);
+                      Sminus[k] += omega * fabs(nminus[k]);
+                    }
+                }
+          
+              if(n_faces >= MAX_FACES)
+                terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
+
+              dc_list[n_faces++] = q;
+
+              if(q == SphP[i].last_connection) 
+                break;
+          
+              q = DC[q].next;
+            }
+
+          double weights[MAX_FACES][3];
+          double wtot = 0.0; 
+  
+          /* Second pass */
+          for(f = 0; f < n_faces; f++)
+            {
+              q = dc_list[f];
+          
+              int dp = DC[q].dp_index;
+              int vf = DC[q].vf_index;
+
+              double n[3], nn; 
+
+              n[0] = Mesh.DP[dp].x - P[i].Pos[0];
+              n[1] = Mesh.DP[dp].y - P[i].Pos[1];
+              n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          
+              nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+
+              double w[3] = {0.0, 0.0, 0.0};
+
+              if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
+                {
+                  n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
+                                        
+                  double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
+                    
+                  for(k = 0; k < 3; k++)
+                    {
+                      nplus[k] = n[k] >= 0 ? n[k] : 0;
+                      nminus[k] = n[k] < 0 ? n[k] : 0; 
+                      fplus[k] = (Splus[k]  > 0.0) ? sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0;
+                      fminus[k] =(Sminus[k]  > 0.0) ? sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0;
+
+                      w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
+                    }                                         
+                }
+                
+              for(k = 0; k < 3; k++)
+                weights[f][k] = w[k];
+                                    
+              wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
+            }
+
+          if(wtot <= 0.0)
+            terminate("STAR_FEEDBACK: zero weight for host cell %d\n", i);
+    
 #ifdef SUPERNOVAE     
           double p, Eth;
 
@@ -350,7 +366,7 @@ void star_feedback(void)
 #endif
    
               /* Third pass */ 
-              for(int f = 0; f < n_faces; f++)
+              for(f = 0; f < n_faces; f++)
                 {
                   q = dc_list[f];
 
@@ -362,7 +378,7 @@ void star_feedback(void)
 
                   double wbar[3]; 
           
-                  for(int k = 0; k < 3; k++)
+                  for(k = 0; k < 3; k++)
                     wbar[k] = weights[f][k] / wtot;
 
                   double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
@@ -373,14 +389,14 @@ void star_feedback(void)
                     {
                       mj = P[particle].Mass + SphP[i].StarMassFeed;
                       
-                      for(int k = 0; k < 3; k++)
+                      for(k = 0; k < 3; k++)
                         vj[k] = (SphP[particle].Momentum[k] + SphP[particle].StarMomentumFeed[k]) / mj;   
                     }
                   else
                     {
                       mj = PrimExch[particle].Density * PrimExch[particle].Volume + PrimExch[particle].MassFeed;
                       
-                      for(int k = 0; k < 3; k++)
+                      for(k = 0; k < 3; k++)
                         vj[k] = (PrimExch[particle].Density * PrimExch[particle].Volume * PrimExch[particle].VelGas[k]
                         + PrimExch[particle].MomentumFeed[k]) / mj;
 
@@ -449,7 +465,7 @@ void star_feedback(void)
               SphP[i].StarMetalsFeed += WindsAndSN->MetalsLoss * F_HOST;
               All.StarFeedbackLocal[1] += WindsAndSN->MetalsLoss * F_HOST;
 #endif
-              for(int k = 0; k < 3; k++)
+              for(k = 0; k < 3; k++)
                 SphP[i].StarMomentumFeed[k] += WindsAndSN->MassLoss * F_HOST * WindsAndSN->StarVelocity[k];
 
               double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
@@ -473,7 +489,7 @@ void star_feedback(void)
               SphP[i].StarMetalsFeed += WindsAndSN->SN_MetalsLoss * F_HOST;
               All.StarFeedbackLocal[1] += WindsAndSN->SN_MetalsLoss * F_HOST;
 #endif
-              for(int k = 0; k < 3; k++)
+              for(k = 0; k < 3; k++)
                 SphP[i].StarMomentumFeed[k] += WindsAndSN->SN_MassLoss * F_HOST * WindsAndSN->StarVelocity[k];
 
               SphP[i].StarEnergyFeed += Eth * F_HOST;
@@ -482,13 +498,13 @@ void star_feedback(void)
 #endif 
  
           /* Fourth pass */  
-          for(int f = 0; f < n_faces; f++)
+          for(f = 0; f < n_faces; f++)
             {
               q = dc_list[f];
 
               double wbar[3]; 
           
-              for(int k = 0; k < 3; k++)
+              for(k = 0; k < 3; k++)
                 wbar[k] = weights[f][k] / wtot;
 
               double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
@@ -505,7 +521,7 @@ void star_feedback(void)
 #ifdef METALS
                   Kick.DeltaMetals = WindsAndSN->MetalsLoss * sqrtsq_wbar * (1-F_HOST);
 #endif    
-                  for(int k = 0; k < 3; k++)
+                  for(k = 0; k < 3; k++)
                     Kick.DeltaP[k] = WindsAndSN->MassLoss * sqrtsq_wbar * (1-F_HOST) 
                     * (WindsAndSN->StarVelocity[k] + WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[k]);
           
@@ -532,7 +548,7 @@ void star_feedback(void)
 #ifdef METALS
                   Kick.SN_DeltaMetals = WindsAndSN->SN_MetalsLoss * sqrtsq_wbar * (1-F_HOST);
 #endif 
-                  for(int k = 0; k < 3; k++)
+                  for(k = 0; k < 3; k++)
                     Kick.SN_DeltaP[k] = WindsAndSN->SN_MassLoss * sqrtsq_wbar * (1-F_HOST) * WindsAndSN->StarVelocity[k]
                     + p * wbar[k];
 
@@ -569,7 +585,7 @@ void star_feedback(void)
   int *RecvDisp = mymalloc("FBRecvDisp",  NTask * sizeof(int));
  
   memset(SendCount, 0, NTask * sizeof(int));
-  for(int k = 0; k < n_export; k++)
+  for(k = 0; k < n_export; k++)
     SendCount[ExportTask[k]]++;
  
   MPI_Alltoall(SendCount, 1, MPI_INT, RecvCount, 1, MPI_INT, MPI_COMM_WORLD);
@@ -587,7 +603,7 @@ void star_feedback(void)
   
   int *tmp_offset = mymalloc("FBTmpOffset", NTask * sizeof(int));
   memcpy(tmp_offset, SendDisp, NTask * sizeof(int));
-  for(int k = 0; k < n_export; k++)
+  for(k = 0; k < n_export; k++)
     {
       int t = ExportTask[k];
       SortedExport[tmp_offset[t]++] = ExportBuf[k];
@@ -623,7 +639,7 @@ void star_feedback(void)
   myfree(SendCountB);
  
   /* Apply received kicks to local cells */
-  for(int k = 0; k < n_recv; k++)
+  for(k = 0; k < n_recv; k++)
     apply_kick(RecvBuf[k].CellIndex, &RecvBuf[k]);
  
   /* Cleanup in reverse allocation order */

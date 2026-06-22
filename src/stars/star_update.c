@@ -232,13 +232,16 @@ void star_prep(void)
 #endif
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-     SP[i].TimeSN_yr = StarFeedback.TimeSN;
+      SP[i].TimeSN_yr = StarFeedback.TimeSN;
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-     for(int k = 0; k < 3; k++)
-       SP[i].WindsAndSN.StarVelocity[k] = PPS(i).Vel[k];
-#endif
+      for(int k = 0; k < 3; k++)
+        {
+          SP[i].WindsAndSN.StarPosition[k] = PPS(i).Pos[k];
+          SP[i].WindsAndSN.StarVelocity[k] = PPS(i).Vel[k];
+        }
+#endif 
 
 #ifdef WINDS
       SP[i].WindsAndSN.MassLoss = StarFeedback.MassLoss;
