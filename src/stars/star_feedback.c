@@ -74,11 +74,10 @@ static void apply_kick(int j, const struct Feedback_Kick *Kick)
 #endif 
 }
 
+#ifdef SUPERNOVAE
 /* Compute SN p0 = min(p_egy, p_term) and residual thermal energy
    i is the index of the host gas cell, which already holds the ambient
    density and metallicity from star_density pass 2 */
-
-#ifdef SUPERNOVAE
 static void SN_compute(int ev, int h, double e, double a, double b, double NgbsDensity, double NgbsMetallicity, double *p, double *Eth)
 {
   int i = MechanicalFeedbackEvents.Data[ev].HostIndex;
@@ -122,11 +121,7 @@ static void SN_compute(int ev, int h, double e, double a, double b, double NgbsD
   
   double n_H  = 0.76 * NgbsDensity * All.cf_UnitDensity_in_cgs / PROTONMASS; 
 
-#ifdef METALS
   double Zsol = fmax(NgbsMetallicity / 0.0127, 0.01);
-#else
-  double Zsol = 0.01;
-#endif
 
   /* Terminal momentum: Kim & Ostriker (2015) */
   double p_term = 3.0e5 /* Msun km/s */
@@ -352,6 +347,7 @@ void star_feedback(void)
               NgbsDensity += mhost / SphP[i].Volume * F_HOST;
 #ifdef METALS
               NgbsMetallicity += (P[i].Mass * SphP[i].GasMetallicity + SphP[i].StarMetalsFeed) / mhost * F_HOST;
+#endif
    
               /* Third pass */ 
               for(int f = 0; f < n_faces; f++)
