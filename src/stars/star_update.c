@@ -192,6 +192,7 @@ void star_prep(void)
           {
             SP[i].Active = 1;
             SP[i].PhysicalAge_yr = 0.0;
+            SP[i].MassofStar = PPS(i).Mass;
           }
       
       if(SP[i].Active == 0)
@@ -202,7 +203,7 @@ void star_prep(void)
       if(star_timestep == 0)
         terminate("star_timestep == 0!");
 
-      MyDouble star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
+      MyDouble star_mass = SP[i].MassofStar * All.cf_UnitMass_in_Msun;
 
       /* This sets the timestep of less massive stars at 1 Myr */
       if(star_mass < 8)
@@ -281,14 +282,28 @@ void star_perform_end_of_step_physics(void)
     }
   else
     pvd.atime = pvd.hubble_a = pvd.a3inv = 1.0;
-   
+
+  /* Subtract massloss from stars */
+  for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
+    {
+      i = TimeBinsStar.ActiveParticleList[idx];
+
+#ifdef WINDS
+      PPS(i).Mass -= SP[i].WindsAndSN.Massloss;
+#endif
+
+#ifdef SUPERNOVAE
+      PPS(i).Mass -= SP[i].WindsAndSN.SN_Massloss;
+#endif
+    }
+
+  /* Dump star injected mass, momentum, and energy into gas */  
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
       i = TimeBinsHydro.ActiveParticleList[idx];
       if(i < 0)
         continue;
 
-      /* Dump mass, momentum and energy injected by stars */ 
 #if defined(WINDS) || defined(SUPERNOVAE)
       /* Add mass */ 
       P[i].Mass += SphP[i].StarMassFeed;
@@ -323,7 +338,6 @@ void star_perform_end_of_step_physics(void)
       update_internal_energy(P, SphP, i, &pvd);
       /* Update pressure */
       set_pressure_of_cell_internal(P, SphP, i);
-
     } // for(idx...
 
     MPI_Allreduce(&TimeBinsStar.NActiveParticles, &star_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);

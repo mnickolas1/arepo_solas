@@ -73,12 +73,12 @@ typedef struct Star_Particle_Data
   MyDouble Metallicity;
 #endif
 
-#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
-  int NumOfStarsInBins[NBINS];
+#ifdef STAR_PARTICLES
+  MyDouble MassOfStar;
 #endif
 
-#if STAR_PARTICLES == 2
-  MyDouble MassOfStar;
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
+  int NumOfStarsInBins[NBINS];
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION

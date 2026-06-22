@@ -328,7 +328,7 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   P[istar].Type = 4;
   P[istar].Mass = mass_of_star;
 
-P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
+  P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
 
 #ifdef INDIVIDUAL_GRAVITY_SOFTENING
   if(((1 << P[istar].Type) & (INDIVIDUAL_GRAVITY_SOFTENING)))
@@ -374,6 +374,7 @@ P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
 #ifdef STAR_FEEDBACK_ACTIVE
   /* Assign density loop properties */
   SP[NumStars].Hsml = get_cell_radius(igas);
+  
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
