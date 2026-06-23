@@ -691,8 +691,8 @@ void star_feedback(void)
   myfree(SendDisp);
   myfree(RecvCount);
   myfree(SendCount);
-  myfree(ExportTask);
   myfree(ExportBuf);
+  myfree(ExportTask);
  
   TIMER_STOP(CPU_STARS_FEEDBACK);
 }
