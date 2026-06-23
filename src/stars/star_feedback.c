@@ -64,6 +64,28 @@ static void apply_kick(int j, const struct Feedback_Kick *Kick)
 #endif 
 }
 
+/* Mirror of apply_kick(), but for the local copy of a remote cell (ghost) */
+static void apply_kick_primexch(int particle, const struct Feedback_Kick *Kick)
+{
+#ifdef WINDS
+  PrimExch[particle].MassFeed += Kick->DeltaMass;
+#ifdef METALS
+  PrimExch[particle].MetalsFeed += Kick->DeltaMetals;
+#endif
+  for(int k = 0; k < 3; k++)
+    PrimExch[particle].MomentumFeed[k] += Kick->DeltaP[k];
+#endif
+
+#ifdef SUPERNOVAE
+  PrimExch[particle].MassFeed += Kick->SN_DeltaMass;
+#ifdef METALS
+  PrimExch[particle].MetalsFeed += Kick->SN_DeltaMetals;
+#endif
+  for(int k = 0; k < 3; k++)
+    PrimExch[particle].MomentumFeed[k] += Kick->SN_DeltaP[k];
+#endif
+}
+
 #ifdef SUPERNOVAE
 /* Compute corrent p and E scaling of SN explosion */
 static void SN_compute(int ev, int h, double e, double a, double b, double NgbsDensity, double NgbsMetallicity, double *p, double *E)
@@ -467,6 +489,12 @@ void star_feedback(void)
             {
               q = dc_list[f];
 
+              int dp = DC[q].dp_index;
+              int particle = Mesh.DP[dp].index;
+
+              if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
+                particle -= NumGas;
+
               double wbar[3]; 
           
               for(k = 0; k < 3; k++)
@@ -525,6 +553,9 @@ void star_feedback(void)
                 apply_kick(DC[q].index, &Kick);
               else
                 {
+                  /* Keep local copy current */
+                  apply_kick_primexch(particle, &Kick);   
+
                   if(n_export >= max_export)
                     terminate("star_feedback: Feedback_Kick export buffer overflow\n");
                   ExportBuf[n_export] = Kick;
