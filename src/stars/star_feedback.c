@@ -240,9 +240,11 @@ void star_feedback(void)
               /* Cell has been removed */
               if(particle < 0)
                 {
-                  /* Move to next ngb */
+                  if(q == SphP[i].last_connection)
+                    break;
+                  
                   q = DC[q].next;
-                  continue;
+                    continue;
                 }
 
               /* Face normal - from cell generator to cell generator */
@@ -429,7 +431,7 @@ void star_feedback(void)
                   double mj, vj[3];
                   if(Mesh.DP[dp].task == ThisTask)
                     {
-                      mj = P[particle].Mass + SphP[i].StarMassFeed;
+                      mj = P[particle].Mass + SphP[particle].StarMassFeed;
                       
                       for(k = 0; k < 3; k++)
                         vj[k] = (SphP[particle].Momentum[k] + SphP[particle].StarMomentumFeed[k]) / mj;   
@@ -609,9 +611,6 @@ void star_feedback(void)
                   n_export++;
                 }
             }
-
-          /* Clear this star's feedback entry */
-          memset(WindsAndSN, 0, sizeof(*WindsAndSN));
         } //for(int h = 0; h < SphP[i].Host; h++)
       
       /* Go to next host */
@@ -619,6 +618,11 @@ void star_feedback(void)
       /* All stars processed: release host slot */        
       SphP[i].Host = 0;
     } //for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
+
+  /* Clear all feedback entries */
+  memset(MechanicalFeedbackEvents.Data, 0, sizeof(Mechanical_Feedback_Data) * MechanicalFeedbackEvents.NumEvents);
+  
+  MechanicalFeedbackEvents.NumEvents = 0;
 
   /* MPI exchange of remote kick packets via MPI_Alltoallv */
   int *SendCount = mymalloc("FBSendCount", NTask * sizeof(int));
