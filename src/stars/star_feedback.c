@@ -198,7 +198,7 @@ void star_feedback(void)
         {                    
           int flag_winds = 0, flag_sn = 0;
 
-          Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[e + h];
+          Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
           Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
 
 #ifdef WINDS
@@ -277,9 +277,9 @@ void star_feedback(void)
                   /* Star-to-cell direction */
                   double r[3], rr; 
                   
-                  r[0] = Mesh.VF[vf].x - WindsAndSN->StarPosition[0];
-                  r[1] = Mesh.VF[vf].y - WindsAndSN->StarPosition[1];
-                  r[2] = Mesh.VF[vf].z - WindsAndSN->StarPosition[2];
+                  r[0] = Mesh.DP[dp].x - WindsAndSN->StarPosition[0];
+                  r[1] = Mesh.DP[dp].y - WindsAndSN->StarPosition[1];
+                  r[2] = Mesh.DP[dp].z - WindsAndSN->StarPosition[2];
 
                   rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
 
@@ -354,9 +354,9 @@ void star_feedback(void)
                   /* Star-to-cell direction */
                   double r[3], rr; 
                   
-                  r[0] = Mesh.VF[vf].x - WindsAndSN->StarPosition[0];
-                  r[1] = Mesh.VF[vf].y - WindsAndSN->StarPosition[1];
-                  r[2] = Mesh.VF[vf].z - WindsAndSN->StarPosition[2];
+                  r[0] = Mesh.DP[dp].x - WindsAndSN->StarPosition[0];
+                  r[1] = Mesh.DP[dp].y - WindsAndSN->StarPosition[1];
+                  r[2] = Mesh.DP[dp].z - WindsAndSN->StarPosition[2];
 
                   rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
 

@@ -192,7 +192,7 @@ void star_prep(void)
           {
             SP[i].Active = 1;
             SP[i].PhysicalAge_yr = 0.0;
-            SP[i].MassofStar = PPS(i).Mass;
+            SP[i].MassOfStar = PPS(i).Mass;
           }
       
       if(SP[i].Active == 0)
@@ -203,7 +203,7 @@ void star_prep(void)
       if(star_timestep == 0)
         terminate("star_timestep == 0!");
 
-      MyDouble star_mass = SP[i].MassofStar * All.cf_UnitMass_in_Msun;
+      MyDouble star_mass = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
 
       /* This sets the timestep of less massive stars at 1 Myr */
       if(star_mass < 8)
@@ -292,11 +292,11 @@ void star_perform_end_of_step_physics(void)
       i = TimeBinsStar.ActiveParticleList[idx];
 
 #ifdef WINDS
-      PPS(i).Mass -= SP[i].WindsAndSN.Massloss;
+      PPS(i).Mass -= SP[i].WindsAndSN.MassLoss;
 #endif
 
 #ifdef SUPERNOVAE
-      PPS(i).Mass -= SP[i].WindsAndSN.SN_Massloss;
+      PPS(i).Mass -= SP[i].WindsAndSN.SN_MassLoss;
 #endif
     }
 
