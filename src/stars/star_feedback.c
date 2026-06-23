@@ -229,7 +229,7 @@ void star_feedback(void)
           for(k = 0; k < 3; k++)
             Splus[k] = Sminus[k] = 0;
 
-          /* First pass */  
+          /* First pass */            
           q = SphP[i].first_connection;
           while(q >= 0)
             {
@@ -273,15 +273,28 @@ void star_feedback(void)
                   if(costheta < 0.0) costheta = 0.0;
             
                   double omega = 0.5 * (1 - 1 / sqrt(1 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
-                    
-                  /* these need to change! */
-                  for(k = 0; k < 3; k++)
+
+                  /* Star-to-cell direction */
+                  double r[3], rr; 
+                  
+                  r[0] = Mesh.VF[vf].x - WindsAndSN->StarPosition[0];
+                  r[1] = Mesh.VF[vf].y - WindsAndSN->StarPosition[1];
+                  r[2] = Mesh.VF[vf].z - WindsAndSN->StarPosition[2];
+
+                  rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+
+                  if(rr > 0.0)
                     {
-                      nplus[k] = n[k] >= 0 ? n[k] : 0;
-                      nminus[k] = n[k] < 0 ? n[k] : 0; 
+                      r[0] /= rr;  r[1] /= rr;  r[2] /= rr;
+
+                      for(k = 0; k < 3; k++)
+                        {
+                          nplus[k] = r[k] >= 0 ? r[k] : 0;
+                          nminus[k] = r[k] < 0 ? r[k] : 0; 
                         
-                      Splus[k] += omega * fabs(nplus[k]);
-                      Sminus[k] += omega * fabs(nminus[k]);
+                          Splus[k] += omega * fabs(nplus[k]);
+                          Sminus[k] += omega * fabs(nminus[k]);
+                        }
                     }
                 }
           
@@ -307,6 +320,9 @@ void star_feedback(void)
               int dp = DC[q].dp_index;
               int vf = DC[q].vf_index;
 
+              double w[3] = {0.0, 0.0, 0.0};
+
+             /* Face normal - from cell generator to cell generator */
               double n[3], nn; 
 
               n[0] = Mesh.DP[dp].x - P[i].Pos[0];
@@ -315,22 +331,48 @@ void star_feedback(void)
           
               nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
 
-              double w[3] = {0.0, 0.0, 0.0};
+              /* Star-to-face direction */
+              double d[3], dd; 
+                  
+              d[0] = Mesh.VF[vf].cx - WindsAndSN->StarPosition[0];
+              d[1] = Mesh.VF[vf].cy - WindsAndSN->StarPosition[1];
+              d[2] = Mesh.VF[vf].cz - WindsAndSN->StarPosition[2];
+              
+              dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
 
-              if(nn > 0.0 && Mesh.VF[vf].area > 0.0)
+              if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
                 {
                   n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-                                        
-                  double omega = 0.5 * (1 - 1 / sqrt(1 + 4 * Mesh.VF[vf].area / (M_PI * nn*nn)));
-                    
-                  for(k = 0; k < 3; k++)
-                    {
-                      nplus[k] = n[k] >= 0 ? n[k] : 0;
-                      nminus[k] = n[k] < 0 ? n[k] : 0; 
-                      fplus[k] = (Splus[k]  > 0.0) ? sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0;
-                      fminus[k] =(Sminus[k]  > 0.0) ? sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0;
+                  
+                  d[0] /= dd;  d[1] /= dd;  d[2] /= dd;
 
-                      w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
+                  double costheta = n[0]*d[0] + n[1]*d[1] + n[2]*d[2];
+                  if(costheta < 0.0) costheta = 0.0;
+            
+                  double omega = 0.5 * (1 - 1 / sqrt(1 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
+
+                  /* Star-to-cell direction */
+                  double r[3], rr; 
+                  
+                  r[0] = Mesh.VF[vf].x - WindsAndSN->StarPosition[0];
+                  r[1] = Mesh.VF[vf].y - WindsAndSN->StarPosition[1];
+                  r[2] = Mesh.VF[vf].z - WindsAndSN->StarPosition[2];
+
+                  rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+
+                  if(rr > 0.0)
+                    {
+                      r[0] /= rr;  r[1] /= rr;  r[2] /= rr;
+                    
+                      for(k = 0; k < 3; k++)
+                        {
+                          nplus[k] = r[k] >= 0 ? r[k] : 0;
+                          nminus[k] = r[k] < 0 ? r[k] : 0; 
+                          fplus[k] = (Splus[k]  > 0.0) ? sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0;
+                          fminus[k] =(Sminus[k]  > 0.0) ? sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0;
+
+                          w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
+                        }
                     }                                         
                 }
                 
