@@ -91,11 +91,13 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.density         = rho;
   *All.GrackleFieldData.internal_energy = u_old;
 
-#ifdef METALS
-  *All.GrackleFieldData.metal_density = SphP[target].GasMetallicity * *All.GrackleFieldData.density;
-#else
-  *All.GrackleFieldData.metal_density = GRACKLE_TINY * *All.GrackleFieldData.density;
+  double GasMetallicity = GRACKLE_TINY;
+
+#ifdef METALS 
+  GasMetallicity = SphP[target].GasMetallicity;
 #endif
+
+  *All.GrackleFieldData.metal_density = GasMetallicity * *All.GrackleFieldData.density;
 
   /* non-eq. chemistry values */
 #if (GRACKLE_CHEMISTRY >= 1)
@@ -143,7 +145,8 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.HDI_density = GRACKLE_TINY * *All.GrackleFieldData.density;
 #endif
 
-  Y_He = 1 - X_H - SphP[target].GasMetallicity;
+#ifdef METALS
+  Y_He = 1 - X_H - GasMetallicity;
 
   double e_density = 0;
 
@@ -202,7 +205,7 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           // Grackle assumes non-metal portion of the gas always retains its original primordial abundances ratio.
           // https://arxiv.org/abs/2604.00100v1 (Appendix A)
           // check make_consistent_g in solve_rate_cool_g.F
-          gr_float HHemassfrac = 1.0 - SphP[target].GasMetallicity;  // X_H+Y_He
+          gr_float HHemassfrac = 1.0 - GasMetallicity;  // X_H+Y_He
           // For H: X/(X+Y) divided value used in grackle 0.76
           gr_float fh_correct = (X_H / HHemassfrac) / 0.76;
           // For He: Y/(X+Y) divided value in grackle 0.24
@@ -597,17 +600,18 @@ double compute_mu(int i)
   double XHDI = 0.0;
 #endif
 
-  /* --- Assemble grouped mass fractions --- */
+  /* Assemble grouped mass fractions */
   double XH  = XHI + XHII + XHM;      /*   m_H */
   double XH2 = XH2I + XH2II;          /* 2 m_H */
   double XD  = XDI + XDII;            /* 2 m_H */
   double XHD = XHDI;                  /* 3 m_H */
   double XHe = XHeI + XHeII + XHeIII; /* 4 m_H */
 
+  /* Metals, approximated as 16 m_H */
+  double Z = 0;
+
 #ifdef METALS
-  double Z = SphP[i].GasMetallicity; /* metals, approximated as 16 m_H */
-#else
-  double Z = 0.0;
+  Z = SphP[i].GasMetallicity; 
 #endif
 
   /* mu = 1 / sum_s (X_s / A_s), where A_s is the atomic mass in units of m_H */
