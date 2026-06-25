@@ -138,7 +138,9 @@ extern struct primexch
 
 #if defined(WINDS) || defined(SUPERNOVAE)
   MyDouble MassFeed;
+#ifdef METALS
   MyDouble MetalsFeed;
+#endif
   MyDouble MomentumFeed[3];
 #endif
 } *PrimExch;
