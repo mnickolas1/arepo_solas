@@ -104,7 +104,7 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   double X_H = 0, Y_He = 0;
 
   /* electron density */
-  *All.GrackleFieldData.e_density = SphP[target].Ne * *All.GrackleFieldData.density;
+  //*All.GrackleFieldData.e_density = SphP[target].Ne * *All.GrackleFieldData.density;
 
   /* H and He species */
   *All.GrackleFieldData.HI_density    = SphP[target].GrackleSpecies(GRACKLE_HI) * *All.GrackleFieldData.density;
@@ -144,6 +144,23 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
 #endif
 
   Y_He = 1 - X_H - SphP[target].GasMetallicity;
+
+  double e_density = 0;
+
+  e_density += *All.GrackleFieldData.HII_density;
+  e_density += *All.GrackleFieldData.HeII_density / 4.0;
+  e_density += *All.GrackleFieldData.HeIII_density / 2.0;
+
+#if (GRACKLE_CHEMISTRY >= 2)
+  e_density += *All.GrackleFieldData.H2II_density / 2.0;
+  e_density -= *All.GrackleFieldData.HM_density;
+#endif
+
+#if (GRACKLE_CHEMISTRY >= 3)
+  e_density += *All.GrackleFieldData.DII_density / 2.0;
+#endif
+
+  *All.GrackleFieldData.e_density = e_density;
 
   /* Radiation */
 #ifdef PHOTOELECTRIC_HEATING
