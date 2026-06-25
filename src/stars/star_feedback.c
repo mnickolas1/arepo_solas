@@ -515,8 +515,7 @@ void star_feedback(void)
                   Kick.DeltaMetals = WindsAndSN->MetalsLoss * sqrtsq_wbar;
 #endif    
                   for(k = 0; k < 3; k++)
-                    Kick.DeltaP[k] = WindsAndSN->MassLoss * sqrtsq_wbar 
-                    * (WindsAndSN->StarVelocity[k] + WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[k]);
+                    Kick.DeltaP[k] = WindsAndSN->MassLoss * sqrtsq_wbar * WindsAndSN->StarVelocity[k] + WindsAndSN->WindMomentum * wbar[k];
           
                   double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
                   + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1] 
@@ -525,12 +524,11 @@ void star_feedback(void)
                   double sq_vwind = WindsAndSN->WindMomentum / WindsAndSN->MassLoss
                   * WindsAndSN->WindMomentum / WindsAndSN->MassLoss; 
 
-                  double cross = 2.0 * (WindsAndSN->StarVelocity[0] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[0] 
-                  + WindsAndSN->StarVelocity[1] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[1] 
-                  + WindsAndSN->StarVelocity[2] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[2]);
+                  //double cross = 2.0 * (WindsAndSN->StarVelocity[0] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[0] 
+                  //+ WindsAndSN->StarVelocity[1] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[1] 
+                  //+ WindsAndSN->StarVelocity[2] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[2]);
 
-                  Kick.DeltaE = 0.5 * WindsAndSN->MassLoss * sqrtsq_wbar 
-                  * (sq_vstar + sq_vwind * sq_wbar + cross);
+                  Kick.DeltaE = 0.5 * WindsAndSN->MassLoss * (sq_vstar + sq_vwind) * sqrtsq_wbar;
                 }   
 #endif
  
@@ -542,8 +540,7 @@ void star_feedback(void)
                   Kick.SN_DeltaMetals = WindsAndSN->SN_MetalsLoss * sqrtsq_wbar;
 #endif 
                   for(k = 0; k < 3; k++)
-                    Kick.SN_DeltaP[k] = WindsAndSN->SN_MassLoss * sqrtsq_wbar * WindsAndSN->StarVelocity[k]
-                    + p * wbar[k];
+                    Kick.SN_DeltaP[k] = WindsAndSN->SN_MassLoss * sqrtsq_wbar * WindsAndSN->StarVelocity[k] + p * wbar[k];
 
                   Kick.SN_DeltaE = E * sqrtsq_wbar;
                 }
