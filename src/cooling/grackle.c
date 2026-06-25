@@ -145,7 +145,6 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.HDI_density = GRACKLE_TINY * *All.GrackleFieldData.density;
 #endif
 
-#ifdef METALS
   Y_He = 1 - X_H - GasMetallicity;
 
   double e_density = 0;
