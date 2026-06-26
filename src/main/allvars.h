@@ -383,26 +383,27 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #define JET_NUMBER 1 
 #endif 
 
-/* calculate appropriate value of MAXSCALARS */
+/* Potential extension */
+#ifndef PASSIVE_SCALARS_EXTRA
+#define PASSIVE_SCALARS_EXTRA 0
+#endif
 
-#if defined(REFINEMENT_HIGH_RES_GAS) || defined(PASSIVE_SCALARS)
+/* Total passive scalar count */
+#define PASSIVE_SCALARS (METALS_NUMBER + GRACKLE_SPECIES_NUMBER + JET_NUMBER + PASSIVE_SCALARS_EXTRA)
 
+/* Refinement Default */
+#define SCALAR_REFINE 0
+
+/* Refinement high res gas */
 #ifdef REFINEMENT_HIGH_RES_GAS
-#define COUNT_REFINE 1
-#else /* #ifdef  REFINEMENT_HIGH_RES_GAS */
-#define COUNT_REFINE 0
-#endif /* #ifdef  REFINEMENT_HIGH_RES_GAS #else */
+#undef SCALAR_REFINE
+#define SCALAR_REFINE 1
+#endif
 
-#ifdef PASSIVE_SCALARS
-#define COUNT_PASSIVE_SCALARS PASSIVE_SCALARS
-#else /* #ifdef PASSIVE_SCALARS */
-#define COUNT_PASSIVE_SCALARS 0
-#endif /* #ifdef PASSIVE_SCALARS #else */
-
-#define MAXSCALARS (COUNT_REFINE + COUNT_PASSIVE_SCALARS)
-#endif /* #if defined(REFINEMENT_HIGH_RES_GAS) ||  defined(PASSIVE_SCALARS)*/
-
-/* calculate appropriate value of MAXGRADIENTS */
+/* Calculate appropriate value of MAXSCALARS */
+#if (PASSIVE_SCALARS > 0) || (SCALAR_REFINE > 0)
+#define MAXSCALARS (PASSIVE_SCALARS + SCALAR_REFINE)
+#endif
 
 #define COUNT_GRAD_DEFAULT 5
 
