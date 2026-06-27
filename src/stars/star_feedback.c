@@ -225,8 +225,16 @@ void star_feedback(void)
 
           /* First pass */            
           q = SphP[i].first_connection;
+
           while(q >= 0)
             {
+              if(q < 0 || q >= MaxNvc)
+                {
+                  char buf[1000];
+                  sprintf(buf, "Strange connectivity q=%d Nvc=%d", q, MaxNvc);
+                  terminate(buf);
+                }
+              
               int dp = DC[q].dp_index;
               int vf = DC[q].vf_index;
               int particle = Mesh.DP[dp].index;
@@ -464,8 +472,7 @@ void star_feedback(void)
                       NgbsMass += mj * sqrtsq_wbar;
                       NgbsDensity += mj / SphP[particle].Volume * sqrtsq_wbar;
 #ifdef METALS
-                      NgbsMetallicity += (P[particle].Mass * SphP[particle].GasMetallicity + SphP[particle].StarMetalsFeed)
-                      / mj * sqrtsq_wbar;
+                      NgbsMetallicity += (SphP[particle].GasMetals + SphP[particle].StarMetalsFeed) / mj * sqrtsq_wbar;
 #endif
                     }
                   else
