@@ -248,7 +248,7 @@ void bh_perform_end_of_step_physics(void)
 #ifdef JET_TRACER
           // Tracer field advected passively 
           SphP[i].PScalars[JET_INDEX] = 1;
-          SphP[i].PConservedScalars[JET_INDEX] = P[i].Mass;
+          sync_conserved_from_primitive(i, JET_INDEX);
 #endif
         }
     }

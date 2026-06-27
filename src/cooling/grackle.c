@@ -224,8 +224,14 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           SphP[target].GrackleSpecies(GRACKLE_HeII) *= fhe_correct;
           SphP[target].GrackleSpecies(GRACKLE_HeIII) *= fhe_correct;
 
-          SphP[target].Ne = SphP[target].GrackleSpecies(GRACKLE_HII) + SphP[target].GrackleSpecies(GRACKLE_HeII) / 4. +
-                            SphP[target].GrackleSpecies(GRACKLE_HeIII) / 2.;
+          SphP[target].Ne = SphP[target].GrackleSpecies(GRACKLE_HII) + SphP[target].GrackleSpecies(GRACKLE_HeII) / 4. 
+          + SphP[target].GrackleSpecies(GRACKLE_HeIII) / 2.;
+
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_HI);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_HII);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_HeI);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_HeII);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_HeIII);
 #endif
 
 #if (GRACKLE_CHEMISTRY >= 2)
@@ -238,6 +244,10 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           SphP[target].GrackleSpecies(GRACKLE_HM) *= fh_correct;
 
           SphP[target].Ne += SphP[target].GrackleSpecies(GRACKLE_H2II) / 2. - SphP[target].GrackleSpecies(GRACKLE_HM);
+
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_H2I);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_H2II);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_HM);    
 #endif
 
 #if (GRACKLE_CHEMISTRY >= 3)
@@ -251,6 +261,9 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
 
           SphP[target].Ne += SphP[target].GrackleSpecies(GRACKLE_DII) / 2.;
 
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_DI);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_DII);
+          sync_conserved_from_primitive(target, GRACKLE_SPECIES_INDEX + GRACKLE_HDI);
 #endif
 
           returnval = *All.GrackleFieldData.internal_energy;

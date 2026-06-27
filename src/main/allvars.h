@@ -346,7 +346,7 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #define JET_INDEX 0
 #define JET_NUMBER 0
 
-/* Metals */
+/* Metallicity */
 #ifdef METALS
 #undef METALS_INDEX
 #undef METALS_NUMBER
@@ -354,7 +354,7 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #define METALS_NUMBER 1 
 #endif 
 
-/* Chemistry Species */
+/* Chemistry species */
 #ifdef USE_GRACKLE
 #if GRACKLE_CHEMISTRY >= 1
 #undef GRACKLE_SPECIES_INDEX
@@ -375,7 +375,7 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #endif
 #endif
 
-/* Jets */
+/* Jet tracer */
 #ifdef JET_TRACER
 #undef JET_INDEX
 #undef JET_NUMBER
@@ -1684,6 +1684,20 @@ extern struct sph_particle_data
 #define GasMetals PConservedScalars[METALS_INDEX]
 #endif
 
+/* Chemistry species */
+#ifdef USE_GRACKLE
+#if GRACKLE_CHEMISTRY >= 1
+#define GrackleSpecies(i) PScalars[GRACKLE_SPECIES_INDEX + (i)]
+#define GrackleSpeciesConserved(i) PConservedScalars[GRACKLE_SPECIES_INDEX + (i)]
+#endif
+#endif
+
+/* Jet tracer */
+#ifdef JET_TRACER
+#define JetTracer PScalars[JET_INDEX]
+#define JetTracerConserved PConservedScalars[JET_INDEX]    
+#endif
+
 /* Cooling */
 #ifdef COOLING
   MyFloat Ne; /* electron fraction, expressed as local electron number
@@ -1694,13 +1708,6 @@ extern struct sph_particle_data
 #ifdef OUTPUT_COOLHEAT
   MyFloat CoolHeat;
 #endif 
-
-#ifdef USE_GRACKLE
-#if GRACKLE_CHEMISTRY >= 1
-#define GrackleSpecies(i) PScalars[GRACKLE_SPECIES_INDEX + (i)]
-#define GrackleSpeciesConserved(i) PConservedScalars[GRACKLE_SPECIES_INDEX + (i)]
-#endif
-#endif
 
 /* Star formation */
 #ifdef USE_SFR
@@ -1761,11 +1768,6 @@ extern struct sph_particle_data
   MyDouble BhThermalFeed;
   MyDouble BhKineticFeed;
   MyDouble BhMomentumFeed[3];
-#endif
-
-#ifdef JET_TRACER
-#define JetTracer PScalars[JET_INDEX]
-#define JetTracerConserved PConservedScalars[JET_INDEX]    
 #endif
 } * SphP,          /*!< holds SPH particle data on local processor */
     *DomainSphBuf; /*!< buffer for SPH particle data in domain decomposition */

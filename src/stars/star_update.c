@@ -311,12 +311,14 @@ void star_perform_end_of_step_physics(void)
       /* Add mass */ 
       P[i].Mass += SphP[i].StarMassFeed;
       All.StarFeedbackLocal[3] += SphP[i].StarMassFeed;
+      
       SphP[i].StarMassFeed = 0;
 #ifdef METALS
       /* Add metals */
-      SphP[i].GasMetals += SphP[i].StarMetalsFeed;
-      SphP[i].GasMetallicity = SphP[i].GasMetals / P[i].Mass;
+      SphP[i].GasMetallicity = (SphP[i].GasMetals + SphP[i].StarMetalsFeed) / P[i].Mass;
+      sync_conserved_from_primitive(i, METALS_INDEX);
       All.StarFeedbackLocal[4] += SphP[i].StarMetalsFeed;
+
       SphP[i].StarMetalsFeed = 0;
 #endif
 #endif
@@ -328,6 +330,7 @@ void star_perform_end_of_step_physics(void)
       SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2];
       /* Update velocities */ 
       update_primitive_variables_single(P, SphP, i, &pvd);
+      
       /* Set feed flags to zero */
       SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
 #endif
@@ -335,8 +338,10 @@ void star_perform_end_of_step_physics(void)
       /* Update total energy */
       SphP[i].Energy += SphP[i].StarEnergyFeed;
       All.StarFeedbackLocal[5] += SphP[i].StarEnergyFeed;
+      
       /* Set feed flags to zero */
       SphP[i].StarEnergyFeed = 0;
+      
       /* Update internal energy */ 
       update_internal_energy(P, SphP, i, &pvd);
       /* Update pressure */

@@ -49,6 +49,38 @@ struct scalar_elements scalar_elements[MAXSCALARS];
 struct scalar_index ScalarIndex;
 #endif /* #ifdef MAXSCALARS */
 
+/*! \brief Initialize a specific scalar property.
+ *
+ *  \param[in] addr Pointer to (primitive) scalar in SphP[0] struct.
+ *  \param[in] addr_mass Pointer to conserved scalar quantity in SphP[0].
+ *  \param[in] type Type of scalar (e.g. SCALAR_TYPE_PASSIVE for passive
+ *             scalar)
+ *
+ *  \return Number of scalars - 1
+ */
+int scalar_init(MyFloat *addr, MyFloat *addr_mass, int type)
+{
+#ifdef MAXSCALARS
+  if(N_Scalar == MAXSCALARS)
+    {
+      mpi_printf("Failed to register scalar, maximum of %d already reached\n", MAXSCALARS);
+      terminate("MAXSCALARS reached");
+    }
+
+  /* save type and relative address */
+  scalar_elements[N_Scalar].type        = type;
+  scalar_elements[N_Scalar].offset      = ((char *)addr) - ((char *)&SphP[0]);
+  scalar_elements[N_Scalar].offset_mass = ((char *)addr_mass) - ((char *)&SphP[0]);
+
+  N_Scalar++;
+
+  return N_Scalar - 1;
+  /* note: gradients are initialized in init_gradients */
+#else  /* #ifdef MAXSCALARS */
+  return -1;
+#endif /* #ifdef MAXSCALARS #else */
+}
+
 /*! \brief Main routine to initialize passive scalar quantities.
  *
  *  \return void
@@ -113,38 +145,16 @@ void init_passive_scalars(void)
 
       /* Convert every primitive passive scalar to its conserved form */
       for(int j = 0; j < PASSIVE_SCALARS; j++)
-        SphP[i].PConservedScalars[j] = SphP[i].PScalars[j] * P[i].Mass;
+        sync_conserved_from_primitive(i, j);
     }
 }
 
-/*! \brief Initialize a specific scalar property.
- *
- *  \param[in] addr Pointer to (primitive) scalar in SphP[0] struct.
- *  \param[in] addr_mass Pointer to conserved scalar quantity in SphP[0].
- *  \param[in] type Type of scalar (e.g. SCALAR_TYPE_PASSIVE for passive
- *             scalar)
- *
- *  \return Number of scalars - 1
- */
-int scalar_init(MyFloat *addr, MyFloat *addr_mass, int type)
+void sync_conserved_from_primitive(int target, int idx)
 {
-#ifdef MAXSCALARS
-  if(N_Scalar == MAXSCALARS)
-    {
-      mpi_printf("Failed to register scalar, maximum of %d already reached\n", MAXSCALARS);
-      terminate("MAXSCALARS reached");
-    }
+  SphP[target].PConservedScalars[idx] = SphP[target].PScalars[idx] * P[target].Mass;
+}
 
-  /* save type and relative address */
-  scalar_elements[N_Scalar].type        = type;
-  scalar_elements[N_Scalar].offset      = ((char *)addr) - ((char *)&SphP[0]);
-  scalar_elements[N_Scalar].offset_mass = ((char *)addr_mass) - ((char *)&SphP[0]);
-
-  N_Scalar++;
-
-  return N_Scalar - 1;
-  /* note: gradients are initialized in init_gradients */
-#else  /* #ifdef MAXSCALARS */
-  return -1;
-#endif /* #ifdef MAXSCALARS #else */
+void sync_primitive_from_conserved(int target, int idx)
+{
+  SphP[target].PScalars[idx] = SphP[target].PConservedScalars[idx] / P[target].Mass;
 }

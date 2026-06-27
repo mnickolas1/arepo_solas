@@ -485,6 +485,8 @@ void pm_setup_nonperiodic_kernel(void);
 void init_gradients(void);
 void init_scalars(void);
 void init_passive_scalars(void);
+void sync_conserved_from_primitive(int target, int idx);
+void sync_primitive_from_conserved(int target, int idx);
 void print_particle_info(int i);
 void print_state_info(struct state *st);
 void print_state_face_info(struct state_face *st);
@@ -529,7 +531,6 @@ void sample_solution_isothermal3d(double S, struct state *st_L, struct state *st
 void apply_flux_list(void);
 int flux_list_data_compare(const void *a, const void *b);
 void set_vertex_velocities(void);
-int scalar_init(MyFloat *addr, MyFloat *addr_mass, int type);
 void compute_interface_fluxes(tessellation *T);
 void update_primitive_variables(void);
 
