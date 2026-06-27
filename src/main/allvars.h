@@ -513,6 +513,9 @@ typedef unsigned long long peano1D;
 */
 #define SOLAR_METALLICITY 0.0134
 
+#ifdef USE_GRACKLE
+#define GRACKLE_TINY 1e-20
+
 #if GRACKLE_CHEMISTRY >= 1
 #define GRACKLE_HI    0
 #define GRACKLE_HII   1
@@ -531,6 +534,7 @@ typedef unsigned long long peano1D;
 #define GRACKLE_DI    8
 #define GRACKLE_DII   9
 #define GRACKLE_HDI   10
+#endif
 #endif
 
 #ifndef FOF_PRIMARY_LINK_TYPES
