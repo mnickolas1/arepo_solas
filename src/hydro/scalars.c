@@ -116,8 +116,6 @@ void init_passive_scalars(void)
 
 #ifdef USE_GRACKLE
       /* Fully neutral initial conditions -> might want to set different ones */
-      SphP[i].Ne = GRACKLE_TINY;
-
 #if GRACKLE_CHEMISTRY >= 1
       SphP[i].GrackleSpecies(GRACKLE_HI) = HYDROGEN_MASSFRAC;  /* all H is neutral */
       SphP[i].GrackleSpecies(GRACKLE_HII) = GRACKLE_TINY;

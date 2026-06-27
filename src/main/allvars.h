@@ -355,12 +355,10 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #endif 
 
 /* Chemistry species */
-#ifdef USE_GRACKLE
-#if GRACKLE_CHEMISTRY >= 1
+#if defined(USE_GRACKLE) && (GRACKLE_CHEMISTRY >= 1)
 #undef GRACKLE_SPECIES_INDEX
 #undef GRACKLE_SPECIES_NUMBER
 #define GRACKLE_SPECIES_INDEX (METALS_INDEX + METALS_NUMBER)
-#endif
 #endif
 
 #ifdef USE_GRACKLE
