@@ -526,37 +526,6 @@ void InitGrackle(void)
     printf("GRACKLE: Grackle Initialized\n");
 }
 
-void init_state(void)
-{
-  // We run this inside init()
-  int i;
-  for(i = 0; i < NumGas; i++)
-    {
-      /* Fully neutral initial conditions -> might want to set different ones */
-      SphP[i].Ne = GRACKLE_TINY;
-
-#if (GRACKLE_CHEMISTRY >= 1)
-      SphP[i].GrackleSpecies(GRACKLE_HI)    = HYDROGEN_MASSFRAC;  // all H is neutral
-      SphP[i].GrackleSpecies(GRACKLE_HII)   = GRACKLE_TINY;
-      SphP[i].GrackleSpecies(GRACKLE_HeI)   = (1.0 - HYDROGEN_MASSFRAC);  // all He is neutral
-      SphP[i].GrackleSpecies(GRACKLE_HeII)  = GRACKLE_TINY;
-      SphP[i].GrackleSpecies(GRACKLE_HeIII) = GRACKLE_TINY;
-#endif
-
-#if (GRACKLE_CHEMISTRY >= 2)
-      SphP[i].GrackleSpecies(GRACKLE_H2I)  = GRACKLE_TINY;
-      SphP[i].GrackleSpecies(GRACKLE_H2II) = GRACKLE_TINY;
-      SphP[i].GrackleSpecies(GRACKLE_HM)   = GRACKLE_TINY;
-#endif
-
-#if (GRACKLE_CHEMISTRY >= 3)
-      SphP[i].GrackleSpecies(GRACKLE_DI)  = GRACKLE_TINY;
-      SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
-      SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
-#endif
-    }
-}
-
 double compute_mu(int i)
 {
   double Xe = SphP[i].Ne;

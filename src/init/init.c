@@ -437,7 +437,8 @@ int init(void)
       write_voronoi_mesh(&Mesh, tess_name, 0, NTask - 1);
       return 0;
     }
-
+  
+  /* Set up gas properties */  
   for(i = 0, mass = 0; i < NumGas; i++)
     {
       if(RestartFlag == 0)
@@ -479,29 +480,15 @@ int init(void)
       mass += P[i].Mass;
     }
 
-/* NOTE: The metals have to be initialised before the PASSIVE_SCALARS.
- * The value in the PScalars are set to zero during reading ICs.
- * */
-#ifdef METALS
-  for(i = 0; i < NumGas; i++)
-      SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
-#endif /* ifdef METALS */
-
-#ifdef PASSIVE_SCALARS
-  for(i = 0; i < NumGas; i++)
-      for(j = 0; j < PASSIVE_SCALARS; j++)
-        SphP[i].PConservedScalars[j] = SphP[i].PScalars[j] * P[i].Mass;
-#endif /* #ifdef PASSIVE_SCALARS */
+#if PASSIVE_SCALARS > 0
+  init_passive_scalars();
+#endif
 
 #ifdef METALS
 #ifdef STARS
   for(i = 0; i < NumStars; i++)
-      SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+    SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
 #endif
-#endif
-
-#ifdef USE_GRACKLE 
-  init_state();
 #endif
 
   if(RestartFlag == 17)

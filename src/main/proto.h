@@ -75,7 +75,7 @@ void fof_seeding(void);
 double fof_seeding_get_time_increment(void);
 #endif
 
-void sfr_init();
+void sfr_init(void);
 void sfr_create_star_particles(void);
 void ngb_finish_rangebounds_update(int nchanged, int *nodelist);
 void ngb_update_rangebounds(int i, int *nchanged, int *nodelist);
@@ -136,12 +136,12 @@ void find_long_range_step_constraint(void);
 void ngb_treemodifylength(int delta_NgbMaxPart);
 void domain_resize_storage(int count_get, int count_get_sph, int option_flag);
 void init_individual_softenings(void);
-void do_derefinements_and_refinements();
+void do_derefinements_and_refinements(void);
 void mark_active_timebins(void);
 void voronoi_test(void);
 void execute_resubmit_command(void);
 void output_compile_time_options(void);
-void init_io_fields();
+void init_io_fields(void);
 void produce_dump(void);
 
 void create_snapshot_if_desired(void);
@@ -482,8 +482,9 @@ void pm_init_nonperiodic(void);
 int pmforce_nonperiodic(int grnr);
 void readjust_timebase(double TimeMax_old, double TimeMax_new);
 void pm_setup_nonperiodic_kernel(void);
-void init_gradients();
-void init_scalars();
+void init_gradients(void);
+void init_scalars(void);
+void init_passive_scalars(void);
 void print_particle_info(int i);
 void print_state_info(struct state *st);
 void print_state_face_info(struct state_face *st);
@@ -577,8 +578,8 @@ void cool_cell(int i);
 #endif /* #if defined(COOLING) */
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
-void special_particle_create_list();
-void special_particle_update_list();
+void special_particle_create_list(void);
+void special_particle_update_list(void);
 #endif /* #ifdef  EXACT_GRAVITY_FOR_PARTICLE_TYPE */
 
 #ifdef HAVE_HDF5
@@ -643,7 +644,7 @@ void do_mhd_source_terms_second_half(void);
 #endif /* #ifdef MHD */
 
 #ifdef ONEDIMS_SPHERICAL
-void gravity_monopole_1d_spherical();
+void gravity_monopole_1d_spherical(void);
 #endif /* #ifdef ONEDIMS_SPHERICAL */
 
 #if defined(PMGRID)
@@ -688,7 +689,6 @@ void make_star(int idx, int i, double prob, MyDouble mass_of_star, double *sum_m
 #endif /* #ifdef USE_SFR */
 
 #ifdef USE_GRACKLE
-void init_state(void);
 double compute_mu(int i);
 #endif
 

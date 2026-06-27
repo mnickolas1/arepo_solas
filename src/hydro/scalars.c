@@ -53,7 +53,7 @@ struct scalar_index ScalarIndex;
  *
  *  \return void
  */
-void init_scalars()
+void init_scalars(void)
 {
 #ifdef MAXSCALARS
 
@@ -63,20 +63,58 @@ void init_scalars()
     terminate("ScalarIndex.HighResMass initialized incorrectly\n");
 #endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
 
-#ifdef PASSIVE_SCALARS
+#if PASSIVE_SCALARS > 0
   for(int i = 0; i < PASSIVE_SCALARS; i++)
-    {
-#ifdef METALS
-      if(i == METALS_INDEX)
-        mpi_printf("Initializing passive scalar: Total Metallicity\n");
-#endif /* METALS */
-
-      scalar_init(&SphP[0].PScalars[i], &SphP[0].PConservedScalars[i], SCALAR_TYPE_PASSIVE);
-    }
-#endif /* #ifdef PASSIVE_SCALARS */
+    scalar_init(&SphP[0].PScalars[i], &SphP[0].PConservedScalars[i], SCALAR_TYPE_PASSIVE);
+#endif
 
   mpi_printf("INIT: %d/%d Scalars used.\n", N_Scalar, MAXSCALARS);
 #endif /* MAXSCALARS */
+}
+
+void init_passive_scalars(void)
+{
+  int i;
+
+  for(i = 0; i < NumGas; i++)
+    {
+#ifdef METALS
+      SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+#endif /* #ifdef METALS */
+
+#ifdef USE_GRACKLE
+      /* Fully neutral initial conditions -> might want to set different ones */
+      SphP[i].Ne = GRACKLE_TINY;
+
+#if GRACKLE_CHEMISTRY >= 1
+      SphP[i].GrackleSpecies(GRACKLE_HI) = HYDROGEN_MASSFRAC;  /* all H is neutral */
+      SphP[i].GrackleSpecies(GRACKLE_HII) = GRACKLE_TINY;
+      SphP[i].GrackleSpecies(GRACKLE_HeI) = (1.0 - HYDROGEN_MASSFRAC);  /* all He is neutral */
+      SphP[i].GrackleSpecies(GRACKLE_HeII) = GRACKLE_TINY;
+      SphP[i].GrackleSpecies(GRACKLE_HeIII) = GRACKLE_TINY;
+#endif /* #if (GRACKLE_CHEMISTRY >= 1) */
+
+#if GRACKLE_CHEMISTRY >= 2
+      SphP[i].GrackleSpecies(GRACKLE_H2I) = GRACKLE_TINY;
+      SphP[i].GrackleSpecies(GRACKLE_H2II) = GRACKLE_TINY;
+      SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
+#endif /* #if (GRACKLE_CHEMISTRY >= 2) */
+
+#if GRACKLE_CHEMISTRY >= 3
+      SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
+      SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
+      SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
+#endif /* #if (GRACKLE_CHEMISTRY >= 3) */
+#endif /* #ifdef USE_GRACKLE */
+
+#ifdef JET_TRACER
+      SphP[i].JetTracer = 0.0;
+#endif /* #ifdef JET_TRACER */
+
+      /* Convert every primitive passive scalar to its conserved form */
+      for(int j = 0; j < PASSIVE_SCALARS; j++)
+        SphP[i].PConservedScalars[j] = SphP[i].PScalars[j] * P[i].Mass;
+    }
 }
 
 /*! \brief Initialize a specific scalar property.
