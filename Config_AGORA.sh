@@ -1,7 +1,6 @@
 #--------------------------------------- SOLAS additions
 
 #--------------------------------------- Metal parameters
-PASSIVE_SCALARS=1      # Number of passive scalar fields advected with fluid (default: 0)
 METALS                 # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS
 
 #--------------------------------------- Cooling parameters
