@@ -517,23 +517,23 @@ typedef unsigned long long peano1D;
 #define GRACKLE_TINY 1e-20
 
 #if GRACKLE_CHEMISTRY >= 1
-#define GRACKLE_HI    0
-#define GRACKLE_HII   1
-#define GRACKLE_HeI   2
-#define GRACKLE_HeII  3
-#define GRACKLE_HeIII 4
+#define GRACKLE_HI    (GRACKLE_SPECIES_INDEX)
+#define GRACKLE_HII   (GRACKLE_SPECIES_INDEX + 1)
+#define GRACKLE_HeI   (GRACKLE_SPECIES_INDEX + 2)
+#define GRACKLE_HeII  (GRACKLE_SPECIES_INDEX + 3)
+#define GRACKLE_HeIII (GRACKLE_SPECIES_INDEX + 4)
 #endif
 
 #if GRACKLE_CHEMISTRY >= 2
-#define GRACKLE_H2I   5
-#define GRACKLE_H2II  6
-#define GRACKLE_HM    7
+#define GRACKLE_H2I   (GRACKLE_SPECIES_INDEX + 5)
+#define GRACKLE_H2II  (GRACKLE_SPECIES_INDEX + 6)
+#define GRACKLE_HM    (GRACKLE_SPECIES_INDEX + 7)
 #endif
 
 #if GRACKLE_CHEMISTRY >= 3
-#define GRACKLE_DI    8
-#define GRACKLE_DII   9
-#define GRACKLE_HDI   10
+#define GRACKLE_DI    (GRACKLE_SPECIES_INDEX + 8)
+#define GRACKLE_DII   (GRACKLE_SPECIES_INDEX + 9)
+#define GRACKLE_HDI   (GRACKLE_SPECIES_INDEX + 10)
 #endif
 #endif
 
@@ -1685,11 +1685,9 @@ extern struct sph_particle_data
 #endif
 
 /* Chemistry species */
-#ifdef USE_GRACKLE
-#if GRACKLE_CHEMISTRY >= 1
-#define GrackleSpecies(i) PScalars[GRACKLE_SPECIES_INDEX + (i)]
-#define GrackleSpeciesConserved(i) PConservedScalars[GRACKLE_SPECIES_INDEX + (i)]
-#endif
+#if defined(USE_GRACKLE) && (GRACKLE_CHEMISTRY >= 1)
+#define GrackleSpecies(i) PScalars[(i)]
+#define GrackleSpeciesConserved(i) PConservedScalars[(i)]
 #endif
 
 /* Jet tracer */
