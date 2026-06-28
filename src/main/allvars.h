@@ -1746,9 +1746,12 @@ extern struct sph_particle_data
   MyDouble PE_VolHeatingRate;
 #endif
 
+#ifdef DISSOCIATION
+  MyDouble H2_DissociationRate;
+#endif
+
 #ifdef PHOTOIONIZATION
   MyDouble PI_VolHeatingRate;
-  MyDouble H2_DissociationRate;
   MyDouble HI_IonizationRate;
   MyDouble HeI_IonizationRate;
   MyDouble HeII_IonizationRate;

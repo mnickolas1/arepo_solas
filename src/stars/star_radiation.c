@@ -491,13 +491,15 @@ static void radiation_feedback(void)
       SphP[i].PE_VolHeatingRate +=  E_pe / dt_cgs / V_cgs;
 #endif
 
-#ifdef PHOTOIONIZATION
-      /* H2 Dissociation */
+#ifdef DISSOCIATION
+  /* H2 Dissociation */
       double N_abs_H2 = SphP[i].Absorbed[LYMAN_WERNER].Photons;
       
       double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].H2_DissociationRate += n_H2 > 0 ? (N_abs_H2 / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_H2: 0.0;
-      
+#endif
+
+#ifdef PHOTOIONIZATION
       double energy_thresh_HI = 13.6 * ELECTRONVOLT_IN_ERGS;
       double energy_thresh_HeI = 24.6 * ELECTRONVOLT_IN_ERGS;
       double energy_thresh_HeII = 54.4 * ELECTRONVOLT_IN_ERGS;

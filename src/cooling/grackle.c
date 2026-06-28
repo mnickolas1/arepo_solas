@@ -169,14 +169,18 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.volumetric_heating_rate = 0;
 #endif
 
-#ifdef PHOTOIONIZATION
+#ifdef DISSOCIATION
   *All.GrackleFieldData.RT_H2_dissociation_rate = (gr_float)(SphP[target].H2_DissociationRate);
+#else
+  *All.GrackleFieldData.RT_H2_dissociation_rate = 0;
+#endif
+
+#ifdef PHOTOIONIZATION
   *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].HI_IonizationRate);
   *All.GrackleFieldData.RT_HeI_ionization_rate = (gr_float)(SphP[target].HeI_IonizationRate);
   *All.GrackleFieldData.RT_HeII_ionization_rate = (gr_float)(SphP[target].HeII_IonizationRate);
   *All.GrackleFieldData.RT_heating_rate = (gr_float)(SphP[target].PI_VolHeatingRate);
 #else
-  *All.GrackleFieldData.RT_H2_dissociation_rate = 0;
   *All.GrackleFieldData.RT_HI_ionization_rate = 0;
   *All.GrackleFieldData.RT_HeI_ionization_rate = 0;
   *All.GrackleFieldData.RT_HeII_ionization_rate = 0;
