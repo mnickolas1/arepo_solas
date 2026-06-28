@@ -175,48 +175,49 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           double dtau_IR;
 
           int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
-
+          
           /* Deposit absorbed energy into cells, one band at a time */
-          /* What to do with Lyman-Werner? (TODO) */
-          /* Non Ionizing Energy */
-          double dp_rerad = 0.0;
+
+          double dK_total = 0.0;
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              if(w = LYMAN_WERNER || w == IONIZING_HI || w == IONIZING_HeI || w == IONIZING_HeII)
-                continue;
+              double dp;
 
-              SphP[no].Absorbed[w].Energy += absorbed[w].Energy;
-              dp_rerad += absorbed[w].Energy * (1 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
-            }
+              if(w == LYMAN_WERNER || w == IONIZING_HI || w == IONIZING_HeI || w == IONIZING_HeII)
+                dp = absorbed[w].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+
+              else
+                dp = absorbed[w].Energy * (1.0 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+          
             
-          double dp = 0.0;
+              double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
 
-          /* Dissociating Energy */
-          SphP[no].Absorbed[LYMAN_WERNER].Energy += absorbed[LYMAN_WERNER].Energy;
-          dp += absorbed[LYMAN_WERNER].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+              /* Partially updated state */
+              double mj, pj[3];
 
-          /* Ionizing Energy */
-          SphP[no].Absorbed[IONIZING_HI].Energy += absorbed[IONIZING_HI].Energy;
-          dp += absorbed[IONIZING_HI].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
-          
-          SphP[no].Absorbed[IONIZING_HeI].Energy += absorbed[IONIZING_HeI].Energy;
-          dp += absorbed[IONIZING_HeI].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
-          
-          SphP[no].Absorbed[IONIZING_HeII].Energy += absorbed[IONIZING_HeII].Energy;
-          dp += absorbed[IONIZING_HeII].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+              mj = P[no].Mass + SphP[no].StarMassFeed;
+              for(int k = 0; k < 3; k++)
+                pj[k] = SphP[no].Momentum[k] + SphP[no].StarMomentumFeed[k];
 
-          SphP[no].StarMomentumFeed[0] += (dp + dp_rerad) * ray->dir[0];
-          SphP[no].StarMomentumFeed[1] += (dp + dp_rerad) * ray->dir[1];
-          SphP[no].StarMomentumFeed[2] += (dp + dp_rerad) * ray->dir[2];
+              double sq_momentum = dp_vec[0]*dp_vec[0] + dp_vec[1]*dp_vec[1] + dp_vec[2]*dp_vec[2];
+
+              double cross = 2 * (pj[0] * dp_vec[0] + pj[1] * dp_vec[1] + pj[2] * dp_vec[2]);
+
+              double dK = (sq_momentum + cross) / (2 * mj);
+
+              SphP[no].StarMomentumFeed[0] += dp_vec[0];
+              SphP[no].StarMomentumFeed[1] += dp_vec[1];
+              SphP[no].StarMomentumFeed[2] += dp_vec[2];
+
+              SphP[no].Absorbed[w].Energy += absorbed[w].Energy - dK;
+
+              dK_total += dK;
+            }
+
+          SphP[no].StarEnergyFeed += dK_total;
+          All.StarFeedbackLocal[2] += dK_total;
           
-          double sq_momentum = (dp + dp_rerad) * ray->dir[0]*(dp + dp_rerad) * ray->dir[0] 
-          + (dp + dp_rerad) * ray->dir[1]*(dp + dp_rerad) * ray->dir[1]
-          + (dp + dp_rerad) * ray->dir[2]*(dp + dp_rerad) * ray->dir[2];
-          double cross = (dp + dp_rerad) * ray->dir[0] * P[no].Vel[0]  
-          + (dp + dp_rerad) * ray->dir[1] * P[no].Vel[1] 
-          + (dp + dp_rerad) * ray->dir[2] * P[no].Vel[2];
-          SphP[no].StarEnergyFeed += sq_momentum / (2 * P[no].Mass) + 2 * cross / (2 * P[no].Mass);
-          All.StarFeedbackLocal[2] += sq_momentum / (2 * P[no].Mass) + 2 * cross / (2 * P[no].Mass);
+          /* Deposit absorbed photons into cells, one band at a time */
           
           /* Dissociating Photons */
           SphP[no].Absorbed[LYMAN_WERNER].Photons += absorbed[LYMAN_WERNER].Photons;
