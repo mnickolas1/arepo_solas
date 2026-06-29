@@ -284,12 +284,11 @@ void exchange_primitive_variables(void)
 #ifdef METALS
               tmpPrimExch[off].MetalsFeed = SphP[place].StarMetalsFeed;
 #endif
-              
               for(int k = 0; k < 3; k++)
                 tmpPrimExch[off].MomentumFeed[k] = SphP[place].StarMomentumFeed[k];
 #endif
-
             }
+
           listp = ListExports[listp].nextexport;
         }
     }
@@ -397,7 +396,17 @@ void exchange_primitive_variables_and_gradients(void)
               tmpGradExch[off] = SphP[place].Grad;
 
               tmpPrimExch[off].Csnd = get_sound_speed(place);
+
+#if defined(WINDS) || defined(SUPERNOVAE) 
+              tmpPrimExch[off].MassFeed = SphP[place].StarMassFeed;
+#ifdef METALS
+              tmpPrimExch[off].MetalsFeed = SphP[place].StarMetalsFeed;
+#endif
+              for(int k = 0; k < 3; k++)
+                tmpPrimExch[off].MomentumFeed[k] = SphP[place].StarMomentumFeed[k];
+#endif
             }
+
           listp = ListExports[listp].nextexport;
         }
     }
