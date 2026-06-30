@@ -17,7 +17,7 @@ STAR_PARTICLES=1       # Star particles model flag: set to 0, 1 for massive star
 
 #STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
 WINDS                  # Only winds
-RADIATION              # Full radiation
+#RADIATION              # Full radiation
 SUPERNOVAE             # Only supernovae
 
 #STAR_HOST_REFINEMENT
