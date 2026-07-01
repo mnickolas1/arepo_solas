@@ -136,6 +136,7 @@ void bh_update_list_of_active_particles(void)
 {
   int i, n;
   TimeBinsBh.NActiveParticles = 0;
+
   for(n = 0; n < TIMEBINS; n++)
     {
       if(TimeBinSynchronized[n]) 
@@ -149,12 +150,13 @@ void bh_update_list_of_active_particles(void)
     }
 
   mysort(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles, sizeof(int), int_compare);
+
+  sumup_large_ints(1, &TimeBinsBh.NActiveParticles, &TimeBinsBh.GlobalNActiveParticles);
 }
 
 void bh_perform_end_of_step_physics(void)
 {
   int idx, i;
-  long long bh_active = 0;
     
 #ifdef BH_ACCRETION_ACTIVE
   /* Accrete mass and angular momentum onto the bh */
@@ -256,10 +258,9 @@ void bh_perform_end_of_step_physics(void)
       All.FeedbackFlag = -1;
 #endif
         
-    MPI_Allreduce(&TimeBinsBh.NActiveParticles, &bh_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&All.BhFeedbackLocal, &All.BhFeedbackGlobal, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   
-    mpi_printf("BLACKHOLES: Number of active blackholes = %lld \n", bh_active);
+    mpi_printf("BLACKHOLES: Number of active blackholes = %lld \n", TimeBinsBh.GlobalNActiveParticles);
     mpi_printf("BLACKHOLES: Energy given by BHs = %e, Energy taken up by gas particles = %e \n",
     All.BhFeedbackGlobal[0], All.BhFeedbackGlobal[1]);
 

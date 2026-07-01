@@ -134,6 +134,7 @@ void star_update_list_of_active_particles(void)
 {
   int i, n;
   TimeBinsStar.NActiveParticles = 0;
+
   for(n = 0; n < TIMEBINS; n++)
     {
       if(TimeBinSynchronized[n]) 
@@ -147,6 +148,8 @@ void star_update_list_of_active_particles(void)
     }
 
   mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
+
+  sumup_large_ints(1, &TimeBinsStar.NActiveParticles, &TimeBinsStar.GlobalNActiveParticles);
 }
 
 #if defined(WINDS) || defined(SUPERNOVAE)
@@ -274,7 +277,6 @@ void star_prep(void)
 void star_perform_end_of_step_physics(void)
 {
   int idx, i;
-  long long star_active = 0;
 
   struct pv_update_data pvd;
   if(All.ComovingIntegrationOn)
@@ -348,10 +350,9 @@ void star_perform_end_of_step_physics(void)
       set_pressure_of_cell_internal(P, SphP, i);
     } // for(idx...
 
-    MPI_Allreduce(&TimeBinsStar.NActiveParticles, &star_active, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&All.StarFeedbackLocal, &All.StarFeedbackGlobal, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-    mpi_printf("STARS: Number of active stars = %lld \n", star_active);
+    mpi_printf("STARS: Number of active stars = %lld \n", TimeBinsStar.GlobalNActiveParticles);
     mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n",
     All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[3]);
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",
