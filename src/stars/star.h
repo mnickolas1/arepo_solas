@@ -49,8 +49,9 @@ typedef struct Mechanical_Feedback
 typedef struct Mechanical_Feedback_Data
 {
   int StarIndex; /* local star index */
+  int StarTask; /* task that owns the star */
   int HostIndex; /* local gas-cell index */
-  int HostTask; /* task that owns the host cell */
+  int HostTask; /* task that owns the host */
 
   Mechanical_Feedback WindsAndSN;
 } Mechanical_Feedback_Data;

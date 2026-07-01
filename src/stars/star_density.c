@@ -12,7 +12,21 @@
 /* Pass counter: 1 = find host cell, 2 = gather feedback properties */
 static int pass;
 
-static int star_density_evaluate(int target, int mode, int threadid);
+static int star_density_evaluate1(int target, int mode, int threadid);
+static int star_density_evaluate2(int target, int mode, int threadid);
+
+/* Thin dispatcher - keeps kernel_local/kernel_imported untouched */
+static int star_density_evaluate(int target, int mode, int threadid)
+{
+  if(pass == 1)
+    return star_density_evaluate1(target, mode, threadid);
+  if(pass == 2)
+    return star_density_evaluate2(target, mode, threadid);
+
+  terminate("Star_density_evaluate: invalid pass value %d\n", pass);
+  return -1;
+}
+
 static int star_density_isactive(int n);
 
 static int feedback_compare(const void *a, const void *b)
@@ -21,24 +35,32 @@ static int feedback_compare(const void *a, const void *b)
   const Mechanical_Feedback_Data *db = b;
 
   if(da->HostTask < db->HostTask) return -1;
-  if(da->HostTask > db->HostTask) return  1;
+  if(da->HostTask > db->HostTask) return 1;
 
   if(da->HostIndex < db->HostIndex) return -1;
-  if(da->HostIndex > db->HostIndex) return  1;
+  if(da->HostIndex > db->HostIndex) return 1;
+
+  if(da->StarTask < db->StarTask) return -1;
+  if(da->StarTask > db->StarTask) return 1;
 
   if(da->StarIndex < db->StarIndex) return -1;
-  if(da->StarIndex > db->StarIndex) return  1;
+  if(da->StarIndex > db->StarIndex) return 1;
 
   return 0;
 }
 
-static MyFloat *StarNgbs;
-struct HostCell 
+static int *StarNgbs;
+static int *StarHostIndex;
+static int *StarHostTask;
+static MyFloat *StarHostDistance;
+
+struct Data 
 {
-  MyDouble Distance;
-  int Index;
-  int Task;
-} *StarHostCell;
+  int StarIndex; 
+  int StarTask; 
+  int HostIndex; 
+  int HostTask; 
+};
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -48,8 +70,7 @@ typedef struct
 {
   MyDouble Pos[3];
   
-  /* Pass 2 inputs */
-  struct HostCell HostCell;
+  struct Data Data;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble TimeSN_yr;
@@ -79,11 +100,21 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPS(i).Pos[j];
-
-  /* Pass 2 inputs */  
-  in->HostCell.Distance = StarHostCell[i].Distance;
-  in->HostCell.Index = StarHostCell[i].Index;
-  in->HostCell.Task = StarHostCell[i].Task;
+  
+  if(pass == 1)
+    {
+      in->Data.StarIndex = -1;
+      in->Data.StarTask = -1;
+      in->Data.HostIndex = -1;
+      in->Data.HostTask = -1;
+    }
+  if(pass == 2)
+    {
+      in->Data.StarIndex = i;
+      in->Data.StarTask = ThisTask;
+      in->Data.HostIndex = StarHostIndex[i];
+      in->Data.HostTask = StarHostTask[i];
+    }
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   in->TimeSN_yr = SP[i].TimeSN_yr;
@@ -105,8 +136,10 @@ static void particle2in(data_in *in, int i, int firstnode)
 typedef struct
 { 
   /* Pass 1 outputs */
-  MyDouble Ngbs;
-  struct HostCell HostCell;
+  int Ngbs;
+  int HostIndex;
+  int HostTask;
+  MyFloat HostDistance;
 
   /* Pass 2 outputs */
   int HostHydroBin;
@@ -127,15 +160,16 @@ static data_out *DataResult, *DataOut;
  */
 static void out2particle(data_out *out, int i, int mode)
 {
-  if(mode == MODE_LOCAL_PARTICLES) /* initial store */
+  /* Initial store */
+  if(mode == MODE_LOCAL_PARTICLES) 
     {
       /* Pass 1 outputs */
       if(pass == 1)
         {
           StarNgbs[i] = out->Ngbs;
-          StarHostCell[i].Distance = out->HostCell.Distance;
-          StarHostCell[i].Index = out->HostCell.Index;
-          StarHostCell[i].Task = out->HostCell.Task;
+          StarHostIndex[i] = out->HostIndex;
+          StarHostTask[i] = out->HostTask;
+          StarHostDistance[i] = out->HostDistance;
         }
 
       /* Pass 2 outputs */
@@ -144,17 +178,18 @@ static void out2particle(data_out *out, int i, int mode)
           SP[i].HostHydroBin = out->HostHydroBin;
         }
     }
-  else /* combine */
+  /* Combine */
+  else 
     {
       /* Pass 1 outputs */
       if(pass == 1)
         {
           StarNgbs[i] += out->Ngbs;
-          if(out->HostCell.Distance < StarHostCell[i].Distance)
+          if(out->HostDistance < StarHostDistance[i])
             {
-              StarHostCell[i].Distance = out->HostCell.Distance;
-              StarHostCell[i].Index = out->HostCell.Index;
-              StarHostCell[i].Task = out->HostCell.Task;
+              StarHostIndex[i] = out->HostIndex;
+              StarHostTask[i] = out->HostTask;
+              StarHostDistance[i] = out->HostDistance;
             }
         }
 
@@ -200,8 +235,12 @@ static void kernel_local(void)
       double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
       
       if(star_mass > 2)
-        if(star_density_isactive(i))
-          star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+        {
+          if(star_density_isactive(i))
+            {
+              star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+            }
+        }
     }
 }
 
@@ -213,7 +252,7 @@ static void kernel_local(void)
  */
 static void kernel_imported(void)
 {
-  /* now do the particles that were sent to us */
+  /* Now do the particles that were sent to us */
   int i, cnt = 0;
 
   int threadid = get_thread_num();
@@ -251,8 +290,10 @@ void star_density(void)
 
   pass = 0;
 
-  StarNgbs = (MyFloat *)mymalloc("StarNgbs", NumStars * sizeof(MyFloat));
-  StarHostCell = (struct HostCell *)mymalloc("StarHostCell", NumStars * sizeof(struct HostCell));
+  StarNgbs = (int *)mymalloc("StarNgbs", NumStars * sizeof(int));
+  StarHostIndex = (int *)mymalloc("StarHostIndex", NumStars * sizeof(int));
+  StarHostTask = (int *)mymalloc("StarHostTask", NumStars * sizeof(int));
+  StarHostDistance = (MyFloat *)mymalloc("StarHostDistance", NumStars * sizeof(MyFloat));
 
   for(i = 0; i < NumStars; i++)
     {
@@ -267,8 +308,7 @@ void star_density(void)
 
   generic_set_MaxNexport();
   
-  /* Pass 1 - Expand Hsml until we enclose at least one gas cell,
-     then record the closest cell as the host */
+  /* Pass 1 - Expand Hsml until we enclose at least one gas cell, then record the closest cell as the host */
 
   pass++;
 
@@ -282,7 +322,7 @@ void star_density(void)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
 
-          if(StarNgbs[i] < 1.0)
+          if(StarNgbs[i] < 1)
             {
               npleft++;
               
@@ -325,7 +365,9 @@ void star_density(void)
   mysort(MechanicalFeedbackEvents.Data, MechanicalFeedbackEvents.NumEvents, 
   sizeof(Mechanical_Feedback_Data), feedback_compare);
 
-  myfree(StarHostCell);
+  myfree(StarHostDistance);
+  myfree(StarHostTask);
+  myfree(StarHostIndex);
   myfree(StarNgbs);
 
   /* Mark as active */
@@ -348,15 +390,114 @@ void star_density(void)
  *
  *  \return 0
  */
-static int star_density_evaluate(int target, int mode, int threadid)
+static int star_density_evaluate1(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int ngbs, hosthydrobin = 0; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos;
 
-  MyDouble distance = MAX_REAL_NUMBER;
-  int index = -1, task = -1;
+  int ngbs; 
+  int host_index = -1, host_task = -1;
+  MyFloat host_distance = MAX_REAL_NUMBER;
+  
+  data_in local, *target_data;
+  data_out out = {0};
+
+  if(mode == MODE_LOCAL_PARTICLES)
+    {
+      particle2in(&local, target, 0);
+      target_data = &local;
+
+      numnodes  = 1;
+      firstnode = NULL;
+    }
+  else
+    {
+      target_data = &DataGet[target];
+
+      generic_get_numnodes(target, &numnodes, &firstnode);
+    }
+
+  pos = target_data->Pos;
+  h = target_data->Hsml;
+  h2 = h * h;
+
+  ngbs = 0;
+
+  int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+
+  for(n = 0; n < nfound; n++)
+    {
+      i = Thread[threadid].Ngblist[n];
+
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
+      /* Compute cell->star position vectors */
+      dx = P[i].Pos[0] - pos[0];
+      dy = P[i].Pos[1] - pos[1]; 
+      dz = P[i].Pos[2] - pos[2]; 
+
+#ifndef REFLECTIVE_X
+      if(dx > boxHalf_X)
+        dx -= boxSize_X;
+      if(dx < -boxHalf_X)
+        dx += boxSize_X;
+#endif /* #ifndef REFLECTIVE_X */
+
+#ifndef REFLECTIVE_Y
+      if(dy > boxHalf_Y)
+        dy -= boxSize_Y;
+      if(dy < -boxHalf_Y)
+        dy += boxSize_Y;
+#endif /* #ifndef REFLECTIVE_Y */
+
+#ifndef REFLECTIVE_Z
+      if(dz > boxHalf_Z)
+        dz -= boxSize_Z;
+      if(dz < -boxHalf_Z)
+        dz += boxSize_Z;
+#endif /* #ifndef REFLECTIVE_Z */
+
+      r2 = dx * dx + dy * dy + dz * dz;
+
+      if(r2 < h2)
+        {
+          ngbs++;
+
+          r = sqrt(r2);
+              
+          if(r < host_distance)
+            {
+              host_distance = r;
+              host_index = i;
+              host_task = ThisTask;
+            }
+        }
+    }
+
+  out.Ngbs = ngbs;
+  out.HostIndex = host_index;
+  out.HostTask = host_task;
+  out.HostDistance = host_distance;
+
+  /* Now collect the result at the right place */
+  if(mode == MODE_LOCAL_PARTICLES)
+    out2particle(&out, target, MODE_LOCAL_PARTICLES);
+  else
+    DataResult[target] = out;
+
+  return 0;
+}
+
+static int star_density_evaluate2(int target, int mode, int threadid)
+{
+  int i, n, numnodes, *firstnode; 
+  double h, h2, dx, dy, dz, r, r2, wk; 
+  MyDouble *pos;
+
+  int hosthydrobin = 0; 
+  int star_index, star_task, host_index, host_task;
 
   data_in local, *target_data;
   data_out out = {0};
@@ -380,13 +521,10 @@ static int star_density_evaluate(int target, int mode, int threadid)
   h = target_data->Hsml;
   h2 = h * h;
 
-  if(pass == 2)
-    {
-      index = target_data->HostCell.Index;
-      task = target_data->HostCell.Task;
-    }
-
-  ngbs = 0;
+  star_index = target_data->Data.StarIndex;
+  star_task = target_data->Data.StarTask;
+  host_index = target_data->Data.HostIndex;
+  host_task = target_data->Data.HostTask;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
@@ -427,77 +565,52 @@ static int star_density_evaluate(int target, int mode, int threadid)
 
       if(r2 < h2)
         {
-          /* Pass 1 */
-          if(pass == 1)
-            {
-              ngbs++;
-
-              r = sqrt(r2);
-              
-              if(r < distance)
-                {
-                  distance = r;
-                  index = i;
-                  task = ThisTask;
-                }
-            }
- 
-          /* Pass 2 */
-          else 
-            {          
-              if(i == index && ThisTask == task)
-                {                
-                  hosthydrobin = P[i].TimeBinHydro;
+          if(i == host_index && ThisTask == host_task)
+            {                
+              hosthydrobin = P[i].TimeBinHydro;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-                  MyDouble time_sn_yr = target_data->TimeSN_yr;
-                  MyDouble physical_age_yr = target_data->PhysicalAge_yr;
+              MyDouble time_sn_yr = target_data->TimeSN_yr;
+              MyDouble physical_age_yr = target_data->PhysicalAge_yr;
           
-                  if(time_sn_yr < MAX_REAL_NUMBER)
-                    {
-                      double E_inject_code = 1e51 / 
-                      (All.cf_UnitMass_in_g * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s);
+              if(time_sn_yr < MAX_REAL_NUMBER)
+                {
+                  double E_inject_code = 1e51 / 
+                  (All.cf_UnitMass_in_g * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s);
 
-                      double unew = SphP[i].Utherm + E_inject_code / P[i].Mass;
+                  double unew = SphP[i].Utherm + E_inject_code / P[i].Mass;
 
-                      double t_frac = physical_age_yr / time_sn_yr;
-                      t_frac = fmin(fmax(t_frac, 0.0), 1.0);
+                  double t_frac = physical_age_yr / time_sn_yr;
+                  t_frac = fmin(fmax(t_frac, 0.0), 1.0);
 
-                      double Csn = SphP[i].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[i].Csnd) * t_frac;
+                  double Csn = SphP[i].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[i].Csnd) * t_frac;
           
-                      if(Csn > SphP[i].Csn)
-                        SphP[i].Csn = Csn;
-                    }
+                  if(Csn > SphP[i].Csn)
+                    SphP[i].Csn = Csn;
+                }
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-                  SphP[i].Host++;
+              SphP[i].Host++;
 
-                  if(MechanicalFeedbackEvents.NumEvents >= MechanicalFeedbackEvents.MaxEvents)
-                    terminate("MechanicalFeedbackEvents overflow!");
+              if(MechanicalFeedbackEvents.NumEvents >= MechanicalFeedbackEvents.MaxEvents)
+                feedback_reallocate(&MechanicalFeedbackEvents, 2 * MechanicalFeedbackEvents.MaxEvents);
 
-                  Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[MechanicalFeedbackEvents.NumEvents++];
+              Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[MechanicalFeedbackEvents.NumEvents++];
 
-                  data->StarIndex = target; 
-                  data->HostIndex = index;
-                  data->HostTask = task;
-                  data->WindsAndSN = target_data->WindsAndSN;
+              data->StarIndex = star_index;
+              data->StarTask = star_task; 
+              data->HostIndex = host_index;
+              data->HostTask = host_task;
+              data->WindsAndSN = target_data->WindsAndSN;
 #endif
-                }
+              /* Each star has exactly one host — no need to continue */
+              break;
             }
         }
     }
 
-  if(pass == 1)
-    {
-      out.Ngbs = ngbs;
-      out.HostCell.Distance = distance;
-      out.HostCell.Index = index;
-      out.HostCell.Task = task;
-    }
-
-  if(pass == 2)
-    out.HostHydroBin = hosthydrobin;
+  out.HostHydroBin = hosthydrobin;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)
