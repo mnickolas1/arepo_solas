@@ -146,7 +146,7 @@ void star_update_list_of_active_particles(void)
         }
     }
 
-    mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
+  mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
 }
 
 #if defined(WINDS) || defined(SUPERNOVAE)

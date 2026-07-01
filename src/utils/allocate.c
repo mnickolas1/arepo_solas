@@ -115,7 +115,7 @@ void allocate_memory(void)
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-  feedback_allocate(&MechanicalFeedbackEvents, 1.2 * All.MaxPartStars);
+  feedback_allocate(&MechanicalFeedbackEvents, All.MaxPartStars);
 #endif
 
 #ifdef BH_ACTIVE
@@ -175,7 +175,7 @@ void reallocate_memory_maxpartstars(void)
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-  feedback_reallocate(&MechanicalFeedbackEvents, 1.2 * All.MaxPartStars);
+  feedback_reallocate(&MechanicalFeedbackEvents, All.MaxPartStars);
 #endif
 }
 #endif
