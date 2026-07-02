@@ -22,6 +22,61 @@ extern int NumStars;
 #ifdef STAR_FEEDBACK_ACTIVE
 extern struct TimeBinData TimeBinsStar;
 
+typedef struct Star_Interpolate
+{
+  MyDouble Radius;
+  MyDouble Temperature;
+
+#ifdef WINDS
+  MyDouble MassLossRate;
+#ifdef METALS
+  MyDouble MetalsLossRate;
+#endif
+  MyDouble WindVelocity;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  WavebandData Flux[WAVEBANDS];
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SN_MassLoss;
+#ifdef METALS
+  MyDouble SN_MetalsLoss;
+#endif
+  MyDouble SN_EnergyInject;
+#endif
+} Star_Interpolate;
+
+typedef struct Star_Feedback
+{
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  double TimeSN;
+#endif
+  
+  int Stage; // 0:preSN, 1:SN, 2:postSN
+
+#ifdef WINDS
+  MyDouble MassLoss;
+#ifdef METALS
+  MyDouble MetalsLoss;
+#endif
+  MyDouble WindMomentum;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  WavebandData Radiated[WAVEBANDS];
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SN_MassLoss;
+#ifdef METALS
+  MyDouble SN_MetalsLoss;
+#endif
+  MyDouble SN_EnergyInject;
+#endif
+} Star_Feedback;
+
 typedef struct Mechanical_Feedback
 {
   MyDouble StarPosition[3];
@@ -111,62 +166,5 @@ extern Star_Particle_Data *SP;
 
 #define SPP(i) SP[P[i].SID]
 #define PPS(i) P[SP[i].PID]
-
-#ifdef STAR_FEEDBACK_ACTIVE
-typedef struct Star_Interpolate
-{
-  MyDouble Radius;
-  MyDouble Temperature;
-
-#ifdef WINDS
-  MyDouble MassLossRate;
-#ifdef METALS
-  MyDouble MetalsLossRate;
-#endif
-  MyDouble WindVelocity;
-#endif
-
-#ifdef STAR_RADIATION_ACTIVE
-  WavebandData Flux[WAVEBANDS];
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
-} Star_Interpolate;
-
-typedef struct Star_Feedback
-{
-#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  double TimeSN;
-#endif
-  
-  int Stage; // 0:preSN, 1:SN, 2:postSN
-
-#ifdef WINDS
-  MyDouble MassLoss;
-#ifdef METALS
-  MyDouble MetalsLoss;
-#endif
-  MyDouble WindMomentum;
-#endif
-
-#ifdef STAR_RADIATION_ACTIVE
-  WavebandData Radiated[WAVEBANDS];
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
-} Star_Feedback;
-#endif
 
 #endif
