@@ -232,15 +232,8 @@ static void kernel_local(void)
 
       i = TimeBinsStar.ActiveParticleList[idx];
       
-      double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
-      
-      if(star_mass > 2)
-        {
-          if(star_density_isactive(i))
-            {
-              star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
-            }
-        }
+      if(star_density_isactive(i))
+        star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 
@@ -604,7 +597,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
               data->HostTask = host_task;
               data->WindsAndSN = target_data->WindsAndSN;
 #endif
-              /* Each star has exactly one host — no need to continue */
+              /* Each star has exactly one host - no need to continue */
               break;
             }
         }
