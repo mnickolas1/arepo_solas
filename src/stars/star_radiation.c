@@ -63,7 +63,7 @@ void update_kappa(void)
     }
 }
 
-void init_healpix_rays(void) 
+void start_healpix(void) 
 {
   int nside = NSIDE_MIN;
   NRays = 12 * nside * nside;
@@ -99,16 +99,17 @@ static void free_work_stack(RayWorkStack *w)
   myfree_movable(w);
 }
 
-static void init_rays_from_stars(RayWorkStack *work)
+static void init_rays(RayWorkStack *work)
 {
   double SQRT3 = sqrt(3);
     
   int ray_idx = 0;
-    
-  /* Loop over all stars */
-  for(int idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
+     
+  /* Act on host cells */
+  for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents; ev++)
     {
-      int i = TimeBinsStar.ActiveParticleList[idx];
+      Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev];
+      Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
 
       double dt_rad = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
         
@@ -118,9 +119,9 @@ static void init_rays_from_stars(RayWorkStack *work)
           /* Initialize ray from star i */
           RayPacket ray = {0};
 
-          ray.pos[0] = PPS(i).Pos[0];      
-          ray.pos[1] = PPS(i).Pos[1]; 
-          ray.pos[2] = PPS(i).Pos[2]; 
+          ray.pos[0] = MechanicalFeedback.StarPosition[0];      
+          ray.pos[1] = MechanicalFeedback.StarPosition[1]; 
+          ray.pos[2] = MechanicalFeedback.StarPosition[2]; 
           ray.dir[0] = HealpixDirs[iray][0];        
           ray.dir[1] = HealpixDirs[iray][1];
           ray.dir[2] = HealpixDirs[iray][2];
@@ -132,11 +133,11 @@ static void init_rays_from_stars(RayWorkStack *work)
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
-              ray.Radiated[w].Energy = SP[i].Radiated[w].Energy / NRays;
-              ray.Radiated[w].Photons = SP[i].Radiated[w].Photons / NRays;
+              ray.Radiated[w].Energy = MechanicalFeedback.Radiated[w].Energy / NRays;
+              ray.Radiated[w].Photons = MechanicalFeedback.Radiated[w].Photons / NRays;
 
-              ray.Radiated_Init[w].Energy = SP[i].Radiated[w].Energy / NRays;
-              ray.Radiated_Init[w].Photons = SP[i].Radiated[w].Photons / NRays;
+              ray.Radiated_Init[w].Energy = MechanicalFeedback.Radiated[w].Energy / NRays;
+              ray.Radiated_Init[w].Photons = MechanicalFeedback.Radiated[w].Photons / NRays;
 
               if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
                 ray.active_bands &= (uint8_t)(~(1u << w));
@@ -569,7 +570,7 @@ void star_radiation(void)
   RayWorkStack *work = init_work_stack(16 * n_rays_global);
   RayExportBuffer *export_buf = init_export_buffer(5000 * n_rays_global);
   
-  init_rays_from_stars(work);
+  init_rays(work);
 
   long long n_global;
   int iter = 0;

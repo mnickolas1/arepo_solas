@@ -12,7 +12,7 @@
 #define NSIDE_MIN 1
 #define NSIDE_MAX 32      
 
-/* Change at init_rays_from_stars */
+/* Change at init_rays */
 #define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
 #define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
 #define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeI)))

@@ -90,8 +90,8 @@ static void apply_kick_primexch(int particle, const struct Feedback_Kick *Kick)
 /* Compute corrent p and E scaling of SN explosion */
 static void SN_compute(int ev, int h, double e, double a, double b, double NgbsDensity, double NgbsMetallicity, double *p, double *E)
 {
-  Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
-  Mechanical_Feedback *MechanicalFeedback = &data->MechanicalFeedback;
+  Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
+  Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
   
   double E_SN = MechanicalFeedback->SN_EnergyInject;
   double m_ej = MechanicalFeedback->SN_MassLoss;
@@ -163,8 +163,8 @@ void star_feedback(void)
       int flag_winds_any = 0, flag_sn_any = 0;
       for(h = 0; h < SphP[i].Host; h++)
         {
-          Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
-          Mechanical_Feedback *MechanicalFeedback = &data->MechanicalFeedback;
+          Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
+          Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
 
 #ifdef WINDS
           if(MechanicalFeedback->MassLoss)
@@ -192,8 +192,8 @@ void star_feedback(void)
         {                    
           int flag_winds = 0, flag_sn = 0;
 
-          Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
-          Mechanical_Feedback *MechanicalFeedback = &data->MechanicalFeedback;
+          Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
+          Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
 
 #ifdef WINDS
           if(MechanicalFeedback->MassLoss)

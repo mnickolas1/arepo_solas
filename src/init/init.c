@@ -577,7 +577,7 @@ gsl_rng_set(rng, ThisTask + 1);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  init_healpix_rays();
+  start_healpix();
 #endif
 
 #ifdef BH_ACCRETION_ACTIVE 
