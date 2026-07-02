@@ -351,7 +351,7 @@ void star_density(void)
   generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
 
   /* Sort the hosts list */
-  mysort(MechanicalFeedbackEvents.Data, MechanicalFeedbackEvents.NumEvents, 
+  mysort(MechanicalFeedbackEvents.MechanicalFeedbackData, MechanicalFeedbackEvents.NumEvents, 
   sizeof(Mechanical_Feedback_Data), feedback_compare);
 
   myfree(StarHostDistance);
@@ -586,7 +586,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
               if(MechanicalFeedbackEvents.NumEvents >= MechanicalFeedbackEvents.MaxEvents)
                 feedback_reallocate(&MechanicalFeedbackEvents, 1.2 * MechanicalFeedbackEvents.MaxEvents);
 
-              Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[MechanicalFeedbackEvents.NumEvents++];
+              Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.MechanicalFeedbackData[MechanicalFeedbackEvents.NumEvents++];
 
               data->StarIndex = star_index;
               data->StarTask = star_task; 

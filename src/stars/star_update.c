@@ -154,23 +154,23 @@ void star_update_list_of_active_particles(void)
 
 void feedback_init(struct Mechanical_Feedback_Events *MFEvents)
 {
-  MFPack->NumEvents = 0;
-  MFPack->MaxEvents = 0;
-  MFPack->Data = NULL;
+  MFEvents->NumEvents = 0;
+  MFEvents->MaxEvents = 0;
+  MFEvents->MechanicalFeedbackData = NULL;
 }
 
 void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents)
 {
-  MFPack->MaxEvents = MaxEvents;
+  MFEvents->MaxEvents = MaxEvents;
 
-  MFPack->Data = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
+  MFEvents->MechanicalFeedbackData = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
 }
 
 void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents)
 {
-  MFPack->MaxEvents = NewMaxEvents;
+  MFEvents->MaxEvents = NewMaxEvents;
 
-  MFPack->Data = realloc(MFPack->Data, NewMaxEvents * sizeof(Mechanical_Feedback_Data));
+  MFEvents->MechanicalFeedbackData = realloc(MFEvents->MechanicalFeedbackData, NewMaxEvents * sizeof(Mechanical_Feedback_Data));
 }
 
 /* Compute feedback properties of active stars */

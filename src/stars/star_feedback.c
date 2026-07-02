@@ -158,7 +158,7 @@ void star_feedback(void)
   /* Act on host cells */
   for(ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
     {
-      i = MechanicalFeedbackEvents.Data[ev].HostIndex;
+      i = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
 
       int flag_winds_any = 0, flag_sn_any = 0;
       for(h = 0; h < SphP[i].Host; h++)
@@ -576,7 +576,7 @@ void star_feedback(void)
     } //for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
 
   /* Clear all feedback entries */
-  memset(MechanicalFeedbackEvents.Data, 0, sizeof(Mechanical_Feedback_Data) * MechanicalFeedbackEvents.NumEvents);
+  memset(MechanicalFeedbackEvents.MechanicalFeedbackData, 0, sizeof(Mechanical_Feedback_Data) * MechanicalFeedbackEvents.NumEvents);
   
   MechanicalFeedbackEvents.NumEvents = 0;
 
