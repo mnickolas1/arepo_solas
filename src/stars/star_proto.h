@@ -2,7 +2,7 @@
 #define STAR_PROTO_H
 
 
-/* star functions */
+/* Star functions */
 
 /* Memory allocation */
 void reallocate_memory_maxpartstars(void);
@@ -53,20 +53,14 @@ void star_update_timesteps(void);
 void star_reconstruct_timebins(void);
 void star_update_list_of_active_particles(void);
 
-/* Density-Feedback loop */
-void star_density(void);
+/* Feedback setup */
+void feedback_init(struct Mechanical_Feedback_Events *MFEvents);
+void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents);
+void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents);
+
+/* Prep and density */
 void star_prep(void);
-#endif
-
-#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
-void star_perform_end_of_step_physics(void);
-#endif
-
-#if defined(WINDS) || defined(SUPERNOVAE)
-void star_feedback(void);
-void feedback_init(struct Mechanical_Feedback_Pack *MFPack);
-void feedback_allocate(struct Mechanical_Feedback_Pack *MFPack, int MaxEvents);
-void feedback_reallocate(struct Mechanical_Feedback_Pack *MFPack, int NewMaxEvents);
+void star_density(void);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -79,6 +73,14 @@ void append_ray(RayWorkStack *w, const RayPacket *ray);
 int split_ray(const RayPacket *parent, RayPacket children[4]);
 void star_radiation(void);
 void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);
+#endif
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+void star_feedback(void);
+#endif
+
+#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
+void star_perform_end_of_step_physics(void);
 #endif
 
 #endif

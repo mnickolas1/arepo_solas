@@ -152,28 +152,26 @@ void star_update_list_of_active_particles(void)
   sumup_large_ints(1, &TimeBinsStar.NActiveParticles, &TimeBinsStar.GlobalNActiveParticles);
 }
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-void feedback_init(struct Mechanical_Feedback_Pack *MFPack)
+void feedback_init(struct Mechanical_Feedback_Events *MFEvents)
 {
   MFPack->NumEvents = 0;
   MFPack->MaxEvents = 0;
   MFPack->Data = NULL;
 }
 
-void feedback_allocate(struct Mechanical_Feedback_Pack *MFPack, int MaxEvents)
+void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents)
 {
   MFPack->MaxEvents = MaxEvents;
 
   MFPack->Data = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
 }
 
-void feedback_reallocate(struct Mechanical_Feedback_Pack *MFPack, int NewMaxEvents)
+void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents)
 {
   MFPack->MaxEvents = NewMaxEvents;
 
   MFPack->Data = realloc(MFPack->Data, NewMaxEvents * sizeof(Mechanical_Feedback_Data));
 }
-#endif
 
 /* Compute feedback properties of active stars */
 void star_prep(void)
@@ -237,33 +235,33 @@ void star_prep(void)
 #if defined(WINDS) || defined(SUPERNOVAE)
       for(int k = 0; k < 3; k++)
         {
-          SP[i].WindsAndSN.StarPosition[k] = PPS(i).Pos[k];
-          SP[i].WindsAndSN.StarVelocity[k] = PPS(i).Vel[k];
+          SP[i].MechanicalFeedback.StarPosition[k] = PPS(i).Pos[k];
+          SP[i].MechanicalFeedback.StarVelocity[k] = PPS(i).Vel[k];
         }
 #endif 
 
 #ifdef WINDS
-      SP[i].WindsAndSN.MassLoss = StarFeedback.MassLoss;
+      SP[i].MechanicalFeedback.MassLoss = StarFeedback.MassLoss;
 #ifdef METALS
-      SP[i].WindsAndSN.MetalsLoss = StarFeedback.MetalsLoss;
+      SP[i].MechanicalFeedback.MetalsLoss = StarFeedback.MetalsLoss;
 #endif
-      SP[i].WindsAndSN.WindMomentum = StarFeedback.WindMomentum;
+      SP[i].MechanicalFeedback.WindMomentum = StarFeedback.WindMomentum;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE      
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          SP[i].Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
-          SP[i].Radiated[w].Energy = StarFeedback.Radiated[w].Energy;
+          SP[i].MechanicalFeedback.Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
+          SP[i].MechanicalFeedback.Radiated[w].Energy = StarFeedback.Radiated[w].Energy;
         }
 #endif
 
 #ifdef SUPERNOVAE
-      SP[i].WindsAndSN.SN_MassLoss = StarFeedback.SN_MassLoss;
+      SP[i].MechanicalFeedback.SN_MassLoss = StarFeedback.SN_MassLoss;
 #ifdef METALS
-      SP[i].WindsAndSN.SN_MetalsLoss = StarFeedback.SN_MetalsLoss;
+      SP[i].MechanicalFeedback.SN_MetalsLoss = StarFeedback.SN_MetalsLoss;
 #endif
-      SP[i].WindsAndSN.SN_EnergyInject = StarFeedback.SN_EnergyInject;
+      SP[i].MechanicalFeedback.SN_EnergyInject = StarFeedback.SN_EnergyInject;
 #endif
     }
 
@@ -290,11 +288,11 @@ void star_perform_end_of_step_physics(void)
       i = TimeBinsStar.ActiveParticleList[idx];
 
 #ifdef WINDS
-      PPS(i).Mass -= SP[i].WindsAndSN.MassLoss;
+      PPS(i).Mass -= SP[i].MechanicalFeedback.MassLoss;
 #endif
 
 #ifdef SUPERNOVAE
-      PPS(i).Mass -= SP[i].WindsAndSN.SN_MassLoss;
+      PPS(i).Mass -= SP[i].MechanicalFeedback.SN_MassLoss;
 #endif
     }
 

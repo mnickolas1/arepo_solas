@@ -91,10 +91,10 @@ static void apply_kick_primexch(int particle, const struct Feedback_Kick *Kick)
 static void SN_compute(int ev, int h, double e, double a, double b, double NgbsDensity, double NgbsMetallicity, double *p, double *E)
 {
   Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
-  Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
+  Mechanical_Feedback *MechanicalFeedback = &data->MechanicalFeedback;
   
-  double E_SN = WindsAndSN->SN_EnergyInject;
-  double m_ej = WindsAndSN->SN_MassLoss;
+  double E_SN = MechanicalFeedback->SN_EnergyInject;
+  double m_ej = MechanicalFeedback->SN_MassLoss;
 
   /* Pure thermal injection: no ejecta mass, skip momentum prescription */
   if(m_ej <= 0.0)
@@ -130,9 +130,9 @@ static void SN_compute(int ev, int h, double e, double a, double b, double NgbsD
 
   double p_SNR = fboost * sqrt(2 * fkin * E_SNR * m_ej);
 
-  double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
-  + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1] 
-  + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
+  double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0] 
+  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1] 
+  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
 
   double E_tot = 0.5 * m_ej * sq_vstar + E_SN;
 
@@ -164,15 +164,15 @@ void star_feedback(void)
       for(h = 0; h < SphP[i].Host; h++)
         {
           Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
-          Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
+          Mechanical_Feedback *MechanicalFeedback = &data->MechanicalFeedback;
 
 #ifdef WINDS
-          if(WindsAndSN->MassLoss)
+          if(MechanicalFeedback->MassLoss)
             flag_winds_any++;
 #endif
 
 #ifdef SUPERNOVAE
-          if(WindsAndSN->SN_MassLoss || WindsAndSN->SN_EnergyInject)
+          if(MechanicalFeedback->SN_MassLoss || MechanicalFeedback->SN_EnergyInject)
             flag_sn_any++;
 #endif
         }
@@ -193,15 +193,15 @@ void star_feedback(void)
           int flag_winds = 0, flag_sn = 0;
 
           Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.Data[ev + h];
-          Mechanical_Feedback *WindsAndSN = &data->WindsAndSN;
+          Mechanical_Feedback *MechanicalFeedback = &data->MechanicalFeedback;
 
 #ifdef WINDS
-          if(WindsAndSN->MassLoss)
+          if(MechanicalFeedback->MassLoss)
             flag_winds++;
 #endif
 
 #ifdef SUPERNOVAE
-          if(WindsAndSN->SN_MassLoss || WindsAndSN->SN_EnergyInject)
+          if(MechanicalFeedback->SN_MassLoss || MechanicalFeedback->SN_EnergyInject)
             flag_sn++;
 #endif
           
@@ -261,9 +261,9 @@ void star_feedback(void)
               /* Star-to-face direction */
               double d[3], dd; 
                   
-              d[0] = Mesh.VF[vf].cx - WindsAndSN->StarPosition[0];
-              d[1] = Mesh.VF[vf].cy - WindsAndSN->StarPosition[1];
-              d[2] = Mesh.VF[vf].cz - WindsAndSN->StarPosition[2];
+              d[0] = Mesh.VF[vf].cx - MechanicalFeedback->StarPosition[0];
+              d[1] = Mesh.VF[vf].cy - MechanicalFeedback->StarPosition[1];
+              d[2] = Mesh.VF[vf].cz - MechanicalFeedback->StarPosition[2];
               
               dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
 
@@ -281,9 +281,9 @@ void star_feedback(void)
                   /* Star-to-cell direction */
                   double r[3], rr; 
                   
-                  r[0] = Mesh.DP[dp].x - WindsAndSN->StarPosition[0];
-                  r[1] = Mesh.DP[dp].y - WindsAndSN->StarPosition[1];
-                  r[2] = Mesh.DP[dp].z - WindsAndSN->StarPosition[2];
+                  r[0] = Mesh.DP[dp].x - MechanicalFeedback->StarPosition[0];
+                  r[1] = Mesh.DP[dp].y - MechanicalFeedback->StarPosition[1];
+                  r[2] = Mesh.DP[dp].z - MechanicalFeedback->StarPosition[2];
 
                   rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
 
@@ -338,9 +338,9 @@ void star_feedback(void)
               /* Star-to-face direction */
               double d[3], dd; 
                   
-              d[0] = Mesh.VF[vf].cx - WindsAndSN->StarPosition[0];
-              d[1] = Mesh.VF[vf].cy - WindsAndSN->StarPosition[1];
-              d[2] = Mesh.VF[vf].cz - WindsAndSN->StarPosition[2];
+              d[0] = Mesh.VF[vf].cx - MechanicalFeedback->StarPosition[0];
+              d[1] = Mesh.VF[vf].cy - MechanicalFeedback->StarPosition[1];
+              d[2] = Mesh.VF[vf].cz - MechanicalFeedback->StarPosition[2];
               
               dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
 
@@ -358,9 +358,9 @@ void star_feedback(void)
                   /* Star-to-cell direction */
                   double r[3], rr; 
                   
-                  r[0] = Mesh.DP[dp].x - WindsAndSN->StarPosition[0];
-                  r[1] = Mesh.DP[dp].y - WindsAndSN->StarPosition[1];
-                  r[2] = Mesh.DP[dp].z - WindsAndSN->StarPosition[2];
+                  r[0] = Mesh.DP[dp].x - MechanicalFeedback->StarPosition[0];
+                  r[1] = Mesh.DP[dp].y - MechanicalFeedback->StarPosition[1];
+                  r[2] = Mesh.DP[dp].z - MechanicalFeedback->StarPosition[2];
 
                   rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
 
@@ -396,7 +396,7 @@ void star_feedback(void)
             {
               /* Helpers for supernovae injection */
               double num, den, e = 0.0, a = 0.0, b = 0.0;
-              double m_ej = WindsAndSN->SN_MassLoss;
+              double m_ej = MechanicalFeedback->SN_MassLoss;
               
               /* Ngbs properties */
               int Ngbs = 0;
@@ -441,13 +441,13 @@ void star_feedback(void)
 
                   double sq_vj = vj[0]*vj[0] + vj[1]*vj[1] + vj[2]*vj[2];
                   
-                  double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0]
-                  + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1]
-                  + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
+                  double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0]
+                  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1]
+                  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
                   
-                  double cross = 2.0 * (vj[0]*WindsAndSN->StarVelocity[0]
-                  + vj[1]*WindsAndSN->StarVelocity[1]
-                  + vj[2]*WindsAndSN->StarVelocity[2]);
+                  double cross = 2.0 * (vj[0]*MechanicalFeedback->StarVelocity[0]
+                  + vj[1]*MechanicalFeedback->StarVelocity[1]
+                  + vj[2]*MechanicalFeedback->StarVelocity[2]);
          
                   num = 0.5 * mj * m_ej * sqrtsq_wbar * (sq_vj + sq_vstar - cross);
                   den = mj + m_ej * sqrtsq_wbar;
@@ -459,9 +459,9 @@ void star_feedback(void)
           
                   a += num / den;
 
-                  num = mj * ((vj[0] - WindsAndSN->StarVelocity[0]) * wbar[0] 
-                  + (vj[1] - WindsAndSN->StarVelocity[1]) * wbar[1]
-                  + (vj[2] - WindsAndSN->StarVelocity[2]) * wbar[2]);
+                  num = mj * ((vj[0] - MechanicalFeedback->StarVelocity[0]) * wbar[0] 
+                  + (vj[1] - MechanicalFeedback->StarVelocity[1]) * wbar[1]
+                  + (vj[2] - MechanicalFeedback->StarVelocity[2]) * wbar[2]);
                   den = mj + m_ej * sqrtsq_wbar;
 
                   b += num / den;
@@ -517,37 +517,37 @@ void star_feedback(void)
 #ifdef WINDS
               if(flag_winds)
                 {
-                  Kick.DeltaMass = WindsAndSN->MassLoss * sqrtsq_wbar;
+                  Kick.DeltaMass = MechanicalFeedback->MassLoss * sqrtsq_wbar;
 #ifdef METALS
-                  Kick.DeltaMetals = WindsAndSN->MetalsLoss * sqrtsq_wbar;
+                  Kick.DeltaMetals = MechanicalFeedback->MetalsLoss * sqrtsq_wbar;
 #endif    
                   for(k = 0; k < 3; k++)
-                    Kick.DeltaP[k] = WindsAndSN->MassLoss * sqrtsq_wbar * WindsAndSN->StarVelocity[k] + WindsAndSN->WindMomentum * wbar[k];
+                    Kick.DeltaP[k] = MechanicalFeedback->MassLoss * sqrtsq_wbar * MechanicalFeedback->StarVelocity[k] + MechanicalFeedback->WindMomentum * wbar[k];
           
-                  double sq_vstar = WindsAndSN->StarVelocity[0]*WindsAndSN->StarVelocity[0] 
-                  + WindsAndSN->StarVelocity[1]*WindsAndSN->StarVelocity[1] 
-                  + WindsAndSN->StarVelocity[2]*WindsAndSN->StarVelocity[2];
+                  double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0] 
+                  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1] 
+                  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
 
-                  double sq_vwind = WindsAndSN->WindMomentum / WindsAndSN->MassLoss
-                  * WindsAndSN->WindMomentum / WindsAndSN->MassLoss; 
+                  double sq_vwind = MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss
+                  * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss; 
 
-                  //double cross = 2.0 * (WindsAndSN->StarVelocity[0] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[0] 
-                  //+ WindsAndSN->StarVelocity[1] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[1] 
-                  //+ WindsAndSN->StarVelocity[2] * WindsAndSN->WindMomentum / WindsAndSN->MassLoss * wbar[2]);
+                  //double cross = 2.0 * (MechanicalFeedback->StarVelocity[0] * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss * wbar[0] 
+                  //+ MechanicalFeedback->StarVelocity[1] * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss * wbar[1] 
+                  //+ MechanicalFeedback->StarVelocity[2] * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss * wbar[2]);
 
-                  Kick.DeltaE = 0.5 * WindsAndSN->MassLoss * (sq_vstar + sq_vwind) * sqrtsq_wbar;
+                  Kick.DeltaE = 0.5 * MechanicalFeedback->MassLoss * (sq_vstar + sq_vwind) * sqrtsq_wbar;
                 }   
 #endif
  
 #ifdef SUPERNOVAE
               if(flag_sn)
                 {
-                  Kick.SN_DeltaMass = WindsAndSN->SN_MassLoss * sqrtsq_wbar;
+                  Kick.SN_DeltaMass = MechanicalFeedback->SN_MassLoss * sqrtsq_wbar;
 #ifdef METALS
-                  Kick.SN_DeltaMetals = WindsAndSN->SN_MetalsLoss * sqrtsq_wbar;
+                  Kick.SN_DeltaMetals = MechanicalFeedback->SN_MetalsLoss * sqrtsq_wbar;
 #endif 
                   for(k = 0; k < 3; k++)
-                    Kick.SN_DeltaP[k] = WindsAndSN->SN_MassLoss * sqrtsq_wbar * WindsAndSN->StarVelocity[k] + p * wbar[k];
+                    Kick.SN_DeltaP[k] = MechanicalFeedback->SN_MassLoss * sqrtsq_wbar * MechanicalFeedback->StarVelocity[k] + p * wbar[k];
 
                   Kick.SN_DeltaE = E * sqrtsq_wbar;
                 }

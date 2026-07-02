@@ -8,7 +8,7 @@ struct TimeBinData TimeBinsStar;
 #endif
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-Mechanical_Feedback_Pack MechanicalFeedbackEvents;
+Mechanical_Feedback_Events MechanicalFeedbackEvents;
 #endif
 
 Star_Particle_Data *SP;

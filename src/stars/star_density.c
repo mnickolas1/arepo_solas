@@ -77,10 +77,8 @@ typedef struct
   MyDouble PhysicalAge_yr;
 #endif  
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-  Mechanical_Feedback WindsAndSN;
-#endif
-  
+  Mechanical_Feedback MechanicalFeedback;
+
   MyFloat Hsml;
   int Firstnode;
 } data_in;
@@ -121,9 +119,7 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->PhysicalAge_yr = SP[i].PhysicalAge_yr;
 #endif  
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-  in->WindsAndSN = SP[i].WindsAndSN;
-#endif
+  in->MechanicalFeedback = SP[i].MechanicalFeedback;
 
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
@@ -583,9 +579,10 @@ static int star_density_evaluate2(int target, int mode, int threadid)
                 }
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
+              /* Setup feedback */
               SphP[i].Host++;
 
+              /* Reallocate events if needed */
               if(MechanicalFeedbackEvents.NumEvents >= MechanicalFeedbackEvents.MaxEvents)
                 feedback_reallocate(&MechanicalFeedbackEvents, 1.2 * MechanicalFeedbackEvents.MaxEvents);
 
@@ -595,8 +592,8 @@ static int star_density_evaluate2(int target, int mode, int threadid)
               data->StarTask = star_task; 
               data->HostIndex = host_index;
               data->HostTask = host_task;
-              data->WindsAndSN = target_data->WindsAndSN;
-#endif
+              data->MechanicalFeedback = target_data->MechanicalFeedback;
+
               /* Each star has exactly one host - no need to continue */
               break;
             }

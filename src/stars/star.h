@@ -21,9 +21,7 @@ extern int NumStars;
 
 #ifdef STAR_FEEDBACK_ACTIVE
 extern struct TimeBinData TimeBinsStar;
-#endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
 typedef struct Mechanical_Feedback
 {
   MyDouble StarPosition[3];
@@ -35,6 +33,10 @@ typedef struct Mechanical_Feedback
   MyDouble MetalsLoss;
 #endif
   MyDouble WindMomentum;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  WavebandData Radiated[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
@@ -53,18 +55,18 @@ typedef struct Mechanical_Feedback_Data
   int HostIndex; /* local gas-cell index */
   int HostTask; /* task that owns the host */
 
-  Mechanical_Feedback WindsAndSN;
+  Mechanical_Feedback MechanicalFeedback;
 } Mechanical_Feedback_Data;
 
-typedef struct Mechanical_Feedback_Pack
+typedef struct Mechanical_Feedback_Events
 {
   int NumEvents;
   int MaxEvents;
 
-  Mechanical_Feedback_Data *Data;
-} Mechanical_Feedback_Pack;
+  Mechanical_Feedback_Data *MechanicalFeedbackData;
+} Mechanical_Feedback_Events;
 
-extern Mechanical_Feedback_Pack MechanicalFeedbackEvents;
+extern Mechanical_Feedback_Events MechanicalFeedbackEvents;
 #endif
 
 typedef struct Star_Particle_Data
@@ -100,15 +102,9 @@ typedef struct Star_Particle_Data
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble PhysicalAge_yr;
+  Mechanical_Feedback MechanicalFeedback;
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-  Mechanical_Feedback WindsAndSN;
-#endif
-
-#ifdef STAR_RADIATION_ACTIVE
-  WavebandData Radiated[WAVEBANDS];
-#endif
 } Star_Particle_Data;
 
 extern Star_Particle_Data *SP;
