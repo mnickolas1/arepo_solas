@@ -574,6 +574,8 @@ gsl_rng_set(rng, ThisTask + 1);
 
   mpi_printf("Loading star evolution tables\n");
   load_star_tables(All.StarTablesFile);
+
+  feedback_init(&MechanicalFeedbackEvents);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE

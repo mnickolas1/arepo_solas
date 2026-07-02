@@ -409,6 +409,8 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
+      star_in();
+
       star_update_timesteps();
       
       star_prep();
@@ -470,6 +472,10 @@ void calculate_non_standard_physics_end_of_step(void)
 
 #ifdef STAR_RADIATION_ACTIVE
       update_kappa();
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      star_exit();
 #endif
     }
 }

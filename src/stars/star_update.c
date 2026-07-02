@@ -50,6 +50,44 @@ double gaussian_weight(double r, double h)
   *wk  *= K_norm * hinv3;
 }*/
 
+void star_in(void)
+{
+  feedback_allocate(&MechanicalFeedbackEvents, All.MaxPartStars);
+}
+
+void star_exit(void)
+{
+  feedback_free(&MechanicalFeedbackEvents);
+}
+
+void feedback_init(struct Mechanical_Feedback_Events *MFEvents)
+{
+  MFEvents->NumEvents = 0;
+  MFEvents->MaxEvents = 0;
+  MFEvents->MechanicalFeedbackData = NULL;
+}
+
+void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents)
+{
+  MFEvents->MaxEvents = MaxEvents;
+
+  MFEvents->MechanicalFeedbackData = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
+}
+
+void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents)
+{
+  MFEvents->MaxEvents = NewMaxEvents;
+
+  MFEvents->MechanicalFeedbackData = realloc(MFEvents->MechanicalFeedbackData, NewMaxEvents * sizeof(Mechanical_Feedback_Data));
+}
+
+void feedback_free(struct Mechanical_Feedback_Events *MFEvents)
+{
+  free(MFEvents->MechanicalFeedbackData);
+
+  feedback_init(MFEvents);
+}
+
 integertime star_timestep(int i)
 { 
  /* Host Hydro Bin */
@@ -150,27 +188,6 @@ void star_update_list_of_active_particles(void)
   mysort(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles, sizeof(int), int_compare);
 
   sumup_large_ints(1, &TimeBinsStar.NActiveParticles, &TimeBinsStar.GlobalNActiveParticles);
-}
-
-void feedback_init(struct Mechanical_Feedback_Events *MFEvents)
-{
-  MFEvents->NumEvents = 0;
-  MFEvents->MaxEvents = 0;
-  MFEvents->MechanicalFeedbackData = NULL;
-}
-
-void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents)
-{
-  MFEvents->MaxEvents = MaxEvents;
-
-  MFEvents->MechanicalFeedbackData = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
-}
-
-void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents)
-{
-  MFEvents->MaxEvents = NewMaxEvents;
-
-  MFEvents->MechanicalFeedbackData = realloc(MFEvents->MechanicalFeedbackData, NewMaxEvents * sizeof(Mechanical_Feedback_Data));
 }
 
 /* Compute feedback properties of active stars */

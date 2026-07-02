@@ -7,6 +7,7 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+
 /* Kick packet sent to remote face-neighbor cells */
 struct Feedback_Kick
 { 
@@ -574,11 +575,6 @@ void star_feedback(void)
       /* All stars processed: release host slot */        
       SphP[i].Host = 0;
     } //for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
-
-  /* Clear all feedback entries */
-  memset(MechanicalFeedbackEvents.MechanicalFeedbackData, 0, sizeof(Mechanical_Feedback_Data) * MechanicalFeedbackEvents.NumEvents);
-  
-  MechanicalFeedbackEvents.NumEvents = 0;
 
   /* MPI exchange of remote kick packets via MPI_Alltoallv */
   int *SendCount = mymalloc("FBSendCount", NTask * sizeof(int));

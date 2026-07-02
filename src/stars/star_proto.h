@@ -47,16 +47,21 @@ Star_Feedback units_for_feedback(Star_Feedback star);
 
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 
-/* Timesteps */
-integertime star_timestep(int p);
-void star_update_timesteps(void);
-void star_reconstruct_timebins(void);
-void star_update_list_of_active_particles(void);
+/* Wrap stars module */
+void star_in(void);
+void star_exit(void);
 
 /* Feedback setup */
 void feedback_init(struct Mechanical_Feedback_Events *MFEvents);
 void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents);
 void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents);
+void feedback_free(struct Mechanical_Feedback_Events *MFEvents);
+
+/* Timesteps */
+integertime star_timestep(int p);
+void star_update_timesteps(void);
+void star_reconstruct_timebins(void);
+void star_update_list_of_active_particles(void);
 
 /* Prep and density */
 void star_prep(void);
@@ -81,6 +86,10 @@ void star_feedback(void);
 
 #if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
 void star_perform_end_of_step_physics(void);
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+void star_exit(void);
 #endif
 
 #endif
