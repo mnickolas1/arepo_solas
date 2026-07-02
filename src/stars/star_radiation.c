@@ -26,10 +26,11 @@ int NRays;
  */
 double Kappa[WAVEBANDS] = 
 {
-  [INFRARED] = 1.0e-1, /* INFRARED -> [cm^2/g] - IR dust at T_ref=20K, beta=2, solar Z */ 
-  [OPTICAL] = 1.0e1, /* OPTICAL -> [cm^2/g] - V-band dust at solar Z */
-  [ULTRAVIOLET] = 5.0e1, /* ULTRAVIOLET -> [cm^2/g] - NUV dust at solar Z */
-  [LYMAN_WERNER] = 1.0e2, /* LYMAN_WERNER -> [cm^2/g] - FUV dust at solar Z */
+  /* (FIRE-3 / Draine & Li 2007) */
+  [INFRARED] = 6.5, /* mid/far-IR dust, cm^2/g, solar Z  */
+  [OPTICAL] = 180.0, /* optical-NIR dust, cm^2/g, solar Z */
+  [ULTRAVIOLET] = 720.0, /* FUV/photoelectric dust, cm^2/g, solar Z */
+  [LYMAN_WERNER] = 0.0, /* DISSOCIATING H2 -> Computed directly from H2 */
   [IONIZING_HI] = 0.0, /* IONIZING_HI -> Computed directly from HI */
   [IONIZING_HeI] = 0.0, /* IONIZING_HeI -> Computed directly from HeI */
   [IONIZING_HeII] = 0.0, /* IONIZING_HeII -> Computed directly from HeII */
@@ -52,23 +53,28 @@ void update_kappa(void)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
-      
-      /* At Lyman limit */  
-      double sigma_H = 6.3e-18; 
-#ifdef METALS
-      double Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
-#else
+
       double Z = 0;
+      
+#ifdef METALS
+      Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
 #endif
+      
       double units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
       
       SphP[i].Kappa[INFRARED] = (Kappa[INFRARED] / units) * Z;
       SphP[i].Kappa[OPTICAL] = (Kappa[OPTICAL] / units) * Z;
-      SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;
-      SphP[i].Kappa[LYMAN_WERNER] = (Kappa[LYMAN_WERNER] / units) * Z;       
-      SphP[i].Kappa[IONIZING_HI] = (sigma_H / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HI);
-      SphP[i].Kappa[IONIZING_HeI] = (sigma_H / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HeI); 
-      SphP[i].Kappa[IONIZING_HeII] = (sigma_H / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HeII);    
+      SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;      
+
+      const double sigma_H2 = 2.47e-18; /* cm^2, effective Solomon-process cross section (Baczynski+15) */ 
+      const double sigma_HI = 6.30e-18; /* cm^2, HI threshold, 13.6 eV */
+      const double sigma_HeI = 7.83e-18; /* cm^2, HeI threshold, 24.6 eV */
+      const double sigma_HeII = 1.58e-18; /* cm^2, HeII threshold, 54.4 eV */
+    
+      SphP[i].Kappa[LYMAN_WERNER] = (sigma_H2_LW / (2.0 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_H2I);
+      SphP[i].Kappa[IONIZING_HI] = (sigma_HI / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HI);
+      SphP[i].Kappa[IONIZING_HeI] = (sigma_HeI / (4 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeI);
+      SphP[i].Kappa[IONIZING_HeII] = (sigma_HeII / (4 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeII);  
     }
 }
 
@@ -495,7 +501,7 @@ static void radiation_feedback(void)
   /* H2 Dissociation */
       double N_abs_H2 = SphP[i].Absorbed[LYMAN_WERNER].Photons;
       
-      double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
+      double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (2 * PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].H2_DissociationRate += n_H2 > 0 ? (N_abs_H2 / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_H2: 0.0;
 #endif
 
@@ -526,10 +532,10 @@ static void radiation_feedback(void)
       double n_HI = SphP[i].GrackleSpecies(GRACKLE_HI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs_HI / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HI: 0.0;
             
-      double n_HeI = SphP[i].GrackleSpecies(GRACKLE_HeI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
+      double n_HeI = SphP[i].GrackleSpecies(GRACKLE_HeI) * SphP[i].Density / (4 * PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].HeI_IonizationRate += n_HeI > 0 ? (N_abs_HeI / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HeI: 0.0;
 
-      double n_HeII = SphP[i].GrackleSpecies(GRACKLE_HeII) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
+      double n_HeII = SphP[i].GrackleSpecies(GRACKLE_HeII) * SphP[i].Density / (4 * PROTONMASS / All.cf_UnitMass_in_g);
       SphP[i].HeII_IonizationRate += n_HeII > 0 ? (N_abs_HeII / dt/All.cf_hubble_a/All.HubbleParam / volume) / n_HeII: 0.0;
 #endif
 
