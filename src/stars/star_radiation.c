@@ -8,22 +8,7 @@ double HealpixDirs[MAX_NUM_RAYS][3];
 /* 12*NSIDE^2 */
 int NRays; 
 
-/* Reference opacity coefficients [cm^2/g of gas] at solar metallicity
- *
- * LYMAN_WERNER: FUV dust opacity (~912-2000 Ang), dust-to-gas = 0.01 at solar Z
- *               Ref: Draine (2003), Weingartner & Draine (2001)
- *
- * ULTRAVIOLET:  NUV dust opacity (~2000-4000 Ang)
- *               Ref: Draine (2003)
- *
- * OPTICAL:      Visual band (~4000-8000 Ang), close to standard V-band extinction
- *               Ref: Cardelli, Clayton & Mathis (1989)
- *
- * INFRARED:     Modified blackbody at T_DUST_REF = 20 K, beta = 2
- *               Ref: Semenov et al. (2003), Planck Collaboration XI (2014)
-                 
-                 Need to check references!
- */
+/* Reference opacity coefficients [cm^2/g of gas] at solar metallicity */
 double Kappa[WAVEBANDS] = 
 {
   /* (FIRE-3 / Draine & Li 2007) */

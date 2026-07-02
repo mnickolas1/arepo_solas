@@ -23,6 +23,22 @@ extern double HealpixDirs[MAX_NUM_RAYS][3];
 /* 12*NSIDE^2 */
 extern int NRays;
 
+/* 
+ * INFRARED: inf A - 12398.4 A (0 eV - 1 eV)
+ *  
+ * OPTICAL: 12398.4 A - 2066.4 A (1 eV - 6 eV)
+ *
+ * ULTRAVIOLET: 2066.4 A - 1107.0 A (6 eV - 11.2 eV) 
+ *
+ * LYMAN_WERNER: 1107.0 A - 911.6 A (11.2 eV - 13.6 eV) 
+ *
+ * IONIZING_HI: 911.6 A - 504.0 A (13.6 eV - 24.6 eV)
+ *
+ * IONIZING_HeI: 504.0 A - 227.9 A (24.6 eV - 54.4 eV)
+ *
+ * IONIZING_HeII: 227.9 A - 0 A (54.4 eV - inf eV)              
+ */ 
+
 typedef enum
 { INFRARED = 0,
   OPTICAL,
