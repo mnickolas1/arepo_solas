@@ -151,7 +151,7 @@ void star_feedback(void)
   int ev, h, i, k, q, f;
 
   int n_export = 0;
-  int max_export = 20 * All.TotNumGas;
+  int max_export = 20 * All.TotNumStars;
   int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
   struct Feedback_Kick *ExportBuf = mymalloc("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
 
