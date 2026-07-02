@@ -164,18 +164,14 @@ void feedback_allocate(struct Mechanical_Feedback_Pack *MFPack, int MaxEvents)
 {
   MFPack->MaxEvents = MaxEvents;
 
-  MFPack->Data = (Mechanical_Feedback_Data *)
-  mymalloc_movable(&MFPack->Data, "Mechanical_Feedback_Events_Pack_Data",
-  MFPack->MaxEvents * sizeof(Mechanical_Feedback_Data));
+  MFPack->Data = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
 }
 
 void feedback_reallocate(struct Mechanical_Feedback_Pack *MFPack, int NewMaxEvents)
 {
   MFPack->MaxEvents = NewMaxEvents;
 
-  MFPack->Data = (Mechanical_Feedback_Data *)
-  myrealloc_movable(MFPack->Data,
-  MFPack->MaxEvents * sizeof(Mechanical_Feedback_Data));
+  MFPack->Data = realloc(MFPack->Data, NewMaxEvents * sizeof(Mechanical_Feedback_Data));
 }
 #endif
 
