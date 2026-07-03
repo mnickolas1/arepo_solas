@@ -297,6 +297,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
 #ifdef STAR_FEEDBACK_ACTIVE
   /* Set timebin */
   SP[NumStars].Active = 0;
+  SP[NumStars].WithFeedback = 1;
   SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 #endif
@@ -377,6 +378,7 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   
   /* Set timebin */
   SP[NumStars].Active = 0;
+  SP[NumStars].WithFeedback = 1;
   SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 

@@ -150,6 +150,7 @@ typedef struct Star_Particle_Data
 
 #ifdef STAR_FEEDBACK_ACTIVE
   int Active;
+  int WithFeedback;
   MyDouble Hsml;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
@@ -159,7 +160,6 @@ typedef struct Star_Particle_Data
   MyDouble PhysicalAge_yr;
   Mechanical_Feedback MechanicalFeedback;
 #endif
-
 } Star_Particle_Data;
 
 extern Star_Particle_Data *SP;

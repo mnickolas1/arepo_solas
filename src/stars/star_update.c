@@ -90,7 +90,7 @@ void feedback_free(struct Mechanical_Feedback_Events *MFEvents)
 
 integertime star_timestep(int i)
 { 
- /* Host Hydro Bin */
+  /* Host Hydro Bin */
   double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
   
   double dt;
@@ -106,6 +106,10 @@ integertime star_timestep(int i)
   if(dt_star < dt)
     dt = dt_star;
 
+  /* Park dead or low mass stars */
+  if(SP[i].WithFeedback == 0)
+    dt = TIMEBASE * All.Timebase_interval;
+    
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
   
   return ti_step;
@@ -126,6 +130,10 @@ void star_update_timesteps(void)
       timebins_get_bin_and_do_validity_checks(star_timestep(i), &bin, SP[i].TimeBinStar);
       SP[i].TimeBinStar = bin;
 #endif
+      
+      /* Park dead or low mass stars */
+      if(SP[i].WithFeedback == 0)
+        SP[i].TimeBinStar = TIMEBINS;
     }
     
   star_reconstruct_timebins();
@@ -212,22 +220,9 @@ void star_prep(void)
       if(SP[i].Active == 0)
         continue;
       
-      MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
-
-      if(star_timestep == 0)
-        terminate("star_timestep == 0!");
+      MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval * All.cf_UnitTime_in_yr;
 
       MyDouble star_mass = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
-
-      /* This sets the timestep of less massive stars at 1 Myr */
-      if(star_mass < 8)
-        star_timestep = pow(10,6) / All.cf_UnitTime_in_yr;
-
-      /* This deactivates low mass stars */
-      if(star_mass < 2)
-        star_timestep = TIMEBASE * All.Timebase_interval;
-
-      star_timestep *= All.cf_UnitTime_in_yr;
 
 #ifdef METALS 
       MyDouble star_metallicity = SP[i].Metallicity;
@@ -280,6 +275,31 @@ void star_prep(void)
 #endif
       SP[i].MechanicalFeedback.SN_EnergyInject = StarFeedback.SN_EnergyInject;
 #endif
+
+      int with_feedback = 0;
+
+#ifdef WINDS 
+      if(SP[i].MechanicalFeedback.MassLoss)
+        with_feedback++;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      for(int w = 0; w < WAVEBANDS; w++)
+        {
+          if(SP[i].MechanicalFeedback.Radiated[w].Photons > 0 || SP[i].MechanicalFeedback.Radiated[w].Energy > 0)
+            { 
+              with_feedback++; 
+            }
+        }  
+#endif
+
+#ifdef SUPERNOVAE
+      if(SP[i].MechanicalFeedback.SN_MassLoss || SP[i].MechanicalFeedback.SN_EnergyInject)
+        with_feedback++;
+#endif
+
+      SP[i].WithFeedback = with_feedback;
+      SP[i].HostHydroBin = TIMEBINS;
     }
 
   TIMER_STOP(CPU_STARS_PREP);

@@ -227,6 +227,9 @@ static void kernel_local(void)
         break;
 
       i = TimeBinsStar.ActiveParticleList[idx];
+
+      if(SP[i].WithFeedback == 0)
+        continue;
       
       if(star_density_isactive(i))
         star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
@@ -284,6 +287,13 @@ void star_density(void)
   StarHostTask = (int *)mymalloc("StarHostTask", NumStars * sizeof(int));
   StarHostDistance = (MyFloat *)mymalloc("StarHostDistance", NumStars * sizeof(MyFloat));
 
+  memset(StarNgbs, 0, NumStars * sizeof(int));
+  memset(StarHostIndex, -1, NumStars * sizeof(int));
+  memset(StarHostTask, -1, NumStars * sizeof(int));
+
+  for(i = 0; i < NumStars; i++)
+    StarHostDistance[i] = MAX_REAL_NUMBER;
+
   for(i = 0; i < NumStars; i++)
     {
       SP[i].DensityFlag = 1;
@@ -311,6 +321,9 @@ void star_density(void)
       for(idx = 0, npleft = 0; idx < TimeBinsStar.NActiveParticles; idx++)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
+
+          if(SP[i].WithFeedback == 0)
+            continue;
 
           if(StarNgbs[i] < 1)
             {
