@@ -38,18 +38,18 @@ void update_kappa(void)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
-
-      double Z = 0;
       
 #ifdef METALS
-      Z = SphP[i].GasMetallicity / SOLAR_METALLICITY;
+      double Zsol = SphP[i].GasMetallicity / SOLAR_METALLICITY;
+#else
+      double Zsol = 0;
 #endif
       
       double units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
       
-      SphP[i].Kappa[INFRARED] = (Kappa[INFRARED] / units) * Z;
-      SphP[i].Kappa[OPTICAL] = (Kappa[OPTICAL] / units) * Z;
-      SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Z;      
+      SphP[i].Kappa[INFRARED] = (Kappa[INFRARED] / units) * Zsol;
+      SphP[i].Kappa[OPTICAL] = (Kappa[OPTICAL] / units) * Zsol;
+      SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Zsol;      
 
       const double sigma_H2 = 2.47e-18; /* cm^2, effective Solomon-process cross section (Baczynski+15) */ 
       const double sigma_HI = 6.30e-18; /* cm^2, HI threshold, 13.6 eV */

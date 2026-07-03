@@ -89,10 +89,10 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.density         = rho;
   *All.GrackleFieldData.internal_energy = u_old;
 
-  double Metallicity = GRACKLE_TINY;
-
 #ifdef METALS 
-  Metallicity = SphP[target].GasMetallicity;
+  double Metallicity = SphP[target].GasMetallicity;
+#else
+  double Metallicity = GRACKLE_TINY;
 #endif
 
   *All.GrackleFieldData.metal_density = Metallicity * *All.GrackleFieldData.density;
@@ -596,11 +596,11 @@ double compute_mu(int i)
   double XHD = XHDI; /* 3 m_H */
   double XHe = XHeI + XHeII + XHeIII; /* 4 m_H */
 
-  /* Metals, approximated as 16 m_H */
-  double Z = 0;
-
+/* Metals, approximated as 16 m_H */
 #ifdef METALS
-  Z = SphP[i].GasMetallicity; 
+  double Z = SphP[i].GasMetallicity;
+#else
+  double Z = 0; 
 #endif
 
   /* mu = 1 / sum_s (X_s / A_s), where A_s is the atomic mass in units of m_H */
