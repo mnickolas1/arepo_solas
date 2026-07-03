@@ -573,7 +573,7 @@ void star_feedback(void)
       /* Go to next host */
       ev += SphP[i].Host;
       /* All stars processed: release host slot */        
-      SphP[i].Host = 0;
+      //SphP[i].Host = 0;
     } //for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
 
   /* MPI exchange of remote kick packets via MPI_Alltoallv */

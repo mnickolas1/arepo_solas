@@ -550,9 +550,6 @@ void star_radiation(void)
   /* Zero RAD accumulator on all leaves before treewalk */
   for(int i = 0; i < NumGas; i++)
     {
-      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
-        continue;
-
       for(int w = 0; w < WAVEBANDS; w++)
         {
           SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;

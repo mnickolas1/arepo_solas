@@ -292,6 +292,7 @@ void star_density(void)
         SP[i].Hsml = All.SofteningTable[PPS(i).SofteningType]; 
     }
   
+  /* Zero all hosts first */
   for(i = 0; i < NumGas; i++)
     SphP[i].Host = 0;
 
