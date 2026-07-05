@@ -533,9 +533,6 @@ static void radiation_feedback(void)
 void star_radiation(void)
 {
   TIMER_START(CPU_STARS_RADIATION);
-  
-  if(MechanicalFeedbackEvents.NumEvents == 0)
-    return;
 
   double t0, t1;
 

@@ -277,9 +277,6 @@ void star_feedback(void)
 {
   TIMER_START(CPU_STARS_FEEDBACK);
 
-  if(MechanicalFeedbackEvents.NumEvents == 0)
-    return;
-
   #define MAX_FACES 128
 
   int ev, h, i, k, q, f;
