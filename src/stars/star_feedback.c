@@ -277,14 +277,17 @@ void star_feedback(void)
 {
   TIMER_START(CPU_STARS_FEEDBACK);
 
+  if(MechanicalFeedbackEvents.NumEvents == 0)
+    return;
+
   #define MAX_FACES 128
 
   int ev, h, i, k, q, f;
 
   int n_export = 0;
   int max_export = 20 * MechanicalFeedbackEvents.NumEvents;
-  int *ExportTask = mymalloc("ExportTask", max_export * sizeof(int));
-  struct Feedback_Kick *ExportBuf = mymalloc("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
+  int *ExportTask = mymalloc_movable("ExportTask", max_export * sizeof(int));
+  struct Feedback_Kick *ExportBuf = mymalloc_movable("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
 
   /* Act on host cells */
   for(ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
