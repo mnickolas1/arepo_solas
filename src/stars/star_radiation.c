@@ -413,7 +413,10 @@ static void distribute_node_rad(int no)
       if(child < Ngb_MaxPart)
         {
           if(P[child].Type != 0 || P[child].Mass == 0 || P[child].ID == 0)
-            continue;
+            {
+              child = Ngb_Nextnode[child];
+              continue;
+            }
           
           for(int w = 0; w < WAVEBANDS; w++)
             {
