@@ -294,43 +294,53 @@ void star_feedback(void)
       for(h = 0; h < SphP[i].Host; h++)
         {                    
           int flag_wind = 0, flag_sn = 0;
+          int flag_wind_host = 0, flag_sn_host = 0;
 
           Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
           Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
 
 #ifdef WINDS
           if(MechanicalFeedback->MassLoss)
-            flag_wind++;
+            flag_wind = 1;
 #endif
 
 #ifdef SUPERNOVAE
           if(MechanicalFeedback->SN_MassLoss || MechanicalFeedback->SN_EnergyInject)
-            flag_sn++;
+            flag_sn = 1;
 #endif
         
-
 #ifdef WINDS
-          /* Unresolved Wind deposition radius */
+          /* Unresolved wind deposition radius */
           /* Skip the mesh-neighbour geometry entirely and dump Wind into the host cell */
-          if(Wind_feedback_radius(i, ev, h))
+          if(flag_wind)
             {
-              Wind_feedback_host(i, ev, h);
-              flag_wind = 0;
+              //if(Wind_feedback_radius(i, ev, h))
+              //  {
+              //    Wind_feedback_host(i, ev, h);
+              //    flag_wind_host = 1;
+              //  }
             }
 #endif
 
 #ifdef SUPERNOVAE
           /* Unresolved SN cooling radius */
           /* Skip the mesh-neighbour geometry entirely and dump SN into the host cell */
-          if(SN_feedback_radius(i, ev, h))
+          if(flag_sn)
             {
-              SN_feedback_host(i, ev, h);
-              flag_sn = 0;
+              if(SN_feedback_radius(i, ev, h))
+                {
+                  SN_feedback_host(i, ev, h);
+                  flag_sn_host = 1;
+                }
             }
 #endif
           
-          /* Host deposition */
+          /* No feedback star */
           if(!flag_wind && !flag_sn)
+            continue;
+          
+          /* Host deposition */
+          if(flag_wind_host && flag_sn_host)
             continue;
 
           /* Mesh deposition */
@@ -520,7 +530,7 @@ void star_feedback(void)
 #ifdef SUPERNOVAE     
           double p, E;
 
-          if(flag_sn)
+          if(flag_sn && !flag_sn_host)
             {
               /* Helpers for supernovae injection */
               double num, den, e = 0.0, a = 0.0, b = 0.0;
@@ -641,7 +651,7 @@ void star_feedback(void)
            
               /* Mesh ngbs feedback */
 #ifdef WINDS
-              if(flag_wind)
+              if(flag_wind && !flag_wind_host)
                 {
                   Kick.DeltaMass = MechanicalFeedback->MassLoss * sqrtsq_wbar;
 #ifdef METALS
@@ -666,7 +676,7 @@ void star_feedback(void)
 #endif
  
 #ifdef SUPERNOVAE
-              if(flag_sn)
+              if(flag_sn && !flag_sn_host)
                 {
                   Kick.SN_DeltaMass = MechanicalFeedback->SN_MassLoss * sqrtsq_wbar;
 #ifdef METALS
