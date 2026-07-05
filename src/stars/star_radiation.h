@@ -18,7 +18,6 @@
 #define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeI)))
 #define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
 
-
 extern double HealpixDirs[MAX_NUM_RAYS][3];
 /* 12*NSIDE^2 */
 extern int NRays;
@@ -80,7 +79,7 @@ typedef struct RayPacket
   double t_maximum;
 
   /* Bitmask: bit w is SET while band w is still alive */
-  /* Cleared when RAD[w] < RAD_TRUNC_FRAC * RAD_Initial[w] */
+  /* Cleared when Radiated[w] < RAD_TRUNC_FRAC * Radiated_Init[w] */
   /* When active_bands == 0 the ray is fully absorbed - return immediately */
   uint8_t  active_bands;
 

@@ -917,8 +917,8 @@ extern struct treepoint_data
   MyDouble Density;
   MyDouble StarMomentumFeed[3];
   MyDouble Kappa[WAVEBANDS];
-  MyDouble RAD[WAVEBANDS];
-  MyDouble LUM[WAVEBANDS];
+  MyDouble Radiated[WAVEBANDS];
+  MyDouble Absorbed[WAVEBANDS];
 #endif
 
 #ifndef HIERARCHICAL_GRAVITY

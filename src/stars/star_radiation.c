@@ -537,7 +537,7 @@ void star_radiation(void)
   double t0, t1;
 
 #ifdef RAD_OPENING_ANGLE
-  /* Zero RAD accumulator on all nodes before treewalk - important for top nodes! */
+  /* Zero accumulator on all nodes before treewalk - important for top nodes! */
   for(int no = Ngb_MaxPart; no < Ngb_MaxPart + Ngb_NumNodes; no++)
     {
       for(int w = 0; w < WAVEBANDS; w++)
@@ -547,7 +547,7 @@ void star_radiation(void)
     }
 #endif
 
-  /* Zero RAD accumulator on all leaves before treewalk */
+  /* Zero accumulator on all leaves before treewalk */
   for(int i = 0; i < NumGas; i++)
     {
       for(int w = 0; w < WAVEBANDS; w++)
