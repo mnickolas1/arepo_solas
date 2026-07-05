@@ -11,10 +11,12 @@ int NRays;
 /* Reference opacity coefficients [cm^2/g of gas] at solar metallicity */
 double Kappa[WAVEBANDS] = 
 {
-  /* (FIRE-3 / Draine & Li 2007) */
-  [INFRARED] = 6.5, /* mid/far-IR dust, cm^2/g, solar Z  */
-  [OPTICAL] = 180.0, /* optical-NIR dust, cm^2/g, solar Z */
-  [ULTRAVIOLET] = 720.0, /* FUV/photoelectric dust, cm^2/g, solar Z */
+  /* Per gram of GAS at solar Z (= kappa_dust * dust_to_gas_ratio_solar) */
+  /* Representative wavelengths: IR~2um, OPT~0.51um, UV~0.15um */
+  /* Draine & Li (2007) MW dust model, Cardelli+89 extinction law */
+  [INFRARED] = 3.0, /* mid/far-IR dust, cm^2/g, solar Z  */
+  [OPTICAL] = 25.0, /* optical-NIR dust, cm^2/g, solar Z */
+  [ULTRAVIOLET] = 180.0, /* FUV/photoelectric dust, cm^2/g, solar Z */
   [LYMAN_WERNER] = 0.0, /* DISSOCIATING H2 -> Computed directly from H2 */
   [IONIZING_HI] = 0.0, /* IONIZING_HI -> Computed directly from HI */
   [IONIZING_HeI] = 0.0, /* IONIZING_HeI -> Computed directly from HeI */
