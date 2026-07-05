@@ -283,8 +283,9 @@ void star_feedback(void)
 
   int n_export = 0;
   int max_export = 20 * MechanicalFeedbackEvents.NumEvents;
-  int *ExportTask = mymalloc_movable("ExportTask", max_export * sizeof(int));
-  struct Feedback_Kick *ExportBuf = mymalloc_movable("ExportBuf",  max_export * sizeof(struct Feedback_Kick));
+  int *ExportTask = (int *) mymalloc_movable(&ExportTask, "ExportTask", max_export * sizeof(int));
+  struct Feedback_Kick *ExportBuf =
+  (struct Feedback_Kick *) mymalloc_movable(&ExportBuf, "ExportBuf", max_export * sizeof(struct Feedback_Kick));
 
   /* Act on host cells */
   for(ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
@@ -697,7 +698,13 @@ void star_feedback(void)
                   apply_kick_primexch(particle, &Kick);   
 
                   if(n_export >= max_export)
-                    terminate("star_feedback: Feedback_Kick export buffer overflow\n");
+                    {
+                      max_export *= 2;
+ 
+                      ExportTask = (int *) myrealloc_movable(ExportTask, max_export * sizeof(int));
+                      ExportBuf = (struct Feedback_Kick *) myrealloc_movable(ExportBuf, max_export * sizeof(struct Feedback_Kick));
+                    }
+                  
                   ExportBuf[n_export] = Kick;
                   ExportTask[n_export] = DC[q].task;
                   n_export++;
@@ -778,10 +785,12 @@ void star_feedback(void)
   /* Cleanup in reverse allocation order */
   myfree(RecvBuf);
   myfree(SortedExport);
+
   myfree(RecvDisp);
   myfree(SendDisp);
   myfree(RecvCount);
   myfree(SendCount);
+  
   myfree(ExportBuf);
   myfree(ExportTask);
  
