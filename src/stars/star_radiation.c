@@ -58,7 +58,7 @@ void update_kappa(void)
       const double sigma_HeI = 7.83e-18; /* cm^2, HeI threshold, 24.6 eV */
       const double sigma_HeII = 1.58e-18; /* cm^2, HeII threshold, 54.4 eV */
     
-      SphP[i].Kappa[LYMAN_WERNER] = (sigma_H2_LW / (2.0 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_H2I);
+      SphP[i].Kappa[LYMAN_WERNER] = (sigma_H2 / (2.0 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_H2I);
       SphP[i].Kappa[IONIZING_HI] = (sigma_HI / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HI);
       SphP[i].Kappa[IONIZING_HeI] = (sigma_HeI / (4 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeI);
       SphP[i].Kappa[IONIZING_HeII] = (sigma_HeII / (4 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeII);  
@@ -112,8 +112,6 @@ static void init_rays(RayWorkStack *work)
     {
       Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev];
       Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
-
-      double dt_rad = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
         
       /* Loop over rays for this star */
       for(int iray = 0; iray < NRays; iray++)
@@ -121,25 +119,25 @@ static void init_rays(RayWorkStack *work)
           /* Initialize ray from star i */
           RayPacket ray = {0};
 
-          ray.pos[0] = MechanicalFeedback.StarPosition[0];      
-          ray.pos[1] = MechanicalFeedback.StarPosition[1]; 
-          ray.pos[2] = MechanicalFeedback.StarPosition[2]; 
+          ray.pos[0] = MechanicalFeedback->StarPosition[0];      
+          ray.pos[1] = MechanicalFeedback->StarPosition[1]; 
+          ray.pos[2] = MechanicalFeedback->StarPosition[2]; 
           ray.dir[0] = HealpixDirs[iray][0];        
           ray.dir[1] = HealpixDirs[iray][1];
           ray.dir[2] = HealpixDirs[iray][2];
           ray.t = 0.0;
           ray.t_exit = MAX_REAL_NUMBER;
-          ray.t_maximum = fmin(CLIGHT/All.cf_UnitVelocity_in_cm_per_s * dt_rad/All.cf_hubble_a, SQRT3 * All.BoxSize);
+          ray.t_maximum = SQRT3 * All.BoxSize;
 
           ray.active_bands = NO_IR_ACTIVE;
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
-              ray.Radiated[w].Energy = MechanicalFeedback.Radiated[w].Energy / NRays;
-              ray.Radiated[w].Photons = MechanicalFeedback.Radiated[w].Photons / NRays;
+              ray.Radiated[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
+              ray.Radiated[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
 
-              ray.Radiated_Init[w].Energy = MechanicalFeedback.Radiated[w].Energy / NRays;
-              ray.Radiated_Init[w].Photons = MechanicalFeedback.Radiated[w].Photons / NRays;
+              ray.Radiated_Init[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
+              ray.Radiated_Init[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
 
               if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
                 ray.active_bands &= (uint8_t)(~(1u << w));
