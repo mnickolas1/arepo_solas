@@ -163,7 +163,7 @@ static int SN_feedback_radius(int i, int ev, int h)
   double n_cgs = rho_cgs / (1.4 * PROTONMASS); /* cm^-3 */
  
   double r_SN_pc = 30.0 * pow(E51, 0.29) * pow(n_cgs, -0.46); /* parsec */
-  double r_SN = (r_SN_pc * PARSEC) / All.cf_UnitLength_in_cgs; /* code units */
+  double r_SN = (r_SN_pc * PARSEC) / All.cf_UnitLength_in_cm; /* code units */
  
   double r_host = get_cell_radius(i); /* code units */
  
@@ -208,8 +208,7 @@ static void SN_feedback_host(int i, int ev, int h)
   double m_ej = MechanicalFeedback->SN_MassLoss;
               
   /* Ngbs properties */
-  int Ngbs = 0;
-  double NgbsMass = 0.0, NgbsDensity = 0.0, NgbsMetallicity = 0.0;
+  double NgbsDensity = 0.0, NgbsMetallicity = 0.0;
 
   /* Single target: 100% of the deposit */
   const double sq_wbar = 1.0; 
@@ -790,7 +789,7 @@ void star_feedback(void)
   myfree(SendDisp);
   myfree(RecvCount);
   myfree(SendCount);
-  
+
   myfree(ExportBuf);
   myfree(ExportTask);
  
