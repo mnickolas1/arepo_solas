@@ -1396,7 +1396,7 @@ double InitMetallicityinSolar;
   double StarFeedbackLocal[6];
   double StarFeedbackGlobal[6];
   
-  /* for parameter file */
+  /* For parameter file */
   char StarTablesFile[MAXLEN_PATH];
 #endif 
 
@@ -1407,6 +1407,10 @@ double InitMetallicityinSolar;
  
 #ifdef RAD_OPENING_ANGLE
   double RadOpeningAngle;
+#endif
+
+#ifdef PHOTOIONIZATION
+  double RTIonizationTimestepFraction;
 #endif
 
 #if defined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
@@ -1755,6 +1759,8 @@ extern struct sph_particle_data
   MyDouble HI_IonizationRate;
   MyDouble HeI_IonizationRate;
   MyDouble HeII_IonizationRate;
+  
+  MyDouble RT_Timestep;
 #endif 
 
 /* Blackholes */    

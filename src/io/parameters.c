@@ -621,6 +621,12 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif  
 
+#ifdef PHOTOIONIZATION
+      strcpy(tag[nt], "RTIonizationTimestepFraction");
+      addr[nt] = &All.RTIonizationTimestepFraction;
+      id[nt++] = REAL;
+#endif  
+
 #ifdef BH_ACTIVE
 #ifdef BH_CONSTANT_RADIUS
       strcpy(tag[nt], "BhRadius");
