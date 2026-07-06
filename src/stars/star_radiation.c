@@ -11,7 +11,7 @@ int NRays;
 /* Reference opacity coefficients [cm^2/g of gas] at solar metallicity */
 double Kappa[WAVEBANDS] = 
 {
-  /* Per gram of GAS at solar Z (= kappa_dust * dust_to_gas_ratio_solar) */
+  /* Per gram of gas at solar Z (= kappa_dust * dust_to_gas_ratio_solar) */
   /* Representative wavelengths: IR~2um, OPT~0.51um, UV~0.15um */
   /* Draine & Li (2007) MW dust model, Cardelli+89 extinction law */
   [INFRARED] = 3.0, /* mid/far-IR dust, cm^2/g, solar Z  */
@@ -54,14 +54,14 @@ void update_kappa(void)
       SphP[i].Kappa[ULTRAVIOLET] = (Kappa[ULTRAVIOLET] / units) * Zsol;      
 
       const double sigma_H2 = 2.47e-18; /* cm^2, effective Solomon-process cross section (Baczynski+15) */ 
+      SphP[i].Kappa[LYMAN_WERNER] = (sigma_H2 / (2.0 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_H2I);
+      
       const double sigma_HI = 6.30e-18; /* cm^2, HI threshold, 13.6 eV */
       const double sigma_HeI = 7.83e-18; /* cm^2, HeI threshold, 24.6 eV */
       const double sigma_HeII = 1.58e-18; /* cm^2, HeII threshold, 54.4 eV */
-    
-      SphP[i].Kappa[LYMAN_WERNER] = (sigma_H2 / (2.0 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_H2I);
-      SphP[i].Kappa[IONIZING_HI] = (sigma_HI / PROTONMASS / units) * SphP[i].GrackleSpecies(GRACKLE_HI);
-      SphP[i].Kappa[IONIZING_HeI] = (sigma_HeI / (4 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeI);
-      SphP[i].Kappa[IONIZING_HeII] = (sigma_HeII / (4 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeII);  
+      SphP[i].Kappa[IONIZING_HI] = (sigma_HI / (PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HI);
+      SphP[i].Kappa[IONIZING_HeI] = (sigma_HeI / (4.0 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeI);
+      SphP[i].Kappa[IONIZING_HeII] = (sigma_HeII / (4.0 * PROTONMASS) / units) * SphP[i].GrackleSpecies(GRACKLE_HeII);  
     }
 }
 
