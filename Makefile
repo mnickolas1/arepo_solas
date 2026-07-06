@@ -437,6 +437,18 @@ INCL += extern/chealpix.h \
 SUBDIRS += extern
 endif
 
+ifneq (,$(filter SUPERNOVAE,$(CONFIGVARS)))
+ifeq (,$(filter TREE_BASED_TIMESTEPS,$(CONFIGVARS)))
+$(warning SUPERNOVAE without TREE_BASED_TIMESTEPS does not limit timesteps)
+endif
+endif
+
+ifneq (,$(filter PHOTOIONIZATION,$(CONFIGVARS)))
+ifeq (,$(filter TREE_BASED_TIMESTEPS,$(CONFIGVARS)))
+$(warning PHOTOIONIZATION without TREE_BASED_TIMESTEPS does not limit timesteps)
+endif
+endif
+
 #BLACKHOLES
 ifneq (,$(filter BLACKHOLES,$(CONFIGVARS)))
 OBJS += blackholes/bh.o
