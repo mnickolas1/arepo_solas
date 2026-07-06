@@ -165,6 +165,9 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           if(P[no].Type != 0 || P[no].Mass == 0 || P[no].ID == 0)
             continue;
 
+          if(P[no].Ti_Current != All.Ti_Current)
+            drift_particle(no, All.Ti_Current);
+
           double chord_length = cur.t_exit - cur.t_enter;
               
           double density_kappa[WAVEBANDS];
@@ -187,8 +190,7 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
                 dp = absorbed[w].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
 
               else
-                dp = absorbed[w].Energy * (1.0 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
-          
+                dp = absorbed[w].Energy * (1.0 + dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;        
             
               double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
 
@@ -243,6 +245,9 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
       else if(no < Ngb_MaxPart + Ngb_MaxNodes)
         {
           struct NgbNODE *nop = &Ngb_Nodes[no];
+     
+          if(nop->Ti_Current != All.Ti_Current)
+            drift_node(nop, All.Ti_Current);
 
 #ifdef RAD_OPENING_ANGLE
           /* This should only trigger for non-top level nodes */ 
@@ -370,25 +375,40 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
               /* Cell */
               if(child < Ngb_MaxPart) 
                 {
+                  if(P[child].Ti_Current != All.Ti_Current)
+                    drift_particle(child, All.Ti_Current);
+
                   double px = NEAREST_X(P[child].Pos[0] - ray->pos[0]);
                   double py = NEAREST_Y(P[child].Pos[1] - ray->pos[1]);
                   double pz = NEAREST_Z(P[child].Pos[2] - ray->pos[2]);
                   
-                  double r  = cbrt((3.0 * SphP[child].Volume) / (4.0 * M_PI));
+                  double r = get_cell_radius(child);
                   double r2 = r * r;
                       
                   hit = ray_sphere_intersect(px, py, pz, ray->dir, r2, &t_enter, &t_exit);              
                 }
               /* Internal node */  
               else if(child < Ngb_MaxPart + Ngb_MaxNodes) 
-                hit = ray_box_intersect(ray->pos, ray->dir, Ngb_Nodes[child].u.d.range_min, Ngb_Nodes[child].u.d.range_max, &t_enter, &t_exit);
+                {   
+                  struct NgbNODE *child_nop = &Ngb_Nodes[child];
+
+                  if(child_nop->Ti_Current != All.Ti_Current)
+                    drift_node(child_nop, All.Ti_Current);
+
+                  hit = ray_box_intersect(ray->pos, ray->dir, child_nop->u.d.range_min, child_nop->u.d.range_max, &t_enter, &t_exit);
+                }
               /* Pseudo-particle: remote domain */
               else 
                 {
                   int pseudo_idx = child - (Ngb_MaxPart + Ngb_MaxNodes);
                   int top_node = Ngb_DomainNodeIndex[pseudo_idx];
 
-                  hit = ray_box_intersect(ray->pos, ray->dir, Ngb_Nodes[top_node].u.d.range_min, Ngb_Nodes[top_node].u.d.range_max, &t_enter, &t_exit);
+                  struct NgbNODE *pseudo_nop = &Ngb_Nodes[top_node];
+
+                  if(pseudo_nop->Ti_Current != All.Ti_Current)
+                    drift_node(pseudo_nop, All.Ti_Current);
+
+                  hit = ray_box_intersect(ray->pos, ray->dir, pseudo_nop->u.d.range_min, pseudo_nop->u.d.range_max, &t_enter, &t_exit);
                 }
 
               if(hit)
