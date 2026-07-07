@@ -468,6 +468,13 @@ integertime get_timestep_hydro(int p)
     dt = dt_powell;
 #endif /* #ifdef MHD_POWELL_LIMIT_TIMESTEP */
 
+#ifdef PHOTOIONIZATION
+  double dt_rad = rt_timestep(p);
+  
+  if(dt_rad < dt) 
+    dt = dt_rad;
+#endif
+
   /* convert the physical timestep to dloga if needed. Note: If comoving integration has not been selected,
      All.cf_hubble_a=1.
    */

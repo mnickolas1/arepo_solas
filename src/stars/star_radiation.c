@@ -65,6 +65,24 @@ void update_kappa(void)
     }
 }
 
+#ifdef PHOTOIONIZATION
+double rt_timestep(int i)
+{
+  double eps_ion = All.RTIonizationTimestepFraction;
+  
+  if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+    continue;
+      
+  double rate = 0.0;
+
+  rate = fmax(rate, SphP[i].HI_IonizationRate);
+  rate = fmax(rate, SphP[i].HeI_IonizationRate);
+  rate = fmax(rate, SphP[i].HeII_IonizationRate);
+
+  return (rate > 0.0) ? eps_ion / rate : 1;
+}
+#endif
+
 void start_healpix(void) 
 {
   int nside = NSIDE_MIN;
@@ -533,28 +551,6 @@ static void radiation_feedback(void)
     }
 }
 
-#ifdef PHOTOIONIZATION
-static void rt_timestep(void)
-{
-  int i;
-  double eps_ion = All.RTIonizationTimestepFraction;
-  
-  for(i = 0; i < NumGas; i++)
-    {
-      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
-        continue;
-      
-      double rate = 0.0;
-
-      rate = fmax(rate, SphP[i].HI_IonizationRate);
-      rate = fmax(rate, SphP[i].HeI_IonizationRate);
-      rate = fmax(rate, SphP[i].HeII_IonizationRate);
-
-      SphP[i].RT_Timestep = (rate > 0.0) ? eps_ion / rate : MAX_REAL_NUMBER;
-    }
-}
-#endif
-
 void star_radiation(void)
 {
   TIMER_START(CPU_STARS_RADIATION);
@@ -632,10 +628,6 @@ void star_radiation(void)
 #endif
 
   radiation_feedback();
-
-#ifdef PHOTOIONIZATION
-  rt_timestep();
-#endif
 
   free_export_buffer(export_buf);
   free_work_stack(work);

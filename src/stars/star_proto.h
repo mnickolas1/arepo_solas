@@ -74,6 +74,7 @@ void star_density(void);
 
 void start_healpix(void);
 void update_kappa(void);
+double rt_timestep(int i);
 void append_ray(RayWorkStack *w, const RayPacket *ray);
 int split_ray(const RayPacket *parent, RayPacket children[4]);
 void star_radiation(void);
