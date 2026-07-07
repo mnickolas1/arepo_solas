@@ -1759,6 +1759,8 @@ extern struct sph_particle_data
   MyDouble HI_IonizationRate;
   MyDouble HeI_IonizationRate;
   MyDouble HeII_IonizationRate;
+
+  MyDouble RT_Timestep;
 #endif 
 
 /* Blackholes */    

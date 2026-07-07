@@ -469,7 +469,7 @@ integertime get_timestep_hydro(int p)
 #endif /* #ifdef MHD_POWELL_LIMIT_TIMESTEP */
 
 #ifdef PHOTOIONIZATION
-  double dt_rad = rt_timestep(p);
+  double dt_rad = SphP[p].RT_Timestep;
   
   if(dt_rad < dt) 
     dt = dt_rad;

@@ -65,24 +65,6 @@ void update_kappa(void)
     }
 }
 
-#ifdef PHOTOIONIZATION
-double rt_timestep(int i)
-{
-  double eps_ion = All.RTIonizationTimestepFraction;
-  
-  if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
-    return 1;
-      
-  double rate = 0.0;
-
-  rate = fmax(rate, SphP[i].HI_IonizationRate);
-  rate = fmax(rate, SphP[i].HeI_IonizationRate);
-  rate = fmax(rate, SphP[i].HeII_IonizationRate);
-
-  return (rate > 0.0) ? eps_ion / rate : 1;
-}
-#endif
-
 void start_healpix(void) 
 {
   int nside = NSIDE_MIN;
@@ -489,7 +471,7 @@ static void radiation_feedback(void)
         continue;
 
       double volume = SphP[i].Volume;
-      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval; //do we want the particle dt?
+      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval; 
 
       /* In cgs */
       double V_cgs = volume * (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
@@ -550,6 +532,28 @@ static void radiation_feedback(void)
         SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
     }
 }
+
+#ifdef PHOTOIONIZATION
+static void rt_timestep(void)
+{
+  int i;
+  double eps_ion = All.RTIonizationTimestepFraction;
+  
+  for(i = 0; i < NumGas; i++)
+    {
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+      
+      double rate = 0.0;
+
+      rate = fmax(rate, SphP[i].HI_IonizationRate);
+      rate = fmax(rate, SphP[i].HeI_IonizationRate);
+      rate = fmax(rate, SphP[i].HeII_IonizationRate);
+
+      SphP[i].RT_Timestep = (rate > 0.0) ? eps_ion / rate : 1;
+    }
+}
+#endif
 
 void star_radiation(void)
 {
@@ -628,6 +632,10 @@ void star_radiation(void)
 #endif
 
   radiation_feedback();
+
+#ifdef PHOTOIONIZATION
+  rt_timestep();
+#endif
 
   free_export_buffer(export_buf);
   free_work_stack(work);
