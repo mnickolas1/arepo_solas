@@ -71,20 +71,20 @@ double *t_enter, double *t_exit)
     return 1;
 }
 
-static inline int ray_sphere_intersect(*px, const double *dir, const double r2, 
+static inline int ray_sphere_intersect(double *px, const double *dir, const double r2, 
 double *t_enter, double *t_exit)
 {
   /* Check if ray origin is inside the sphere first */
-  double dist2 = dx * dx + dy * dy + dz * dz;
+  double dist2 = px[0] * px[0] + px[1] * px[1] + px[2] * px[2];
   
   if(dist2 < r2)
     {
       /* Origin is inside - find the single forward exit point */
       /* Project centre onto ray, then offset by half-chord */
-      double t_closest = dx * dir[0] + dy * dir[1] + dz * dir[2];
-      double cx = dx - t_closest * dir[0];
-      double cy = dy - t_closest * dir[1];
-      double cz = dz - t_closest * dir[2];
+      double t_closest = px[0] * dir[0] + px[1] * dir[1] + px[2] * dir[2];
+      double cx = px[0] - t_closest * dir[0];
+      double cy = px[1] - t_closest * dir[1];
+      double cz = px[2] - t_closest * dir[2];
       double b2 = cx * cx + cy * cy + cz * cz;
       double dt = sqrt(r2 - b2);
       *t_enter = 0.0;         
@@ -93,14 +93,14 @@ double *t_enter, double *t_exit)
     }
 
   /* Sphere centre is outside and ahead */
-  double t_closest = dx * dir[0] + dy * dir[1] + dz * dir[2];
+  double t_closest = px[0] * dir[0] + px[1] * dir[1] + px[2] * dir[2];
   
   if(t_closest <= 0) 
     return 0;
 
-  double cx = dx - t_closest * dir[0];
-  double cy = dy - t_closest * dir[1];
-  double cz = dz - t_closest * dir[2];
+  double cx = px[0] - t_closest * dir[0];
+  double cy = px[1] - t_closest * dir[1];
+  double cz = px[2] - t_closest * dir[2];
   double b2 = cx * cx + cy * cy + cz * cz;
   
   if(b2 >= r2) 
@@ -406,9 +406,9 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
 
                   double px[3];
 
-                  double px[0] = NEAREST_X(P[child].Pos[0] - ray->pos[0]);
-                  double px[1] = NEAREST_Y(P[child].Pos[1] - ray->pos[1]);
-                  double px[2] = NEAREST_Z(P[child].Pos[2] - ray->pos[2]);
+                  px[0] = NEAREST_X(P[child].Pos[0] - ray->pos[0]);
+                  px[1] = NEAREST_Y(P[child].Pos[1] - ray->pos[1]);
+                  px[2] = NEAREST_Z(P[child].Pos[2] - ray->pos[2]);
                   
                   double r = get_cell_radius(child);
                   double r2 = r * r;

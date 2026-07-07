@@ -71,7 +71,7 @@ double rt_timestep(int i)
   double eps_ion = All.RTIonizationTimestepFraction;
   
   if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
-    continue;
+    return 1;
       
   double rate = 0.0;
 
