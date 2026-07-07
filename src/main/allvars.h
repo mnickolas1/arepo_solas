@@ -1755,7 +1755,9 @@ extern struct sph_particle_data
 #endif
 
 #ifdef PHOTOIONIZATION
-  MyDouble PI_VolHeatingRate;
+  MyDouble HI_HeatingRate;
+  MyDouble HeI_HeatingRate;
+  MyDouble HeII_HeatingRate;
   MyDouble HI_IonizationRate;
   MyDouble HeI_IonizationRate;
   MyDouble HeII_IonizationRate;
