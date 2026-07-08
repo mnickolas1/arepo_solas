@@ -75,7 +75,7 @@ void star_density(void);
 void start_healpix(void);
 void update_kappa(void);
 void append_ray(RayWorkStack *w, const RayPacket *ray);
-int split_ray(const RayPacket *parent, RayPacket children[4]);
+void split_ray(const RayPacket *parent, RayPacket children[4]);
 void star_radiation(void);
 void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);
 #endif

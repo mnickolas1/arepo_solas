@@ -5,7 +5,7 @@
 
 
 double HealpixDirs[MAX_NUM_RAYS][3];
-/* 12*NSIDE^2 */
+
 int NRays; 
 
 /* Reference opacity coefficients [cm^2/g of gas] at solar metallicity */
@@ -162,11 +162,8 @@ static void init_rays(RayWorkStack *work)
 }
 
 /* Returns 4 child rays by value - returns 0 if at NSIDE_MAX */
-int split_ray(const RayPacket *parent, RayPacket children[4])
+void split_ray(const RayPacket *parent, RayPacket children[4])
 {
-  if(parent->nside >= NSIDE_MAX)
-    return 0;
-
   int new_nside = parent->nside * 2;
 
   for(int k = 0; k < 4; k++)
@@ -188,7 +185,6 @@ int split_ray(const RayPacket *parent, RayPacket children[4])
           children[k].Radiated_Init[w].Photons = parent->Radiated_Init[w].Photons * 0.25;
         }
     }
-  return 1;
 }
 
 static RayExportBuffer *init_export_buffer(int capacity)

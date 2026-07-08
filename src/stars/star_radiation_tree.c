@@ -206,7 +206,6 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
           
           /* Deposit absorbed energy into cells, one band at a time */
-
           double dK_total = 0.0;
           for(int w = 0; w < WAVEBANDS; w++)
             {
@@ -246,7 +245,6 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           All.StarFeedbackLocal[2] += dK_total;
           
           /* Deposit absorbed photons into cells, one band at a time */
-          
           /* Dissociating Photons */
           SphP[no].Absorbed[LYMAN_WERNER].Photons += absorbed[LYMAN_WERNER].Photons;
 
@@ -335,19 +333,22 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           /* Adaptive splitting criterion */
           if(ray->nside < NSIDE_MAX)
             {
+              /* Node center */
               double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
               double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
               double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
-
-              double ddx = cx - ray->pos[0];
-              double ddy = cy - ray->pos[1];
-              double ddz = cz - ray->pos[2];
-              double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
-
+                            
+              /* Extent of node */ 
               double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
               double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
               double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
               double len2 = dx*dx + dy*dy + dz*dz;
+
+              /* Node center to ray origin distance */
+              double ddx = cx - ray->pos[0];
+              double ddy = cy - ray->pos[1];
+              double ddz = cz - ray->pos[2];
+              double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
 
               /* Use number of actual children for adaptive f */
              
@@ -357,37 +358,39 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
               /* Omega_ray = 4pi/(12*nside^2) */
               double coeff = 3.0 * f_eff / M_PI; 
 
+              /* Ray is too coarse - push split children to split_buf, consume parent */
               if(dist2 > 0.0 && len2 * coeff * (double)(ray->nside * ray->nside) > dist2)
                 {
-                  /* Ray is too coarse - push split children to split_buf, consume parent */
+                  /* Pack pending */
+                  if(stack_top >= RAY_STACK_SIZE - 1) 
+                    terminate("Too many pending entries to split!");
+
+                  ray->n_pending = stack_top;
+                  memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
+
+                  ray->t = cur.t_enter;
+                  ray->t_exit = cur.t_exit;
+                  
+                  /* Store for re-entry */
+                  ray->target_node = no;
+                      
                   RayPacket children[4];
-                  if(split_ray(ray, children))
+                  split_ray(ray, children);
+                    
+                  for(int k = 0; k < 4; k++)
                     {
-                      /* Pack pending */
-                      if(stack_top >= RAY_STACK_SIZE - 1) 
-                        terminate("Too many pending entries to split!");
-
-                      ray->n_pending = stack_top;
-                      memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
-
-                      ray->t = cur.t_enter;
-                      ray->t_exit = cur.t_exit;
-                      /* Store for re-entry */
-                      ray->target_node = no;  
-
-                      for(int k = 0; k < 4; k++)
-                        {
-                          if(work->n >= work->capacity)
-                            terminate("Work stack overflow!");
+                      if(work->n >= work->capacity)
+                        terminate("Work stack overflow!");
                           
-                          append_ray(work, &children[k]);
-                        }
-                      /* Parent ray is consumed */
-                      return;   
+                      append_ray(work, &children[k]);
                     }
-                  /* Else: at NSIDE_MAX, fall through and open the node normally */
-                }
-            }
+                      
+                  /* Parent ray is consumed */
+                  return;   
+                                  
+                } /* Else: ray fine enough for node */
+            } /* Else: ray at max resolution, open node */
+         
           /* Open node and enumerate children -> sort by t_enter, push */
           StackEntry children[8];
           int nchildren = 0;
