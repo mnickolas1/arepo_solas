@@ -1411,6 +1411,7 @@ double InitMetallicityinSolar;
 
 #ifdef RAD_OPENING_ANGLE
   double RadOpeningAngle;
+  double NodeAspectRatio;
 #endif
 
 #ifdef PHOTOIONIZATION

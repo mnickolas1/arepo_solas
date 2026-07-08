@@ -625,6 +625,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "RadOpeningAngle");
       addr[nt] = &All.RadOpeningAngle;
       id[nt++] = REAL;
+
+      strcpy(tag[nt], "NodeAspectRatio");
+      addr[nt] = &All.NodeAspectRatio;
+      id[nt++] = REAL;
 #endif  
 
 #ifdef PHOTOIONIZATION

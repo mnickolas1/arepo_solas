@@ -275,60 +275,76 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
 
 #ifdef RAD_OPENING_ANGLE
           /* This should only trigger for non-top level nodes */ 
-          if (no >= Ngb_FirstNonTopLevelNode)
+          if(no >= Ngb_FirstNonTopLevelNode)
             {
               /* -- Barnes-Hut opening criterion -- */
+              /* Node center */
               double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
               double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
               double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
+                            
+              /* Extent of node */ 
+              double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
+              double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
+              double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
+              //double len2 = dx*dx + dy*dy + dz*dz;
 
+              /* Silhouette of node */
+              double ax = fabs(ray->dir[0]), ay = fabs(ray->dir[1]), az = fabs(ray->dir[2]);
+              double A_proj = dy*dz*ax + dx*dz*ay + dx*dy*az;   
+
+              /* Node center to ray origin distance */
               double ddx = cx - ray->pos[0];
               double ddy = cy - ray->pos[1];
               double ddz = cz - ray->pos[2];
               double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
-
-              double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
-              double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
-              double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
-              double len2 = dx*dx + dy*dy + dz*dz;
           
               /* Node is far enough - treat as single slab */
-              if(dist2 > 0 && len2 / dist2 < All.RadOpeningAngle * All.RadOpeningAngle)
+              if(dist2 > 0 && A_proj / dist2 < All.RadOpeningAngle * All.RadOpeningAngle)
                 {
-                  double chord_length = cur.t_exit - cur.t_enter;
-              
-                  double density_kappa[WAVEBANDS];
-                  for(int w = 0; w < WAVEBANDS; w++)
-                    /* Volume-weighted mean kappa * density */
-                    density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];  
-
-                  WavebandData absorbed[WAVEBANDS];
-                  double dtau_IR;
-
-                  int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
-
-                  /* Accumulate for later distribution to children */
-                  for(int w = 0; w < WAVEBANDS; w++)
-                    {
-                      RtNgb_Nodes[no].Absorbed[w].Energy += absorbed[w].Energy;
-                      RtNgb_Nodes[no].Absorbed[w].Photons += absorbed[w].Photons;
-                    }
-
-                  ray->t = cur.t_exit;
-
-                  if(ray->t == ray->t_maximum) 
-                    {
-                      ray->is_paused = 1; 
-                      return;
-                    }
-
-                  if(!still_alive) 
-                    return;
+                  /* This should only trigger for not too elongated nodes */
+                  /* Node aspect ratio */
+                  double lo = fmin(dx, fmin(dy, dz));
+                  double hi = fmax(dx, fmax(dy, dz));
+                  double aspect = (lo > 0.0) ? hi / lo : MAX_REAL_NUMBER;
                   
-                  /* Don't open this node */
-                  continue;  
-                }
-            }
+                  if(aspect < All.NodeAspectRatio)
+                    {
+                      double chord_length = cur.t_exit - cur.t_enter;
+              
+                      double density_kappa[WAVEBANDS];
+                      for(int w = 0; w < WAVEBANDS; w++)
+                        /* Volume-weighted mean kappa * density */
+                        density_kappa[w] = RtNgb_Nodes[no].density_kappa[w];  
+
+                      WavebandData absorbed[WAVEBANDS];
+                      double dtau_IR;
+
+                      int still_alive = ray_absorb(ray, chord_length, density_kappa, absorbed, &dtau_IR);
+
+                      /* Accumulate for later distribution to children */
+                      for(int w = 0; w < WAVEBANDS; w++)
+                        {
+                          RtNgb_Nodes[no].Absorbed[w].Energy += absorbed[w].Energy;
+                          RtNgb_Nodes[no].Absorbed[w].Photons += absorbed[w].Photons;
+                        }
+
+                      ray->t = cur.t_exit;
+
+                      if(ray->t == ray->t_maximum) 
+                        {
+                          ray->is_paused = 1; 
+                          return;
+                        }
+
+                      if(!still_alive) 
+                        return;
+                  
+                      /* Don't open this node */
+                      continue;  
+                    } /* Else: Elongated node */
+                } /* Else: Node too big/close */
+            } /* Else: Top level node */
 #endif      
           /* Adaptive splitting criterion */
           if(ray->nside < NSIDE_MAX)
