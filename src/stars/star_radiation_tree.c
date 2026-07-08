@@ -342,7 +342,11 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
               double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
               double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
               double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
-              double len2 = dx*dx + dy*dy + dz*dz;
+              //double len2 = dx*dx + dy*dy + dz*dz;
+
+              /* Silhouette of node */
+              double ax = fabs(ray->dir[0]), ay = fabs(ray->dir[1]), az = fabs(ray->dir[2]);
+              double A_proj = dy*dz*ax + dx*dz*ay + dx*dy*az;   
 
               /* Node center to ray origin distance */
               double ddx = cx - ray->pos[0];
@@ -354,12 +358,10 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
              
               /* At least 1 ray per child */
               double f_eff = fmax(1.0, (double)RtNgb_Nodes[no].nchildren); 
-              
-              /* Omega_ray = 4pi/(12*nside^2) */
-              double coeff = 3.0 * f_eff / M_PI; 
 
               /* Ray is too coarse - push split children to split_buf, consume parent */
-              if(dist2 > 0.0 && len2 * coeff * (double)(ray->nside * ray->nside) > dist2)
+              /* Criterion: Omega_node = A_proj / dist2 < f * Omega_ray = f * 4pi/(12*nside^2) */
+              if(dist2 > 0.0 && A_proj / dist2 < f_eff * 4.0 * M_PI / (12 * (double)(ray->nside * ray->nside)))
                 {
                   /* Pack pending */
                   if(stack_top >= RAY_STACK_SIZE - 1) 
