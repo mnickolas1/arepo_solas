@@ -71,45 +71,29 @@ double *t_enter, double *t_exit)
     return 1;
 }
 
-static inline int ray_sphere_intersect(double *px, const double *dir, const double r2, 
+static inline int ray_sphere_intersect(const double *px, const double *dir, double r2,
 double *t_enter, double *t_exit)
 {
-  /* Check if ray origin is inside the sphere first */
   double dist2 = px[0] * px[0] + px[1] * px[1] + px[2] * px[2];
-  
-  if(dist2 < r2)
-    {
-      /* Origin is inside - find the single forward exit point */
-      /* Project centre onto ray, then offset by half-chord */
-      double t_closest = px[0] * dir[0] + px[1] * dir[1] + px[2] * dir[2];
-      double cx = px[0] - t_closest * dir[0];
-      double cy = px[1] - t_closest * dir[1];
-      double cz = px[2] - t_closest * dir[2];
-      double b2 = cx * cx + cy * cy + cz * cz;
-      double dt = sqrt(r2 - b2);
-      *t_enter = 0.0;         
-      *t_exit  = t_closest + dt;
-      return 1;
-    }
-
-  /* Sphere centre is outside and ahead */
   double t_closest = px[0] * dir[0] + px[1] * dir[1] + px[2] * dir[2];
-  
-  if(t_closest <= 0) 
-    return 0;
+  int origin_inside = (dist2 < r2);
 
-  double cx = px[0] - t_closest * dir[0];
-  double cy = px[1] - t_closest * dir[1];
-  double cz = px[2] - t_closest * dir[2];
-  double b2 = cx * cx + cy * cy + cz * cz;
-  
-  if(b2 >= r2) 
-    return 0;
+  /* Sphere is behind the ray, and ray starts outside it */
+  if(!origin_inside && t_closest <= 0.0)
+    return 0;   
+
+  /* Squared impact parameter */    
+  double b2 = dist2 - t_closest * t_closest;   
+
+  /* Ray misses the sphere entirely */
+  if(!origin_inside && b2 >= r2)
+    return 0;  
 
   double dt = sqrt(r2 - b2);
-  *t_enter = t_closest - dt;
+
+  *t_enter = origin_inside ? 0.0 : t_closest - dt;
   *t_exit  = t_closest + dt;
-  
+
   return 1;
 }
 
