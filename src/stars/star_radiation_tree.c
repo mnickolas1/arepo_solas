@@ -273,41 +273,42 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           if(nop->Ti_Current != All.Ti_Current)
             drift_node(nop, All.Ti_Current);
 
+          /* Node geometry */
+          /* Node center */
+          double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
+          double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
+          double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
+                            
+          /* Node extent */ 
+          double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
+          double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
+          double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
+
+          /* Node silhouette */
+          double ax = fabs(ray->dir[0]), ay = fabs(ray->dir[1]), az = fabs(ray->dir[2]);
+          double A_proj = dy*dz*ax + dx*dz*ay + dx*dy*az;   
+
+          /* Node center to ray origin distance */
+          double ddx = NEAREST_X(cx - ray->pos[0]);
+          double ddy = NEAREST_Y(cy - ray->pos[1]);
+          double ddz = NEAREST_Z(cz - ray->pos[2]);
+
+          double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
+
 #ifdef RAD_OPENING_ANGLE
+          /* -- Barnes-Hut opening criterion -- */
           /* This should only trigger for non-top level nodes */ 
           if(no >= Ngb_FirstNonTopLevelNode)
-            {
-              /* -- Barnes-Hut opening criterion -- */
-              /* Node center */
-              double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
-              double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
-              double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
-                            
-              /* Extent of node */ 
-              double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
-              double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
-              double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
-              //double len2 = dx*dx + dy*dy + dz*dz;
-
-              /* Silhouette of node */
-              double ax = fabs(ray->dir[0]), ay = fabs(ray->dir[1]), az = fabs(ray->dir[2]);
-              double A_proj = dy*dz*ax + dx*dz*ay + dx*dy*az;   
-
-              /* Node center to ray origin distance */
-              double ddx = cx - ray->pos[0];
-              double ddy = cy - ray->pos[1];
-              double ddz = cz - ray->pos[2];
-              double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
-          
+            {     
               /* Node is far enough - treat as single slab */
               if(dist2 > 0 && A_proj / dist2 < All.RadOpeningAngle * All.RadOpeningAngle)
                 {
-                  /* This should only trigger for not too elongated nodes */
-                  /* Node aspect ratio */
+                  /* Node aspect */
                   double lo = fmin(dx, fmin(dy, dz));
                   double hi = fmax(dx, fmax(dy, dz));
                   double aspect = (lo > 0.0) ? hi / lo : MAX_REAL_NUMBER;
                   
+                  /* This should only trigger for not too elongated nodes */
                   if(aspect < All.NodeAspectRatio)
                     {
                       double chord_length = cur.t_exit - cur.t_enter;
@@ -331,7 +332,7 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
 
                       ray->t = cur.t_exit;
 
-                      if(ray->t == ray->t_maximum) 
+                      if(ray->t >= ray->t_maximum) 
                         {
                           ray->is_paused = 1; 
                           return;
@@ -346,68 +347,51 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
                 } /* Else: Node too big/close */
             } /* Else: Top level node */
 #endif      
-          /* Adaptive splitting criterion */
-          if(ray->nside < NSIDE_MAX)
+          /* -- Adaptive splitting criterion -- */
+          /* This should not trigger for the root node */
+          if(no > Ngb_MaxPart)
             {
-              /* Node center */
-              double cx = 0.5 * (nop->u.d.range_max[0] + nop->u.d.range_min[0]);
-              double cy = 0.5 * (nop->u.d.range_max[1] + nop->u.d.range_min[1]);
-              double cz = 0.5 * (nop->u.d.range_max[2] + nop->u.d.range_min[2]);
-                            
-              /* Extent of node */ 
-              double dx = nop->u.d.range_max[0] - nop->u.d.range_min[0];
-              double dy = nop->u.d.range_max[1] - nop->u.d.range_min[1];
-              double dz = nop->u.d.range_max[2] - nop->u.d.range_min[2];
-              //double len2 = dx*dx + dy*dy + dz*dz;
-
-              /* Silhouette of node */
-              double ax = fabs(ray->dir[0]), ay = fabs(ray->dir[1]), az = fabs(ray->dir[2]);
-              double A_proj = dy*dz*ax + dx*dz*ay + dx*dy*az;   
-
-              /* Node center to ray origin distance */
-              double ddx = cx - ray->pos[0];
-              double ddy = cy - ray->pos[1];
-              double ddz = cz - ray->pos[2];
-              double dist2 = ddx*ddx + ddy*ddy + ddz*ddz;
-
-              /* Use number of actual children for adaptive f */
-             
-              /* At least 1 ray per child */
-              double f_eff = All.RaySplitFactor * (double)RtNgb_Nodes[no].nchildren; 
-
-              /* Ray is too coarse - push split children to split_buf, consume parent */
-              /* Criterion: Omega_node = A_proj / dist2 < f * Omega_ray = f * 4pi/(12*nside^2) */
-              if(dist2 > 0.0 && A_proj / dist2 < f_eff * 4.0 * M_PI / (12 * (double)(ray->nside * ray->nside)))
+              /* This should not trigger for maximum resolution rays */
+              if(ray->nside < NSIDE_MAX)
                 {
-                  /* Pack pending */
-                  if(stack_top >= RAY_STACK_SIZE - 1) 
-                    terminate("Too many pending entries to split!");
+                  /* Use number of actual children for adaptive f */
+                  /* At least 1 ray per child */
+                  double f_eff = All.RaySplitFactor * (double)RtNgb_Nodes[no].nchildren; 
 
-                  ray->n_pending = stack_top;
-                  memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
-
-                  ray->t = cur.t_enter;
-                  ray->t_exit = cur.t_exit;
-                  
-                  /* Store for re-entry */
-                  ray->target_node = no;
-                      
-                  RayPacket children[4];
-                  split_ray(ray, children);
-                    
-                  for(int k = 0; k < 4; k++)
+                  /* Ray is too coarse - push split children to split_buf, consume parent */
+                  /* Criterion: Omega_node = A_proj / dist2 < f * Omega_ray = f * 4pi/(12*nside^2) */
+                  if(dist2 > 0.0 && A_proj / dist2 < f_eff * 4.0 * M_PI / (12 * (double)(ray->nside * ray->nside)))
                     {
-                      if(work->n >= work->capacity)
-                        terminate("Work stack overflow!");
-                          
-                      append_ray(work, &children[k]);
-                    }
+                      /* Pack pending */
+                      if(stack_top >= RAY_STACK_SIZE - 1) 
+                        terminate("Too many pending entries to split!");
+
+                      ray->n_pending = stack_top;
+                      memcpy(ray->pending, stack, stack_top * sizeof(StackEntry));
+
+                      ray->t = cur.t_enter;
+                      ray->t_exit = cur.t_exit;
+                  
+                      /* Store for re-entry */
+                      ray->target_node = no;
                       
-                  /* Parent ray is consumed */
-                  return;   
+                      RayPacket children[4];
+                      split_ray(ray, children);
+                    
+                      for(int k = 0; k < 4; k++)
+                        {
+                          if(work->n >= work->capacity)
+                            terminate("Work stack overflow!");
+                          
+                          append_ray(work, &children[k]);
+                        }
+                      
+                      /* Parent ray is consumed */
+                      return;   
                                   
-                } /* Else: ray fine enough for node */
-            } /* Else: ray at max resolution, open node */
+                    } /* Else: ray fine enough for node */
+                } /* Else: ray at max resolution, open node */
+            } /* Else: Root node */
          
           /* Open node and enumerate children -> sort by t_enter, push */
           StackEntry children[8];
