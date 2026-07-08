@@ -294,6 +294,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
 }
 
 #ifdef TREEPOINTS
+/* Not operational yet -Ngb tree does not use Tree_Points */
 struct rad_resultsactiveimported_data *Rad_ResultsActiveImported;
 
 static void send_results_home(void)
@@ -306,7 +307,7 @@ static void send_results_home(void)
 
   /* Count gas cells among imported particles */
   for(i = 0, ncount = 0; i < Tree_NumPartImported; i++)
-    if(Tree_Points[i].Type == 0)
+    if(Ngb_Tree_Points[i].Type == 0)
       ncount++;
 
   Rad_ResultsActiveImported = malloc(ncount * sizeof(struct rad_resultsactiveimported_data));
@@ -317,19 +318,19 @@ static void send_results_home(void)
 
   for(i = 0, n = 0, k = 0; i < NTask; i++)
     for(j = 0; j < Force_Recv_count[i]; j++, n++)
-      if(Tree_Points[n].Type == 0)
+      if(Ngb_Tree_Points[n].Type == 0)
         {
-          Rad_ResultsActiveImported[k].StarMomentumFeed[0] = Tree_Points[n].StarMomentumFeed[0];
-          Rad_ResultsActiveImported[k].StarMomentumFeed[1] = Tree_Points[n].StarMomentumFeed[1];
-          Rad_ResultsActiveImported[k].StarMomentumFeed[2] = Tree_Points[n].StarMomentumFeed[2];
+          Rad_ResultsActiveImported[k].StarMomentumFeed[0] = Ngb_Tree_Points[n].StarMomentumFeed[0];
+          Rad_ResultsActiveImported[k].StarMomentumFeed[1] = Ngb_Tree_Points[n].StarMomentumFeed[1];
+          Rad_ResultsActiveImported[k].StarMomentumFeed[2] = Ngb_Tree_Points[n].StarMomentumFeed[2];
 
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              Rad_ResultsActiveImported[k].Absorbed[w].Energy = Tree_Points[n].Absorbed[w].Energy;
-              Rad_ResultsActiveImported[k].Absorbed[w].Photons = Tree_Points[n].Absorbed[w].Photons;
+              Rad_ResultsActiveImported[k].Absorbed[w].Energy = Ngb_Tree_Points[n].Absorbed[w].Energy;
+              Rad_ResultsActiveImported[k].Absorbed[w].Photons = Ngb_Tree_Points[n].Absorbed[w].Photons;
             }
 
-          Rad_ResultsActiveImported[k].index = Tree_Points[n].index;
+          Rad_ResultsActiveImported[k].index = Ngb_Tree_Points[n].index;
           Recv_count[i]++;
           k++;
         }
