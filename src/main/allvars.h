@@ -1404,7 +1404,11 @@ double InitMetallicityinSolar;
   double StarDesNgb;
   double StarDesDev;
 #endif
- 
+
+#ifdef STAR_RADIATION_ACTIVE
+  double RaySplitFactor;
+#endif
+
 #ifdef RAD_OPENING_ANGLE
   double RadOpeningAngle;
 #endif
