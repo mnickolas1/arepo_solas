@@ -4,39 +4,37 @@
 #include "../main/proto.h"
 
 
-static inline int ray_box_intersect(double *ray_pos, double *ray_dir, MyNgbTreeFloat *rmin, MyNgbTreeFloat *rmax, 
+static inline int ray_box_intersect(const double *ray_pos, const double *ray_dir,
+const MyNgbTreeFloat *rmin, const MyNgbTreeFloat *rmax,
 double *t_enter, double *t_exit)
 {
   double xtmp, ytmp, ztmp;
 
-  double cx = 0.5 * (rmin[0] + rmax[0]);
-  double cy = 0.5 * (rmin[1] + rmax[1]);
-  double cz = 0.5 * (rmin[2] + rmax[2]);
+  double center[3] = {0.5 * (rmin[0] + rmax[0]), 0.5 * (rmin[1] + rmax[1]), 0.5 * (rmin[2] + rmax[2])};
 
-  /* Minimum-image displacement of box center relative to ray origin */
-  double dc[3];
-  
-  dc[0] = NEAREST_X(cx - ray_pos[0]);
-  dc[1] = NEAREST_Y(cy - ray_pos[1]);
-  dc[2] = NEAREST_Z(cz - ray_pos[2]);
+  /* Minimum-image displacement of box centre relative to ray origin */
+  double d[3];
 
-  double halfext[3] = {0.5 * (rmax[0] - rmin[0]), 0.5 * (rmax[1] - rmin[1]), 0.5 * (rmax[2] - rmin[2])};
+  d[0] = NEAREST_X(center[0] - ray_pos[0]);
+  d[1] = NEAREST_Y(center[1] - ray_pos[1]);
+  d[2] = NEAREST_Z(center[2] - ray_pos[2]);
 
-  double boxhalf[3] = {boxHalf_X, boxHalf_Y, boxHalf_Z};
+  double halfextent[3] = {0.5 * (rmax[0] - rmin[0]), 0.5 * (rmax[1] - rmin[1]), 0.5 * (rmax[2] - rmin[2])};
+  double halfdomain[3] = {boxHalf_X, boxHalf_Y, boxHalf_Z};
 
   double tmin = -MAX_REAL_NUMBER, tmax = MAX_REAL_NUMBER;
 
   for(int i = 0; i < 3; i++)
     {
       /* Box too wide along this axis for a single minimum-image shift to be trustworthy */
-      if(halfext[i] >= boxhalf[i])
+      if(halfextent[i] >= halfdomain[i])
         continue;
 
-      double shifted_min = ray_pos[i] + dc[i] - halfext[i];
-      double shifted_max = ray_pos[i] + dc[i] + halfext[i];
+      double shifted_min = ray_pos[i] + d[i] - halfextent[i];
+      double shifted_max = ray_pos[i] + d[i] + halfextent[i];
 
       /* Ray parallel to this slab */
-      if(fabs(ray_dir[i]) < 1e-12) 
+      if(fabs(ray_dir[i]) < 1e-12)
         {
           if(ray_pos[i] < shifted_min || ray_pos[i] > shifted_max)
             return 0;
@@ -47,47 +45,57 @@ double *t_enter, double *t_exit)
           double t1 = (shifted_min - ray_pos[i]) * inv_dir;
           double t2 = (shifted_max - ray_pos[i]) * inv_dir;
 
-          if(t1 > t2) 
-            { 
-              double tmp = t1; 
-              t1 = t2; 
-              t2 = tmp; 
+          if(t1 > t2)
+            {
+              double tmp = t1;
+              t1 = t2;
+              t2 = tmp;
             }
 
           tmin = t1 > tmin ? t1 : tmin;
           tmax = t2 < tmax ? t2 : tmax;
 
-          if(tmin > tmax) 
+          if(tmin > tmax)
             return 0;
         }
     }
 
-    if(tmax < 0) 
-      return 0;
+  if(tmax < 0)
+    return 0;
 
-    *t_enter = fmax(tmin, 0.0);
-    *t_exit  = tmax;
+  *t_enter = fmax(tmin, 0.0);
+  *t_exit  = tmax;
 
-    return 1;
+  return 1;
 }
 
-static inline int ray_sphere_intersect(const double *px, const double *dir, double r2,
+static inline int ray_sphere_intersect(const double *ray_pos, const double *ray_dir, 
+const double *center, const double r2,
 double *t_enter, double *t_exit)
 {
-  double dist2 = px[0] * px[0] + px[1] * px[1] + px[2] * px[2];
-  double t_closest = px[0] * dir[0] + px[1] * dir[1] + px[2] * dir[2];
+  double xtmp, ytmp, ztmp;
+
+  /* Minimum-image displacement of sphere centre relative to ray origin */
+  double d[3];
+
+  d[0] = NEAREST_X(center[0] - ray_pos[0]);
+  d[1] = NEAREST_Y(center[1] - ray_pos[1]);
+  d[2] = NEAREST_Z(center[2] - ray_pos[2]);
+
+  double dist2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+  double t_closest = d[0] * ray_dir[0] + d[1] * ray_dir[1] + d[2] * ray_dir[2];
   int origin_inside = (dist2 < r2);
 
   /* Sphere is behind the ray, and ray starts outside it */
   if(!origin_inside && t_closest <= 0.0)
-    return 0;   
+    return 0;
 
-  /* Squared impact parameter */    
-  double b2 = dist2 - t_closest * t_closest;   
+  /* Squared impact parameter */
+  double b2 = dist2 - t_closest * t_closest;
 
   /* Ray misses the sphere entirely */
   if(!origin_inside && b2 >= r2)
-    return 0;  
+    return 0;
 
   double dt = sqrt(r2 - b2);
 
@@ -392,17 +400,11 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
                 {
                   if(P[child].Ti_Current != All.Ti_Current)
                     drift_particle(child, All.Ti_Current);
-
-                  double px[3];
-
-                  px[0] = NEAREST_X(P[child].Pos[0] - ray->pos[0]);
-                  px[1] = NEAREST_Y(P[child].Pos[1] - ray->pos[1]);
-                  px[2] = NEAREST_Z(P[child].Pos[2] - ray->pos[2]);
                   
                   double r = get_cell_radius(child);
                   double r2 = r * r;
                       
-                  hit = ray_sphere_intersect(px, ray->dir, r2, &t_enter, &t_exit);              
+                  hit = ray_sphere_intersect(ray->pos, ray->dir, P[child].Pos, r2, &t_enter, &t_exit);            
                 }
               /* Internal node */  
               else if(child < Ngb_MaxPart + Ngb_MaxNodes) 
