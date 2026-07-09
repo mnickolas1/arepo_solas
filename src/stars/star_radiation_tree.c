@@ -247,7 +247,7 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
          
           ray->t = cur.t_exit;
 
-          if(ray->t == ray->t_maximum) 
+          if(ray->t >= ray->t_maximum) 
             {
               ray->is_paused = 1; 
               return;
