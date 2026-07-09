@@ -223,40 +223,34 @@ static void free_export_buffer(RayExportBuffer *buf)
 
 static void sort_by_task(RayExportBuffer *buf)
 {
-  /* Build index array */
-  int *idx = malloc(buf->n * sizeof(int));
-  RayPacket *sorted_rays = malloc(buf->n * sizeof(RayPacket));
+  int *count = calloc(NTask, sizeof(int));
+  int *cursor = malloc(NTask * sizeof(int));
+
+  for(long long i = 0; i < buf->n; i++)
+    count[buf->task[i]]++;
+
+  cursor[0] = 0;
+  for(int t = 1; t < NTask; t++)
+    cursor[t] = cursor[t-1] + count[t-1];
+
   int *sorted_task = malloc(buf->n * sizeof(int));
-  
-  for(int i = 0; i < buf->n; i++)
-    idx[i] = i;
-
-  /* Insertion sort on idx by task */
-  for(int i = 1; i < buf->n; i++)
+  RayPacket *sorted_rays = malloc(buf->n * sizeof(RayPacket));
+ 
+  for(long long i = 0; i < buf->n; i++)
     {
-      int key = idx[i];
-      int j = i - 1;
-      while(j >= 0 && buf->task[idx[j]] > buf->task[key])
-        {
-          idx[j+1] = idx[j];
-          j--;
-        }
-      idx[j+1] = key;
+      int t = buf->task[i];
+      long long pos = cursor[t]++;
+      sorted_task[pos] = t;
+      sorted_rays[pos] = buf->rays[i]; 
     }
 
-  /* Apply permutation to both arrays */
-  for(int i = 0; i < buf->n; i++)
-    {
-      sorted_rays[i] = buf->rays[idx[i]];
-      sorted_task[i] = buf->task[idx[i]];
-    }
-
-  memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayPacket));
   memcpy(buf->task, sorted_task, buf->n * sizeof(int));
+  memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayPacket));
 
+  free(count);
+  free(cursor); 
   free(sorted_task); 
-  free(sorted_rays);
-  free(idx);
+  free(sorted_rays); 
 }
 
 static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
