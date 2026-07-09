@@ -631,15 +631,17 @@ void star_radiation(void)
     }
  
   int n_stars = TimeBinsStar.NActiveParticles;
-  int n_rays_local = n_stars * NRays;
+  long long n_rays_local = (long long)n_stars * NRays;
+
   long long n_rays_global;
+  sumup_longs(1, &n_rays_local, &n_rays_global);
 
-  sumup_large_ints(1, &n_rays_local, &n_rays_global);
+  /* Floor so ranks with no local stars still have a buffer to receive imports */
+  long long work_capacity = n_rays_local > 0 ? 4 * n_rays_local : 1024;
+  long long export_capacity = n_rays_local > 0 ? n_rays_local : 1024;
 
-  mpi_printf("STAR_RADIATION: Initialize with %d rays\n", n_rays_global);
-
-  RayWorkStack *work = init_work_stack(16 * n_rays_global);
-  RayExportBuffer *export_buf = init_export_buffer(5000 * n_rays_global);
+  RayWorkStack *work = init_work_stack(work_capacity);
+  RayExportBuffer *export_buf = init_export_buffer(export_capacity);
   
   init_rays(work);
 
@@ -662,7 +664,7 @@ void star_radiation(void)
       export_buf->n = 0;
 
       /* Check if anyone still has rays in flight */
-      sumup_large_ints(1, &work->n, &n_global);
+      sumup_longs(1, &work->n, &n_global);
 
       t1 = second();
 
