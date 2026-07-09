@@ -396,7 +396,7 @@ static void distribute_node_rad(int no)
   int has_rad = 0;
         
   for(int w = 0; w < WAVEBANDS; w++)
-    if(RtNgb_Nodes[no].Absorbed[w].Energy || RtNgb_Nodes[no].Absorbed[w].Photons > 0) 
+    if(RtNgb_Nodes[no].Absorbed[w].Energy > 0 || RtNgb_Nodes[no].Absorbed[w].Photons > 0) 
       { 
         has_rad = 1; 
         break; 
