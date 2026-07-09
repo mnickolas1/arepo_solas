@@ -98,8 +98,7 @@ void append_ray(RayWorkStack *w, const RayPacket *ray)
 
 static void free_work_stack(RayWorkStack *w)
 {
-  free(w->rays);
-  free(w);
+  free(w->rays); free(w);
 }
 
 static void init_rays(RayWorkStack *work)
@@ -216,9 +215,7 @@ void append_export(RayExportBuffer *buf, const RayPacket *ray, int task)
 
 static void free_export_buffer(RayExportBuffer *buf)
 {
-  free(buf->task);
-  free(buf->rays);
-  free(buf);
+  free(buf->rays); free(buf->task); free(buf);
 }
 
 static void sort_by_task(RayExportBuffer *buf)
@@ -247,28 +244,32 @@ static void sort_by_task(RayExportBuffer *buf)
   memcpy(buf->task, sorted_task, buf->n * sizeof(int));
   memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayPacket));
 
-  free(count);
-  free(cursor); 
-  free(sorted_task); 
-  free(sorted_rays); 
+  free(sorted_rays); free(sorted_task); free(cursor); free(count); 
 }
 
 static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
 {
-  int send_count[NTask], recv_count[NTask];
-  int send_offset[NTask], recv_offset[NTask];
+  static MPI_Datatype MPI_RAYPACKET = MPI_DATATYPE_NULL;
+  if(MPI_RAYPACKET == MPI_DATATYPE_NULL)
+    {
+      MPI_Type_contiguous(sizeof(RayPacket), MPI_BYTE, &MPI_RAYPACKET);
+      MPI_Type_commit(&MPI_RAYPACKET);
+    }
 
-  /* Count how many rays go to each task */
+  /* Heap, not VLA: int send_count[NTask] blows the C stack for large NTask */
+  int *send_count = malloc(NTask * sizeof(int));
+  int *recv_count = malloc(NTask * sizeof(int));
+  int *send_offset = malloc(NTask * sizeof(int));
+  int *recv_offset = malloc(NTask * sizeof(int));
+
   memset(send_count, 0, NTask * sizeof(int));
-  for(int i = 0; i < send->n; i++)
+  for(long long i = 0; i < send->n; i++)
     send_count[send->task[i]]++;
 
   MPI_Alltoall(send_count, 1, MPI_INT, recv_count, 1, MPI_INT, MPI_COMM_WORLD);
 
-  /* Compute offsets */
   send_offset[0] = recv_offset[0] = 0;
-  int total_recv = recv_count[0];
-    
+  long long total_recv = recv_count[0];
   for(int i = 1; i < NTask; i++)
     {
       send_offset[i] = send_offset[i-1] + send_count[i-1];
@@ -276,28 +277,22 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
       total_recv += recv_count[i];
     }
 
-  /* Grow work array to fit incoming rays */
   while(work->n + total_recv > work->capacity)
     {
       work->capacity *= 2;
-      work->rays = myrealloc_movable(work->rays, work->capacity * sizeof(RayPacket));
+      work->rays = realloc(work->rays, work->capacity * sizeof(RayPacket));
     }
 
-  for(int i = 0; i < NTask; i++) 
-    {
-      send_count[i] *= sizeof(RayPacket);
-      recv_count[i] *= sizeof(RayPacket);
-      send_offset[i] *= sizeof(RayPacket);
-      recv_offset[i] *= sizeof(RayPacket);
-    }
+  /* In ray units */
+  sort_by_task(send);   
 
-  /* Sort send buffer by task */
-  sort_by_task(send);
-
-  /* Exchange ray data */
-  MPI_Alltoallv(send->rays, send_count, send_offset, MPI_BYTE, work->rays + work->n, recv_count, recv_offset, MPI_BYTE, MPI_COMM_WORLD);
+  MPI_Alltoallv(send->rays, send_count, send_offset, MPI_RAYPACKET,
+  work->rays + work->n, recv_count, recv_offset, MPI_RAYPACKET,
+  MPI_COMM_WORLD);
 
   work->n += total_recv;
+
+  free(recv_offset); free(send_offset); free(recv_count); free(send_count);
 }
 
 #ifdef TREEPOINTS
