@@ -493,7 +493,6 @@ static void radiation_feedback(void)
 
 #ifdef DISSOCIATION
       /* H2 Dissociation */
-      
       /* Number density */
       double n_H2 = SphP[i].GrackleSpecies(GRACKLE_H2I) * SphP[i].Density / (2 * PROTONMASS / All.cf_UnitMass_in_g);
 
@@ -513,12 +512,11 @@ static void radiation_feedback(void)
       //if(n_H2_cgs)
       //  SphP[i].H2_HeatingRate += (E_abs_H2 - E_threshold_H2) > 0 ? ((E_abs_H2 - E_threshold_H2) / dt_cgs / V_cgs) / n_H2_cgs : 0.0;
       
-      SphP[i].H2_DissociationRate += n_H2 > 0 ? (N_abs_H2 / dt/All.cf_hubble_a/All.HubbleParam / V) / n_H2 : 0.0;
+      SphP[i].H2_DissociationRate += n_H2 > 0 ? (N_abs_H2 / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_H2 : 0.0;
 #endif
 
 #ifdef PHOTOIONIZATION
       /* Photoionization */     
-      
       /* Number densities */
       double n_HI = SphP[i].GrackleSpecies(GRACKLE_HI) * SphP[i].Density / (PROTONMASS / All.cf_UnitMass_in_g);
       double n_HeI = SphP[i].GrackleSpecies(GRACKLE_HeI) * SphP[i].Density / (4 * PROTONMASS / All.cf_UnitMass_in_g);
@@ -559,11 +557,11 @@ static void radiation_feedback(void)
         SphP[i].HeII_HeatingRate += (E_abs_HeII - E_threshold_HeII) > 0 ? ((E_abs_HeII - E_threshold_HeII) / dt_cgs / V_cgs) / n_HeII_cgs : 0.0;
 
       /* RT_ionization_rate: 1 / (time units) */
-      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs_HI / dt/All.cf_hubble_a/All.HubbleParam / V) / n_HI : 0.0;     
+      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs_HI / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_HI : 0.0;     
       
-      SphP[i].HeI_IonizationRate += n_HeI > 0 ? (N_abs_HeI / dt/All.cf_hubble_a/All.HubbleParam / V) / n_HeI : 0.0;
+      SphP[i].HeI_IonizationRate += n_HeI > 0 ? (N_abs_HeI / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_HeI : 0.0;
 
-      SphP[i].HeII_IonizationRate += n_HeII > 0 ? (N_abs_HeII / dt/All.cf_hubble_a/All.HubbleParam / V) / n_HeII : 0.0;
+      SphP[i].HeII_IonizationRate += n_HeII > 0 ? (N_abs_HeII / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_HeII : 0.0;
 #endif
 
       for(w = 0; w < WAVEBANDS; w++)
