@@ -101,24 +101,24 @@ typedef struct RayPacket
 
 typedef struct RayWorkStack
 {
-  RayPacket *rays;
-  int n;
-  long long capacity;
+  long long n; /* Number of rays on this stack */
+  long long capacity; /* Allocated capacity */
+  RayPacket *rays; /* Ray information */
 } RayWorkStack;
 
 typedef struct RayExportBuffer
 {
-  int n; /* Number of rays to export */
-  RayPacket *rays; /* Ray information */
+  long long n; /* Number of rays to export */
+  long long capacity; /* Allocated capacity */
   int *task; /* Which task to send each ray to */
-  int capacity; /* Allocated capacity */
+  RayPacket *rays; /* Ray information */
 } RayExportBuffer;
 
 extern struct rad_resultsactiveimported_data
 {
+  int index; /* Local SphP index on home task */
   WavebandData Radiated[WAVEBANDS];
   double StarMomentumFeed[3];
-  int index; /* Local SphP index on home task */
 } *Rad_ResultsActiveImported;
 
 #endif

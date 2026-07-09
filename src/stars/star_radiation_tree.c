@@ -498,14 +498,7 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
           ray->target_node = remote_node;  
 
           /* Add to export buffer */
-          if(export_buf->n < export_buf->capacity)
-            {
-              export_buf->rays[export_buf->n] = *ray;
-              export_buf->task[export_buf->n] = task;
-              export_buf->n++;
-            }
-          else
-            terminate("Export buffer full!");
+          append_export(export_buf, ray, task);
 
         /* This rank is done with this ray */
         return;

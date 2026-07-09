@@ -78,10 +78,11 @@ void start_healpix(void)
 
 static RayWorkStack *init_work_stack(long long capacity)
 {
-  RayWorkStack *w = mymalloc_movable(&w, "RayWorkStack", sizeof(RayWorkStack));
-  w->rays = mymalloc_movable(&w->rays, "WorkRays", capacity * sizeof(RayPacket));
+  RayWorkStack *w = malloc(sizeof(RayWorkStack));
+
   w->n = 0;
   w->capacity = capacity;
+  w->rays = malloc(capacity * sizeof(RayPacket));
   return w;
 }
 
@@ -90,15 +91,15 @@ void append_ray(RayWorkStack *w, const RayPacket *ray)
   if(w->n >= w->capacity)
     {
       w->capacity *= 2;
-      w->rays = myrealloc_movable(w->rays, w->capacity * sizeof(RayPacket));
+      w->rays = realloc(w->rays, w->capacity * sizeof(RayPacket));
     }
   w->rays[w->n++] = *ray;
 }
 
 static void free_work_stack(RayWorkStack *w)
 {
-  myfree_movable(w->rays);
-  myfree_movable(w);
+  free(w->rays);
+  free(w);
 }
 
 static void init_rays(RayWorkStack *work)
@@ -187,14 +188,30 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
     }
 }
 
-static RayExportBuffer *init_export_buffer(int capacity)
+static RayExportBuffer *init_export_buffer(long long capacity)
 {
   RayExportBuffer *buf = malloc(sizeof(RayExportBuffer));
-  buf->rays = malloc(capacity * sizeof(RayPacket));
-  buf->task = malloc(capacity * sizeof(int));
+ 
   buf->n = 0;
   buf->capacity = capacity;
+  buf->task = malloc(capacity * sizeof(int));
+  buf->rays = malloc(capacity * sizeof(RayPacket));
+
   return buf;
+}
+
+void append_export(RayExportBuffer *buf, const RayPacket *ray, int task)
+{
+  if(buf->n >= buf->capacity)
+    {
+      buf->capacity *= 2;
+      buf->task = realloc(buf->task, buf->capacity * sizeof(int));
+      buf->rays = realloc(buf->rays, buf->capacity * sizeof(RayPacket));
+    }
+
+  buf->task[buf->n] = task;
+  buf->rays[buf->n] = *ray;
+  buf->n++;
 }
 
 static void free_export_buffer(RayExportBuffer *buf)
