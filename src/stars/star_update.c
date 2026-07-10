@@ -70,9 +70,9 @@ void feedback_init(struct Mechanical_Feedback_Events *MFEvents)
 
 void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents)
 {
-  MFEvents->MaxEvents = MaxEvents > 0 ? MaxEvents : 1;
-
-  MFEvents->MechanicalFeedbackData = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
+  MFEvents->NumEvents = 0;
+  MFEvents->MaxEvents = MaxEvents > 0 ? MaxEvents : ALLOC_STAR_ROOM;
+  MFEvents->MechanicalFeedbackData = malloc(MFEvents->MaxEvents * sizeof(Mechanical_Feedback_Data));
 }
 
 void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents)
