@@ -118,6 +118,8 @@ typedef struct Mechanical_Feedback_Events
   int NumEvents;
   int MaxEvents;
 
+  long long TotEvents;
+
   Mechanical_Feedback_Data *MechanicalFeedbackData;
 } Mechanical_Feedback_Events;
 

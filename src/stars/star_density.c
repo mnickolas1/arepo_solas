@@ -364,18 +364,18 @@ void star_density(void)
 
   generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
 
-  /* Sort the hosts list */
-  mysort(MechanicalFeedbackEvents.MechanicalFeedbackData, MechanicalFeedbackEvents.NumEvents, 
-  sizeof(Mechanical_Feedback_Data), feedback_compare);
-
-  myfree(StarHostDistance);
-  myfree(StarHostTask);
-  myfree(StarHostIndex);
-  myfree(StarNgbs);
+  myfree(StarHostDistance); myfree(StarHostTask); myfree(StarHostIndex); myfree(StarNgbs);
 
   /* Mark as active */
   for(i = 0; i < NumStars; i++)
      SP[i].DensityFlag = 1;
+
+  /* Sort the hosts list */
+  mysort(MechanicalFeedbackEvents.MechanicalFeedbackData, MechanicalFeedbackEvents.NumEvents, 
+  sizeof(Mechanical_Feedback_Data), feedback_compare);
+
+  /* Find the total number of events */
+  sumup_large_ints(1, &MechanicalFeedbackEvents.NumEvents, &MechanicalFeedbackEvents.TotEvents);
   
   /* Collect timing information */
   TIMER_STOP(CPU_STARS_DENSITY);
