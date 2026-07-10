@@ -52,7 +52,7 @@ double gaussian_weight(double r, double h)
 
 void star_in(void)
 {
-  feedback_allocate(&MechanicalFeedbackEvents, All.NumStars);
+  feedback_allocate(&MechanicalFeedbackEvents, NumStars);
 }
 
 void star_exit(void)
