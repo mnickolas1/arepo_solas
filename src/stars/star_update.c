@@ -384,7 +384,8 @@ void star_perform_end_of_step_physics(void)
 
     MPI_Allreduce(&All.StarFeedbackLocal, &All.StarFeedbackGlobal, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-    mpi_printf("STARS: Number of active stars = %lld \n", TimeBinsStar.GlobalNActiveParticles);
+    mpi_printf("STARS: Number of stars = %lld, active stars = %lld, feedback events = %lld \n", 
+    All.TotNumStars, TimeBinsStar.GlobalNActiveParticles, MechanicalFeedbackEvents.TotEvents);
     mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n",
     All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[3]);
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",
