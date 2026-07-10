@@ -598,7 +598,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
 
               /* Reallocate events if needed */
               if(MechanicalFeedbackEvents.NumEvents >= MechanicalFeedbackEvents.MaxEvents)
-                feedback_reallocate(&MechanicalFeedbackEvents, 1.2 * MechanicalFeedbackEvents.MaxEvents);
+                feedback_reallocate(&MechanicalFeedbackEvents, 2 * MechanicalFeedbackEvents.MaxEvents);
 
               Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.MechanicalFeedbackData[MechanicalFeedbackEvents.NumEvents++];
 

@@ -52,7 +52,7 @@ double gaussian_weight(double r, double h)
 
 void star_in(void)
 {
-  feedback_allocate(&MechanicalFeedbackEvents, All.MaxPartStars);
+  feedback_allocate(&MechanicalFeedbackEvents, All.NumStars);
 }
 
 void star_exit(void)
@@ -64,12 +64,13 @@ void feedback_init(struct Mechanical_Feedback_Events *MFEvents)
 {
   MFEvents->NumEvents = 0;
   MFEvents->MaxEvents = 0;
+
   MFEvents->MechanicalFeedbackData = NULL;
 }
 
 void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents)
 {
-  MFEvents->MaxEvents = MaxEvents;
+  MFEvents->MaxEvents = MaxEvents > 0 ? MaxEvents : 1;
 
   MFEvents->MechanicalFeedbackData = malloc(MaxEvents * sizeof(Mechanical_Feedback_Data));
 }

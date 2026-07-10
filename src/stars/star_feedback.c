@@ -282,6 +282,7 @@ void star_feedback(void)
 
   int n_export = 0;
   int max_export = 20 * MechanicalFeedbackEvents.NumEvents;
+  
   int *ExportTask = (int *) mymalloc_movable(&ExportTask, "ExportTask", max_export * sizeof(int));
   struct Feedback_Kick *ExportBuf =
   (struct Feedback_Kick *) mymalloc_movable(&ExportBuf, "ExportBuf", max_export * sizeof(struct Feedback_Kick));
@@ -704,8 +705,8 @@ void star_feedback(void)
                       ExportBuf = (struct Feedback_Kick *) myrealloc_movable(ExportBuf, max_export * sizeof(struct Feedback_Kick));
                     }
                   
-                  ExportBuf[n_export] = Kick;
                   ExportTask[n_export] = DC[q].task;
+                  ExportBuf[n_export] = Kick;
                   n_export++;
                 }
             }
@@ -772,26 +773,18 @@ void star_feedback(void)
   MPI_COMM_WORLD);
  
   /* Free byte-count arrays in reverse allocation order (LIFO stack) */
-  myfree(RecvDispB);
-  myfree(SendDispB);
-  myfree(RecvCountB);
-  myfree(SendCountB);
+  myfree(RecvDispB); myfree(SendDispB); myfree(RecvCountB); myfree(SendCountB);
  
   /* Apply received kicks to local cells */
   for(k = 0; k < n_recv; k++)
     apply_kick(RecvBuf[k].CellIndex, &RecvBuf[k]);
  
   /* Cleanup in reverse allocation order */
-  myfree(RecvBuf);
-  myfree(SortedExport);
+  myfree(RecvBuf); myfree(SortedExport);
 
-  myfree(RecvDisp);
-  myfree(SendDisp);
-  myfree(RecvCount);
-  myfree(SendCount);
+  myfree(RecvDisp); myfree(SendDisp); myfree(RecvCount); myfree(SendCount);
 
-  myfree(ExportBuf);
-  myfree(ExportTask);
+  myfree(ExportBuf); myfree(ExportTask);
  
   TIMER_STOP(CPU_STARS_FEEDBACK);
 }
