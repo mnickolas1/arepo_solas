@@ -745,7 +745,7 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
             if(suns[j] >= 0) 
               nchildren++;
               
-            RtNgb_Nodes[no].nchildren = nchildren;
+          RtNgb_Nodes[no].nchildren = nchildren;
 #endif
 
           Ngb_Nodes[no].u.d.sibling = sib;
