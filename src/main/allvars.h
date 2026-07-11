@@ -1742,7 +1742,7 @@ extern struct sph_particle_data
   MyDouble StarMomentumFeed[3]; 
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
+#ifdef STAR_FEEDBACK_ACTIVE
   MyDouble StarEnergyFeed;
 #endif
 
