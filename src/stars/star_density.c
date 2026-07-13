@@ -122,6 +122,9 @@ static void kernel_local(void)
         break;
 
       i = TimeBinsStar.ActiveParticleList[idx];
+
+      if(SP[i].WithFeedback == 0)
+        continue;
       
       if(star_density_isactive(i))
         star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
