@@ -404,7 +404,7 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
                   double r = get_cell_radius(child);
                   double r2 = r * r;
                       
-                  hit = ray_sphere_intersect(ray->pos, ray->dir, P[child].Pos, r2, &t_enter, &t_exit);            
+                  hit = ray_sphere_intersect(ray->pos, ray->dir, (double *)P[child].Pos, r2, &t_enter, &t_exit);            
                 }
               /* Internal node */  
               else if(child < Ngb_MaxPart + Ngb_MaxNodes) 

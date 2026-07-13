@@ -1731,18 +1731,15 @@ extern struct sph_particle_data
 #endif
 
 /* Feedback */
-#if defined(WINDS) || defined(SUPERNOVAE)
+#ifdef STAR_FEEDBACK_ACTIVE
   MyDouble StarMassFeed;
+
 #ifdef METALS
   MyDouble StarMetalsFeed;
 #endif
-#endif
 
-#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
-  MyDouble StarMomentumFeed[3]; 
-#endif
+  MyDouble StarMomentumFeed[3];
 
-#if defined(WINDS) || defined(SUPERNOVAE)
   MyDouble StarEnergyFeed;
 #endif
 
