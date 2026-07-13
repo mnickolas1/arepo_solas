@@ -76,6 +76,29 @@ typedef struct Star_Feedback
   MyDouble SN_EnergyInject;
 #endif
 } Star_Feedback;
+
+typedef struct Mechanical_Feedback
+{
+#ifdef WINDS 
+  MyDouble MassLoss;
+#ifdef METALS
+  MyDouble MetalsLoss;
+#endif
+  MyDouble WindMomentum;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  WavebandData Radiated[WAVEBANDS];
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SN_MassLoss;
+#ifdef METALS
+  MyDouble SN_MetalsLoss;
+#endif
+  MyDouble SN_EnergyInject;
+#endif
+} Mechanical_Feedback;
 #endif
 
 typedef struct Star_Particle_Data
@@ -112,6 +135,7 @@ typedef struct Star_Particle_Data
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble PhysicalAge_yr;
+  Mechanical_Feedback MechanicalFeedback;
 #endif
 } Star_Particle_Data;
 
