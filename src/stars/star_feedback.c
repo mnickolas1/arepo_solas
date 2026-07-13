@@ -27,21 +27,7 @@ typedef struct
   MyDouble PhysicalAge_yr;
 #endif  
 
-#ifdef WINDS
-  MyDouble MassLoss;
-#ifdef METALS
-  MyDouble MetalsLoss;
-#endif
-  MyDouble WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-  MyDouble SN_MassLoss;
-#ifdef METALS
-  MyDouble SN_MetalsLoss;
-#endif
-  MyDouble SN_EnergyInject;
-#endif
+  Mechanical_Feedback MechanicalFeedback;
 
   MyFloat Hsml;
   int Firstnode;
@@ -69,25 +55,11 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->NgbsVolume = SP[i].NgbsVolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  in->TimeSN_yr = SP[i].TimeSN_yr;
-  in->PhysicalAge_yr = SP[i].PhysicalAge_yr;
+  MyDouble TimeSN_yr;
+  MyDouble PhysicalAge_yr;
 #endif  
 
-#ifdef WINDS
-  in->MassLoss = SP[i].MassLoss;
-#ifdef METALS
-  in->MetalsLoss = SP[i].MetalsLoss;
-#endif
-  in->WindMomentum = SP[i].WindMomentum;
-#endif
-
-#ifdef SUPERNOVAE
-  in->SN_MassLoss = SP[i].SN_MassLoss;
-#ifdef METALS
-  in->SN_MetalsLoss = SP[i].SN_MetalsLoss;
-#endif
-  in->SN_EnergyInject = SP[i].SN_EnergyInject;
-#endif
+  Mechanical_Feedback MechanicalFeedback;
 
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
@@ -153,9 +125,8 @@ static void kernel_local(void)
         break;
 
       i = TimeBinsStar.ActiveParticleList[idx];
-      
-      if(SP[i].Active == 1)    
-        star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+        
+      star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 
