@@ -51,12 +51,6 @@ double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 void star_in(void);
 void star_exit(void);
 
-/* Feedback setup */
-void feedback_init(struct Mechanical_Feedback_Events *MFEvents);
-void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents);
-void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents);
-void feedback_free(struct Mechanical_Feedback_Events *MFEvents);
-
 /* Timesteps */
 integertime star_timestep(int p);
 void star_update_timesteps(void);

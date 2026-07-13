@@ -52,41 +52,10 @@ double gaussian_weight(double r, double h)
 
 void star_in(void)
 {
-  feedback_allocate(&MechanicalFeedbackEvents, NumStars);
 }
 
 void star_exit(void)
 {
-  feedback_free(&MechanicalFeedbackEvents);
-}
-
-void feedback_init(struct Mechanical_Feedback_Events *MFEvents)
-{
-  MFEvents->NumEvents = 0;
-  MFEvents->MaxEvents = 0;
-
-  MFEvents->MechanicalFeedbackData = NULL;
-}
-
-void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvents)
-{
-  MFEvents->NumEvents = 0;
-  MFEvents->MaxEvents = MaxEvents > 0 ? MaxEvents : ALLOC_STAR_ROOM;
-  MFEvents->MechanicalFeedbackData = malloc(MFEvents->MaxEvents * sizeof(Mechanical_Feedback_Data));
-}
-
-void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents)
-{
-  MFEvents->MaxEvents = NewMaxEvents;
-
-  MFEvents->MechanicalFeedbackData = realloc(MFEvents->MechanicalFeedbackData, NewMaxEvents * sizeof(Mechanical_Feedback_Data));
-}
-
-void feedback_free(struct Mechanical_Feedback_Events *MFEvents)
-{
-  free(MFEvents->MechanicalFeedbackData);
-
-  feedback_init(MFEvents);
 }
 
 integertime star_timestep(int i)
@@ -384,8 +353,8 @@ void star_perform_end_of_step_physics(void)
 
     MPI_Allreduce(&All.StarFeedbackLocal, &All.StarFeedbackGlobal, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-    mpi_printf("STARS: Number of stars = %lld, active stars = %lld, feedback events = %lld \n", 
-    All.TotNumStars, TimeBinsStar.GlobalNActiveParticles, MechanicalFeedbackEvents.TotEvents);
+    mpi_printf("STARS: Number of stars = %lld, active stars = %lld \n", 
+    All.TotNumStars, TimeBinsStar.GlobalNActiveParticles);
     mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n",
     All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[3]);
     mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",

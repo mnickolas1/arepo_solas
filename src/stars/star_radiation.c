@@ -107,11 +107,10 @@ static void init_rays(RayWorkStack *work)
     
   int ray_idx = 0;
      
-  /* Act on host cells */
-  for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents; ev++)
+  /* Loop over all stars */
+  for(int idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
-      Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev];
-      Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
+      int i = TimeBinsStar.ActiveParticleList[idx];
         
       /* Loop over rays for this star */
       for(int iray = 0; iray < NRays; iray++)
@@ -119,9 +118,9 @@ static void init_rays(RayWorkStack *work)
           /* Initialize ray from star i */
           RayPacket ray = {0};
 
-          ray.pos[0] = MechanicalFeedback->StarPosition[0];      
-          ray.pos[1] = MechanicalFeedback->StarPosition[1]; 
-          ray.pos[2] = MechanicalFeedback->StarPosition[2]; 
+          ray.pos[0] = PPS(i).Pos[0];      
+          ray.pos[1] = PPS(i).Pos[1]; 
+          ray.pos[2] = PPS(i).Pos[2]; 
           ray.dir[0] = HealpixDirs[iray][0];        
           ray.dir[1] = HealpixDirs[iray][1];
           ray.dir[2] = HealpixDirs[iray][2];
@@ -133,11 +132,11 @@ static void init_rays(RayWorkStack *work)
 
           for(int w = 0; w < WAVEBANDS; w++)
             { 
-              ray.Radiated[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
-              ray.Radiated[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
+              ray.Radiated[w].Energy = SP[i].Radiated[w].Energy / NRays;
+              ray.Radiated[w].Photons = SP[i].Radiated[w].Photons / NRays;
 
-              ray.Radiated_Init[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
-              ray.Radiated_Init[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
+              ray.Radiated_Init[w].Energy = SP[i].Radiated[w].Energy / NRays;
+              ray.Radiated_Init[w].Photons = SP[i].Radiated[w].Photons / NRays;
 
               if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
                 ray.active_bands &= (uint8_t)(~(1u << w));
