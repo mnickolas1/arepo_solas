@@ -53,7 +53,7 @@ typedef struct
   MyDouble Ngbs;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
-  int NgbsMaxBin;
+  int NgbsMinBin;
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -76,15 +76,15 @@ static void out2particle(data_out *out, int i, int mode)
       StarNgbs[i] = out->Ngbs;
       SP[i].NgbsMass = out->NgbsMass;
       SP[i].NgbsVolume = out->NgbsVolume;
-      SP[i].NgbsMaxBin = out->NgbsMaxBin;
+      SP[i].NgbsMinBin = out->NgbsMinBin;
     }
   else /* combine */
     {
       StarNgbs[i] += out->Ngbs;
       SP[i].NgbsMass += out->NgbsMass;
       SP[i].NgbsVolume += out->NgbsVolume;
-      if(out->NgbsMaxBin > SP[i].NgbsMaxBin)
-        SP[i].NgbsMaxBin = out->NgbsMaxBin;
+      if(out->NgbsMinBin < SP[i].NgbsMinBin)
+        SP[i].NgbsMinBin = out->NgbsMinBin;
     }
 }
 
@@ -123,11 +123,8 @@ static void kernel_local(void)
 
       i = TimeBinsStar.ActiveParticleList[idx];
       
-      double star_mass = PPS(i).Mass * All.cf_UnitMass_in_Msun;
-      
-      if(star_mass > 2)
-        if(star_density_isactive(i))
-          star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+      if(star_density_isactive(i))
+        star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
 }
 
@@ -299,7 +296,7 @@ void star_density(void)
 static int star_density_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int ngbs, ngbsmaxbin = 0; 
+  int ngbs, ngbsminbin = MAX_REAL_NUMBER; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, ngbsmass, ngbsvolume;
 
@@ -370,18 +367,20 @@ static int star_density_evaluate(int target, int mode, int threadid)
           
           // compute the star-ngb-mass 
           ngbsmass += P[i].Mass;
+          
           // compute the star-ngb-volume
           ngbsvolume += SphP[i].Volume;
-          // compute the max hydro bin for neighbors   
-          if(ngbsmaxbin < P[i].TimeBinHydro)
-            ngbsmaxbin = P[i].TimeBinHydro;
+          
+          // compute the min hydro bin for neighbors   
+          if(P[i].TimeBinHydro < ngbsminbin)
+            ngbsminbin = P[i].TimeBinHydro;
         }
     }
 
   out.Ngbs = ngbs;
   out.NgbsMass = ngbsmass;
   out.NgbsVolume = ngbsvolume;
-  out.NgbsMaxBin = ngbsmaxbin;
+  out.NgbsMinBin = ngbsminbin;
 
   /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)
