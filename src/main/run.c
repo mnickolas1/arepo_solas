@@ -292,10 +292,6 @@ void run(void)
 
       exchange_primitive_variables_and_gradients();
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-      star_feedback();
-#endif
-
       compute_interface_fluxes(&Mesh);
 
       update_primitive_variables(); /* this effectively closes off the hydro step */
@@ -417,6 +413,10 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 
       star_density();
 #endif 
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+      star_feedback();
+#endif
 
 #ifdef STAR_RADIATION_ACTIVE
       star_radiation();
