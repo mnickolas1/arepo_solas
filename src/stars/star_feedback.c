@@ -1,790 +1,387 @@
+#include <stdlib.h>       
 #include <math.h>
-#include <mpi.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <gsl/gsl_math.h>              
+#include <mpi.h>            
+  
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+#include "../domain/domain.h"
 
-/* Kick packet sent to remote face-neighbor cells */
-struct Feedback_Kick
-{ 
-  /* Cell index on the receiving task */
-  int CellIndex; 
+
+static int star_feedback_evaluate(int target, int mode, int threadid);
+
+/*! \brief Local data structure for collecting particle/cell data that is sent
+ *         to other processors if needed. Type called data_in and static
+ *         pointers DataIn and DataGet needed by generic_comm_helpers2.
+ */
+typedef struct
+{
+  MyDouble Pos[3];
+  MyDouble Vel[3];
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  MyDouble TimeSN_yr;
+  MyDouble PhysicalAge_yr;
+#endif  
 
 #ifdef WINDS
-  MyDouble DeltaMass;
+  MyDouble MassLoss;
 #ifdef METALS
-  MyDouble DeltaMetals;
+  MyDouble MetalsLoss;
 #endif
-  MyDouble DeltaP[3];
-  MyDouble DeltaE;
+  MyDouble WindMomentum;
 #endif
 
 #ifdef SUPERNOVAE
-  MyDouble SN_DeltaMass;
+  MyDouble SN_MassLoss;
 #ifdef METALS
-  MyDouble SN_DeltaMetals;
+  MyDouble SN_MetalsLoss;
 #endif
-  MyDouble SN_DeltaP[3];
-  MyDouble SN_DeltaE;
-#endif
-};
-
-/* Apply a kick packet to a local cell */
-static void apply_kick(int j, const struct Feedback_Kick *Kick)
-{
-#ifdef WINDS
-  SphP[j].StarMassFeed += Kick->DeltaMass;
-  All.StarFeedbackLocal[0] += Kick->DeltaMass;
-#ifdef METALS
-  SphP[j].StarMetalsFeed += Kick->DeltaMetals;
-  All.StarFeedbackLocal[1] += Kick->DeltaMetals;
-#endif
-  for(int k = 0; k < 3; k++)
-    SphP[j].StarMomentumFeed[k] += Kick->DeltaP[k];
-
-  SphP[j].StarEnergyFeed += Kick->DeltaE;
-  All.StarFeedbackLocal[2] += Kick->DeltaE;
-#endif 
-
-#ifdef SUPERNOVAE
-  SphP[j].StarMassFeed += Kick->SN_DeltaMass;
-  All.StarFeedbackLocal[0] += Kick->SN_DeltaMass;
-#ifdef METALS
-  SphP[j].StarMetalsFeed += Kick->SN_DeltaMetals;
-  All.StarFeedbackLocal[1] += Kick->SN_DeltaMetals;
-#endif
-  for(int k = 0; k < 3; k++)
-    SphP[j].StarMomentumFeed[k] += Kick->SN_DeltaP[k];
-
-  SphP[j].StarEnergyFeed += Kick->SN_DeltaE;
-  All.StarFeedbackLocal[2] += Kick->SN_DeltaE;
-#endif 
-}
-
-/* Mirror of apply_kick(), but for the local copy of a remote cell (ghost) */
-static void apply_kick_primexch(int particle, const struct Feedback_Kick *Kick)
-{
-#ifdef WINDS
-  PrimExch[particle].MassFeed += Kick->DeltaMass;
-#ifdef METALS
-  PrimExch[particle].MetalsFeed += Kick->DeltaMetals;
-#endif
-  for(int k = 0; k < 3; k++)
-    PrimExch[particle].MomentumFeed[k] += Kick->DeltaP[k];
+  MyDouble SN_EnergyInject;
 #endif
 
-#ifdef SUPERNOVAE
-  PrimExch[particle].MassFeed += Kick->SN_DeltaMass;
-#ifdef METALS
-  PrimExch[particle].MetalsFeed += Kick->SN_DeltaMetals;
-#endif
-  for(int k = 0; k < 3; k++)
-    PrimExch[particle].MomentumFeed[k] += Kick->SN_DeltaP[k];
-#endif
-}
+  MyFloat Hsml;
+  int Firstnode;
+} data_in;
 
-#ifdef SUPERNOVAE
-/* Compute corrent p and E scaling of SN explosion */
-static void SN_compute(int ev, int h, double e, double a, double b, double NgbsDensity, double NgbsMetallicity, double *p, double *E)
-{
-  Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
-  Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
-  
-  double E_SN = MechanicalFeedback->SN_EnergyInject;
-  double m_ej = MechanicalFeedback->SN_MassLoss;
+static data_in *DataIn, *DataGet;
 
-  /* Pure thermal injection: no ejecta mass, skip momentum prescription */
-  if(m_ej <= 0.0)
-    {
-      *p = 0.0;
-      *E = E_SN; 
-      
-      return;
-    }
-
-  double E_SNR = E_SN + e;
-  double E51 = E_SNR * All.cf_UnitEnergy_in_cgs / 1.0e51;
-  
-  double n_H  = 0.76 * NgbsDensity * All.cf_UnitDensity_in_cgs / PROTONMASS; 
-
-  double Zsol = fmax(NgbsMetallicity / 0.0127, 0.01);
-
-  /* Terminal momentum: Kim & Ostriker (2015) */
-  double p_term = 3.0e5 /* Msun km/s */
-  * pow(E51, 16.0 / 17.0)
-  * pow(n_H, -2.0 / 17.0)
-  * pow(Zsol, -0.14);
-  
-  p_term /= (All.cf_UnitMass_in_Msun * All.cf_UnitVelocity_in_cm_per_s / 1.0e5);
-  
-  /* Boost momentum */
-  double fkin = 0.28;
-
-  a *= m_ej;
-  b *= sqrt(m_ej / (2 * fkin * E_SNR));
-  
-  double fboost = fmin((sqrt(b*b + a) - b) / a, p_term / (sqrt(2 * fkin * E_SNR * m_ej)));
-
-  double p_SNR = fboost * sqrt(2 * fkin * E_SNR * m_ej);
-
-  double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0] 
-  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1] 
-  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
-
-  double E_tot = 0.5 * m_ej * sq_vstar + E_SN;
-
-  *p = p_SNR;
-  *E = E_tot;
-}
-#endif 
-
-#ifdef SUPERNOVAE
-/* Sedov/cooling-radius check: is the host cell too large to resolve the
- * pressure-driven expansion of this SN, such that all mass, momentum and
- * energy should be dumped directly into the host cell instead of being
- * distributed across mesh faces?
+/*! \brief Routine that fills the relevant particle/cell data into the input
+ *         structure defined above. Needed by generic_comm_helpers2.
  *
- * r_SN = 30 pc * (E_SN / 1e51 erg)^0.29 * (rho_h / (1.4*m_p) / cm^-3)^(-0.46)
+ *  \param[out] in Data structure to fill.
+ *  \param[in] i Index of particle in P and SphP arrays.
+ *  \param[in] firstnode First note of communication.
+ *
+ *  \return void
  */
-static int SN_feedback_radius(int i, int ev, int h)
+static void particle2in(data_in *in, int i, int firstnode)
 {
-  Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
-  Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
-  
-  double E_SN = MechanicalFeedback->SN_EnergyInject;
- 
-  double E51 = E_SN * All.cf_UnitEnergy_in_cgs / 1.0e51;
- 
-  double rho_cgs = SphP[i].Density * All.cf_UnitDensity_in_cgs;
-  double n_cgs = rho_cgs / (1.4 * PROTONMASS); /* cm^-3 */
- 
-  double r_SN_pc = 30.0 * pow(E51, 0.29) * pow(n_cgs, -0.46); /* parsec */
-  double r_SN = (r_SN_pc * PARSEC) / All.cf_UnitLength_in_cm; /* code units */
- 
-  double r_host = get_cell_radius(i); /* code units */
- 
-  return (r_host > r_SN);
+  for(int k = 0; k < 3; k++)
+    {  
+      in->Pos[k] = PPS(i).Pos[k];
+      in->Vel[k] = PPS(i).Vel[k];
+    }
+  in->NgbsMass = SP[i].NgbsMass;
+  in->NgbsVolume = SP[i].NgbsVolume;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  in->TimeSN_yr = SP[i].TimeSN_yr;
+  in->PhysicalAge_yr = SP[i].PhysicalAge_yr;
+#endif  
+
+#ifdef WINDS
+  in->MassLoss = SP[i].MassLoss;
+#ifdef METALS
+  in->MetalsLoss = SP[i].MetalsLoss;
+#endif
+  in->WindMomentum = SP[i].WindMomentum;
+#endif
+
+#ifdef SUPERNOVAE
+  in->SN_MassLoss = SP[i].SN_MassLoss;
+#ifdef METALS
+  in->SN_MetalsLoss = SP[i].SN_MetalsLoss;
+#endif
+  in->SN_EnergyInject = SP[i].SN_EnergyInject;
+#endif
+
+  in->Hsml = SP[i].Hsml;
+  in->Firstnode = firstnode;
 }
- 
-/* Host-only injection path: deposit this star's SN mass, momentum, and
- * energy budget directly into its host cell, with no
- * mesh-neighbour loop. Density/metallicity feeding into SN_compute() are
- * the host cell's own (unweighted) values, since there is nothing to
- * average over.
- */
-static void SN_feedback_host(int i, int ev, int h)
+
+/*! \brief Local data structure that holds results acquired on remote
+ *         processors. Type called data_out and static pointers DataResult and
+ *         DataOut needed by generic_comm_helpers2.*/
+
+typedef struct
 {
-  Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
-  Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
- 
-  struct Feedback_Kick Kick = {0};
-  Kick.CellIndex = i;
- 
-  /* Star -> host cell-centre direction */
-  double d[3], dd; 
-                  
-  d[0] = P[i].Pos[0] - MechanicalFeedback->StarPosition[0];
-  d[1] = P[i].Pos[1] - MechanicalFeedback->StarPosition[1];
-  d[2] = P[i].Pos[2] - MechanicalFeedback->StarPosition[2];
-              
-  dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+} data_out;
 
-  double wbar[3] = {0};
+static data_out *DataResult, *DataOut;
 
-  if(dd > 0.0)
+/*! \brief Routine to store or combine result data. Needed by
+ *         generic_comm_helpers2.
+ *
+ *  \param[in] out Data to be moved to appropriate variables in global
+ *  particle and cell data arrays (P, SphP,...)
+ *  \param[in] i Index of particle in P and SphP arrays
+ *  \param[in] mode Mode of function: local particles or information that was
+ *  communicated from other tasks and has to be added locally?
+ *
+ *  \return void*/
+ 
+static void out2particle(data_out *out, int i, int mode)
+{
+  if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      for(int k = 0; k < 3; k++)
-        {
-          wbar[k] = d[k] / dd;
-        }    
-    }        
-  
-  /* Helpers for supernovae injection */
-  double num, den, e = 0.0, a = 0.0, b = 0.0;
-  double m_ej = MechanicalFeedback->SN_MassLoss;
-              
-  /* Ngbs properties */
-  double NgbsDensity = 0.0, NgbsMetallicity = 0.0;
-
-  /* Single target: 100% of the deposit */
-  const double sq_wbar = 1.0; 
-  const double sqrtsq_wbar = 1.0;
-
-  double mj, vj[3];
-  
-  mj = P[i].Mass + SphP[i].StarMassFeed;
-  
-  for(int k = 0; k < 3; k++)
-    vj[k] = (SphP[i].Momentum[k] + SphP[i].StarMomentumFeed[k]) / mj;
-
-  double sq_vj = vj[0]*vj[0] + vj[1]*vj[1] + vj[2]*vj[2];
-      
-  double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0]
-  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1]
-  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
-      
-  double cross = 2.0 * (vj[0]*MechanicalFeedback->StarVelocity[0]
-  + vj[1]*MechanicalFeedback->StarVelocity[1]
-  + vj[2]*MechanicalFeedback->StarVelocity[2]);
-  
-  num = 0.5 * mj * m_ej * sqrtsq_wbar * (sq_vj + sq_vstar - cross);
-  den = mj + m_ej * sqrtsq_wbar;
- 
-  e = num / den;
-
-  num = sq_wbar;
-
-  a = num / den;
-
-  num =  mj * ((vj[0] - MechanicalFeedback->StarVelocity[0]) * wbar[0]
-  + (vj[1] - MechanicalFeedback->StarVelocity[1]) * wbar[1]
-  + (vj[2] - MechanicalFeedback->StarVelocity[2]) * wbar[2]);
-
-  b = num / den;
- 
-  /* Host-only density/metallicity: the host cell's own values, unweighted */
-  NgbsDensity = SphP[i].Density;
-#ifdef METALS
-  NgbsMetallicity = (SphP[i].GasMetals + SphP[i].StarMetalsFeed) / mj;
-#else
-  NgbsMetallicity = 0.0;
-#endif
- 
-  double p, E;
-      
-  SN_compute(ev, h, e, a, b, NgbsDensity, NgbsMetallicity, &p, &E);
- 
-  Kick.SN_DeltaMass = m_ej;
-#ifdef METALS
-  Kick.SN_DeltaMetals = MechanicalFeedback->SN_MetalsLoss;
-#endif
-  for(int k = 0; k < 3; k++)
-    Kick.SN_DeltaP[k] = m_ej * MechanicalFeedback->StarVelocity[k] + p * wbar[k];
- 
-  Kick.SN_DeltaE = E;
- 
-  apply_kick(i, &Kick);
+    }
+  else /* combine */
+    {
+    }
 }
-#endif
 
-/* star_feedback() -> main entry point */
+
+#include "../utils/generic_comm_helpers2.h"
+
+/*! \brief Routine that defines what to do with local particles.
+ *
+ *  Calls the *_evaluate function in MODE_LOCAL_PARTICLES.
+ *
+ *  \return void
+ */
+static void kernel_local(void)
+{
+  int idx, i, j;
+
+  int threadid = get_thread_num();
+
+  for(j = 0; j < NTask; j++)
+    Thread[threadid].Exportflag[j] = -1;
+
+  while(1)
+    {
+      if(Thread[threadid].ExportSpace < MinSpace)
+        break;
+        
+      idx = NextParticle++;
+
+      if(idx >= TimeBinsStar.NActiveParticles)
+        break;
+
+      i = TimeBinsStar.ActiveParticleList[idx];
+      
+      if(SP[i].Active == 1)    
+        star_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+    }
+}
+
+/*! \brief Routine that defines what to do with imported particles.
+ *
+ *  Calls the *_evaluate function in MODE_IMPORTED_PARTICLES.
+ *
+ *  \return void
+ */
+static void kernel_imported(void)
+{
+  /* now do the particles that were sent to us */
+  int i, cnt = 0;
+
+  int threadid = get_thread_num();
+
+  while(1)
+    {
+      i = cnt++;
+
+      if(i >= Nimport)
+        break;
+
+      star_feedback_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+    }
+}
+
 void star_feedback(void)
 {
   TIMER_START(CPU_STARS_FEEDBACK);
-
-  #define MAX_FACES 128
-
-  int ev, h, i, k, q, f;
-
-  int n_export = 0;
-  int max_export = 20 * MechanicalFeedbackEvents.NumEvents;
   
-  int *ExportTask = (int *) mymalloc_movable(&ExportTask, "ExportTask", max_export * sizeof(int));
-  struct Feedback_Kick *ExportBuf =
-  (struct Feedback_Kick *) mymalloc_movable(&ExportBuf, "ExportBuf", max_export * sizeof(struct Feedback_Kick));
+  generic_set_MaxNexport();
 
-  /* Act on host cells */
-  for(ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
-    {
-      i = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
+  generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
 
-      for(h = 0; h < SphP[i].Host; h++)
-        {                    
-          int flag_wind = 0, flag_sn = 0;
-          int flag_wind_host = 0, flag_sn_host = 0;
-
-          Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
-          Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
-
-#ifdef WINDS
-          if(MechanicalFeedback->MassLoss)
-            flag_wind = 1;
-#endif
-
-#ifdef SUPERNOVAE
-          if(MechanicalFeedback->SN_MassLoss || MechanicalFeedback->SN_EnergyInject)
-            flag_sn = 1;
-#endif
-        
-#ifdef WINDS
-          /* Unresolved wind deposition radius */
-          /* Skip the mesh-neighbour geometry entirely and dump Wind into the host cell */
-          if(flag_wind)
-            {
-              //if(Wind_feedback_radius(i, ev, h))
-              //  {
-              //    Wind_feedback_host(i, ev, h);
-              //    flag_wind_host = 1;
-              //  }
-            }
-#endif
-
-#ifdef SUPERNOVAE
-          /* Unresolved SN cooling radius */
-          /* Skip the mesh-neighbour geometry entirely and dump SN into the host cell */
-          if(flag_sn)
-            {
-              if(SN_feedback_radius(i, ev, h))
-                {
-                  SN_feedback_host(i, ev, h);
-                  flag_sn_host = 1;
-                }
-            }
-#endif
-          
-          /* No feedback star */
-          if(!flag_wind && !flag_sn)
-            continue;
-          
-          /* Host deposition */
-          if(flag_wind_host && flag_sn_host)
-            continue;
-
-          /* Mesh deposition */
-          /* We will loop over the cell faces 4 times */
-          int n_faces = 0;
-          int dc_list[MAX_FACES];     
-
-          /* GEOMETRY: passes 1 & 2 (Voronoi mesh) */
-          /* Compute weights */
-          double nplus[3], nminus[3], fplus[3], fminus[3];
-          
-          for(k = 0; k < 3; k++) 
-            nplus[k] = nminus[k] = fplus[k] = fminus[k] = 0.0;
-      
-          /* Accumulate helper */
-          double Splus[3], Sminus[3];
-          
-          for(k = 0; k < 3; k++)
-            Splus[k] = Sminus[k] = 0.0;
-
-          /* First pass */            
-          q = SphP[i].first_connection;
-
-          while(q >= 0)
-            {
-              if(q < 0 || q >= MaxNvc)
-                {
-                  char buf[1000];
-                  sprintf(buf, "Strange connectivity q=%d Nvc=%d", q, MaxNvc);
-                  terminate(buf);
-                }
-              
-              int dp = DC[q].dp_index;
-              int vf = DC[q].vf_index;
-              int particle = Mesh.DP[dp].index;
-          
-              /* Cell has been removed */
-              if(particle < 0)
-                {
-                  if(q == SphP[i].last_connection)
-                    break;
-                  
-                  q = DC[q].next;
-                    continue;
-                }
-
-              /* Face normal - from cell generator to cell generator */
-              double n[3], nn; 
-
-              n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-              n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-              n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-          
-              nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-
-              /* Star-to-face direction */
-              double d[3], dd; 
-                  
-              d[0] = Mesh.VF[vf].cx - MechanicalFeedback->StarPosition[0];
-              d[1] = Mesh.VF[vf].cy - MechanicalFeedback->StarPosition[1];
-              d[2] = Mesh.VF[vf].cz - MechanicalFeedback->StarPosition[2];
-              
-              dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
-
-              if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
-                {
-                  n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-                  
-                  d[0] /= dd;  d[1] /= dd;  d[2] /= dd;
-
-                  double costheta = n[0]*d[0] + n[1]*d[1] + n[2]*d[2];
-                  if(costheta < 0.0) costheta = 0.0;
-            
-                  double omega = 0.5 * (1 - 1 / sqrt(1 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
-
-                  /* Star-to-cell direction */
-                  double r[3], rr; 
-                  
-                  r[0] = Mesh.DP[dp].x - MechanicalFeedback->StarPosition[0];
-                  r[1] = Mesh.DP[dp].y - MechanicalFeedback->StarPosition[1];
-                  r[2] = Mesh.DP[dp].z - MechanicalFeedback->StarPosition[2];
-
-                  rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-
-                  if(rr > 0.0)
-                    {
-                      r[0] /= rr;  r[1] /= rr;  r[2] /= rr;
-
-                      for(k = 0; k < 3; k++)
-                        {
-                          nplus[k] = r[k] >= 0 ? r[k] : 0;
-                          nminus[k] = r[k] < 0 ? r[k] : 0; 
-                        
-                          Splus[k] += omega * fabs(nplus[k]);
-                          Sminus[k] += omega * fabs(nminus[k]);
-                        }
-                    }
-                }
-          
-              if(n_faces >= MAX_FACES)
-                terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
-
-              dc_list[n_faces++] = q;
-
-              if(q == SphP[i].last_connection) 
-                break;
-          
-              q = DC[q].next;
-            }
-
-          double weights[MAX_FACES][3];
-          double wtot = 0.0; 
-  
-          /* Second pass */
-          for(f = 0; f < n_faces; f++)
-            {
-              q = dc_list[f];
-          
-              int dp = DC[q].dp_index;
-              int vf = DC[q].vf_index;
-
-              double w[3] = {0.0, 0.0, 0.0};
-
-             /* Face normal - from cell generator to cell generator */
-              double n[3], nn; 
-
-              n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-              n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-              n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-          
-              nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-
-              /* Star-to-face direction */
-              double d[3], dd; 
-                  
-              d[0] = Mesh.VF[vf].cx - MechanicalFeedback->StarPosition[0];
-              d[1] = Mesh.VF[vf].cy - MechanicalFeedback->StarPosition[1];
-              d[2] = Mesh.VF[vf].cz - MechanicalFeedback->StarPosition[2];
-              
-              dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
-
-              if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
-                {
-                  n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-                  
-                  d[0] /= dd;  d[1] /= dd;  d[2] /= dd;
-
-                  double costheta = n[0]*d[0] + n[1]*d[1] + n[2]*d[2];
-                  if(costheta < 0.0) costheta = 0.0;
-            
-                  double omega = 0.5 * (1 - 1 / sqrt(1 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
-
-                  /* Star-to-cell direction */
-                  double r[3], rr; 
-                  
-                  r[0] = Mesh.DP[dp].x - MechanicalFeedback->StarPosition[0];
-                  r[1] = Mesh.DP[dp].y - MechanicalFeedback->StarPosition[1];
-                  r[2] = Mesh.DP[dp].z - MechanicalFeedback->StarPosition[2];
-
-                  rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-
-                  if(rr > 0.0)
-                    {
-                      r[0] /= rr;  r[1] /= rr;  r[2] /= rr;
-                    
-                      for(k = 0; k < 3; k++)
-                        {
-                          nplus[k] = r[k] >= 0 ? r[k] : 0;
-                          nminus[k] = r[k] < 0 ? r[k] : 0; 
-                          fplus[k] = (Splus[k] > 0.0) ? sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0;
-                          fminus[k] =(Sminus[k] > 0.0) ? sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0;
-
-                          w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
-                        }
-                    }                                         
-                }
-                
-              for(k = 0; k < 3; k++)
-                weights[f][k] = w[k];
-                                    
-              wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-            }
-
-          if(wtot <= 0.0)
-            terminate("STAR_FEEDBACK: invalid weight for host cell %d\n", i);
-    
-#ifdef SUPERNOVAE     
-          double p, E;
-
-          if(flag_sn && !flag_sn_host)
-            {
-              /* Helpers for supernovae injection */
-              double num, den, e = 0.0, a = 0.0, b = 0.0;
-              double m_ej = MechanicalFeedback->SN_MassLoss;
-              
-              /* Ngbs properties */
-              int Ngbs = 0;
-              double NgbsMass = 0.0, NgbsDensity = 0.0, NgbsMetallicity = 0.0;
-   
-              /* Third pass */ 
-              for(f = 0; f < n_faces; f++)
-                {
-                  q = dc_list[f];
-
-                  int dp = DC[q].dp_index;
-                  int particle = Mesh.DP[dp].index;
-
-                  if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
-                    particle -= NumGas;
-
-                  double wbar[3]; 
-          
-                  for(k = 0; k < 3; k++)
-                    wbar[k] = weights[f][k] / wtot;
-
-                  double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
-                  double sqrtsq_wbar = sqrt(sq_wbar);  
-
-                  double mj, vj[3];
-                  if(Mesh.DP[dp].task == ThisTask)
-                    {
-                      mj = P[particle].Mass + SphP[particle].StarMassFeed;
-                      
-                      for(k = 0; k < 3; k++)
-                        vj[k] = (SphP[particle].Momentum[k] + SphP[particle].StarMomentumFeed[k]) / mj;   
-                    }
-                  else
-                    {
-                      mj = PrimExch[particle].Density * PrimExch[particle].Volume + PrimExch[particle].MassFeed;
-                      
-                      for(k = 0; k < 3; k++)
-                        vj[k] = (PrimExch[particle].Density * PrimExch[particle].Volume * PrimExch[particle].VelGas[k]
-                        + PrimExch[particle].MomentumFeed[k]) / mj;
-
-                    }
-
-                  double sq_vj = vj[0]*vj[0] + vj[1]*vj[1] + vj[2]*vj[2];
-                  
-                  double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0]
-                  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1]
-                  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
-                  
-                  double cross = 2.0 * (vj[0]*MechanicalFeedback->StarVelocity[0]
-                  + vj[1]*MechanicalFeedback->StarVelocity[1]
-                  + vj[2]*MechanicalFeedback->StarVelocity[2]);
-         
-                  num = 0.5 * mj * m_ej * sqrtsq_wbar * (sq_vj + sq_vstar - cross);
-                  den = mj + m_ej * sqrtsq_wbar;
-          
-                  e += num / den;
-               
-                  num = sq_wbar;
-          
-                  a += num / den;
-
-                  num = mj * ((vj[0] - MechanicalFeedback->StarVelocity[0]) * wbar[0] 
-                  + (vj[1] - MechanicalFeedback->StarVelocity[1]) * wbar[1]
-                  + (vj[2] - MechanicalFeedback->StarVelocity[2]) * wbar[2]);
-
-                  b += num / den;
-
-                  if(Mesh.DP[dp].task == ThisTask)
-                    {
-                      Ngbs++;
-                      NgbsMass += mj * sqrtsq_wbar;
-                      NgbsDensity += mj / SphP[particle].Volume * sqrtsq_wbar;
-#ifdef METALS
-                      NgbsMetallicity += (SphP[particle].GasMetals + SphP[particle].StarMetalsFeed) / mj * sqrtsq_wbar;
-#endif
-                    }
-                  else
-                    {
-                      Ngbs++;
-                      NgbsMass += mj * sqrtsq_wbar;
-                      NgbsDensity +=  mj / PrimExch[particle].Volume * sqrtsq_wbar;
-#ifdef METALS
-                      NgbsMetallicity += (PrimExch[particle].Density * PrimExch[particle].Volume * PrimExch[particle].Scalars[METALS_INDEX] 
-                      + PrimExch[particle].MetalsFeed) / mj * sqrtsq_wbar;
-#endif
-                    }  
-                }
-
-              SN_compute(ev, h, e, a, b, NgbsDensity, NgbsMetallicity, &p, &E);
-            }
-#endif
-      
-          /* Fourth pass */  
-          for(f = 0; f < n_faces; f++)
-            {
-              q = dc_list[f];
-
-              int dp = DC[q].dp_index;
-              int particle = Mesh.DP[dp].index;
-
-              if(particle >= NumGas && Mesh.DP[dp].task == ThisTask)
-                particle -= NumGas;
-
-              double wbar[3]; 
-          
-              for(k = 0; k < 3; k++)
-                wbar[k] = weights[f][k] / wtot;
-
-              double sq_wbar = (wbar[0]*wbar[0] + wbar[1]*wbar[1] + wbar[2]*wbar[2]);
-              double sqrtsq_wbar = sqrt(sq_wbar);
-      
-              struct Feedback_Kick Kick = {0};
-              Kick.CellIndex = DC[q].index;
-           
-              /* Mesh ngbs feedback */
-#ifdef WINDS
-              if(flag_wind && !flag_wind_host)
-                {
-                  Kick.DeltaMass = MechanicalFeedback->MassLoss * sqrtsq_wbar;
-#ifdef METALS
-                  Kick.DeltaMetals = MechanicalFeedback->MetalsLoss * sqrtsq_wbar;
-#endif    
-                  for(k = 0; k < 3; k++)
-                    Kick.DeltaP[k] = MechanicalFeedback->MassLoss * sqrtsq_wbar * MechanicalFeedback->StarVelocity[k] + MechanicalFeedback->WindMomentum * wbar[k];
-          
-                  double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0] 
-                  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1] 
-                  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
-
-                  double sq_vwind = MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss
-                  * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss; 
-
-                  //double cross = 2.0 * (MechanicalFeedback->StarVelocity[0] * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss * wbar[0] 
-                  //+ MechanicalFeedback->StarVelocity[1] * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss * wbar[1] 
-                  //+ MechanicalFeedback->StarVelocity[2] * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss * wbar[2]);
-
-                  Kick.DeltaE = 0.5 * MechanicalFeedback->MassLoss * (sq_vstar + sq_vwind) * sqrtsq_wbar;
-                }   
-#endif
- 
-#ifdef SUPERNOVAE
-              if(flag_sn && !flag_sn_host)
-                {
-                  Kick.SN_DeltaMass = MechanicalFeedback->SN_MassLoss * sqrtsq_wbar;
-#ifdef METALS
-                  Kick.SN_DeltaMetals = MechanicalFeedback->SN_MetalsLoss * sqrtsq_wbar;
-#endif 
-                  for(k = 0; k < 3; k++)
-                    Kick.SN_DeltaP[k] = MechanicalFeedback->SN_MassLoss * sqrtsq_wbar * MechanicalFeedback->StarVelocity[k] + p * wbar[k];
-
-                  Kick.SN_DeltaE = E * sqrtsq_wbar;
-                }
-#endif
-
-              if(DC[q].task == ThisTask)
-                apply_kick(DC[q].index, &Kick);
-              else
-                {
-                  /* Keep local copy current */
-                  apply_kick_primexch(particle, &Kick);   
-
-                  if(n_export >= max_export)
-                    {
-                      max_export *= 2;
- 
-                      ExportTask = (int *) myrealloc_movable(ExportTask, max_export * sizeof(int));
-                      ExportBuf = (struct Feedback_Kick *) myrealloc_movable(ExportBuf, max_export * sizeof(struct Feedback_Kick));
-                    }
-                  
-                  ExportTask[n_export] = DC[q].task;
-                  ExportBuf[n_export] = Kick;
-                  n_export++;
-                }
-            }
-        } //for(int h = 0; h < SphP[i].Host; h++)
-      
-      /* Go to next host */
-      ev += SphP[i].Host;
-      /* All stars processed: release host slot */        
-      //SphP[i].Host = 0;
-    } //for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
-
-  /* MPI exchange of remote kick packets via MPI_Alltoallv */
-  int *SendCount = mymalloc("FBSendCount", NTask * sizeof(int));
-  int *RecvCount = mymalloc("FBRecvCount", NTask * sizeof(int));
-  int *SendDisp = mymalloc("FBSendDisp",  NTask * sizeof(int));
-  int *RecvDisp = mymalloc("FBRecvDisp",  NTask * sizeof(int));
- 
-  memset(SendCount, 0, NTask * sizeof(int));
-  for(k = 0; k < n_export; k++)
-    SendCount[ExportTask[k]]++;
- 
-  MPI_Alltoall(SendCount, 1, MPI_INT, RecvCount, 1, MPI_INT, MPI_COMM_WORLD);
- 
-  SendDisp[0] = RecvDisp[0] = 0;
-  for(int t = 1; t < NTask; t++)
-    {
-      SendDisp[t] = SendDisp[t-1] + SendCount[t-1];
-      RecvDisp[t] = RecvDisp[t-1] + RecvCount[t-1];
-    }
-  int n_recv = RecvDisp[NTask-1] + RecvCount[NTask-1];
- 
-  /* Sort ExportBuf into task-contiguous order for Alltoallv */
-  struct Feedback_Kick *SortedExport = mymalloc("FBSortedExport", (n_export > 0 ? n_export : 1) * sizeof(struct Feedback_Kick));
-  
-  int *tmp_offset = mymalloc("FBTmpOffset", NTask * sizeof(int));
-  memcpy(tmp_offset, SendDisp, NTask * sizeof(int));
-  for(k = 0; k < n_export; k++)
-    {
-      int t = ExportTask[k];
-      SortedExport[tmp_offset[t]++] = ExportBuf[k];
-    }
-  myfree(tmp_offset);
- 
-  struct Feedback_Kick *RecvBuf = mymalloc("RecvBuf",
-  (n_recv > 0 ? n_recv : 1) * sizeof(struct Feedback_Kick));
- 
-  const int sz = (int)sizeof(struct Feedback_Kick);
- 
-  int *SendCountB = mymalloc("SendCountB", NTask * sizeof(int));
-  int *RecvCountB = mymalloc("RecvCountB", NTask * sizeof(int));
-  int *SendDispB  = mymalloc("SendDispB",  NTask * sizeof(int));
-  int *RecvDispB  = mymalloc("RecvDispB",  NTask * sizeof(int));
- 
-  for(int t = 0; t < NTask; t++)
-    {
-      SendCountB[t] = SendCount[t] * sz;
-      RecvCountB[t] = RecvCount[t] * sz;
-      SendDispB[t]  = SendDisp[t]  * sz;
-      RecvDispB[t]  = RecvDisp[t]  * sz;
-    }
- 
-  MPI_Alltoallv(SortedExport, SendCountB, SendDispB, MPI_BYTE,
-  RecvBuf, RecvCountB, RecvDispB, MPI_BYTE,
-  MPI_COMM_WORLD);
- 
-  /* Free byte-count arrays in reverse allocation order (LIFO stack) */
-  myfree(RecvDispB); myfree(SendDispB); myfree(RecvCountB); myfree(SendCountB);
- 
-  /* Apply received kicks to local cells */
-  for(k = 0; k < n_recv; k++)
-    apply_kick(RecvBuf[k].CellIndex, &RecvBuf[k]);
- 
-  /* Cleanup in reverse allocation order */
-  myfree(RecvBuf); myfree(SortedExport);
-
-  myfree(RecvDisp); myfree(SendDisp); myfree(RecvCount); myfree(SendCount);
-
-  myfree(ExportBuf); myfree(ExportTask);
- 
   TIMER_STOP(CPU_STARS_FEEDBACK);
+}
+
+static int star_feedback_evaluate(int target, int mode, int threadid)
+{
+  int i, n, numnodes, *firstnode; 
+  double h, h2, dx, dy, dz, r, r2, wk; 
+  MyDouble *pos, *vel, ngbsmass, ngbsvolume, factor;
+  
+  data_in local, *target_data;
+
+  if(mode == MODE_LOCAL_PARTICLES)
+    {
+      particle2in(&local, target, 0);
+      target_data = &local;
+
+      numnodes  = 1;
+      firstnode = NULL;
+    }
+  else
+    {
+      target_data = &DataGet[target];
+
+      generic_get_numnodes(target, &numnodes, &firstnode);
+    }
+  
+  pos = target_data->Pos;
+  vel = target_data->Vel;
+  h = target_data->Hsml;
+  h2   = h * h;
+  
+  ngbsmass = target_data->NgbsMass;
+  ngbsvolume = target_data->NgbsVolume;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  MyDouble time_sn_yr = target_data->TimeSN_yr;
+  MyDouble physical_age_yr = target_data->PhysicalAge_yr;
+#endif
+
+#ifdef WINDS
+  MyDouble massloss = target_data->MassLoss;
+#ifdef METALS
+  MyDouble metalsloss = target_data->MetalsLoss;
+#endif
+  MyDouble windmomentum = target_data->WindMomentum;
+#endif
+
+#ifdef SUPERNOVAE
+  MyDouble SNmassloss = target_data->SN_MassLoss;
+#ifdef METALS
+  MyDouble SNmetalsloss = target_data->SN_MetalsLoss;
+#endif
+  MyDouble SNenergyinject = target_data->SN_EnergyInject;
+#endif  
+
+  int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+  for(n = 0; n < nfound; n++)
+    {
+      i = Thread[threadid].Ngblist[n];
+
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+      
+      /* compute cell->star position vectors */
+      dx = P[i].Pos[0] - pos[0];
+      dy = P[i].Pos[1] - pos[1]; 
+      dz = P[i].Pos[2] - pos[2]; 
+
+#ifndef REFLECTIVE_X
+      if(dx > boxHalf_X)
+        dx -= boxSize_X;
+      if(dx < -boxHalf_X)
+        dx += boxSize_X;
+#endif /* #ifndef REFLECTIVE_X */
+
+#ifndef REFLECTIVE_Y
+      if(dy > boxHalf_Y)
+        dy -= boxSize_Y;
+      if(dy < -boxHalf_Y)
+        dy += boxSize_Y;
+#endif /* #ifndef REFLECTIVE_Y */
+
+#ifndef REFLECTIVE_Z
+      if(dz > boxHalf_Z)
+        dz -= boxSize_Z;
+      if(dz < -boxHalf_Z)
+        dz += boxSize_Z;
+#endif /* #ifndef REFLECTIVE_Z */
+
+      r2 = dx * dx + dy * dy + dz * dz;
+
+      if(r2 < h2)
+        {
+          r = sqrt(r2);
+
+          factor = SphP[i].Volume / ngbsvolume;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+          if(time_sn_yr < MAX_REAL_NUMBER)
+            {
+              double E_inject_code = 1e51 / 
+              (All.cf_UnitMass_in_g * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s);
+
+              double unew = SphP[i].Utherm + E_inject_code * factor / P[i].Mass;
+
+              double t_frac = physical_age_yr / time_sn_yr;
+              t_frac = fmin(fmax(t_frac, 0.0), 1.0);
+
+              double Csn = SphP[i].Csnd + (sqrt(GAMMA * GAMMA_MINUS1 * unew) - SphP[i].Csnd) * t_frac;
+          
+              if(Csn > SphP[i].Csn)
+                SphP[i].Csn = Csn;
+            }
+#endif
+              
+#ifdef WINDS
+          if(massloss > 0)
+            {  
+              SphP[i].StarMassFeed += massloss * factor;
+              All.StarFeedbackLocal[0] += massloss * factor;
+#ifdef METALS
+              SphP[i].StarMetalsFeed += metalsloss * factor;
+              All.StarFeedbackLocal[1] += metalsloss * factor;
+#endif
+              SphP[i].StarMomentumFeed[0] += (windmomentum * dx/r + massloss * vel[0] / All.cf_atime) * factor;
+            SphP[i].StarMomentumFeed[1] += (windmomentum * dy/r + massloss * vel[1] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[2] += (windmomentum * dz/r + massloss * vel[2] / All.cf_atime) * factor;
+              
+              double vsq = vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2];
+              double vdotp = vel[0] * (dx / r) + vel[1] * (dy / r) + vel[2] * (dz / r);
+              SphP[i].StarEnergyFeed += (windmomentum * windmomentum / (2.0 * massloss) 
+              + 0.5 * massloss * vsq / All.cf_atime / All.cf_atime 
+              + windmomentum * vdotp / All.cf_atime) * factor; 
+              All.StarFeedbackLocal[2] += (windmomentum * windmomentum / (2.0 * massloss) 
+              + 0.5 * massloss * vsq / All.cf_atime / All.cf_atime                             
+              + windmomentum * vdotp / All.cf_atime) * factor;
+            }
+#endif     
+
+#ifdef SUPERNOVAE
+          if(SNmassloss > 0)
+            {
+              SphP[i].StarMassFeed += SNmassloss * factor;
+              All.StarFeedbackLocal[0] += SNmassloss * factor;
+#ifdef METALS
+              SphP[i].StarMetalsFeed += SNmetalsloss * factor;
+              All.StarFeedbackLocal[1] += SNmetalsloss * factor;
+#endif
+
+              double pSN = sqrt(2.0 * SNenergyinject * SNmassloss);   
+              double vsq = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
+              double vdotp = vel[0]*(dx/r) + vel[1]*(dy/r) + vel[2]*(dz/r);
+
+              SphP[i].StarMomentumFeed[0] += (pSN * dx/r + SNmassloss * vel[0] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[1] += (pSN * dy/r + SNmassloss * vel[1] / All.cf_atime) * factor;
+              SphP[i].StarMomentumFeed[2] += (pSN * dz/r + SNmassloss * vel[2] / All.cf_atime) * factor;
+
+              SphP[i].StarEnergyFeed += (SNenergyinject               
+              + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime  
+              + pSN * vdotp / All.cf_atime) * factor;                
+              All.StarFeedbackLocal[2] += (SNenergyinject       
+              + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime  
+              + pSN * vdotp / All.cf_atime) * factor;     
+            }
+#endif
+
+#ifdef SUPERNOVAE_THERMAL
+          if(SNmassloss > 0)
+            {
+              SphP[i].StarMassFeed += SNmassloss * factor;
+              All.StarFeedbackLocal[0] += SNmassloss * factor;
+#ifdef METALS
+              SphP[i].StarMetalsFeed += SNmetalsloss * factor;
+              All.StarFeedbackLocal[1] += SNmetalsloss * factor;
+#endif
+              double vsq = vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2];
+
+              /* Momentum in sim frame = bulk motion of ejected mass only */
+              SphP[i].StarMomentumFeed[0] += SNmassloss * vel[0] / All.cf_atime * factor;
+              SphP[i].StarMomentumFeed[1] += SNmassloss * vel[1] / All.cf_atime * factor;
+              SphP[i].StarMomentumFeed[2] += SNmassloss * vel[2] / All.cf_atime * factor;
+
+              /* Energy = thermal (in star frame) + bulk KE of ejected mass (no cross term) */
+              SphP[i].StarEnergyFeed += (SNenergyinject
+              + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime) * factor;
+              All.StarFeedbackLocal[2] += (SNenergyinject
+              + 0.5 * SNmassloss * vsq / All.cf_atime / All.cf_atime) * factor;
+            }
+#endif
+        }
+    }
+
+  return 0;
 }
