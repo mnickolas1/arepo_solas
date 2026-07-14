@@ -175,7 +175,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   MyDouble *pos, *vel, ngbsmass, ngbsvolume, factor;
   
   data_in local, *target_data;
-  //data_out out = {0};
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -337,6 +337,12 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #endif
         }
     }
+
+  /* Now collect the result at the right place */
+  if(mode == MODE_LOCAL_PARTICLES)
+    out2particle(&out, target, MODE_LOCAL_PARTICLES);
+  else
+    DataResult[target] = out;
 
   return 0;
 }
