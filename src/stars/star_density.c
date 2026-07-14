@@ -308,8 +308,6 @@ static int star_density_evaluate(int target, int mode, int threadid)
   double h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos, ngbsmass, ngbsvolume;
 
-  double xtmp, ytmp, ztmp;
-
   data_in local, *target_data;
   data_out out;
 
