@@ -170,7 +170,8 @@ void star_feedback(void)
 static int star_feedback_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  double h, h2, dx, dy, dz, r, r2, wk; 
+  double xtmp, ytmp, ztmp; 
+  double h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos, *vel, ngbsmass, ngbsvolume, factor;
   
   data_in local, *target_data;
@@ -228,31 +229,10 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
       
-      /* Compute cell->star position vectors */
-      dx = P[i].Pos[0] - pos[0];
-      dy = P[i].Pos[1] - pos[1]; 
-      dz = P[i].Pos[2] - pos[2]; 
-
-#ifndef REFLECTIVE_X
-      if(dx > boxHalf_X)
-        dx -= boxSize_X;
-      if(dx < -boxHalf_X)
-        dx += boxSize_X;
-#endif /* #ifndef REFLECTIVE_X */
-
-#ifndef REFLECTIVE_Y
-      if(dy > boxHalf_Y)
-        dy -= boxSize_Y;
-      if(dy < -boxHalf_Y)
-        dy += boxSize_Y;
-#endif /* #ifndef REFLECTIVE_Y */
-
-#ifndef REFLECTIVE_Z
-      if(dz > boxHalf_Z)
-        dz -= boxSize_Z;
-      if(dz < -boxHalf_Z)
-        dz += boxSize_Z;
-#endif /* #ifndef REFLECTIVE_Z */
+      /* Compute star->cell position vector */
+      dx = NEAREST_X(P[i].Pos[0] - pos[0]);
+      dy = NEAREST_Y(P[i].Pos[1] - pos[1]);
+      dz = NEAREST_Z(P[i].Pos[2] - pos[2]);
 
       r2 = dx * dx + dy * dy + dz * dz;
 
