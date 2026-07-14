@@ -170,11 +170,12 @@ void star_feedback(void)
 static int star_feedback_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  double xtmp, ytmp, ztmp; 
-  double h, h2, dx, dy, dz, r, r2, wk;
+  MyDouble xtmp, ytmp, ztmp; 
+  MyDouble h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos, *vel, ngbsmass, ngbsvolume, factor;
   
   data_in local, *target_data;
+  //data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {

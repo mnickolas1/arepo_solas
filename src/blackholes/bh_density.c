@@ -341,11 +341,10 @@ void bh_density(void)
 static int bh_density_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int ngbs, ngbsminbin = TIMEBINS; 
-  double xtmp, ytmp, ztmp;   
-  double h, h2, dx, dy, dz, r, r2, wk; 
-  double dvx, dvy, dvz; 
-  MyDouble *pos, *vel, ngbsmass, ngbsvolume;
+  int ngbs = 0, ngbsminbin = TIMEBINS; 
+  MyDouble xtmp, ytmp, ztmp;   
+  MyDouble h, h2, dx, dy, dz, r, r2, wk; 
+  MyDouble *pos, *vel, ngbsmass = 0, ngbsvolume = 0;
 
   data_in local, *target_data;
   data_out out = {0};
@@ -369,24 +368,22 @@ static int bh_density_evaluate(int target, int mode, int threadid)
   vel = target_data->Vel;
   h = target_data->Hsml;
 
-  ngbs = ngbsmass = ngbsvolume = 0;
-
 #ifdef TORQUE_ACCRETION
   MyDouble gas_angular_momentum[3];
   for(int j = 0; j < 3; j++)
     gas_angular_momentum[j] = 0;
 #endif 
 
-  double hinv, hinv3, hinv4, u, dwk;
+  //MyDouble hinv, hinv3, hinv4, u, dwk;
 
-  h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
+  //h2   = h * h;
+  //hinv = 1.0 / h;
+//#ifndef TWODIMS
+//  hinv3 = hinv * hinv * hinv;
+//#else  /* #ifndef  TWODIMS */
+//  hinv3 = hinv * hinv / boxSize_Z;
+//#endif /* #ifndef  TWODIMS #else */
+//  hinv4 = hinv3 * hinv;
 
 #ifdef BH_CONSTANT_RADIUS
   int nfound = ngb_treefind_variable_threads(pos, All.BhRadius, target, mode, threadid, numnodes, firstnode);
@@ -406,6 +403,8 @@ static int bh_density_evaluate(int target, int mode, int threadid)
       dy = NEAREST_Y(P[i].Pos[1] - pos[1]);
       dz = NEAREST_Z(P[i].Pos[2] - pos[2]);
 
+      MyDouble dvx, dvy, dvz;  
+
      /* Compute bh->cell velocity vector */
       dvx = P[i].Vel[0] - vel[0]; 
       dvy = P[i].Vel[1] - vel[1];
@@ -422,7 +421,7 @@ static int bh_density_evaluate(int target, int mode, int threadid)
           r = sqrt(r2);
           u = r * hinv;
 
-          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
+          //bh_kernel(u, hinv3, hinv4, &wk, &dwk);
           
           ngbs++;
           

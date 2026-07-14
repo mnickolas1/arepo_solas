@@ -261,9 +261,8 @@ void bh_accretion(void)
 static int bh_accretion_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode;
-  double xtmp, ytmp, ztmp;   
-  double h, h2, dx, dy, dz, r, r2, wk; 
-  double dvx, dvy, dvz; 
+  MyDouble xtmp, ytmp, ztmp;   
+  MyDouble h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos, *vel;
   
   data_in local, *target_data;
@@ -317,7 +316,7 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 //  double rbh2 = rbh * rbh;
 //#endif
 
-  double hinv, hinv3, hinv4, u, dwk;
+  MyDouble hinv, hinv3, hinv4, u, dwk;
 
   h2 = h * h;
   hinv = 1.0 / h;
@@ -346,6 +345,8 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
       dy = NEAREST_Y(P[i].Pos[1] - pos[1]);
       dz = NEAREST_Z(P[i].Pos[2] - pos[2]);
 
+      MyDouble dvx, dvy, dvz;  
+
      /* Compute bh->cell velocity vector */
       dvx = P[i].Vel[0] - vel[0]; 
       dvy = P[i].Vel[1] - vel[1];
@@ -364,12 +365,12 @@ static int bh_accretion_evaluate(int target, int mode, int threadid)
 
           bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          double v_cross[3];
+          MyDouble v_cross[3];
           v_cross[0] = dy * dvz - dz * dvy;
           v_cross[1] = dz * dvx - dx * dvz;
           v_cross[2] = dx * dvy - dy * dvx;
 
-          double rho = (SphP[i].Density > 0) ? SphP[i].Density : 1;
+          MyDouble rho = (SphP[i].Density > 0) ? SphP[i].Density : 1;
 
 #ifdef BONDI_ACCRETION
           /* Comute relative velocities, 

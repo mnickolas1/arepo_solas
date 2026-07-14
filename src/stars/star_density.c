@@ -303,13 +303,13 @@ void star_density(void)
 static int star_density_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int ngbs, ngbsminbin = TIMEBINS;
-  double xtmp, ytmp, ztmp;  
-  double h, h2, dx, dy, dz, r, r2, wk;
-  MyDouble *pos, ngbsmass, ngbsvolume;
+  int ngbs = 0, ngbsminbin = TIMEBINS;
+  MyDouble xtmp, ytmp, ztmp;  
+  MyDouble h, h2, dx, dy, dz, r, r2, wk;
+  MyDouble *pos, ngbsmass = 0, ngbsvolume = 0;
 
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -329,8 +329,6 @@ static int star_density_evaluate(int target, int mode, int threadid)
   pos  = target_data->Pos;
   h    = target_data->Hsml;
   h2   = h * h;
-
-  ngbs = ngbsmass = ngbsvolume = 0;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 

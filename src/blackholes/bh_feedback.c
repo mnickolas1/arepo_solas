@@ -146,8 +146,8 @@ void bh_feedback(void)
 static int bh_feedback_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  double xtmp, ytmp, ztmp;   
-  double h, h2, dx, dy, dz, r, r2, wk; 
+  MyDouble xtmp, ytmp, ztmp;   
+  MyDouble h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, ngbsvolume, accretion, mass_feed, energy_feed, factor;
 
   data_in local, *target_data;
@@ -173,20 +173,19 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
   ngbsvolume = target_data->NgbsVolume;
   accretion = target_data->Accretion;
 
-  factor = 0;
   mass_feed = All.Mload * All.Epsilon_r * accretion; 
   energy_feed = All.Epsilon_f * (1.0 - All.Mload) * All.Epsilon_r  * accretion * (CLIGHT*CLIGHT / (All.cf_UnitVelocity_in_cm_per_s*All.cf_UnitVelocity_in_cm_per_s));
 
-  double hinv, hinv3, hinv4, u, dwk;
+  //MyDouble hinv, hinv3, hinv4, u, dwk;
 
-  h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
+  //h2   = h * h;
+  //hinv = 1.0 / h;
+//#ifndef TWODIMS
+//  hinv3 = hinv * hinv * hinv;
+//#else  /* #ifndef  TWODIMS */
+//  hinv3 = hinv * hinv / boxSize_Z;
+//#endif /* #ifndef  TWODIMS #else */
+//  hinv4 = hinv3 * hinv;
 
 #ifdef BH_CONSTANT_RADIUS
   int nfound = ngb_treefind_variable_threads(pos, All.BhRadius, target, mode, threadid, numnodes, firstnode);
@@ -217,7 +216,7 @@ static int bh_feedback_evaluate(int target, int mode, int threadid)
           r = sqrt(r2);
           u = r * hinv;
 
-          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
+          //bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           factor = SphP[i].Volume / ngbsvolume;
 
