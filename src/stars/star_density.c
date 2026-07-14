@@ -71,14 +71,16 @@ static data_out *DataResult, *DataOut;
  */
 static void out2particle(data_out *out, int i, int mode)
 {
-  if(mode == MODE_LOCAL_PARTICLES) /* initial store */
+  /* Initial store */
+  if(mode == MODE_LOCAL_PARTICLES) 
     {
       StarNgbs[i] = out->Ngbs;
       SP[i].NgbsMass = out->NgbsMass;
       SP[i].NgbsVolume = out->NgbsVolume;
       SP[i].NgbsMinBin = out->NgbsMinBin;
     }
-  else /* combine */
+  /* Combine */  
+  else 
     {
       StarNgbs[i] += out->Ngbs;
       SP[i].NgbsMass += out->NgbsMass;
@@ -139,7 +141,7 @@ static void kernel_local(void)
  */
 static void kernel_imported(void)
 {
-  /* now do the particles that were sent to us */
+  /* Now do the particles that were sent to us */
   int i, cnt = 0;
 
   int threadid = get_thread_num();
@@ -192,7 +194,7 @@ void star_density(void)
 
   generic_set_MaxNexport();
 
-  /* we will repeat the whole thing for those particles where we didn't find enough neighbours */
+  /* We will repeat the whole thing for those particles where we didn't find enough neighbours */
   do
     {
       t0 = second();
@@ -205,16 +207,17 @@ void star_density(void)
 
           if(StarNgbs[i] < (All.StarDesNgb - All.StarDesDev) || StarNgbs[i] > (All.StarDesNgb + All.StarDesDev))
             {
-              /* need to redo this particle */
+              /* Need to redo this particle */
               npleft++;
 
               if(Left[i] > 0 && Right[i] > 0)
                 {
                   if((Right[i] - Left[i]) < 1.0e-3 * Left[i])
                     {
-                      /* this one should be ok */
+                      /* This one should be ok */
                       npleft--;
-                      SP[i].DensityFlag = -1; /* Mark as inactive */
+                      /* Mark as inactive */
+                      SP[i].DensityFlag = -1;
                       continue;
                     }
                 } 
@@ -251,7 +254,8 @@ void star_density(void)
                 }
             }
           else
-            SP[i].DensityFlag = -1; /* Mark as inactive */ 
+            /* Mark as inactive */ 
+            SP[i].DensityFlag = -1; 
         }
 
       sumup_large_ints(1, &npleft, &ntot);
@@ -276,11 +280,11 @@ void star_density(void)
   myfree(Left);
   myfree(StarNgbs);
 
-  /* mark as active again */
+  /* Mark as active again */
   for(i = 0; i < NumStars; i++)
      SP[i].DensityFlag = 1;
   
-  /* collect some timing information */
+  /* Collect some timing information */
   TIMER_STOP(CPU_STARS_DENSITY);
 }
 
@@ -299,7 +303,7 @@ void star_density(void)
 static int star_density_evaluate(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode; 
-  int ngbs, ngbsminbin = MAX_REAL_NUMBER; 
+  int ngbs, ngbsminbin = TIMEBINS; 
   double h, h2, dx, dy, dz, r, r2, wk; 
   MyDouble *pos, ngbsmass, ngbsvolume;
 
@@ -336,7 +340,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
 
-      /* compute cell->star position vectors */
+      /* Compute cell->star position vectors */
       dx = P[i].Pos[0] - pos[0];
       dy = P[i].Pos[1] - pos[1]; 
       dz = P[i].Pos[2] - pos[2]; 
@@ -368,13 +372,13 @@ static int star_density_evaluate(int target, int mode, int threadid)
         {
           ngbs++;
           
-          // compute the star-ngb-mass 
+          /* Compute the star-ngb-mass */
           ngbsmass += P[i].Mass;
           
-          // compute the star-ngb-volume
+          /* Compute the star-ngb-volume */
           ngbsvolume += SphP[i].Volume;
           
-          // compute the min hydro bin for neighbors   
+          /* Compute the min hydro bin for neighbors */   
           if(P[i].TimeBinHydro < ngbsminbin)
             ngbsminbin = P[i].TimeBinHydro;
         }
@@ -385,7 +389,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
   out.NgbsVolume = ngbsvolume;
   out.NgbsMinBin = ngbsminbin;
 
-  /* now collect the result at the right place */
+  /* Now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)
     out2particle(&out, target, MODE_LOCAL_PARTICLES);
   else

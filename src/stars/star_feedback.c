@@ -55,11 +55,11 @@ static void particle2in(data_in *in, int i, int firstnode)
   in->NgbsVolume = SP[i].NgbsVolume;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
-  MyDouble TimeSN_yr;
-  MyDouble PhysicalAge_yr;
+  in->TimeSN_yr = SP[i].TimeSN_yr;
+  in->PhysicalAge_yr = SP[i].PhysicalAge_yr;
 #endif  
 
-  Mechanical_Feedback MechanicalFeedback;
+  in->MechanicalFeedback = SP[i].MechanicalFeedback;
 
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
@@ -88,10 +88,12 @@ static data_out *DataResult, *DataOut;
  
 static void out2particle(data_out *out, int i, int mode)
 {
-  if(mode == MODE_LOCAL_PARTICLES) /* initial store */
+  /* Initial store */
+  if(mode == MODE_LOCAL_PARTICLES)
     {
     }
-  else /* combine */
+  /* Combine */
+  else 
     {
     }
 }
@@ -138,7 +140,7 @@ static void kernel_local(void)
  */
 static void kernel_imported(void)
 {
-  /* now do the particles that were sent to us */
+  /* Now do the particles that were sent to us */
   int i, cnt = 0;
 
   int threadid = get_thread_num();
@@ -202,22 +204,23 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
 #endif
 
 #ifdef WINDS
-  MyDouble massloss = target_data->MassLoss;
+  MyDouble massloss = target_data->MechanicalFeedback.MassLoss;
 #ifdef METALS
-  MyDouble metalsloss = target_data->MetalsLoss;
+  MyDouble metalsloss = target_data->MechanicalFeedback.MetalsLoss;
 #endif
-  MyDouble windmomentum = target_data->WindMomentum;
+  MyDouble windmomentum = target_data->MechanicalFeedback.WindMomentum;
 #endif
 
 #ifdef SUPERNOVAE
-  MyDouble SNmassloss = target_data->SN_MassLoss;
+  MyDouble SNmassloss = target_data->MechanicalFeedback.SN_MassLoss;
 #ifdef METALS
-  MyDouble SNmetalsloss = target_data->SN_MetalsLoss;
+  MyDouble SNmetalsloss = target_data->MechanicalFeedback.SN_MetalsLoss;
 #endif
-  MyDouble SNenergyinject = target_data->SN_EnergyInject;
+  MyDouble SNenergyinject = target_data->MechanicalFeedback.SN_EnergyInject;
 #endif  
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+  
   for(n = 0; n < nfound; n++)
     {
       i = Thread[threadid].Ngblist[n];
@@ -225,7 +228,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
       
-      /* compute cell->star position vectors */
+      /* Compute cell->star position vectors */
       dx = P[i].Pos[0] - pos[0];
       dy = P[i].Pos[1] - pos[1]; 
       dz = P[i].Pos[2] - pos[2]; 
