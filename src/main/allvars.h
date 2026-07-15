@@ -1396,7 +1396,7 @@ double InitMetallicityinSolar;
   char StarTablesFile[MAXLEN_PATH];
 #endif 
 
-#ifdef STAR_FEEDBACK_SPH
+#if defined(WINDS) || defined(SUPERNOVAE)
   double StarDesNgb;
   double StarDesDev;
 #endif

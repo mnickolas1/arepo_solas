@@ -599,7 +599,7 @@ void read_parameter_file(char *fname)
       id[nt++] = STRING;
 #endif
 
-#ifdef STAR_FEEDBACK_SPH
+#if defined(WINDS) || defined(SUPERNOVAE)
       strcpy(tag[nt], "StarDesNgb");
       addr[nt] = &All.StarDesNgb;
       id[nt++] = REAL;
