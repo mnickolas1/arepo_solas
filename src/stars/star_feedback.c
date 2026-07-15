@@ -21,6 +21,7 @@ typedef struct
   MyDouble Vel[3];
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
+  MyDouble NgbsMetallicity;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble TimeSN_yr;
@@ -53,6 +54,11 @@ static void particle2in(data_in *in, int i, int firstnode)
     }
   in->NgbsMass = SP[i].NgbsMass;
   in->NgbsVolume = SP[i].NgbsVolume;
+#ifdef METALS
+  in->NgbsMetallicity = SP[i].NgbsMetallicity;
+#else
+  in->NgbsMetallicity = 0;
+#endif
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   in->TimeSN_yr = SP[i].TimeSN_yr;
@@ -172,7 +178,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   int i, n, numnodes, *firstnode; 
   MyDouble xtmp, ytmp, ztmp; 
   MyDouble h, h2, dx, dy, dz, r, r2, wk;
-  MyDouble *pos, *vel, ngbsmass, ngbsvolume, factor;
+  MyDouble *pos, *vel, ngbsmass, ngbsvolume, ngbsmetallicity, factor;
   
   data_in local, *target_data;
   data_out out = {0};
@@ -199,6 +205,7 @@ static int star_feedback_evaluate(int target, int mode, int threadid)
   
   ngbsmass = target_data->NgbsMass;
   ngbsvolume = target_data->NgbsVolume;
+  ngbsmetallicity = target_data->NgbsMetallicity;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble time_sn_yr = target_data->TimeSN_yr;
