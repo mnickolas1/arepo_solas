@@ -53,6 +53,7 @@ typedef struct
   MyDouble Ngbs;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
+  MyDouble NgbsMetallicity;
   int NgbsMinBin;
 } data_out;
 
@@ -77,6 +78,9 @@ static void out2particle(data_out *out, int i, int mode)
       StarNgbs[i] = out->Ngbs;
       SP[i].NgbsMass = out->NgbsMass;
       SP[i].NgbsVolume = out->NgbsVolume;
+#ifdef METALS
+      SP[i].NgbsMetallicity = out->NgbsMetallicity;
+#endif
       SP[i].NgbsMinBin = out->NgbsMinBin;
     }
   /* Combine */  
@@ -85,6 +89,9 @@ static void out2particle(data_out *out, int i, int mode)
       StarNgbs[i] += out->Ngbs;
       SP[i].NgbsMass += out->NgbsMass;
       SP[i].NgbsVolume += out->NgbsVolume;
+#ifdef METALS
+      SP[i].NgbsMetallicity += out->NgbsMetallicity;
+#endif
       if(out->NgbsMinBin < SP[i].NgbsMinBin)
         SP[i].NgbsMinBin = out->NgbsMinBin;
     }
@@ -205,6 +212,9 @@ void star_density(void)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
 
+          if(SP[i].WithFeedback == 0)
+            continue;
+
 #ifdef REFINEMENT
           if(SP[i].NgbsMass < (All.StarDesNgb - All.StarDesDev) * All.TargetGasMass || SP[i].NgbsMass > (All.StarDesNgb + All.StarDesDev) * All.TargetGasMass)
 #else
@@ -284,13 +294,20 @@ void star_density(void)
     }
   while(ntot > 0);
 
+#ifdef METALS
+  /* Normalize ngbs-metallicity */
+  for(idx = 0, npleft = 0; idx < TimeBinsStar.NActiveParticles; idx++)
+    {
+      i = TimeBinsStar.ActiveParticleList[idx];
+
+      if(SP[i].NgbsMass > 0)
+        SP[i].NgbsMetallicity /= SP[i].NgbsMass;
+    }
+#endif
+
   myfree(Right);
   myfree(Left);
   myfree(StarNgbs);
-
-  /* Mark as active again */
-  for(i = 0; i < NumStars; i++)
-     SP[i].DensityFlag = 1;
   
   /* Collect some timing information */
   TIMER_STOP(CPU_STARS_DENSITY);
@@ -314,7 +331,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
   int ngbs = 0, ngbsminbin = TIMEBINS;
   MyDouble xtmp, ytmp, ztmp;  
   MyDouble h, h2, dx, dy, dz, r, r2, wk;
-  MyDouble *pos, ngbsmass = 0, ngbsvolume = 0;
+  MyDouble *pos, ngbsmass = 0, ngbsvolume = 0, ngbsmetallicity = 0;
 
   data_in local, *target_data;
   data_out out = {0};
@@ -358,13 +375,18 @@ static int star_density_evaluate(int target, int mode, int threadid)
         {
           ngbs++;
           
-          /* Compute the star-ngb-mass */
-          ngbsmass += P[i].Mass;
+          /* Compute the star-ngbs-mass */
+          ngbsmass += P[i].Mass + SphP[i].StarMassFeed;
           
-          /* Compute the star-ngb-volume */
+          /* Compute the star-ngbs-volume */
           ngbsvolume += SphP[i].Volume;
+
+#ifdef METALS
+          /* Compute the star-ngbs-metallicity */
+          ngbsmetallicity += SphP[i].GasMetals + SphP[i].StarMetalsFeed;
+#endif
           
-          /* Compute the min hydro bin for neighbors */   
+          /* Compute the min hydro bin for neighbours */   
           if(P[i].TimeBinHydro < ngbsminbin)
             ngbsminbin = P[i].TimeBinHydro;
         }
@@ -373,6 +395,7 @@ static int star_density_evaluate(int target, int mode, int threadid)
   out.Ngbs = ngbs;
   out.NgbsMass = ngbsmass;
   out.NgbsVolume = ngbsvolume;
+  out.NgbsMetallicity = ngbsmetallicity;
   out.NgbsMinBin = ngbsminbin;
 
   /* Now collect the result at the right place */

@@ -131,6 +131,9 @@ typedef struct Star_Particle_Data
   MyDouble Hsml;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
+#ifdef METALS
+  MyDouble NgbsMetallicity;
+#endif
   int NgbsMinBin;
   int DensityFlag;
   signed char TimeBinStar;
