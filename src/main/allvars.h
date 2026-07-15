@@ -1302,10 +1302,6 @@ extern struct global_data_all_processes
   double MaxVolume;
 #endif 
 
-#ifdef STAR_HOST_REFINEMENT
-  double RefStarsPerCell;
-#endif
-
 #ifdef REFINEMENT_AROUND_BH
 #if defined(REFINEMENT_AROUND_BH_FIXED)
   double RefBHRadius;        /* refinement region in code units */
@@ -1724,11 +1720,6 @@ extern struct sph_particle_data
 #endif
 
 /* Stars */
-
-/* Hosts */
-#ifdef STAR_FEEDBACK_ACTIVE
-  int Host;
-#endif
 
 /* Feedback */
 #ifdef STAR_FEEDBACK_ACTIVE

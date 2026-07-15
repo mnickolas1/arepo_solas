@@ -362,7 +362,7 @@ void convert_cell_into_star(int i, double birthtime)
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;
-  SP[NumStars].HostHydroBin = P[i].TimeBinHydro; 
+  SP[NumStars].NgbsMinBin = P[i].TimeBinHydro; 
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
 #endif
 
@@ -454,7 +454,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;
-  SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
+  SP[NumStars].NgbsMinBin = P[igas].TimeBinHydro;
   timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
   /* Give star small random displacement */

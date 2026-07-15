@@ -20,8 +20,6 @@ WINDS                  # Only winds
 #RADIATION              # Full radiation
 SUPERNOVAE             # Only supernovae
 
-#STAR_HOST_REFINEMENT
-
 
 #--------------------------------------- Arepo public
 

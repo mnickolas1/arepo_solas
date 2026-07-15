@@ -424,12 +424,6 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif /* #ifdef REFINEMENT_VOLUME_LIMIT */
 
-#ifdef STAR_HOST_REFINEMENT
-      strcpy(tag[nt], "RefStarsPerCell");
-      addr[nt] = &All.RefStarsPerCell;
-      id[nt++] = REAL;
-#endif
-
 #ifdef REFINEMENT_AROUND_BH
 #if defined(REFINEMENT_AROUND_BH_FIXED)
       strcpy(tag[nt], "RefBHRadius");

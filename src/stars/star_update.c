@@ -60,13 +60,13 @@ void star_exit(void)
 
 integertime star_timestep(int i)
 { 
-  /* Host Hydro Bin */
-  double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
+  /* Ngbs Min Bin */
+  double dt_ngbsminbin = (SP[i].NgbsMinBin ? (((integertime)1) << SP[i].NgbsMinBin) : 0) * All.Timebase_interval;
   
   double dt;
   
-  if(dt_host != 0)
-    dt = dt_host;
+  if(dt_ngbsminbin != 0)
+    dt = dt_ngbsminbin;
   else 
     dt = TIMEBASE * All.Timebase_interval;
 
@@ -180,7 +180,7 @@ void star_prep(void)
       i = TimeBinsStar.ActiveParticleList[idx];
 
       if(SP[i].Active == 0)
-        //if(TimeBinSynchronized[SP[i].HostHydroBin])
+        //if(TimeBinSynchronized[SP[i].NgbsMinBin])
           {
             SP[i].Active = 1;
             SP[i].PhysicalAge_yr = 0.0;
@@ -269,7 +269,7 @@ void star_prep(void)
 #endif
 
       SP[i].WithFeedback = with_feedback;
-      SP[i].HostHydroBin = TIMEBINS;
+      SP[i].NgbsMinBin = TIMEBINS;
     }
 
   TIMER_STOP(CPU_STARS_PREP);

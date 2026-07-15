@@ -131,7 +131,7 @@ typedef struct Star_Particle_Data
   MyDouble Hsml;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
-  int HostHydroBin;
+  int NgbsMinBin;
   int DensityFlag;
   signed char TimeBinStar;
   MyDouble PhysicalAge_yr;
