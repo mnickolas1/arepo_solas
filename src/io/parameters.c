@@ -76,8 +76,6 @@ void read_parameter_file(char *fname)
   int param_handled[MAX_PARAMETERS];
   int errorFlag = 0;
 
-  All.StarformationOn = 0; /* defaults */
-
   for(i = 0; i < MAX_PARAMETERS; i++)
     {
       param_handled[i] = 0;
@@ -299,14 +297,6 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.ResubmitOn;
       id[nt++] = INT;
 
-      strcpy(tag[nt], "CoolingOn");
-      addr[nt] = &All.CoolingOn;
-      id[nt++] = INT;
-
-      strcpy(tag[nt], "StarformationOn");
-      addr[nt] = &All.StarformationOn;
-      id[nt++] = INT;
-
       strcpy(tag[nt], "TypeOfTimestepCriterion");
       addr[nt] = &All.TypeOfTimestepCriterion;
       id[nt++] = INT;
@@ -434,165 +424,12 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif /* #ifdef REFINEMENT_VOLUME_LIMIT */
 
-#ifdef TILE_ICS
-      strcpy(tag[nt], "TileICsFactor");
-      addr[nt] = &All.TileICsFactor;
-      id[nt++] = INT;
-#endif /* #ifdef TILE_ICS */
-
-#ifdef ADDBACKGROUNDGRID
-      strcpy(tag[nt], "GridSize");
-      addr[nt] = &All.GridSize;
-      id[nt++] = INT;
-#endif /* #ifdef ADDBACKGROUNDGRID */
-
-#ifdef ONEDIMS_SPHERICAL
-      strcpy(tag[nt], "CoreRadius");
-      addr[nt] = &All.CoreRadius;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "CoreMass");
-      addr[nt] = &All.CoreMass;
-      id[nt++] = REAL;
-#endif /* #ifdef ONEDIMS_SPHERICAL */
-
-/* Cooling */
-#ifdef COOLING
-      strcpy(tag[nt], "TreecoolFile");
-      addr[nt] = &All.TreecoolFile;
-      id[nt++] = STRING;
-#ifdef USE_GRACKLE
-        strcpy(tag[nt], "GrackleDataFile");
-        addr[nt] = &All.GrackleDataFile;
-        id[nt++] = STRING;
-#endif /* ifdef USE_GRACKLE */
-#endif /* ifdef COOLING */
-        
-/* Star Formation */
-#ifdef USE_SFR
-        strcpy(tag[nt], "CritOverDensity");
-        addr[nt] = &All.CritOverDensity;
-        id[nt++] = REAL;
-        
-        strcpy(tag[nt], "CritPhysDensity");
-        addr[nt] = &All.CritPhysDensity;
-        id[nt++] = REAL;
-        
-#ifdef EEOS_SF
-        strcpy(tag[nt], "TemperatureThresh");
-        addr[nt] = &All.TemperatureThresh;
-        id[nt++] = REAL;
-        
-        strcpy(tag[nt], "FactorSN");
-        addr[nt] = &All.FactorSN;
-        id[nt++] = REAL;
-        
-        strcpy(tag[nt], "FactorEVP");
-        addr[nt] = &All.FactorEVP;
-        id[nt++] = REAL;
-        
-        strcpy(tag[nt], "TempSupernova");
-        addr[nt] = &All.TempSupernova;
-        id[nt++] = REAL;
-        
-        strcpy(tag[nt], "TempClouds");
-        addr[nt] = &All.TempClouds;
-        id[nt++] = REAL;
-        
-        strcpy(tag[nt], "MaxSfrTimescale");
-        addr[nt] = &All.MaxSfrTimescale;
-        id[nt++] = REAL;
-#endif /* #ifdef EEOS_SF */
-        
-#ifdef AGORA_SF
-        strcpy(tag[nt], "StarFormationNumberDensityThreshold"); // n_H in units of cm^-3
-        addr[nt] = &All.StarFormationNumberDensityThreshold;
-        id[nt++] = REAL;
-#endif
-        
-#if defined(AGORA_SF) || defined(JEANS_SF)
-        strcpy(tag[nt], "StarFormationEfficiency");  // Value between 0 and 1
-        addr[nt] = &All.StarFormationEfficiency;
-        id[nt++] = REAL;
-#endif
-        
-#ifdef JEANS_MASS_BASED
-        strcpy(tag[nt], "JeansMassThreshold");
-        addr[nt] = &All.JeansMassThreshold;
-        id[nt++] = REAL;
-#endif // JEANS_MASS_BASED
-        
-#endif // defined(USE_SFR)
-        
-/* Metallicity */
-#ifdef METALS
-        strcpy(tag[nt], "InitMetallicityinSolar");
-        addr[nt] = &All.InitMetallicityinSolar;
-        id[nt++] = REAL;
-#endif
-        
-#if defined(METALS) && defined(USE_CELIB)
-        strcpy(tag[nt], "ConstantMetallicityYield");
-        addr[nt] = &All.ConstantMetallicityYield;
-        id[nt++] = REAL;
-#endif
-        
-#if defined(STARS) || (defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK))
-      strcpy(tag[nt], "FeedbackTime");
-      addr[nt] = &All.FeedbackTime;
+#ifdef STAR_HOST_REFINEMENT
+      strcpy(tag[nt], "RefStarsPerCell");
+      addr[nt] = &All.RefStarsPerCell;
       id[nt++] = REAL;
 #endif
 
-#ifdef BLACKHOLES
-      strcpy(tag[nt], "BhDesNgb");
-      addr[nt] = &All.BhDesNgb;
-      id[nt++] = REAL;
-      
-      strcpy(tag[nt], "BhDesDev");
-      addr[nt] = &All.BhDesDev;
-      id[nt++] = REAL;
- 
-      strcpy(tag[nt], "Epsilon_r"); // Radiative efficiency for accretion rate
-      addr[nt] = &All.Epsilon_r;
-      id[nt++] = REAL;
-#ifdef BLACKHOLES_FEEDBACK
-      strcpy(tag[nt], "JetFeedback");
-      addr[nt] = &All.JetFeedback;
-      id[nt++] = INT;
-
-      strcpy(tag[nt], "Epsilon_f"); // Feedback efficiency
-      addr[nt] = &All.Epsilon_f;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "Mload");
-      addr[nt] = &All.Mload;
-      id[nt++] = REAL;
-#endif
-#endif
-
-#ifdef STARS
-      strcpy(tag[nt], "StarDesNgb");
-      addr[nt] = &All.StarDesNgb;
-      id[nt++] = REAL;
-      
-      strcpy(tag[nt], "StarDesDev");
-      addr[nt] = &All.StarDesDev;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "WindVelocity");
-      addr[nt] = &All.WindVelocity;
-      id[nt++] = REAL;
-      
-      strcpy(tag[nt], "Ftherm");
-      addr[nt] = &All.Ftherm;
-      id[nt++] = REAL;
-
-      strcpy(tag[nt], "Fsn");
-      addr[nt] = &All.Fsn;
-      id[nt++] = REAL;
-#endif
-
-#ifdef BLACKHOLES
 #ifdef REFINEMENT_AROUND_BH
 #if defined(REFINEMENT_AROUND_BH_FIXED)
       strcpy(tag[nt], "RefBHRadius");
@@ -639,9 +476,229 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.RefBHLowerFactorC;
       id[nt++] = REAL;
 #endif
+
+#ifdef TILE_ICS
+      strcpy(tag[nt], "TileICsFactor");
+      addr[nt] = &All.TileICsFactor;
+      id[nt++] = INT;
+#endif /* #ifdef TILE_ICS */
+
+#ifdef ADDBACKGROUNDGRID
+      strcpy(tag[nt], "GridSize");
+      addr[nt] = &All.GridSize;
+      id[nt++] = INT;
+#endif /* #ifdef ADDBACKGROUNDGRID */
+
+#ifdef ONEDIMS_SPHERICAL
+      strcpy(tag[nt], "CoreRadius");
+      addr[nt] = &All.CoreRadius;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "CoreMass");
+      addr[nt] = &All.CoreMass;
+      id[nt++] = REAL;
+#endif /* #ifdef ONEDIMS_SPHERICAL */
+
+/* Metallicity */
+#ifdef METALS
+        strcpy(tag[nt], "InitMetallicityinSolar");
+        addr[nt] = &All.InitMetallicityinSolar;
+        id[nt++] = REAL;
+#endif
+
+/* Cooling */
+#ifdef COOLING
+      strcpy(tag[nt], "TreecoolFile");
+      addr[nt] = &All.TreecoolFile;
+      id[nt++] = STRING;
+#endif
+
+#ifdef USE_GRACKLE
+        strcpy(tag[nt], "GrackleDataFile");
+        addr[nt] = &All.GrackleDataFile;
+        id[nt++] = STRING;
+#endif 
+        
+/* Star Formation */
+#ifdef EEOS_SF
+        strcpy(tag[nt], "CritOverDensity");
+        addr[nt] = &All.CritOverDensity;
+        id[nt++] = REAL;
+        
+        strcpy(tag[nt], "CritPhysDensity");
+        addr[nt] = &All.CritPhysDensity;
+        id[nt++] = REAL;
+        
+        strcpy(tag[nt], "TemperatureThresh");
+        addr[nt] = &All.TemperatureThresh;
+        id[nt++] = REAL;
+        
+        strcpy(tag[nt], "FactorSN");
+        addr[nt] = &All.FactorSN;
+        id[nt++] = REAL;
+        
+        strcpy(tag[nt], "FactorEVP");
+        addr[nt] = &All.FactorEVP;
+        id[nt++] = REAL;
+        
+        strcpy(tag[nt], "TempSupernova");
+        addr[nt] = &All.TempSupernova;
+        id[nt++] = REAL;
+        
+        strcpy(tag[nt], "TempClouds");
+        addr[nt] = &All.TempClouds;
+        id[nt++] = REAL;
+        
+        strcpy(tag[nt], "MaxSfrTimescale");
+        addr[nt] = &All.MaxSfrTimescale;
+        id[nt++] = REAL;
+#endif /* #ifdef EEOS_SF */
+
+#ifdef AGORA_SF
+        strcpy(tag[nt], "NumberDensThreshold"); 
+        addr[nt] = &All.NumberDensThreshold ;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "TemperatureThreshold");
+        addr[nt] = &All.TemperatureThreshold;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "StarFormationEfficiency");  
+        addr[nt] = &All.StarFormationEfficiency;
+        id[nt++] = REAL;
+#endif
+
+#ifdef JEANS_SF
+#ifdef JEANS_MASS_BASED
+        strcpy(tag[nt], "JeansMassThreshold");
+        addr[nt] = &All.JeansMassThreshold;
+        id[nt++] = REAL;
+#endif 
+        strcpy(tag[nt], "StarFormationEfficiency"); 
+        addr[nt] = &All.StarFormationEfficiency;
+        id[nt++] = REAL;
 #endif
         
-#ifdef FIND_HALOS
+#ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+        strcpy(tag[nt], "NumberDensThreshold"); 
+        addr[nt] = &All.NumberDensThreshold ;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "TemperatureThreshold");
+        addr[nt] = &All.TemperatureThreshold;
+        id[nt++] = REAL;
+
+        strcpy(tag[nt], "StarFormationEfficiency");  
+        addr[nt] = &All.StarFormationEfficiency;
+        id[nt++] = REAL;
+#endif
+
+#ifdef STAR_PARTICLES
+      strcpy(tag[nt], "IMF");
+      addr[nt] = &All.IMF;
+      id[nt++] = INT;
+#endif
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+      strcpy(tag[nt], "SN_LeadTime");
+      addr[nt] = &All.SN_LeadTime;
+      id[nt++] = REAL;
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      strcpy(tag[nt], "StarTablesFile");
+      addr[nt] = &All.StarTablesFile;
+      id[nt++] = STRING;
+#endif
+
+#ifdef SUPERNOVAE
+      strcpy(tag[nt], "SN_HostShellSweepFrac");
+      addr[nt] = &All.SN_HostShellSweepFrac;
+      id[nt++] = REAL;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      strcpy(tag[nt], "RaySplitFactor");
+      addr[nt] = &All.RaySplitFactor;
+      id[nt++] = REAL;
+#endif  
+
+#ifdef RAD_OPENING_ANGLE
+      strcpy(tag[nt], "RadOpeningAngle");
+      addr[nt] = &All.RadOpeningAngle;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "NodeAspectRatio");
+      addr[nt] = &All.NodeAspectRatio;
+      id[nt++] = REAL;
+#endif  
+
+#ifdef PHOTOIONIZATION
+      strcpy(tag[nt], "RTIonizationTimestepFraction");
+      addr[nt] = &All.RTIonizationTimestepFraction;
+      id[nt++] = REAL;
+#endif  
+
+#ifdef BH_ACTIVE
+#ifdef BH_CONSTANT_RADIUS
+      strcpy(tag[nt], "BhRadius");
+      addr[nt] = &All.BhRadius;
+      id[nt++] = REAL;
+#else
+      strcpy(tag[nt], "BhDesNgb");
+      addr[nt] = &All.BhDesNgb;
+      id[nt++] = REAL;
+      
+      strcpy(tag[nt], "BhDesDev");
+      addr[nt] = &All.BhDesDev;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "HMaxFactor");
+      addr[nt] = &All.HMaxFactor;
+      id[nt++] = REAL;
+#endif
+#endif
+
+#ifdef BH_ACCRETION_ACTIVE
+      strcpy(tag[nt], "Epsilon_r");
+      addr[nt] = &All.Epsilon_r;
+      id[nt++] = REAL;
+#endif            
+
+#ifdef TORQUE_ACCRETION
+      strcpy(tag[nt], "Epsilon_T"); /* Normalization for Torque Accretion */
+      addr[nt] = &All.Epsilon_T;
+      id[nt++] = REAL;
+#endif
+
+#ifdef ADP_ACCRETION
+      strcpy(tag[nt], "ADP_tvisc"); /* Viscous timescale */
+      addr[nt] = &All.ADP_tvisc;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "ADP_tcap"); /* Capture timescale */
+      addr[nt] = &All.ADP_tcap;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "ADP_EddFactor");
+      addr[nt] = &All.ADP_EddFactor;
+      id[nt++] = REAL;
+#endif
+
+#ifdef BH_FEEDBACK_ACTIVE
+      strcpy(tag[nt], "Epsilon_f");
+      addr[nt] = &All.Epsilon_f;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "Mload");
+      addr[nt] = &All.Mload;
+      id[nt++] = REAL;
+#endif
+        
+#ifdef HALO_SEEDING 
+#ifndef FOF
+#error "HALO_SEEDING requires FOF to be defined"
+#endif /* #ifndef(FOF) */
       strcpy(tag[nt], "TimeOfFirstHaloFinding");
       addr[nt] = &All.TimeOfFirstHaloFinding;
       id[nt++] = REAL;
@@ -649,6 +706,24 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "TimeBetweenHaloFinding");
       addr[nt] = &All.TimeBetweenHaloFinding;
       id[nt++] = REAL;
+
+#ifdef BH_SEED_ON_MASS
+    strcpy(tag[nt], "MinHaloMassForFOFSeeding");
+      addr[nt] = &All.MinHaloMassForFOFSeeding;
+      id[nt++] = REAL;
+#endif /* #ifdef BH_SEED_ON_MASS */
+
+#ifdef BH_SEED_ON_ZERO_METALLICITY
+      strcpy(tag[nt], "ZeroMetallicityThresholdForFOFSeeding");
+      addr[nt] = &All.ZeroMetallicityThresholdForFOFSeeding;
+      id[nt++] = REAL;
+#endif /* #ifdef BH_SEED_ON_ZERO_METALLICITY */
+
+#ifdef BLACKHOLE_SEEDING
+      strcpy(tag[nt], "BlackHoleSeedMass");
+      addr[nt] = &All.BlackHoleSeedMass;
+      id[nt++] = REAL;
+#endif
 #endif
 
 
@@ -898,18 +973,6 @@ void check_parameters()
     }
 #endif /* #ifndef GRAVITY_NOT_PERIODIC #else */
 
-#ifdef COOLING
-  if(All.CoolingOn == 0)
-    {
-      mpi_terminate("Code was compiled with cooling switched on.\nYou must set `CoolingOn=1', or recompile the code.\n");
-    }
-#else  /* #ifdef COOLING */
-  if(All.CoolingOn == 1)
-    {
-      mpi_terminate("Code was compiled with cooling switched off.\nYou must set `CoolingOn=0', or recompile the code.\n");
-    }
-#endif /* #ifdef COOLING #else */
-
   if(All.TypeOfTimestepCriterion >= 3)
     {
       mpi_terminate("The specified timestep criterion\nis not valid\n");
@@ -929,23 +992,6 @@ void check_parameters()
       mpi_terminate("NTYPES>8 is not allowed with ICFormat=%d, since the header block is limited to 256 bytes.\n", All.ICFormat);
     }
 #endif /* #if (NTYPES > 8) */
-
-#ifdef USE_SFR
-  if(All.StarformationOn == 0)
-    {
-      mpi_terminate("Code was compiled with star formation switched on.\nYou must set `StarformationOn=1', or recompile the code.\n");
-    }
-  if(All.CoolingOn == 0)
-    {
-      mpi_terminate(
-          "You try to use the code with star formation enabled,\nbut you did not switch on cooling.\nThis mode is not supported.\n");
-    }
-#else  /* #ifdef USE_SFR */
-  if(All.StarformationOn == 1)
-    {
-      mpi_terminate("Code was compiled with star formation switched off.\nYou must set `StarformationOn=0', or recompile the code.\n");
-    }
-#endif /* #ifdef USE_SFR #else */
 
 #if defined(ENFORCE_JEANS_STABILITY_OF_CELLS) && defined(USE_SFR)
   if(ThisTask == 0)

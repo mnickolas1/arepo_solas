@@ -93,6 +93,12 @@ int should_this_cell_be_split(int i)
       return 1;
 #endif /* #if defined(REFINEMENT_VOLUME_LIMIT) */
 
+#ifdef STAR_HOST_REFINEMENT
+  if(SphP[i].Host > All.RefStarsPerCell)
+    if(can_this_cell_be_split(i))
+      return 1;
+#endif
+
 #ifdef REFINEMENT_AROUND_BH
   if(SphP[i].RefBHFlag)
     {

@@ -6,31 +6,58 @@
 
 #--------------------------------------- SOLAS additions
 
+#---------------------------------------- Metal parameters
+#PASSIVE_SCALARS=1      # Number of passive scalar fields advected with fluid (default: 0)
 
-#--------------------------------------- Feedback options
-#FEEDBACK_TESTING_RESTRICT_SNAPSHOTS  # Only dump snapshots after a feedback event
-#STARS
+#ENABLE_PROFILE_UTIL
+#_MPI
+#IGNORE_CODE
 #STAR_BY_STAR
-#WINDS
-#SUPERNOVAE
 #USE_CELIB              # Use the CELib libraries
 
-#--------------------------------------- Star Formation options
-#EEOS_SF               # Default SF scheme in Arepo
+#---------------------------------------- Star Formation options
+#EEOS_SF                # Default SF scheme in Arepo
 #AGORA_SF               # Agora based SF
 #JEANS_SF               # Jeans length based SF
 #JEANS_MASS_BASED       # Jeans mass based SF
 
-#--------------------------------------- Black Hole options
-#BLACKHOLES
-#BLACKHOLES_FEEDBACK
-#BH_WITH_FEEDBACK
-#BURST_MODE
-#BONDI_ACCRETION
-#INFALL_ACCRETION
-#OUTPUT_TIMEBIN_BH
+#INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars (need STAR_PARTICLES=2 AND USE_SFR)
 
-#REFINEMENT_AROUND_BH
+#---------------------------------------- Star options
+#STARS                  # General stars framework flag
+
+#STAR_PARTICLES=1       # Star particles model flag: set to 0, 1 for massive star particles, set to 2 for resolved individual stars
+
+#STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
+
+#WINDS                  # Only winds
+
+#RADIATION              # Full radiation
+#RADIATION_PRESSURE     # Only radiation pressure
+#PHOTOELECTRIC_HEATING  # Only photoelectric
+#DISSOCIATION           # Only dissociation
+#PHOTOIONIZATION        # Only photoionization
+
+#SUPERNOVAE             # Only supernovae
+
+#---------------------------------------- Blackhole options
+#BLACKHOLES             # General blackholes framework flag
+
+#BH_CONSTANT_RADIUS     # Accretion and thermal feedback in a set radius
+
+#BONDI_ACCRETION        # Accretion models
+#TORQUE_ACCRETION
+#ADP_ACCRETION
+
+#BH_FEEDBACK            # Include full bh feedback (thermal + jet)
+
+#BH_THERMAL_FEEDBACK    # Only thermal
+
+#BH_JET_FEEDBACK        # Only jet (not operational yet)
+#BURST_MODE             # Only turn on for jet (not operational yet)
+#JET_TRACER             # Only turn on for jet (not operational yet)
+
+#REFINEMENT_AROUND_BH   # BH refinement options
 #MIN_REFINEMENT_BH_MASS
 #REFINEMENT_AROUND_BH_FIXED
 #REFINEMENT_AROUND_BH_HYBRID
@@ -38,13 +65,20 @@
 #BH_JET_REFINEMENT
 #OUTPUT_REFBHCOUNTER
 
-#OUTPUT_TIMEBIN_STAR
-#OUTPUTTIMESTEP_BH
+#---------------------------------------- Special behaviour
+#FEEDBACK_TESTING_RESTRICT_SNAPSHOTS     # Only dump snapshots after a feedback event
+
+#BLACKHOLE_SEEDING # Requires HALOS_SEEDING; seeds black holes in halos. Requires at least one of BH_SEED_ON_MASS /
+                   # BH_SEED_ON_ZERO_METALLICITY below (channels OR together if more than one is enabled); a halo already
+                   # hosting a black hole is never reseeded regardless of channel.
+#BH_SEED_ON_MASS # Requires BLACKHOLE_SEEDING; seed once halo mass exceeds MinHaloMassForFOFSeeding (param.txt)
+#BH_SEED_ON_ZERO_METALLICITY # Requires BLACKHOLE_SEEDING and METALS; seed pristine halos, i.e. every gas cell's metal mass
+                             # fraction <= ZeroMetallicityThresholdForFOFSeeding (param.txt)
 
 #--------------------------------------- Cooling parameters
 #USE_GRACKLE
 #GRACKLE_CHEMISTRY=0 # Curretly only grackle mode=0 (lookup tables) with no chemistry network is supported
-#NOUVBACKGROUND 
+#NOUVBACKGROUND
 
 #--------------------------------------- Metal parameters
 #METALS # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS.
@@ -52,15 +86,18 @@
 #WENDLAND_C2_KERNEL
 
 #--------------------------------------- Inline halo finding
-#FIND_HALOS
+#HALO_SEEDING # Requires FOF; seeds halos above a certain mass threshold with collisionless particles; this can be used for example to seed black holes in halos (with BLACKHOLE_SEEDING)
 
-#--------------------------------------- Basic operation mode of code; default: 3d with 6 particle types; type 0: gas >0: only gravitationally interacting
+
+#---------------------------------------- Arepo public
+
+#---------------------------------------- Basic operation mode of code; default: 3d with 6 particle types; type 0: gas >0: only gravitationally interacting
 #NTYPES=6                      # number of particle types
 #TWODIMS                       # 2d simulation
 #ONEDIMS                       # 1d simulation
 #ONEDIMS_SPHERICAL             # 1d spherically symmetric simulation
 
-#--------------------------------------- Computational box and boundaries; default: cubic, periodic box
+#---------------------------------------- Computational box and boundaries; default: cubic, periodic box
 #LONG_X=10.0                   # stretch x extent of box by given factor
 #LONG_Y=2.0                    # stretch y extent of box by given factor
 #LONG_Z=10.0                   # stretch z extent of box by given factor
@@ -68,31 +105,30 @@
 #REFLECTIVE_Y=1 #=2            # Y Boundary; 1: Reflective, 2: Inflow/Outflow; not active: periodic
 #REFLECTIVE_Z=1 #=2            # Z Boundary; 1: Reflective, 2: Inflow/Outflow; not active: periodic
 
-#--------------------------------------- Hydrodynamics; default: GAMMA=5/3 ideal hydrodynamics
+#---------------------------------------- Hydrodynamics; default: GAMMA=5/3 ideal hydrodynamics
 #NOHYDRO                       # No hydrodynamics calculation
 #GAMMA=1.4                     # Adiabatic index of gas; 5/3 if not set
 #ISOTHERM_EQS                  # Isothermal gas
-#PASSIVE_SCALARS=3             # number of passive scalar fields advected with fluid (default: 0)
 #NO_SCALAR_GRADIENTS           # disables time and spatial extrapolation for passive scalar fields (use only if you know why you're doing this)
 
-#--------------------------------------- Magnetohydrodynamics
+#---------------------------------------- Magnetohydrodynamics
 #MHD                           # Master switch for magnetohydrodynamics
 #MHD_POWELL                    # Powell div(B) cleaning scheme for magnetohydrodynamics
 #MHD_POWELL_LIMIT_TIMESTEP     # Timestep constraint due to Powell cleaning scheme
 #MHD_SEEDFIELD                 # Uniform magnetic seed field of specified orientation and strength set up after reading in IC
 
-#--------------------------------------- Riemann solver; default: exact Riemann solver
+#---------------------------------------- Riemann solver; default: exact Riemann solver
 #RIEMANN_HLLC                  # HLLC approximate Riemann solver
 #RIEMANN_HLLD                  # HLLD approximate Riemann solver (required to use for MHD)
 
-#--------------------------------------- Mesh motion and regularization; default: moving mesh
+#---------------------------------------- Mesh motion and regularization; default: moving mesh
 #VORONOI_STATIC_MESH           # static mesh
 #VORONOI_STATIC_MESH_DO_DOMAIN_DECOMPOSITION  # for VORONOI_STATIC_MESH force domain decomposition if there exist non-gas particles
 #REGULARIZE_MESH_CM_DRIFT      # Mesh regularization; Move mesh generating point towards center of mass to make cells rounder.
 #REGULARIZE_MESH_CM_DRIFT_USE_SOUNDSPEED  # Limit mesh regularization speed by local sound speed
 #REGULARIZE_MESH_FACE_ANGLE    # Use maximum face angle as roundness criterion in mesh regularization
 
-#--------------------------------------- Refinement and derefinement; default: no refinement/derefinement; criterion: target mass
+#---------------------------------------- Refinement and derefinement; default: no refinement/derefinement; criterion: target mass
 #REFINEMENT_SPLIT_CELLS        # Refinement
 #REFINEMENT_MERGE_CELLS        # Derefinement
 #REFINEMENT_VOLUME_LIMIT       # Limit the volume of cells and the maximum volume difference between neighboring cels
@@ -101,14 +137,14 @@
 #NODEREFINE_BACKGROUND_GRID    # Do not de-refine low-res gas cells in zoom simulations
 #OPTIMIZE_MESH_MEMORY_FOR_REFINEMENT  # deletes the mesh structures not needed for refinement/derefinemet to lower the peak memory consumption
 
-#--------------------------------------- non-standard phyiscs
+#---------------------------------------- non-standard phyiscs
 #COOLING                       # Simple primordial cooling
 #LOW_TEMP_COOLING              # Maschenko et al. 2008 # Don't use while USE_GRACKLE
 #ENFORCE_JEANS_STABILITY_OF_CELLS  # this imposes an adaptive floor for the temperature
 #USE_SFR                       # Star formation model, turning dense gas into collisionless partices
 #SFR_KEEP_CELLS                # Do not distroy cell out of which a star has formed
 
-#--------------------------------------- Gravity treatment; default: no gravity
+#---------------------------------------- Gravity treatment; default: no gravity
 #SELFGRAVITY                   # gravitational intraction between simulation particles/cells
 #HIERARCHICAL_GRAVITY          # use hierarchical splitting of the time integration of the gravity
 #CELL_CENTER_GRAVITY           # uses geometric centers to calculate gravity of cells, only possible with HIERARCHICAL_GRAVITY
@@ -119,7 +155,7 @@
 #EXACT_GRAVITY_FOR_PARTICLE_TYPE=4  #N-squared fashion gravity for a small number of particles of the given type
 #EVALPOTENTIAL                 # computes gravitational potential
 
-#--------------------------------------- TreePM Options; default: no Particle-Mesh
+#---------------------------------------- TreePM Options; default: no Particle-Mesh
 #PMGRID=512                    # Enables particle mesh; number of cells used for grid in each dimension
 #ASMTH=1.25                    # This can be used to override the value assumed for the scale that defines the long-range/short-range force-split in the TreePM algorithm. The default value is 1.25, in mesh-cells.
 #RCUT=6.0                      # This can be used to override the maximum radius in which the short-range tree-force is evaluated (in case the TreePM algorithm is used). The default value is 4.5, given in mesh-cells.
@@ -129,49 +165,49 @@
 #GRIDBOOST=2                   # Factor by which PMGRID is increased in non-periodic (or high res) PM calculation (if not set, code uses 2)
 #FFT_COLUMN_BASED              # Use column-based FFT; slightly slower, but necessary to achieve good load-balancing if number of tasks larger than PMGRID (usually the case for very large runs)
 
-#--------------------------------------- Gravity softening
+#---------------------------------------- Gravity softening
 #NSOFTTYPES=4                  # Number of different softening values to which particle types can be mapped.
 #MULTIPLE_NODE_SOFTENING       # If a tree node is to be used which is softened, this is done with the softenings of its different mass components
 #INDIVIDUAL_GRAVITY_SOFTENING=2+4  # bitmask with particle types where the softenig type should be chosen with that of parttype 1 as a reference type
 #ADAPTIVE_HYDRO_SOFTENING      # Adaptive softening of gas cells depending on their size
 #NSOFTTYPES_HYDRO=64           # Overrides number of discrete softening values for gas cellls when ADAPTIVE_HYDRO_SOFTENING (default is 64)
 
-#--------------------------------------- External gravity; default: no external potential
+#---------------------------------------- External gravity; default: no external potential
 #EXTERNALGRAVITY               # master switch for external potential
 #EXTERNALGY=0.0                # constant external gravity in y direction
 
-#--------------------------------------- Static NFW Potential
+#---------------------------------------- Static NFW Potential
 #STATICNFW                     # static gravitational Navarro-Frenk-White (NFW) potential
 #NFW_C=12                      # concentration parameter of NFW potential
 #NFW_M200=100.0                # mass causing the NFW potential
 #NFW_Eps=0.01                  # softening of NFW potential
 #NFW_DARKFRACTION=0.87         # fraction in dark matter in NFW potential
 
-#--------------------------------------- Static Isothermal Sphere Potential
+#---------------------------------------- Static Isothermal Sphere Potential
 #STATICISO                     # static gravitational isothermal sphere potential
 #ISO_M200=100.0                # mass causing the isothermal sphere potential
 #ISO_R200=160.0                # radius of the isothermal sphere potential
 #ISO_Eps=0.1                   # softening of isothermal sphere potential
 #ISO_FRACTION=0.9              # fraction in dark matter in isothermal sphere potential
 
-#--------------------------------------- Static Hernquist Potential (This is setup for the nuclear star cluster)
+#---------------------------------------- Static Hernquist Potential (This is setup for the nuclear star cluster)
 #STATICHQ                      # static gravitational Hernquist potential
 #HQ_M200=186.015773            # mass causing the Hernquist potential
 #HQ_C=10.0                     # concentration parameter of Hernquist potential
 #HQ_DARKFRACTION=0.9           # fraction in dark matter in Hernquist potential
 
-#--------------------------------------- Time integration options
+#---------------------------------------- Time integration options
 #FORCE_EQUAL_TIMESTEPS         # variable but global timestep
 #TREE_BASED_TIMESTEPS          # non-local timestep criterion (take 'signal speed' into account)
 #PM_TIMESTEP_BASED_ON_TYPES=2+4  # particle types that should be considered in setting the PM timestep
 #NO_PMFORCE_IN_SHORT_RANGE_TIMESTEP  # PM force is not included in short-range timestep criterion
 #ENLARGE_DYNAMIC_RANGE_IN_TIME # This extends the dynamic range of the integer timeline from 32 to 64 bit
 
-#--------------------------------------- MPI
+#---------------------------------------- MPI
 #IMPOSE_PINNING                # Enforce pinning of MPI tasks to cores if MPI does not do it
 #IMPOSE_PINNING_OVERRIDE_MODE  # Override MPI pinning, if present
 
-#--------------------------------------- Single/Double Precision
+#---------------------------------------- Single/Double Precision
 #DOUBLEPRECISION=1             # Mode of double precision: not defined: single; 1: full double precision 2: mixed, 3: mixed, fewer single precisions; unless short of memory, use 1.
 #DOUBLEPRECISION_FFTW          # FFTW calculation in double precision
 #OUTPUT_IN_DOUBLEPRECISION     # snapshot files will be written in double precision
@@ -179,7 +215,7 @@
 #OUTPUT_COORDINATES_IN_DOUBLEPRECISION  # will always output coordinates in double precision
 #NGB_TREE_DOUBLEPRECISION      # if this is enabled, double precision is used for the neighbor node extension
 
-#--------------------------------------- On the fly FOF groupfinder
+#---------------------------------------- On the fly FOF groupfinder
 #FOF                           # enable FoF output
 #FOF_PRIMARY_LINK_TYPES=2      # 2^type for the primary dark matter type
 #FOF_SECONDARY_LINK_TYPES=1+16+32  # 2^type for the types linked to nearest primaries
@@ -188,13 +224,13 @@
 #FOF_LINKLENGTH=0.16           # Linkinglength for FoF (default=0.2)
 #FOF_STOREIDS                  # store IDs in group/subfind catalogue, do not order particles in snapshot files by group order
 
-#--------------------------------------- Subfind
+#---------------------------------------- Subfind
 #SUBFIND                       # enables substructure finder
 #SAVE_HSML_IN_SNAPSHOT         # stores hsml, density, and velocity dispersion values in the snapshot files
 #SUBFIND_CALC_MORE             # calculates also the velocity dispersion in the local density estimate (this is automatically enabled by several other options, e.g. SAVE_HSML_IN_SNAPSHOT)
 #SUBFIND_EXTENDED_PROPERTIES   # adds calculation of further quantities related to angular momentum in different components
 
-#--------------------------------------- Things for special behaviour
+#---------------------------------------- Things for special behaviour
 #RUNNING_SAFETY_FILE           # if file './running' exists, do not start the run
 #MULTIPLE_RESTARTS             # Keep restart files instead of just two copies
 #EXTENDED_GHOST_SEARCH         # This extends the ghost search to the full 3x3 domain instead of the principal domain
@@ -211,7 +247,7 @@
 #DETAILEDTIMINGS               # creates individual timings entries for primary/secondary kernels to diagnose work-load balancing
 #BITS_PER_DIMENSION=42         # Peano-Hilbert order
 
-#--------------------------------------- input options
+#---------------------------------------- input options
 #COMBINETYPES                  # reads in the IC file types 4+5 as type 3
 #LOAD_TYPES=1+2+4+16+32        # load only specific types sum(2^type)
 #READ_COORDINATES_IN_DOUBLE    # read coordinates in double precision
@@ -223,12 +259,12 @@
 #NTYPES_ICS=6                  # number of particle types in ICs, if not NTYPES (only works for 6, and non-HDF5 ICs!)
 #READ_MASS_AS_DENSITY_IN_INPUT # Reads the mass field in the IC as density
 
-#--------------------------------------- special input options
+#---------------------------------------- special input options
 #IDS_OFFSET=1                  # Override offset for gas particles if created from DM
 #READ_DM_AS_GAS                # reads in dark matter particles as gas cells
 #TILE_ICS                      # tile ICs by TileICsFactor in each dimension
 
-#--------------------------------------- output fields in snapshots--Default output filds are: position, velocity, ID, mass, spec. internal energy (gas), density(gas)
+#---------------------------------------- output fields in snapshots--Default output filds are: position, velocity, ID, mass, spec. internal energy (gas), density(gas)
 #OUTPUT_TASK                   # output MPI task
 #OUTPUT_TIMEBIN_HYDRO          # output hydrodynamics time-bin
 #OUTPUT_PRESSURE_GRADIENT      # output pressure gradient
@@ -254,7 +290,7 @@
 #OUTPUT_VORTICITY              # output vorticity of gas
 #OUTPUT_CSND                   # output sound speed. This one is only used for tree-based timesteps! Calculate from hydro quantities in postprocessing if required for science applications.
 
-#--------------------------------------- output options
+#---------------------------------------- output options
 #PROCESS_TIMES_OF_OUTPUTLIST   # goes through times of output list prior to starting the simulaiton to ensure that outputs are written as close to the desired time as possible (as opposed to at next possible time if this flag is not active)
 #REDUCE_FLUSH                  # only flush output to log-files in predefined intervals
 #OUTPUT_EVERY_STEP             # Create snapshot on every (global) synchronization point, independent of parameters choosen or output list.
@@ -263,10 +299,10 @@
 #HDF5_FILTERS                  # activate snapshot compression and checksum for HDF5 output
 #OUTPUT_XDMF                   # writes an .xmf file for each snapshot, which can be read by visit (with the hdf5 snapshot)
 
-#--------------------------------------- Testing and Debugging options
+#---------------------------------------- Testing and Debugging options
 #DEBUG                         # enables core-dumps
 #VERBOSE                       # reports readjustments of buffer sizes
 
-#--------------------------------------- Mesh-relaxing or mesh-adding (this will not carry out a simulation)
+#---------------------------------------- Mesh-relaxing or mesh-adding (this will not carry out a simulation)
 #MESHRELAX                     # this keeps the mass constant and only regularizes the mesh
 #ADDBACKGROUNDGRID=16          # Re-grid hydrodynamics quantities on a Oct-tree AMR grid. This does not perform a simulation.

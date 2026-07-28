@@ -120,24 +120,6 @@ static void io_func_timestep(int particle, int components, void *out_buffer, int
 }
 #endif /* #ifdef OUTPUTTIMESTEP */
 
-/*
-#ifdef BLACKHOLES
-#ifdef OUTPUT_TIMEBIN_BH 
-static void io_func_timebin_bh(int particle, int components, void *out_buffer, int mode)
-{
-  ((int *)out_buffer)[0] = P[particle].TimeBinBh;
-}
-#endif
-#ifdef OUTPUTTIMESTEP_BH
-static void io_func_timestep_bh(int particle, int components, void *out_buffer, int mode)
-{
-  ((MyOutputFloat *)out_buffer)[0] =
-      (P[particle].TimeBinBh ? (((integertime)1) << P[particle].TimeBinBh) : 0) * All.Timebase_interval;
-}
-#endif
-#endif
-*/
-
 #ifdef OUTPUT_SOFTENINGS
 /*! \brief Output function of the force softening.
  *  \param[in] particle Index of particle/cell.
@@ -353,7 +335,7 @@ static void io_func_coolrate(int particle, int components, void *buffer, int mod
 #endif /* #ifdef OUTPUTCOOLRATE */
 
 /* -- user defined functions: gas properties -- */
-#if defined(COOLING)
+#ifdef COOLING
 /*! \brief IO function of the electron number density.
  *
  *  \param[in] particle Index of particle/cell.
@@ -370,7 +352,7 @@ static void io_func_ne(int particle, int components, void *buffer, int mode)
       // normal code path: calculate Ne accounting for GFM options and USE_SFR
       double ne = SphP[particle].Ne;
 
-#if defined(USE_SFR)
+#ifdef USE_SFR
       // reproduces previous behavior that Ne is updated prior to output only for Sfr>0 cells
       // if this is unwanted (or redundant) this if() condition should be removed
       double nh0, coolrate;
@@ -387,7 +369,7 @@ static void io_func_ne(int particle, int components, void *buffer, int mode)
 }
 #endif /* #if defined(COOLING) */
 
-#if defined(COOLING)
+#ifdef COOLING
 /*! \brief Output function for neutral hydrogen fraction.
  *
  *  \param[in] particle Index of particle/cell.
@@ -505,6 +487,18 @@ static void io_func_bfield(int particle, int components, void *out_buffer, int m
 }
 #endif /* #ifdef MHD */
 
+#ifdef BH_ACCRETION_ACTIVE
+static void io_func_accretion_rate(int particle, int components, void *out_buffer, int mode)
+{
+  if(mode == 0)
+    {
+      double bh_timestep = (BhP[particle].TimeBinBh ? (((integertime)1) << BhP[particle].TimeBinBh) : 0) * All.Timebase_interval;
+
+      ((MyOutputFloat *)out_buffer)[0] = bh_timestep ? BhP[particle].Accretion / bh_timestep : 0;
+    }
+}
+#endif
+
 /*! \brief Function for field registering.
  *
  *  For init_field arguments read the description of init_field.
@@ -581,7 +575,7 @@ void init_io_fields()
   init_units(IO_CSND, 0., 0., 0., 0., 1., All.UnitVelocity_in_cm_per_s);
 #endif /* #ifdef OUTPUT_CSND */
 
-#if defined(COOLING)
+#ifdef COOLING
   init_field(IO_NE, "NE  ", "ElectronAbundance", MEM_NONE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_NONE, 0, io_func_ne,
              GAS_ONLY);                /* electron abundance */
   init_units(IO_NE, 0, 0, 0, 0, 0, 0); /* dimensionless fraction */
@@ -598,6 +592,12 @@ void init_io_fields()
   init_units(IO_SFR, 0.0, 0.0, -1.0, 1.0, 1.0, SOLAR_MASS / SEC_PER_YEAR); /* Msun/yr */
   init_snapshot_type(IO_SFR, SN_MINI);
 #endif /* #ifdef USE_SFR */
+
+#ifdef HALO_SEEDING
+  init_field(IO_HOSTHALOMASS, "HHMA", "HostHaloMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_SPHP,
+             &SphP[0].HostHaloMass, 0, GAS_ONLY); /* FOF mass of host halo from last on-the-fly FOF pass */
+  init_units(IO_HOSTHALOMASS, 0., -1., 0., 1., 0., All.UnitMass_in_g);
+#endif /* #ifdef HALO_SEEDING */
 
 #ifdef OUTPUT_DIVVEL
   init_field(IO_DIVVEL, "DIVV", "VelocityDivergence", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_SPHP, &SphP[0].DivVel, 0,
@@ -740,17 +740,10 @@ void init_io_fields()
 #endif /* #ifdef MHD */
 
   /* Scalars */
-
-#ifdef PASSIVE_SCALARS
-#ifdef METALS
-  init_field(IO_PASS, "PASS", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, PASSIVE_SCALARS, A_SPHP,
-             &SphP[0].Metals, 0, GAS_ONLY);
-  init_units(IO_PASS, 0., -1., 0., 1., 0., All.UnitMass_in_g);
-#else /* infdef METALS */
+#if PASSIVE_SCALARS > 0
   init_field(IO_PASS, "PASS", "PassiveScalars", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, PASSIVE_SCALARS, A_SPHP,
              &SphP[0].PScalars[0], 0, GAS_ONLY);
-  init_units(IO_PASS, 0., -1., 0., 1., 0., All.UnitMass_in_g);
-#endif /* METALS */
+  init_units(IO_PASS, 0., 0., 0., 0., 0., 0.0);
 #endif /* #ifdef PASSIVE_SCALARS */
 
   /* OTHER */
@@ -787,65 +780,60 @@ void init_io_fields()
   init_units(IO_ALLOWREFINEMENT, 0, 0, 0, 0, 0, 0);
 #endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
 
-#ifdef BLACKHOLES
-  init_field(IO_BHID, "BHID  ", "BlackholeIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].BhID, 0, BHS_ONLY);
-  init_units(IO_BHID, 0, 0, 0, 0, 0, 0);
-  init_snapshot_type(IO_BHID, SN_MINI);
-
-
-  init_field(IO_BHHSML, "BHHS", "BlackholeHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_BH, &BhP[0].Hsml, 0, BHS_ONLY);
-  init_units(IO_BHHSML, 0., 0., 0., 0., 0., All.UnitLength_in_cm);
-  init_snapshot_type(IO_BHHSML, SN_MINI);
-
-
-  init_field(IO_BHDENSITY, "BHD ", "BlackHoleDensity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].Density, 0, BHS_ONLY);
-  init_units(IO_BHDENSITY, 0., 0., 0., 0., 0., All.UnitDensity_in_cgs);
-  init_snapshot_type(IO_BHDENSITY, SN_MINI);
-
-  init_field(IO_BH_NGBMASS, "BNM ", "BlackHoleNgbMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].NgbMass, 0, BHS_ONLY);
-  init_units(IO_BH_NGBMASS, 0., 0., 0., 0., 0., All.UnitMass_in_g);
-  init_snapshot_type(IO_BH_NGBMASS, SN_MINI);
-
-#ifdef BONDI_ACCRETION
-  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].AccretionRate, 0, BHS_ONLY);
-  init_units(IO_ACCRETION_RATE, 0., 0., 0., 0., 0., All.UnitMass_in_g / All.UnitTime_in_s);
-  init_snapshot_type(IO_ACCRETION_RATE, SN_MINI);
-#endif
- 
-#ifdef OUTPUT_TIMEBIN_BH
-  init_field(IO_TIMEBIN_BH, "TBBH", "TimebinBh", MEM_INT, FILE_INT, FILE_NONE, 1, A_BH, &BhP[0].TimeBinBh, 0, BHS_ONLY);
-  init_units(IO_TIMEBIN_BH, 0., 0., 0., 0., 0., 0.0);
-  init_snapshot_type(IO_TIMEBIN_BH, SN_MINI);
-#endif 
-#endif
-
 #ifdef STARS
   init_field(IO_STARID, "SID  ", "StarIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].SID, 0, STARS_ONLY);
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_STARID, SN_MINI);
-
-
-  init_field(IO_STARHSML, "SHS", "StarHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_S, &SP[0].Hsml, 0, STARS_ONLY);
-  init_units(IO_STARHSML, 0., 0., 0., 0., 0., All.UnitLength_in_cm);
-  init_snapshot_type(IO_STARHSML, SN_MINI);
-
-
-  init_field(IO_STARDENSITY, "SD ", "StarDensity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Density, 0, STARS_ONLY);
-  init_units(IO_STARDENSITY, 0., 0., 0., 0., 0., All.UnitDensity_in_cgs);
-  init_snapshot_type(IO_STARDENSITY, SN_MINI);
-
-  init_field(IO_STAR_NGBMASS, "SNM ", "StarNgbMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].NgbMass, 0, STARS_ONLY);
-  init_units(IO_STAR_NGBMASS, 0., 0., 0., 0., 0., All.UnitMass_in_g);
-  init_snapshot_type(IO_STAR_NGBMASS, SN_MINI);
- 
-  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metals, 0, STARS_ONLY);
+#ifdef METALS
+  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metallicity, 0, STARS_ONLY);
   init_units(IO_STAR_METALS, 0., 0., 0., 0., 0., 0);
   init_snapshot_type(IO_STAR_METALS, SN_MINI);
- 
+#endif
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  init_field(IO_STARHSML, "SHS", "StarHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_S, &SP[0].Hsml, 0, STARS_ONLY);
+  init_units(IO_STARHSML, 1., -1., 1., 0., 0., All.UnitLength_in_cm);
+  init_snapshot_type(IO_STARHSML, SN_MINI);
+#endif
+
+#ifdef TODO
+  init_field(IO_HI_RADIATION, "IOHI", "NeutralHydrogen", MEM_MY_DOUBLE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_SPHP, &SphP[0].grHI, 0, GAS_ONLY);
+  init_units(IO_HI_RADIATION, 0., 0., 0., 0., 0., 0.0);
+  init_snapshot_type(IO_HI_RADIATION, SN_MINI);
+#endif
+
 #ifdef OUTPUT_TIMEBIN_STAR
   init_field(IO_TIMEBIN_STAR, "TBS", "TimebinStar", MEM_INT, FILE_INT, FILE_NONE, 1, A_S, &SP[0].TimeBinStar, 0, STARS_ONLY);
   init_units(IO_TIMEBIN_STAR, 0., 0., 0., 0., 0., 0.0);
   init_snapshot_type(IO_TIMEBIN_STAR, SN_MINI);
 #endif 
+
+#ifdef BLACKHOLES
+  init_field(IO_BHID, "BHID  ", "BlackholeIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].BhID, 0, BHS_ONLY);
+  init_units(IO_BHID, 0, 0, 0, 0, 0, 0);
+  init_snapshot_type(IO_BHID, SN_MINI);
 #endif
+
+#ifdef BH_ACTIVE
+  init_field(IO_BHHSML, "BHHS", "BlackholeHsml", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_BH, &BhP[0].Hsml, 0, BHS_ONLY);
+  init_units(IO_BHHSML, 1., -1., 1., 0., 0., All.UnitLength_in_cm);
+  init_snapshot_type(IO_BHHSML, SN_MINI);
+
+  init_field(IO_BH_NGBSMASS, "BNM ", "BlackHoleNgbsMass", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, &BhP[0].NgbsMass, 0, BHS_ONLY);
+  init_units(IO_BH_NGBSMASS, 0., -1., 0., 1., 0., All.UnitMass_in_g);
+  init_snapshot_type(IO_BH_NGBSMASS, SN_MINI);
+#endif
+
+#ifdef BH_ACCRETION_ACTIVE 
+  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_NONE, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_NONE, 0, io_func_accretion_rate, BHS_ONLY);
+  init_units(IO_ACCRETION_RATE, 0., 0., 0., 0., 0., All.UnitMass_in_g / All.UnitTime_in_s);
+  init_snapshot_type(IO_ACCRETION_RATE, SN_MINI);
+#endif
+ 
+#ifdef OUTPUT_TIMEBIN_BH
+  init_field(IO_TIMEBIN_BH, "TBB", "TimebinBh", MEM_INT, FILE_INT, FILE_NONE, 1, A_BH, &BhP[0].TimeBinBh, 0, BHS_ONLY);
+  init_units(IO_TIMEBIN_BH, 0., 0., 0., 0., 0., 0.0);
+  init_snapshot_type(IO_TIMEBIN_BH, SN_MINI);
+#endif 
 }

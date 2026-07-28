@@ -138,6 +138,50 @@ double domain_hydro_tot_costfactor(int i)
   return w;
 }
 
+#ifdef STAR_FEEDBACK_ACTIVE
+double domain_star_tot_costfactor(int i)
+{
+  double w = 0;
+  if(P[i].Type == 4)
+    {
+      double factor = 1;
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+      factor *= 1;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      factor *= 2;
+#endif
+      
+      double star_mass = P[i].Mass * All.cf_UnitMass_in_Msun;
+
+      if(star_mass < 8)
+        factor *= 0.1;
+      
+      if(star_mass < 2)
+        factor *= 0;
+
+      for(int bin = SPP(i).TimeBinStar; bin <= All.HighestOccupiedTimeBin; bin++)
+        if(domain_to_be_balanced[bin])
+          w += domain_star_weight[bin] * factor;
+    }
+  return w;
+}
+#endif
+
+#ifdef BH_ACTIVE
+double domain_bh_tot_costfactor(int i)
+{
+  double w = 0;
+  if(P[i].Type == 5)
+    for(int bin = BPP(i).TimeBinBh; bin <= All.HighestOccupiedTimeBin; bin++)
+      if(domain_to_be_balanced[bin])
+        w += domain_bh_weight[bin];
+  return w;
+}
+#endif
+
 /*! \brief Prepares cost measurement.
  *
  *  This function prepares the measurement of the total cost on each domain.
@@ -157,6 +201,16 @@ void domain_init_sum_cost(void)
 
   sumup_large_ints(TIMEBINS, TimeBinsGravity.TimeBinCount, tot_count);
   sumup_large_ints(TIMEBINS, TimeBinsHydro.TimeBinCount, tot_count_sph);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  long long tot_count_star[TIMEBINS];
+  sumup_large_ints(TIMEBINS, TimeBinsStar.TimeBinCount, tot_count_star);
+#endif
+
+#ifdef BH_ACTIVE
+  long long tot_count_bh[TIMEBINS];
+  sumup_large_ints(TIMEBINS, TimeBinsBh.TimeBinCount, tot_count_bh);
+#endif
 
   for(int i = 0; i < TIMEBINS; i++)
     {
@@ -190,15 +244,31 @@ void domain_init_sum_cost(void)
   for(int i = 0; i < TIMEBINS; i++)
     {
       domain_to_be_balanced[i] = 0;
-      domain_grav_weight[i]    = 1;
-      domain_hydro_weight[i]   = 1;
+      domain_grav_weight[i] = 1;
+      domain_hydro_weight[i] = 1;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      domain_star_weight[i] = 1;
+#endif
+
+#ifdef BH_ACTIVE
+      domain_bh_weight[i] = 1;
+#endif
     }
 
 #ifdef HIERARCHICAL_GRAVITY
 
   domain_to_be_balanced[All.HighestActiveTimeBin] = 1;
-  domain_grav_weight[All.HighestActiveTimeBin]    = 1;
-  domain_hydro_weight[All.HighestActiveTimeBin]   = 1;
+  domain_grav_weight[All.HighestActiveTimeBin] = 1;
+  domain_hydro_weight[All.HighestActiveTimeBin] = 1;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  domain_star_weight[All.HighestActiveTimeBin] = 1;
+#endif
+
+#ifdef BH_ACTIVE
+  domain_bh_weight[All.HighestActiveTimeBin] = 1;
+#endif
 
   for(int j = All.HighestActiveTimeBin - 1; j >= All.LowestOccupiedTimeBin; j--)
     {
@@ -220,13 +290,31 @@ void domain_init_sum_cost(void)
 
       if(tot_count_sph[i] > 0)
         domain_hydro_weight[i] = weight;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      if(tot_count_star[i] > 0)
+        domain_star_weight[i] = weight;
+#endif
+
+#ifdef BH_ACTIVE
+      if(tot_count_bh[i] > 0)
+        domain_bh_weight[i] = weight;
+#endif
     }
 
 #else /* #ifdef HIERARCHICAL_GRAVITY */
 
   domain_to_be_balanced[All.HighestActiveTimeBin] = 1;
-  domain_grav_weight[All.HighestActiveTimeBin]    = 1;
-  domain_hydro_weight[All.HighestActiveTimeBin]   = 1;
+  domain_grav_weight[All.HighestActiveTimeBin] = 1;
+  domain_hydro_weight[All.HighestActiveTimeBin] = 1;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  domain_star_weight[All.HighestActiveTimeBin] = 1;
+#endif
+
+#ifdef BH_ACTIVE
+  domain_bh_weight[All.HighestActiveTimeBin] = 1;
+#endif
 
   for(int i = All.SmallestTimeBinWithDomainDecomposition - 1, weight = 1; i >= All.LowestOccupiedTimeBin; i--, weight *= 2)
     {
@@ -238,6 +326,16 @@ void domain_init_sum_cost(void)
 
       if(tot_count_sph[i] > 0)
         domain_hydro_weight[i] = weight;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      if(tot_count_star[i] > 0)
+        domain_star_weight[i] = weight;
+#endif
+
+#ifdef BH_ACTIVE
+      if(tot_count_bh[i] > 0)
+        domain_bh_weight[i] = weight;
+#endif
     }
 
 #endif /* #ifdef HIERARCHICAL_GRAVITY #else */
@@ -329,6 +427,14 @@ void domain_sumCost(void)
       listCost[p].Work += domain_grav_tot_costfactor(n);
       listCost[p].WorkSph += domain_hydro_tot_costfactor(n);
 
+#ifdef STAR_FEEDBACK_ACTIVE
+      listCost[p].WorkStar += domain_star_tot_costfactor(n);
+#endif
+
+#ifdef BH_ACTIVE
+      listCost[p].WorkBh += domain_bh_tot_costfactor(n);
+#endif
+
       if(P[n].Type == 0)
         listCost[p].CountSph += 1;
     }
@@ -388,6 +494,14 @@ void domain_sumCost(void)
       loc_DomainLeaveNode[j].Work += import_node_data[i].Work;
       loc_DomainLeaveNode[j].CountSph += import_node_data[i].CountSph;
       loc_DomainLeaveNode[j].WorkSph += import_node_data[i].WorkSph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      loc_DomainLeaveNode[j].WorkStar += import_node_data[i].WorkStar;
+#endif
+
+#ifdef BH_ACTIVE
+      loc_DomainLeaveNode[j].WorkBh += import_node_data[i].WorkBh;
+#endif
     }
 
   myfree(import_node_data);
@@ -459,10 +573,52 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
         weightsum_sph += DomainLeaveNode[i].Count;
     }
 
+#ifdef STAR_FEEDBACK_ACTIVE
+  int nabove_star = 0;
+  double todistribute_star = 0.0;
+  double weightsum_star    = 0.0;
+
+  for(int i = 0; i < ndomain; i++)
+    {
+      if(fac_workstar * DomainLeaveNode[i].WorkStar > normsum_workstar / ncpu)
+        {
+          nabove_star++;
+          todistribute_star += DomainLeaveNode[i].WorkStar - normsum_workstar / ncpu / fac_workstar;
+        }
+      else
+        weightsum_star += DomainLeaveNode[i].Count;
+    }
+#endif
+
+#ifdef BH_ACTIVE
+  int nabove_bh = 0;
+  double todistribute_bh = 0.0;
+  double weightsum_bh    = 0.0;
+
+  for(int i = 0; i < ndomain; i++)
+    {
+      if(fac_workbh * DomainLeaveNode[i].WorkBh > normsum_workbh / ncpu)
+        {
+          nabove_bh++;
+          todistribute_bh += DomainLeaveNode[i].WorkBh - normsum_workbh / ncpu / fac_workbh;
+        }
+      else
+        weightsum_bh += DomainLeaveNode[i].Count;
+    }
+#endif
+
   struct leafnode_data
   {
     double workgrav;
     double worksph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+    double workstar;
+#endif
+
+#ifdef BH_ACTIVE
+    double workbh;
+#endif
   };
 
   struct leafnode_data *leaf = (struct leafnode_data *)mymalloc("leaf", ndomain * sizeof(struct leafnode_data));
@@ -487,28 +643,85 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
           else
             leaf[i].worksph += (DomainLeaveNode[i].Count / weightsum_sph) * todistribute_sph;
         }
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      leaf[i].workstar = DomainLeaveNode[i].WorkStar;
+
+      if(fac_workstar > 0 && weightsum_star > 0)
+        {
+          if(fac_workstar * DomainLeaveNode[i].WorkStar > normsum_workstar / ncpu)
+            leaf[i].workstar = normsum_workstar / ncpu / fac_workstar;
+          else
+            leaf[i].workstar += (DomainLeaveNode[i].Count / weightsum_star) * todistribute_star;
+        }
+#endif
+
+#ifdef BH_ACTIVE
+      leaf[i].workbh = DomainLeaveNode[i].WorkBh;
+
+      if(fac_workbh > 0 && weightsum_bh > 0)
+        {
+          if(fac_workbh * DomainLeaveNode[i].WorkBh > normsum_workbh / ncpu)
+            leaf[i].workbh = normsum_workbh / ncpu / fac_workbh;
+          else
+            leaf[i].workbh += (DomainLeaveNode[i].Count / weightsum_bh) * todistribute_bh;
+        }
+#endif
     }
 
   for(int i = 0; i < ncpu; i++)
     {
       double work = 0;
-      int end     = start;
+      int end = start;
 
-      work += fac_work * leaf[end].workgrav + fac_load * DomainLeaveNode[end].Count + fac_worksph * leaf[end].worksph;
+      work += fac_work * leaf[end].workgrav 
+      + fac_load * DomainLeaveNode[end].Count 
+      + fac_worksph * leaf[end].worksph;
 
-      while((work + work_before +
-                 (end + 1 < ndomain ? fac_work * leaf[end + 1].workgrav + fac_load * DomainLeaveNode[end + 1].Count +
-                                          fac_worksph * leaf[end + 1].worksph
-                                    : 0) <
-             workavg + workavg_before + workhalfnode) ||
-            (i == ncpu - 1 && end < ndomain - 1))
+#ifdef STAR_FEEDBACK_ACTIVE
+      work += fac_workstar * leaf[end].workstar;
+#endif
+
+#ifdef BH_ACTIVE
+      work += fac_workbh * leaf[end].workbh;
+#endif
+   while(1)
         {
+          /* compute cost of next node, zero if none left */
+          double next_work = 0;
+          if(end + 1 < ndomain)
+            {
+              next_work += fac_work    * leaf[end + 1].workgrav
+                         + fac_load    * DomainLeaveNode[end + 1].Count
+                         + fac_worksph * leaf[end + 1].worksph;
+#ifdef STAR_FEEDBACK_ACTIVE
+              next_work += fac_workstar * leaf[end + 1].workstar;
+#endif
+#ifdef BH_ACTIVE
+              next_work += fac_workbh * leaf[end + 1].workbh;
+#endif
+            }
+
+          if(!((work + work_before + next_work < workavg + workavg_before + workhalfnode) ||
+               (i == ncpu - 1 && end < ndomain - 1)))
+            break;
+
           if((ndomain - end) > (ncpu - i))
             end++;
           else
             break;
 
-          work += fac_work * leaf[end].workgrav + fac_load * DomainLeaveNode[end].Count + fac_worksph * leaf[end].worksph;
+          work += fac_work * leaf[end].workgrav
+          + fac_load * DomainLeaveNode[end].Count
+          + fac_worksph * leaf[end].worksph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          work += fac_workstar * leaf[end].workstar;
+#endif
+
+#ifdef BH_ACTIVE
+          work += fac_workbh * leaf[end].workbh;
+#endif
         }
 
       DomainStartList[i] = start;
@@ -536,9 +749,26 @@ static struct domain_segments_data
   int task, start, end;
   double bin_GravCost[TIMEBINS];
   double bin_HydroCost[TIMEBINS];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double bin_StarCost[TIMEBINS];
+#endif
+
+#ifdef BH_ACTIVE
+  double bin_BhCost[TIMEBINS];
+#endif
+
   double work;
   double load;
   double worksph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double workstar;
+#endif
+
+#ifdef BH_ACTIVE
+  double workbh;
+#endif
   double normalized_load;
 } * domainAssign;
 
@@ -548,9 +778,26 @@ struct tasklist_data
 {
   double bin_GravCost[TIMEBINS];
   double bin_HydroCost[TIMEBINS];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double bin_StarCost[TIMEBINS];
+#endif
+
+#ifdef BH_ACTIVE
+  double bin_BhCost[TIMEBINS];
+#endif
+
   double work;
   double load;
   double worksph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double workstar;
+#endif
+
+#ifdef BH_ACTIVE
+  double workbh;
+#endif
   int count;
 } * tasklist;
 
@@ -646,12 +893,29 @@ void domain_combine_multipledomains(void)
       tasklist[ta].load    = 0;
       tasklist[ta].work    = 0;
       tasklist[ta].worksph = 0;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      tasklist[ta].workstar = 0;
+#endif
+
+#ifdef BH_ACTIVE
+      tasklist[ta].workbh = 0;
+#endif
+
       tasklist[ta].count   = 0;
 
       for(int i = 0; i < TIMEBINS; i++)
         {
           tasklist[ta].bin_GravCost[i]  = 0;
           tasklist[ta].bin_HydroCost[i] = 0;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          tasklist[ta].bin_StarCost[i] = 0;
+#endif
+
+#ifdef BH_ACTIVE
+          tasklist[ta].bin_BhCost[i] = 0;
+#endif
         }
     }
 
@@ -668,6 +932,14 @@ void domain_combine_multipledomains(void)
   {
     double GravCost;
     double HydroCost;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+    double StarCost;
+#endif
+
+#ifdef BH_ACTIVE
+    double BhCost;
+#endif
   } * loc_bin_Cost, *glob_bin_Cost;
 
   loc_bin_Cost  = mymalloc_clear("loc_bin_Cost", sizeof(struct cost_data) * ndomains * TIMEBINS);
@@ -726,16 +998,53 @@ void domain_combine_multipledomains(void)
             if(domain_to_be_balanced[bin])
               loc_bin_Cost[bin * ndomains + n].HydroCost += domain_hydro_weight[bin];
         }
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      if(P[i].Type == 4)
+        {
+          for(int bin = SPP(i).TimeBinStar; bin <= All.HighestActiveTimeBin; bin++)
+            if(domain_to_be_balanced[bin])
+              loc_bin_Cost[bin * ndomains + n].StarCost += domain_star_weight[bin];
+        }
+#endif
+
+#ifdef BH_ACTIVE
+      if(P[i].Type == 5)
+        {
+          for(int bin = BPP(i).TimeBinBh; bin <= All.HighestActiveTimeBin; bin++)
+            if(domain_to_be_balanced[bin])
+              loc_bin_Cost[bin * ndomains + n].BhCost += domain_bh_weight[bin];
+        }
+#endif
     }
+
+  int cost_data_nfields = 2;  /* GravCost + HydroCost always present */
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  cost_data_nfields += 1;
+#endif
+
+#ifdef BH_ACTIVE
+  cost_data_nfields += 1;
+#endif
+
 
   allreduce_sparse_double_sum((double *)(loc_bin_Cost + All.LowestOccupiedTimeBin * ndomains),
                               (double *)(glob_bin_Cost + All.LowestOccupiedTimeBin * ndomains),
-                              2 * ndomains * (All.HighestOccupiedTimeBin - All.LowestOccupiedTimeBin + 1));
+                              cost_data_nfields * ndomains * (All.HighestOccupiedTimeBin - All.LowestOccupiedTimeBin + 1));
 
   /* now assign this cost to the domainAssign-structure, which keeps track of the different pieces */
   double tot_work    = 0;
   double tot_load    = 0;
   double tot_worksph = 0;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double tot_workstar = 0;
+#endif
+
+#ifdef BH_ACTIVE
+  double tot_workbh = 0;
+#endif
 
   for(int n = 0; n < ndomains; n++)
     {
@@ -745,10 +1054,26 @@ void domain_combine_multipledomains(void)
       domainAssign[n].load    = 0;
       domainAssign[n].worksph = 0;
 
+#ifdef STAR_FEEDBACK_ACTIVE
+      domainAssign[n].workstar = 0;
+#endif
+
+#ifdef BH_ACTIVE
+      domainAssign[n].workbh = 0;
+#endif
+
       for(int i = 0; i < TIMEBINS; i++)
         {
           domainAssign[n].bin_GravCost[i]  = glob_bin_Cost[i * ndomains + n].GravCost;
           domainAssign[n].bin_HydroCost[i] = glob_bin_Cost[i * ndomains + n].HydroCost;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          domainAssign[n].bin_StarCost[i] = glob_bin_Cost[i * ndomains + n].StarCost;
+#endif
+
+#ifdef BH_ACTIVE
+          domainAssign[n].bin_BhCost[i] = glob_bin_Cost[i * ndomains + n].BhCost;
+#endif
         }
 
       for(int i = DomainStartList[n]; i <= DomainEndList[n]; i++)
@@ -756,11 +1081,27 @@ void domain_combine_multipledomains(void)
           domainAssign[n].work += DomainLeaveNode[i].Work;
           domainAssign[n].load += DomainLeaveNode[i].Count;
           domainAssign[n].worksph += DomainLeaveNode[i].WorkSph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          domainAssign[n].workstar += DomainLeaveNode[i].WorkStar;
+#endif
+
+#ifdef BH_ACTIVE
+          domainAssign[n].workbh += DomainLeaveNode[i].WorkBh;
+#endif
         }
 
       tot_work += domainAssign[n].work;
       tot_load += domainAssign[n].load;
       tot_worksph += domainAssign[n].worksph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      tot_workstar += domainAssign[n].workstar;
+#endif
+
+#ifdef BH_ACTIVE
+      tot_workbh += domainAssign[n].workbh;
+#endif
     }
 
   for(int n = 0; n < ndomains; n++)
@@ -768,6 +1109,14 @@ void domain_combine_multipledomains(void)
       domainAssign[n].normalized_load = domainAssign[n].work / (tot_work + MIN_FLOAT_NUMBER) +
                                         domainAssign[n].worksph / (tot_worksph + MIN_FLOAT_NUMBER) +
                                         domainAssign[n].load / ((double)tot_load + MIN_FLOAT_NUMBER);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      domainAssign[n].normalized_load += domainAssign[n].workstar / (tot_workstar + MIN_FLOAT_NUMBER);
+#endif
+
+#ifdef BH_ACTIVE
+      domainAssign[n].normalized_load += domainAssign[n].workbh / (tot_workbh + MIN_FLOAT_NUMBER);
+#endif
     }
 
   myfree(glob_bin_Cost);
@@ -778,10 +1127,27 @@ void domain_combine_multipledomains(void)
 
   /* initialize a structure that stores the maximum gravity and hydro cost load for each timebin */
   double max_GravCost[TIMEBINS], max_HydroCost[TIMEBINS];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double max_StarCost[TIMEBINS];
+#endif
+
+#ifdef BH_ACTIVE
+  double max_BhCost[TIMEBINS];
+#endif
+
   for(int i = 0; i < TIMEBINS; i++)
     {
       max_GravCost[i]  = 0;
       max_HydroCost[i] = 0;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      max_StarCost[i] = 0;
+#endif
+
+#ifdef BH_ACTIVE
+      max_BhCost[i] = 0;
+#endif
     }
 
   double max_load = 0;
@@ -795,6 +1161,16 @@ void domain_combine_multipledomains(void)
   struct mydata *nhydro[TIMEBINS];
   struct mydata *nload;
 
+#ifdef STAR_FEEDBACK_ACTIVE
+  struct mytree queue_starcost[TIMEBINS];
+  struct mydata *nstar[TIMEBINS];
+#endif
+
+#ifdef BH_ACTIVE
+  struct mytree queue_bhcost[TIMEBINS];
+  struct mydata *nbh[TIMEBINS];
+#endif
+
   for(int bin = All.LowestOccupiedTimeBin; bin <= All.HighestOccupiedTimeBin; bin++)
     {
       if(domain_to_be_balanced[bin])
@@ -804,6 +1180,16 @@ void domain_combine_multipledomains(void)
 
           RB_INIT(&queue_hydrocost[bin]);
           nhydro[bin] = mymalloc("nhydro[bin]", NTask * sizeof(struct mydata));
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          RB_INIT(&queue_starcost[bin]);
+          nstar[bin] = mymalloc("nstar[bin]", NTask * sizeof(struct mydata));
+#endif
+
+#ifdef BH_ACTIVE
+          RB_INIT(&queue_bhcost[bin]);
+          nbh[bin] = mymalloc("nbh[bin]", NTask * sizeof(struct mydata));
+#endif
         }
     }
 
@@ -832,6 +1218,18 @@ void domain_combine_multipledomains(void)
           nhydro[bin][i].pri    = 0;
           nhydro[bin][i].target = i;
           RB_INSERT(mytree, &queue_hydrocost[bin], &nhydro[bin][i]);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          nstar[bin][i].pri    = 0;
+          nstar[bin][i].target = i;
+          RB_INSERT(mytree, &queue_starcost[bin], &nstar[bin][i]);
+#endif
+
+#ifdef BH_ACTIVE
+          nbh[bin][i].pri    = 0;
+          nbh[bin][i].target = i;
+          RB_INSERT(mytree, &queue_bhcost[bin], &nbh[bin][i]);
+#endif
         }
     }
 
@@ -846,7 +1244,7 @@ void domain_combine_multipledomains(void)
   for(int n = 0; n < ndomains; n++)
     {
       double best_runtime = MAX_FLOAT_NUMBER;
-      int best_target     = -1;
+      int best_target = -1;
 
       for(int bin = All.LowestOccupiedTimeBin; bin <= All.HighestOccupiedTimeBin; bin++)
         {
@@ -855,7 +1253,7 @@ void domain_combine_multipledomains(void)
 
           int target;
 
-          for(int set = 0; set < 2; set++)
+          for(int set = 0; set < 4; set++)
             {
               if(set == 0)
                 {
@@ -867,13 +1265,37 @@ void domain_combine_multipledomains(void)
                       np = RB_NEXT(mytree, &queue_gravcost[bin], np), rep++)
                     candidates[rep] = np->target;
                 }
-              else
+              else if(set == 1)
                 {
                   for(np = RB_MIN(mytree, &queue_hydrocost[bin]), rep = 0; np != NULL && rep < n_lowest;
                       np = RB_NEXT(mytree, &queue_hydrocost[bin], np), rep++)
                     candidates[rep] = np->target;
                 }
 
+#ifdef STAR_FEEDBACK_ACTIVE
+              else if(set == 2)
+                {
+                  for(np = RB_MIN(mytree, &queue_starcost[bin]), rep = 0; np && rep < n_lowest;
+                      np = RB_NEXT(mytree, &queue_starcost[bin], np), rep++)
+                    candidates[rep] = np->target;
+                }
+#else
+              else if(set == 2)
+                continue;
+#endif
+
+#ifdef BH_ACTIVE
+              else if(set == 3)
+                {
+                  for(np = RB_MIN(mytree, &queue_bhcost[bin]), rep = 0; np && rep < n_lowest;
+                      np = RB_NEXT(mytree, &queue_bhcost[bin], np), rep++)
+                    candidates[rep] = np->target;
+                }
+#else
+              else if(set == 3)
+                continue; 
+#endif
+              
               for(rep = 0; rep < n_lowest; rep++)
                 {
                   target = candidates[rep];
@@ -888,7 +1310,7 @@ void domain_combine_multipledomains(void)
 
                       runtime += sum / (totgravcost + MIN_FLOAT_NUMBER);
                     }
-
+                      
                   for(int i = 0; i < TIMEBINS; i++)
                     {
                       double sum = domainAssign[n].bin_HydroCost[i] + tasklist[target].bin_HydroCost[i];
@@ -897,6 +1319,26 @@ void domain_combine_multipledomains(void)
 
                       runtime += sum / (totsphcost + MIN_FLOAT_NUMBER);
                     }
+
+#ifdef STAR_FEEDBACK_ACTIVE
+                  for(int i = 0; i < TIMEBINS; i++)
+                    {
+                      double sum = domainAssign[n].bin_StarCost[i] + tasklist[target].bin_StarCost[i];
+                      if(sum < max_StarCost[i])
+                        sum = max_StarCost[i];
+                      runtime += sum / (totstarcost + MIN_FLOAT_NUMBER);
+                    }
+#endif
+
+#ifdef BH_ACTIVE
+                  for(int i = 0; i < TIMEBINS; i++)
+                    {
+                      double sum = domainAssign[n].bin_BhCost[i] + tasklist[target].bin_BhCost[i];
+                      if(sum < max_BhCost[i])
+                        sum = max_BhCost[i];
+                      runtime += sum / (totbhcost + MIN_FLOAT_NUMBER);
+                    }
+#endif
 
                   double load = domainAssign[n].load + tasklist[target].load;
                   if(load < max_load)
@@ -943,6 +1385,28 @@ void domain_combine_multipledomains(void)
               runtime += sum / (totsphcost + 1.0e-60);
             }
 
+#ifdef STAR_FEEDBACK_ACTIVE
+          for(int i = 0; i < TIMEBINS; i++)
+            {
+              double sum = domainAssign[n].bin_StarCost[i] + tasklist[target].bin_StarCost[i];
+              if(sum < max_StarCost[i])
+                sum = max_StarCost[i];
+
+              runtime += sum / (totstarcost + 1.0e-60);
+            }
+#endif
+
+#ifdef BH_ACTIVE
+          for(int i = 0; i < TIMEBINS; i++)
+            {
+              double sum = domainAssign[n].bin_BhCost[i] + tasklist[target].bin_BhCost[i];
+              if(sum < max_BhCost[i])
+                sum = max_BhCost[i];
+
+              runtime += sum / (totbhcost + 1.0e-60);
+            }
+#endif
+
           double load = domainAssign[n].load + tasklist[target].load;
           if(load < max_load)
             load = max_load;
@@ -965,6 +1429,15 @@ void domain_combine_multipledomains(void)
       tasklist[target].work += domainAssign[n].work;
       tasklist[target].load += domainAssign[n].load;
       tasklist[target].worksph += domainAssign[n].worksph;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      tasklist[target].workstar += domainAssign[n].workstar;
+#endif
+
+#ifdef BH_ACTIVE
+      tasklist[target].workbh += domainAssign[n].workbh;
+#endif
+
       tasklist[target].count++;
 
       /* now update the elements in the sorted trees */
@@ -983,10 +1456,26 @@ void domain_combine_multipledomains(void)
               tasklist[target].bin_GravCost[bin] += domainAssign[n].bin_GravCost[bin];
               tasklist[target].bin_HydroCost[bin] += domainAssign[n].bin_HydroCost[bin];
 
+#ifdef STAR_FEEDBACK_ACTIVE
+              tasklist[target].bin_StarCost[bin] += domainAssign[n].bin_StarCost[bin];
+#endif
+
+#ifdef BH_ACTIVE
+              tasklist[target].bin_BhCost[bin] += domainAssign[n].bin_BhCost[bin];
+#endif
+
               double eps_grav = 1.0e-9 * (domainAssign[n].load / totpartcount) *
                                 totgravcost; /* these will be added in order to break degeneracies in the sort-order in case the
                                                 grav/hydro cost in certain cells is zero */
               double eps_hydro = 1.0e-9 * (domainAssign[n].load / totpartcount) * totsphcost;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+              double eps_star = 1.0e-9 * (domainAssign[n].load / totpartcount) * totstarcost;
+#endif
+
+#ifdef BH_ACTIVE
+              double eps_bh = 1.0e-9 * (domainAssign[n].load / totpartcount) * totbhcost;
+#endif 
 
               RB_REMOVE(mytree, &queue_gravcost[bin], &ngrav[bin][target]);
               ngrav[bin][target].pri = ngrav[bin][target].pri + domainAssign[n].bin_GravCost[bin] + eps_grav;
@@ -996,11 +1485,33 @@ void domain_combine_multipledomains(void)
               nhydro[bin][target].pri = nhydro[bin][target].pri + domainAssign[n].bin_HydroCost[bin] + eps_hydro;
               RB_INSERT(mytree, &queue_hydrocost[bin], &nhydro[bin][target]);
 
+#ifdef STAR_FEEDBACK_ACTIVE
+              RB_REMOVE(mytree, &queue_starcost[bin], &nstar[bin][target]);
+              nstar[bin][target].pri = nstar[bin][target].pri + domainAssign[n].bin_StarCost[bin] + eps_star;
+              RB_INSERT(mytree, &queue_starcost[bin], &nstar[bin][target]);
+#endif
+
+#ifdef BH_ACTIVE
+              RB_REMOVE(mytree, &queue_bhcost[bin], &nbh[bin][target]);
+              nbh[bin][target].pri = nbh[bin][target].pri + domainAssign[n].bin_BhCost[bin] + eps_bh;
+              RB_INSERT(mytree, &queue_bhcost[bin], &nbh[bin][target]);
+#endif             
+
               if(max_GravCost[bin] < tasklist[target].bin_GravCost[bin])
                 max_GravCost[bin] = tasklist[target].bin_GravCost[bin];
 
               if(max_HydroCost[bin] < tasklist[target].bin_HydroCost[bin])
                 max_HydroCost[bin] = tasklist[target].bin_HydroCost[bin];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+              if(max_StarCost[bin] < tasklist[target].bin_StarCost[bin])
+                max_StarCost[bin] = tasklist[target].bin_StarCost[bin];
+#endif
+
+#ifdef BH_ACTIVE
+              if(max_BhCost[bin] < tasklist[target].bin_BhCost[bin])
+                max_BhCost[bin] = tasklist[target].bin_BhCost[bin];
+#endif 
             }
         }
     }
@@ -1013,6 +1524,14 @@ void domain_combine_multipledomains(void)
     {
       if(domain_to_be_balanced[bin])
         {
+#ifdef BH_ACTIVE
+          myfree(nbh[bin]);
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          myfree(nstar[bin]);
+#endif
+
           myfree(nhydro[bin]);
           myfree(ngrav[bin]);
         }

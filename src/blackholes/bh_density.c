@@ -1,21 +1,18 @@
-#include <gsl/gsl_math.h>
+#include <stdlib.h>       
 #include <math.h>
-#include <mpi.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <gsl/gsl_math.h>              
+#include <mpi.h>            
+  
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
 
-#ifdef BLACKHOLES
 
 static int bh_density_evaluate(int target, int mode, int threadid);
 static int bh_density_isactive(int n);
 
-static MyFloat *BhNumNgb;
+static MyFloat *BhNgbs;
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -24,9 +21,7 @@ static MyFloat *BhNumNgb;
 typedef struct
 {
   MyDouble Pos[3];
-#ifdef BONDI_ACCRETION
   MyDouble Vel[3];
-#endif
   MyFloat Hsml;
   int Firstnode;
 } data_in;
@@ -44,16 +39,13 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Pos[0]        = PPB(i).Pos[0];
-  in->Pos[1]        = PPB(i).Pos[1];
-  in->Pos[2]        = PPB(i).Pos[2];
-#ifdef BONDI_ACCRETION
-  in->Vel[0]        = PPB(i).Vel[0];
-  in->Vel[1]        = PPB(i).Vel[1];
-  in->Vel[2]        = PPB(i).Vel[2];
-#endif
-  in->Hsml          = BhP[i].Hsml;
-  in->Firstnode     = firstnode;
+  for(int j = 0; j < 3; j++)
+    {
+      in->Pos[j] = PPB(i).Pos[j];
+      in->Vel[j] = PPB(i).Vel[j];
+    }
+  in->Hsml = BhP[i].Hsml;
+  in->Firstnode = firstnode;
 }  
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -62,17 +54,13 @@ static void particle2in(data_in *in, int i, int firstnode)
  */
 typedef struct
 {
-  MyDouble Ngb;
-  MyDouble Rho;
-  MyDouble Mass;
-  integertime NgbMinStep;
-#ifdef BONDI_ACCRETION
-  MyDouble VelocityGas[3];
-  MyDouble VelocityGasCircular[3];
-  MyDouble InternalEnergyGas;
-#endif
-#ifdef INFALL_ACCRETION
-  MyDouble Accretion;
+  MyDouble Ngbs;
+  MyDouble NgbsMass;
+  MyDouble NgbsVolume;
+  int NgbsMinBin;
+
+#ifdef TORQUE_ACCRETION
+  MyDouble GasAngularMomentum[3];
 #endif
 } data_out;
 
@@ -93,41 +81,27 @@ static void out2particle(data_out *out, int i, int mode)
 {
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
-      BhNumNgb[i]                      = out->Ngb;
-      BhP[i].Density                   = out->Rho;
-      BhP[i].NgbMass                   = out->Mass;
-      BhP[i].NgbMinStep                = out->NgbMinStep;
-#ifdef BONDI_ACCRETION
-      BhP[i].VelocityGas[0]            = out->VelocityGas[0];
-      BhP[i].VelocityGas[1]            = out->VelocityGas[1];
-      BhP[i].VelocityGas[2]            = out->VelocityGas[2];
-      BhP[i].VelocityGasCircular[0]    = out->VelocityGasCircular[0];
-      BhP[i].VelocityGasCircular[1]    = out->VelocityGasCircular[1];
-      BhP[i].VelocityGasCircular[2]    = out->VelocityGasCircular[2];
-      BhP[i].InternalEnergyGas         = out->InternalEnergyGas;
-#endif
-#ifdef INFALL_ACCRETION
-      BhP[i].Accretion                += out->Accretion;
+      BhNgbs[i] = out->Ngbs;
+      BhP[i].NgbsMass = out->NgbsMass;
+      BhP[i].NgbsVolume = out->NgbsVolume;
+      BhP[i].NgbsMinBin = out->NgbsMinBin;
+
+#ifdef TORQUE_ACCRETION
+      for(int j = 0; j < 3; j++)
+        BhP[i].GasAngularMomentum[j] = out->GasAngularMomentum[j];
 #endif
     }
   else /* combine */
     {
-      BhNumNgb[i]                      += out->Ngb;
-      BhP[i].Density                   += out->Rho;
-      BhP[i].NgbMass                   += out->Mass;
-      if(out->NgbMinStep < BhP[i].NgbMinStep)
-        BhP[i].NgbMinStep               = out->NgbMinStep;
-#ifdef BONDI_ACCRETION
-      BhP[i].VelocityGas[0]            += out->VelocityGas[0];
-      BhP[i].VelocityGas[1]            += out->VelocityGas[1];
-      BhP[i].VelocityGas[2]            += out->VelocityGas[2];
-      BhP[i].VelocityGasCircular[0]    += out->VelocityGasCircular[0];
-      BhP[i].VelocityGasCircular[1]    += out->VelocityGasCircular[1];
-      BhP[i].VelocityGasCircular[2]    += out->VelocityGasCircular[2];
-      BhP[i].InternalEnergyGas         += out->InternalEnergyGas;
-#endif
-#ifdef INFALL_ACCRETION
-      BhP[i].Accretion                 += out->Accretion; 
+      BhNgbs[i] += out->Ngbs;
+      BhP[i].NgbsMass += out->NgbsMass;
+      BhP[i].NgbsVolume += out->NgbsVolume;
+      if(out->NgbsMinBin < BhP[i].NgbsMinBin)
+        BhP[i].NgbsMinBin = out->NgbsMinBin;
+
+#ifdef TORQUE_ACCRETION
+      for(int j = 0; j < 3; j++)
+        BhP[i].GasAngularMomentum[j] += out->GasAngularMomentum[j];
 #endif
     }
 }
@@ -144,34 +118,26 @@ static void out2particle(data_out *out, int i, int mode)
 static void kernel_local(void)
 {
   int i, idx;
+  int j, threadid = get_thread_num();
 
-  {
-    int j, threadid = get_thread_num();
+  for(j = 0; j < NTask; j++)
+    Thread[threadid].Exportflag[j] = -1;
 
-    for(j = 0; j < NTask; j++)
-      Thread[threadid].Exportflag[j] = -1;
-
-    while(1)
-      {
-        if(Thread[threadid].ExportSpace < MinSpace)
-          break;
-
-        //i = NextParticle++;
-
-        //if(i >= NumBhs)
-        //break;
+  while(1)
+    {
+      if(Thread[threadid].ExportSpace < MinSpace)
+        break;
         
-        idx = NextParticle++;
+      idx = NextParticle++;
 
-        if(idx >= TimeBinsBh.NActiveParticles)
-          break;
+      if(idx >= TimeBinsBh.NActiveParticles)
+        break;
 
-        i = TimeBinsBh.ActiveParticleList[idx];
+      i = TimeBinsBh.ActiveParticleList[idx];
 
-        if(bh_density_isactive(i))
-          bh_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
-      }
-  }
+      if(bh_density_isactive(i))
+        bh_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+    }
 }
 
 /*! \brief Routine that defines what to do with imported particles.
@@ -184,19 +150,17 @@ static void kernel_imported(void)
 {
   /* now do the particles that were sent to us */
   int i, cnt = 0;
-  {
-    int threadid = get_thread_num();
+  int threadid = get_thread_num();
 
-    while(1)
-      {
-        i = cnt++;
+  while(1)
+    {
+      i = cnt++;
 
-        if(i >= Nimport)
-          break;
+      if(i >= Nimport)
+        break;
 
-        bh_density_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
-      }
-  }
+      bh_density_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+    }
 }
 
 /*! \brief Main function of SPH density calculation.
@@ -213,99 +177,123 @@ static void kernel_imported(void)
  */
 void bh_density(void)
 {
+  TIMER_START(CPU_BLACKHOLES_DENSITY);
+
   MyFloat *Left, *Right;
   int idx, i, npleft, iter = 0;
   long long ntot;
   double t0, t1;
 
-  CPU_Step[CPU_MISC] += measure_time();
+  BhNgbs = (MyFloat *)mymalloc("BhNgbs", NumBhs * sizeof(MyFloat));
 
-  BhNumNgb  = (MyFloat *)mymalloc("BhNumNgb", NumBhs * sizeof(MyFloat));
-  Left      = (MyFloat *)mymalloc("Left", NumBhs * sizeof(MyFloat));
-  Right     = (MyFloat *)mymalloc("Right", NumBhs * sizeof(MyFloat));
+#ifdef BH_CONSTANT_RADIUS
+  generic_set_MaxNexport();
+  generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
+#else
+
+  Left = (MyFloat *)mymalloc("Left", NumBhs * sizeof(MyFloat));
+  Right = (MyFloat *)mymalloc("Right", NumBhs * sizeof(MyFloat));
 
   for(i = 0; i < NumBhs; i++)
     {
       Left[i] = Right[i] = 0;
       BhP[i].DensityFlag = 1;
+       
+      if(BhP[i].Hsml <= 0)
+        BhP[i].Hsml = All.SofteningTable[PPB(i).SofteningType];
     }
-
-  mpi_printf("BH_DENSITY: Start density and neighbour search for %d black holes.\n", NumBhs);
 
   generic_set_MaxNexport();
 
-    for(idx=0; idx<TimeBinsBh.NActiveParticles; idx++)
-    {
-      i = TimeBinsBh.ActiveParticleList[idx];
-      if(BhP[i].Hsml <= 0)
-      {
-        mpi_printf("WARNING: BH %d has invalid Hsml=%g, reinitializing\n",
-                    i, BhP[i].Hsml);
-        // Use softening as fallback
-        BhP[i].Hsml = All.SofteningTable[P[BhP[i].PID].SofteningType];
-      }
-    }
- 
-  /* we will repeat the whole thing for those particles where we didn't find enough neighbours */
+  /* We will repeat the whole thing for those particles where we didn't find enough neighbours */
   do
     {
       t0 = second();
 
       generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
 
-      for(idx=0, npleft=0; idx<TimeBinsBh.NActiveParticles; idx++)
+      for(idx = 0, npleft = 0; idx < TimeBinsBh.NActiveParticles; idx++)
         {
           i = TimeBinsBh.ActiveParticleList[idx];
+           
+          if(BhP[i].DensityFlag == 2)
+            {
+              if(BhNgbs[i] == 0)
+                terminate("BH_DENSITY: BH %d has zero neighbours at maximum Hsml=%g\n", i, BhP[i].Hsml);
+              
+              /* Mark as inactive */
+              BhP[i].DensityFlag = -1; 
+              continue;
+            }
 
-          if(BhNumNgb[i] < (All.BhDesNgb - All.BhDesDev) || BhNumNgb[i] > (All.BhDesNgb + All.BhDesDev))
-          {
-                  /* need to redo this particle */
-            npleft++;
+#ifdef REFINEMENT
+          if(BhP[i].NgbsMass < (All.BhDesNgb - All.BhDesDev) * All.TargetGasMass || BhP[i].NgbsMass > (All.BhDesNgb + All.BhDesDev) * All.TargetGasMass)
+#else
+          if(BhNgbs[i] < (All.BhDesNgb - All.BhDesDev) || BhNgbs[i] > (All.BhDesNgb + All.BhDesDev)) 
+#endif
+            {
+              /* Need to redo this particle */
+              npleft++;
 
-            if(Left[i] > 0 && Right[i] > 0)
-              {
-                if((Right[i] - Left[i]) < 1.0e-3 * Left[i])
-                  {
-                        /* this one should be ok */
-                    npleft--;
-                    BhP[i].DensityFlag = -1; /* Mark as inactive */
-                    continue;
+              if(Left[i] > 0 && Right[i] > 0)
+                {
+                  if((Right[i] - Left[i]) < 1.0e-3 * Left[i])
+                    {
+                      /* This one should be ok */
+                      npleft--;
+                      /* Mark as inactive */
+                      BhP[i].DensityFlag = -1; 
+                      continue;
+                    }
+                } 
+
+#ifdef REFINEMENT
+              if(BhP[i].NgbsMass < (All.BhDesNgb - All.BhDesDev) * All.TargetGasMass)
+#else
+              if(BhNgbs[i] < (All.BhDesNgb - All.BhDesDev))
+#endif
+                Left[i] = dmax(BhP[i].Hsml, Left[i]);
+              else
+                {
+                  if(Right[i] != 0)
+                    {
+                      if(BhP[i].Hsml < Right[i])
+                        Right[i] = BhP[i].Hsml;
+                    }
+                      else
+                        Right[i] = BhP[i].Hsml;
                 }
-              } 
 
-            if(BhNumNgb[i] < (All.BhDesNgb - All.BhDesDev))
-              Left[i] = dmax(BhP[i].Hsml, Left[i]);
-            else
-              {
-                if(Right[i] != 0)
-                  {
-                    if(BhP[i].Hsml < Right[i])
-                        Right[i] = BhP[i].Hsml;
-                  }
-                    else
-                        Right[i] = BhP[i].Hsml;
-              }
-
-            if(Right[i] > 0 && Left[i] > 0)
+              if(Right[i] > 0 && Left[i] > 0)
                 BhP[i].Hsml = pow(0.5 * (pow(Left[i], 3) + pow(Right[i], 3)), 1.0 / 3);
-            else
-              {
-                if(Right[i] == 0 && Left[i] == 0)
+              else
+                {
+                  if(Right[i] == 0 && Left[i] == 0)
                     terminate("should not occur");
 
-                if(Right[i] == 0 && Left[i] > 0)
-                  {
-                    BhP[i].Hsml *= 1.26;
-                  }
+                  if(Right[i] == 0 && Left[i] > 0)
+                    {
+                      BhP[i].Hsml *= 1.26;
+                    }
 
-                if(Right[i] > 0 && Left[i] == 0)
-                  {
-                    BhP[i].Hsml /= 1.26;
-                  }
-              }
-          }
-        else
-             BhP[i].DensityFlag = -1; /* Mark as inactive */ 
+                  if(Right[i] > 0 && Left[i] == 0)
+                    {
+                      BhP[i].Hsml /= 1.26;
+                    }
+                }
+            }
+          else
+            /* Mark as inactive */ 
+            BhP[i].DensityFlag = -1;
+      
+          /* Limit smoothing length */
+          double hmax = All.HMaxFactor * All.SofteningTable[PPB(i).SofteningType]; 
+       
+          if(BhP[i].Hsml > hmax)
+            {
+              BhP[i].Hsml = hmax;
+              BhP[i].DensityFlag = 2;
+            }
         }
         
       sumup_large_ints(1, &npleft, &ntot);
@@ -328,16 +316,15 @@ void bh_density(void)
 
   myfree(Right);
   myfree(Left);
-  myfree(BhNumNgb);
 
-  /* mark as active again */
+  /* Mark as active again */
   for(i = 0; i < NumBhs; i++)
-    {
-     BhP[i].DensityFlag = 1;
-    }
+    BhP[i].DensityFlag = 1;
+#endif
   
-  /* collect some timing information */
-  CPU_Step[CPU_INIT] += measure_time();
+  myfree(BhNgbs);
+
+  TIMER_STOP(CPU_BLACKHOLES_DENSITY);
 }
 
 /*! \brief Inner function of the SPH density calculation
@@ -354,15 +341,14 @@ void bh_density(void)
  */
 static int bh_density_evaluate(int target, int mode, int threadid)
 {
-  int bin = TIMEBINS;
-  double h, h2, hinv, hinv3, hinv4; 
-  int j, n, numngb, numnodes, *firstnode;
-  double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble *pos, mass_j, rho, mass; 
-  integertime ngb_min_step;
-  
+  int i, n, numnodes, *firstnode; 
+  int ngbs = 0, ngbsminbin = TIMEBINS; 
+  MyDouble xtmp, ytmp, ztmp;   
+  MyDouble h, h2, dx, dy, dz, r, r2, wk; 
+  MyDouble *pos, *vel, ngbsmass = 0, ngbsvolume = 0;
+
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -379,144 +365,92 @@ static int bh_density_evaluate(int target, int mode, int threadid)
       generic_get_numnodes(target, &numnodes, &firstnode);
     }
 
-  pos  = target_data->Pos;
-  h    = target_data->Hsml;
+  pos = target_data->Pos;
+  vel = target_data->Vel;
+  h = target_data->Hsml;
 
-#ifdef BONDI_ACCRETION
-  MyDouble *vel;
-  vel  = target_data->Vel;
-  double dvx, dvy, dvz, rho_j;
-  MyDouble internal_energy_gas = 0;
-  MyDouble velocity_gas[3], velocity_gas_circular[3];
-  velocity_gas[0] = velocity_gas[1] = velocity_gas[2] = 0;
-  velocity_gas_circular[0] = velocity_gas_circular[1] = velocity_gas_circular[2] = 0;
-#endif
-#ifdef INFALL_ACCRETION
-  MyDouble accretion = 0;
-  double rbh  = h;
-  double rbh2 = rbh * rbh;
+#ifdef TORQUE_ACCRETION
+  MyDouble gas_angular_momentum[3];
+  for(int j = 0; j < 3; j++)
+    gas_angular_momentum[j] = 0;
 #endif 
 
-  h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
+  //MyDouble hinv, hinv3, hinv4, u, dwk;
 
-  numngb = rho = mass = 0;
+  //h2   = h * h;
+  //hinv = 1.0 / h;
+//#ifndef TWODIMS
+//  hinv3 = hinv * hinv * hinv;
+//#else  /* #ifndef  TWODIMS */
+//  hinv3 = hinv * hinv / boxSize_Z;
+//#endif /* #ifndef  TWODIMS #else */
+//  hinv4 = hinv3 * hinv;
 
+#ifdef BH_CONSTANT_RADIUS
+  int nfound = ngb_treefind_variable_threads(pos, All.BhRadius, target, mode, threadid, numnodes, firstnode);
+#else
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+#endif
 
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
+      
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
 
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      /* Compute bh->cell position vector */
+      dx = NEAREST_X(P[i].Pos[0] - pos[0]);
+      dy = NEAREST_Y(P[i].Pos[1] - pos[1]);
+      dz = NEAREST_Z(P[i].Pos[2] - pos[2]);
 
-#ifndef REFLECTIVE_X
-      if(dx > boxHalf_X)
-        dx -= boxSize_X;
-      if(dx < -boxHalf_X)
-        dx += boxSize_X;
-#endif /* #ifndef REFLECTIVE_X */
+      MyDouble dvx, dvy, dvz;  
 
-#ifndef REFLECTIVE_Y
-      if(dy > boxHalf_Y)
-        dy -= boxSize_Y;
-      if(dy < -boxHalf_Y)
-        dy += boxSize_Y;
-#endif /* #ifndef REFLECTIVE_Y */
+     /* Compute bh->cell velocity vector */
+      dvx = P[i].Vel[0] - vel[0]; 
+      dvy = P[i].Vel[1] - vel[1];
+      dvz = P[i].Vel[2] - vel[2];
 
-#ifndef REFLECTIVE_Z
-      if(dz > boxHalf_Z)
-        dz -= boxSize_Z;
-      if(dz < -boxHalf_Z)
-        dz += boxSize_Z;
-#endif /* #ifndef REFLECTIVE_Z */
       r2 = dx * dx + dy * dy + dz * dz;
 
+#ifdef BH_CONSTANT_RADIUS
+      if(r2 < All.BhRadius*All.BhRadius)
+#else
       if(r2 < h2)
+#endif
         {
-          numngb++;
-
           r = sqrt(r2);
-
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          //bh_kernel(u, hinv3, hinv4, &wk, &dwk);
+          
+          ngbs++;
+          
+          // compute the bh-ngbs-mass 
+          ngbsmass += P[i].Mass;
+          // compute the bh-ngbs-volume
+          ngbsvolume += SphP[i].Volume;
 
-          mass_j = P[j].Mass;
+          // compute the max hydro bin for neighbors   
+          if(P[i].TimeBinHydro < ngbsminbin)
+            ngbsminbin = P[i].TimeBinHydro;
 
-          /* compute bh density */
-          rho +=  mass_j * wk;
-
-          /* compute the bh-ngb-mass (sphere) */
-          mass += mass_j;
-
-          /* compute the min hydro step for neighbors */     
-          if(bin > P[j].TimeBinHydro)
-            bin = P[j].TimeBinHydro;
-
-#ifdef BONDI_ACCRETION
-          /* comute relative velocities, 
-               relative specific angular momenta and internal energy of gas */
-          dvx = P[j].Vel[0] - vel[0]; 
-          dvy = P[j].Vel[1] - vel[1]; 
-          dvz = P[j].Vel[2] - vel[2]; 
-
-          if(SphP[j].Density > 0)
-            rho_j  = SphP[j].Density;
-          else
-            rho_j = 1;
-
-          velocity_gas[0] += dvx*mass_j/rho_j*wk;
-          velocity_gas[1] += dvy*mass_j/rho_j*wk;
-          velocity_gas[2] += dvz*mass_j/rho_j*wk;
-
-          velocity_gas_circular[0] -= (dy * dvz - dz * dvy)*mass_j/rho_j*wk;
-          velocity_gas_circular[1] -= (dz * dvx - dx * dvz)*mass_j/rho_j*wk;
-          velocity_gas_circular[2] -= (dx * dvy - dy * dvx)*mass_j/rho_j*wk;
-
-          internal_energy_gas += SphP[j].Utherm*mass_j/rho_j*wk;
+#ifdef TORQUE_ACCRETION           
+          gas_angular_momentum[0] += P[i].Mass * (dy * dvz - dz * dvy);
+          gas_angular_momentum[1] += P[i].Mass * (dz * dvx - dx * dvz);
+          gas_angular_momentum[2] += P[i].Mass * (dx * dvy - dy * dvx);
 #endif
-#ifdef INFALL_ACCRETION
-          /* cell nibbled */
-          if(r < 2*rbh) 
-            {
-              accretion += P[j].Mass * exp(-r2/(2*rbh2));
-              P[j].Mass -= P[j].Mass * exp(-r2/(2*rbh2));  
-            }
-#endif
-
         }
     }
 
-  /* compute bh timestep based on min ngb timestep */
-  if(bin == 0)
-    ngb_min_step = 0;
-  else
-    ngb_min_step   = (((integertime)1) << bin);
-  
-  out.Ngb                     = numngb;
-  out.Rho                     = rho;
-  out.Mass                    = mass;
-  out.NgbMinStep              = ngb_min_step;
-#ifdef BONDI_ACCRETION
-  out.VelocityGas[0]          = velocity_gas[0];
-  out.VelocityGas[1]          = velocity_gas[1];
-  out.VelocityGas[2]          = velocity_gas[2];
-  out.VelocityGasCircular[0]  = velocity_gas_circular[0];
-  out.VelocityGasCircular[1]  = velocity_gas_circular[1];
-  out.VelocityGasCircular[2]  = velocity_gas_circular[2];
-  out.InternalEnergyGas       = internal_energy_gas;
-#endif
-#ifdef INFALL_ACCRETION
-  out.Accretion               = accretion;
+  out.Ngbs = ngbs;
+  out.NgbsMass = ngbsmass;
+  out.NgbsVolume = ngbsvolume;
+  out.NgbsMinBin = ngbsminbin;
+
+#ifdef TORQUE_ACCRETION 
+  for(int j = 0; j < 3; j++)
+    out.GasAngularMomentum[j] = gas_angular_momentum[j];   
 #endif
 
   /* now collect the result at the right place */
@@ -541,5 +475,3 @@ int bh_density_isactive(int n)
 
   return 1;
 }
-
-#endif /* #ifdef BLACKHOLES */

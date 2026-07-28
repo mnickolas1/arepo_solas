@@ -1,20 +1,15 @@
-#include <gsl/gsl_math.h>
+#include <stdlib.h>       
 #include <math.h>
-#include <mpi.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <gsl/gsl_math.h>              
+#include <mpi.h>            
+  
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
 
-#if defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK)
-      
-#define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0)
 
-static int bh_ngb_feedback_evaluate(int target, int mode, int threadid);
+static int bh_feedback_evaluate(int target, int mode, int threadid);
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -22,20 +17,10 @@ static int bh_ngb_feedback_evaluate(int target, int mode, int threadid);
  */
 typedef struct
 {
-  int Bin;
   MyDouble Pos[3];
-  MyFloat Hsml;
-  MyDouble BhRho;
-  MyDouble BhMass;
-  MyDouble NgbMass;
-  MyDouble NgbMassFeed;
-#ifdef BONDI_ACCRETION
-  MyDouble AccretionRate;
-  MyDouble MassToDrain;
-#endif
-#ifdef INFALL_ACCRETION
+  MyDouble NgbsVolume;
   MyDouble Accretion;
-#endif
+  MyFloat Hsml;
   int Firstnode;
 } data_in;
 
@@ -52,23 +37,12 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Bin           = BhP[i].TimeBinBh;
-  in->Pos[0]        = PPB(i).Pos[0];
-  in->Pos[1]        = PPB(i).Pos[1];
-  in->Pos[2]        = PPB(i).Pos[2];
-  in->Hsml          = BhP[i].Hsml;
-  in->BhRho         = BhP[i].Density;
-  in->BhMass        = PPB(i).Mass;
-  in->NgbMass       = BhP[i].NgbMass;
-  in->NgbMassFeed   = BhP[i].NgbMassFeed;
-#ifdef BONDI_ACCRETION 
-  in->AccretionRate = BhP[i].AccretionRate;
-  in->MassToDrain   = BhP[i].MassToDrain;
-#endif
-#ifdef INFALL_ACCRETION
-  in->Accretion     = BhP[i].Accretion;
-#endif
-  in->Firstnode     = firstnode;
+  for(int j = 0; j < 3; j++)
+    in->Pos[j] = PPB(i).Pos[j];
+  in->NgbsVolume = BhP[i].NgbsVolume;
+  in->Accretion = BhP[i].Accretion;
+  in->Hsml = BhP[i].Hsml;
+  in->Firstnode = firstnode;
 }
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -102,6 +76,7 @@ static void out2particle(data_out *out, int i, int mode)
     }
 }
 
+
 #include "../utils/generic_comm_helpers2.h"
 
 /*! \brief Routine that defines what to do with local particles.
@@ -112,30 +87,26 @@ static void out2particle(data_out *out, int i, int mode)
  */
 static void kernel_local(void)
 {
-  int idx;
+  int i, idx;
+  int j, threadid = get_thread_num();
 
-  {
-    int j, threadid = get_thread_num();
+  for(j = 0; j < NTask; j++)
+    Thread[threadid].Exportflag[j] = -1;
 
-    for(j = 0; j < NTask; j++)
-      Thread[threadid].Exportflag[j] = -1;
+  while(1)
+    {
+      if(Thread[threadid].ExportSpace < MinSpace)
+        break;
+        
+      idx = NextParticle++;
 
-    while(1)
-      {
-        if(Thread[threadid].ExportSpace < MinSpace)
-          break;
+      if(idx >= TimeBinsBh.NActiveParticles)
+        break;
 
-        idx = NextParticle++;
-
-        if(idx >= TimeBinsBh.NActiveParticles)
-          break;
-
-        int i = TimeBinsBh.ActiveParticleList[idx];
-        if(i < 0)
-          continue;
-        bh_ngb_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
-      }
-  }
+      i = TimeBinsBh.ActiveParticleList[idx];
+        
+      bh_feedback_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+    }
 }
 
 /*! \brief Routine that defines what to do with imported particles.
@@ -148,38 +119,39 @@ static void kernel_imported(void)
 {
   /* now do the particles that were sent to us */
   int i, cnt = 0;
-  {
-    int threadid = get_thread_num();
+  int threadid = get_thread_num();
 
-    while(1)
-      {
-        i = cnt++;
+  while(1)
+    {
+      i = cnt++;
 
-        if(i >= Nimport)
-          break;
+      if(i >= Nimport)
+        break;
 
-        bh_ngb_feedback_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
-      }
-  }
+      bh_feedback_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+    }
 }
 
-void bh_ngb_feedback(void)
+void bh_feedback(void)
 {
+  TIMER_START(CPU_BLACKHOLES_FEEDBACK);
+
   generic_set_MaxNexport();
 
   generic_comm_pattern(TimeBinsBh.NActiveParticles, kernel_local, kernel_imported);
+
+  TIMER_STOP(CPU_BLACKHOLES_FEEDBACK);
 }
 
-static int bh_ngb_feedback_evaluate(int target, int mode, int threadid)
+static int bh_feedback_evaluate(int target, int mode, int threadid)
 {
-  int j, n, bin;
-  int numnodes, *firstnode;
-  double h, h2, hinv, hinv3, hinv4;
-  double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble *pos, dt, bh_rho, bh_mass, ngbmass, ngbmass_feed, massloading, energyfeed;
+  int i, n, numnodes, *firstnode; 
+  MyDouble xtmp, ytmp, ztmp;   
+  MyDouble h, h2, dx, dy, dz, r, r2, wk; 
+  MyDouble *pos, ngbsvolume, accretion, mass_feed, energy_feed, factor;
 
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -196,138 +168,63 @@ static int bh_ngb_feedback_evaluate(int target, int mode, int threadid)
       generic_get_numnodes(target, &numnodes, &firstnode);
     }
 
-  bin            = target_data->Bin;
-  pos            = target_data->Pos;
-  h              = target_data->Hsml;
-  bh_rho         = target_data->BhRho;
-  bh_mass        = target_data->BhMass;
-  ngbmass        = target_data->NgbMass;
-  ngbmass_feed   = target_data->NgbMassFeed;
+  pos = target_data->Pos;
+  h = target_data->Hsml;
+  ngbsvolume = target_data->NgbsVolume;
+  accretion = target_data->Accretion;
 
-#ifdef BONDI_ACCRETION
-  MyDouble accretion_rate, mass_to_drain;
-  accretion_rate = target_data->AccretionRate;
-  mass_to_drain  = target_data->MassToDrain; 
-#endif
-#ifdef INFALL_ACCRETION
-  MyDouble accretion;
-  accretion      = target_data->Accretion;
-#endif
+  mass_feed = All.Mload * All.Epsilon_r * accretion; 
+  energy_feed = All.Epsilon_f * (1.0 - All.Mload) * All.Epsilon_r  * accretion * (CLIGHT*CLIGHT / (All.cf_UnitVelocity_in_cm_per_s*All.cf_UnitVelocity_in_cm_per_s));
 
-  h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
+  //MyDouble hinv, hinv3, hinv4, u, dwk;
 
-  /* bh timestep */
-  dt    = (bin ? (((integertime)1) << bin) : 0) * All.Timebase_interval;
-  //dtime = All.cf_atime * dt / All.cf_time_hubble_a;
+  //h2   = h * h;
+  //hinv = 1.0 / h;
+//#ifndef TWODIMS
+//  hinv3 = hinv * hinv * hinv;
+//#else  /* #ifndef  TWODIMS */
+//  hinv3 = hinv * hinv / boxSize_Z;
+//#endif /* #ifndef  TWODIMS #else */
+//  hinv4 = hinv3 * hinv;
 
-#ifdef BONDI_ACCRETION
-  massloading = All.Mload * accretion_rate * dt;
-  energyfeed = All.Epsilon_f * All.Epsilon_r * accretion_rate * dt * (CLIGHT * CLIGHT / (All.UnitVelocity_in_cm_per_s * All.UnitVelocity_in_cm_per_s));
-#endif
-#ifdef INFALL_ACCRETION  
-  massloading = All.Mload * accretion; 
-  energyfeed = All.Epsilon_f * All.Epsilon_r * accretion * (CLIGHT * CLIGHT / (All.UnitVelocity_in_cm_per_s * All.UnitVelocity_in_cm_per_s));
-#endif
-
-  /* jet axis and opening angle */    
-
-  /* positive and negative jet axes */
-  double pos_z_axis[3] = {0, 0, 1};
-  double neg_z_axis[3] = {0, 0, -1};      
-  /* jet angle */
-  double theta = DEG_TO_RAD(10);
-  double vx, vy, vz, pos_z_angle, neg_z_angle;
-
+#ifdef BH_CONSTANT_RADIUS
+  int nfound = ngb_treefind_variable_threads(pos, All.BhRadius, target, mode, threadid, numnodes, firstnode);
+#else
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+#endif
+
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
 
-#ifndef REFLECTIVE_X
-      if(dx > boxHalf_X)
-        dx -= boxSize_X;
-      if(dx < -boxHalf_X)
-        dx += boxSize_X;
-#endif /* #ifndef REFLECTIVE_X */
+      /* Compute bh->cell position vector */
+      dx = NEAREST_X(P[i].Pos[0] - pos[0]);
+      dy = NEAREST_Y(P[i].Pos[1] - pos[1]);
+      dz = NEAREST_Z(P[i].Pos[2] - pos[2]);
 
-#ifndef REFLECTIVE_Y
-      if(dy > boxHalf_Y)
-        dy -= boxSize_Y;
-      if(dy < -boxHalf_Y)
-        dy += boxSize_Y;
-#endif /* #ifndef REFLECTIVE_Y */
-
-#ifndef REFLECTIVE_Z
-      if(dz > boxHalf_Z)
-        dz -= boxSize_Z;
-      if(dz < -boxHalf_Z)
-        dz += boxSize_Z;
-#endif /* #ifndef REFLECTIVE_Z */
       r2 = dx * dx + dy * dy + dz * dz;
 
+#ifdef BH_CONSTANT_RADIUS
+      if(r2 < All.BhRadius*All.BhRadius)
+#else
       if(r2 < h2)
+#endif
         {
           r = sqrt(r2);
-
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          //bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
-          if(!All.JetFeedback)
-            {
-              /* add thermal energy isotropically */
-              SphP[j].ThermalFeed   += energyfeed/ngbmass*P[j].Mass;
-              All.EnergyExchange[0] += energyfeed/ngbmass*P[j].Mass;
-            }
+          factor = SphP[i].Volume / ngbsvolume;
 
-          if(All.JetFeedback)
-            {
-              /* double cone jet setup */
+          /* Add thermal energy isotropically */
+          SphP[i].BhMassFeed += mass_feed * factor;
 
-              /* calculate vector to cone vertex */
-              vx = -dx; // x-component of the vector from the vertex to the point
-              vy = -dy; // y-component of the vector from the vertex to the point
-              vz = -dz; // z-component of the vector from the vertex to the point
-              /* calculate angles */    
-              pos_z_angle = acos((vx*pos_z_axis[0] + 
-              vy*pos_z_axis[1] + vz*pos_z_axis[2]) / 
-                (sqrt(pow(vx, 2) + pow(vy, 2) + pow(vz, 2)) * sqrt(pow(pos_z_axis[0], 2) + pow(pos_z_axis[1], 2) + pow(pos_z_axis[2], 2))));
-              neg_z_angle = acos((vx*neg_z_axis[0] + vy*neg_z_axis[1] + vz*neg_z_axis[2]) / 
-                (sqrt(pow(vx, 2) + pow(vy, 2) + pow(vz, 2)) * sqrt(pow(neg_z_axis[0], 2) + pow(neg_z_axis[1], 2) + pow(neg_z_axis[2], 2))));    
-              /* check if particle is inside the cone */ 
-              if((pos_z_angle <= theta) || (neg_z_angle <= theta))
-                {
-                  /* add mass */
-                  SphP[j].MassLoading += massloading/ngbmass_feed*P[j].Mass;
-                  
-                  /* split kinetic and thermal energy feed */ 
-                  /* add kinetic energy in cone */
-                  SphP[j].KineticFeed   += energyfeed/ngbmass_feed*P[j].Mass;
-                  All.EnergyExchange[0] += energyfeed/ngbmass_feed*P[j].Mass;
-
-                  /* set radial kick direction */      
-                  SphP[j].BhKickVector[0] = vx/r;
-                  SphP[j].BhKickVector[1] = vy/r;
-                  SphP[j].BhKickVector[2] = vz/r;                
-                }
-            }
-
-#ifdef BONDI_ACCRETION
-          /* set drain mass flag */
-          SphP[j].MassDrain = accretion_rate*dt/ngbmass*P[j].Mass + mass_to_drain/ngbmass*P[j].Mass;
-#endif
- 
+          SphP[i].BhThermalFeed += energy_feed * factor;
+          All.BhFeedbackLocal[0] += energy_feed * factor;
         }
     }
 
@@ -339,5 +236,3 @@ static int bh_ngb_feedback_evaluate(int target, int mode, int threadid)
 
   return 0;
 }
-
-#endif /* #if defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK) */

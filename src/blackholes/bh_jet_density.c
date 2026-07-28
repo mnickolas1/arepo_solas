@@ -10,8 +10,6 @@
 
 #include "../domain/domain.h"
 
-#if defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK)
-
 #define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0)
 
 static int bh_density_evaluate(int target, int mode, int threadid);
@@ -78,12 +76,12 @@ static void out2particle(data_out *out, int i, int mode)
   if(mode == MODE_LOCAL_PARTICLES) /* initial store */
     {
       BhNumNgb[i]                      = out->Ngb;
-      BhP[i].NgbMassFeed               = out->Mass;
+      BhP[i].NgbsmassFeed               = out->Mass;
     }
   else /* combine */
     {
       BhNumNgb[i]                      += out->Ngb;
-      BhP[i].NgbMassFeed               += out->Mass;
+      BhP[i].NgbsmassFeed               += out->Mass;
     }
 }
 
@@ -198,7 +196,7 @@ void bh_jet_density(void)
         {
           i = TimeBinsBh.ActiveParticleList[idx];
 
-          if(BhP[i].NgbMassFeed < (All.BhDesNgb - All.BhDesDev) || BhP[i].NgbMassFeed > (All.BhDesNgb + All.BhDesDev))
+          if(BhP[i].NgbsmassFeed < (All.BhDesNgb - All.BhDesDev) || BhP[i].NgbsmassFeed > (All.BhDesNgb + All.BhDesDev))
           {
                   /* need to redo this particle */
             npleft++;
@@ -214,7 +212,7 @@ void bh_jet_density(void)
                 }
               } 
 
-            if(BhP[i].NgbMassFeed < (All.BhDesNgb - All.BhDesDev))
+            if(BhP[i].NgbsmassFeed < (All.BhDesNgb - All.BhDesDev))
               Left[i] = dmax(BhP[i].Hsml, Left[i]);
             else
               {
@@ -347,6 +345,9 @@ static int bh_density_evaluate(int target, int mode, int threadid)
     {
       j = Thread[threadid].Ngblist[n];
 
+      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+        continue;
+
       dx = pos[0] - P[j].Pos[0];
       dy = pos[1] - P[j].Pos[1];
       dz = pos[2] - P[j].Pos[2];
@@ -381,7 +382,7 @@ static int bh_density_evaluate(int target, int mode, int threadid)
 
           u = r * hinv;
 
-          kernel(u, hinv3, hinv4, &wk, &dwk);
+          bh_kernel(u, hinv3, hinv4, &wk, &dwk);
 
           /* double cone jet setup */    
   
@@ -429,5 +430,3 @@ int bh_density_isactive(int n)
 
   return 1;
 }
-
-#endif /* #if defined(BLACKHOLES) && defined(BLACKHOLES_FEEDBACK) */

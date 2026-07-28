@@ -62,11 +62,6 @@
 #include "../stars/star_proto.h"
 #endif 
 
-#if defined(STARS) || defined(BLACKHOLES)
-void kernel(double u, double hinv3, double hinv4, double *wk, double *dwk);
-void perform_end_of_step_physics(void);
-#endif
-
 #ifdef JEANS_SF
 double get_jeans_length(int i);
 #endif
@@ -75,12 +70,14 @@ double get_jeans_length(int i);
 double get_jeans_mass(int i);
 #endif
 
-#if defined(FIND_HALOS) && defined(FOF)
-void fof_seeding(void);
-double fof_seeding_get_time_increment(void);
+#ifdef HALO_SEEDING
+#ifndef FOF
+#error "HALO_SEEDING requires FOF to be defined"
+#endif /* #ifndef FOF */
+/* seeding API lives in src/fof/fof_seeding.h */
 #endif
 
-void sfr_init();
+void sfr_init(void);
 void sfr_create_star_particles(void);
 void ngb_finish_rangebounds_update(int nchanged, int *nodelist);
 void ngb_update_rangebounds(int i, int *nchanged, int *nodelist);
@@ -108,6 +105,7 @@ void gravity_external(void);
 void gravity(int timebin, int fullflag);
 int my_ffsll(peanokey i);
 void set_cosmo_factors_for_current_time(void);
+void set_cf_units(void);
 void calc_exact_gravity_for_particle_type(void);
 void calculate_non_standard_physics_with_valid_gravity_tree(void);
 void calculate_non_standard_physics_with_valid_gravity_tree_always(void);
@@ -140,12 +138,12 @@ void find_long_range_step_constraint(void);
 void ngb_treemodifylength(int delta_NgbMaxPart);
 void domain_resize_storage(int count_get, int count_get_sph, int option_flag);
 void init_individual_softenings(void);
-void do_derefinements_and_refinements();
+void do_derefinements_and_refinements(void);
 void mark_active_timebins(void);
 void voronoi_test(void);
 void execute_resubmit_command(void);
 void output_compile_time_options(void);
-void init_io_fields();
+void init_io_fields(void);
 void produce_dump(void);
 
 void create_snapshot_if_desired(void);
@@ -486,8 +484,11 @@ void pm_init_nonperiodic(void);
 int pmforce_nonperiodic(int grnr);
 void readjust_timebase(double TimeMax_old, double TimeMax_new);
 void pm_setup_nonperiodic_kernel(void);
-void init_gradients();
-void init_scalars();
+void init_gradients(void);
+void init_scalars(void);
+void init_passive_scalars(void);
+void sync_conserved_from_primitive(int target, int idx);
+void sync_primitive_from_conserved(int target, int idx);
 void print_particle_info(int i);
 void print_state_info(struct state *st);
 void print_state_face_info(struct state_face *st);
@@ -532,7 +533,6 @@ void sample_solution_isothermal3d(double S, struct state *st_L, struct state *st
 void apply_flux_list(void);
 int flux_list_data_compare(const void *a, const void *b);
 void set_vertex_velocities(void);
-int scalar_init(MyFloat *addr, MyFloat *addr_mass, int type);
 void compute_interface_fluxes(tessellation *T);
 void update_primitive_variables(void);
 
@@ -581,8 +581,8 @@ void cool_cell(int i);
 #endif /* #if defined(COOLING) */
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
-void special_particle_create_list();
-void special_particle_update_list();
+void special_particle_create_list(void);
+void special_particle_update_list(void);
 #endif /* #ifdef  EXACT_GRAVITY_FOR_PARTICLE_TYPE */
 
 #ifdef HAVE_HDF5
@@ -647,7 +647,7 @@ void do_mhd_source_terms_second_half(void);
 #endif /* #ifdef MHD */
 
 #ifdef ONEDIMS_SPHERICAL
-void gravity_monopole_1d_spherical();
+void gravity_monopole_1d_spherical(void);
 #endif /* #ifdef ONEDIMS_SPHERICAL */
 
 #if defined(PMGRID)
@@ -690,5 +690,9 @@ void convert_cell_into_star(int i, double birthtime);
 void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_of_star);
 void make_star(int idx, int i, double prob, MyDouble mass_of_star, double *sum_mass_stars);
 #endif /* #ifdef USE_SFR */
+
+#ifdef USE_GRACKLE
+double compute_mu(int i);
+#endif
 
 #endif /* #ifndef PROTO_H */

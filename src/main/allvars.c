@@ -104,12 +104,6 @@ int TagOffset;
 
 int TimeBinSynchronized[TIMEBINS];
 struct TimeBinData TimeBinsHydro, TimeBinsGravity;
-#ifdef BLACKHOLES
-struct TimeBinData TimeBinsBh;
-#endif
-#ifdef STARS
-struct TimeBinData TimeBinsStar;
-#endif
 
 #ifdef USE_SFR
 double TimeBinSfr[TIMEBINS];
@@ -130,12 +124,6 @@ double EgyInjection;
 
 int NumPart; /*!< number of particles on the LOCAL processor */
 int NumGas;  /*!< number of gas particles on the LOCAL processor  */
-#ifdef BLACKHOLES
-int NumBhs;
-#endif
-#ifdef STARS
-int NumStars;
-#endif
 
 gsl_rng *random_generator;     /*!< a random number generator  */
 gsl_rng *random_generator_aux; /*!< an auxialiary random number generator for use if one doesn't want to influence the main code's
@@ -144,15 +132,16 @@ gsl_rng *random_generator_aux; /*!< an auxialiary random number generator for us
 int Stars_converted; /*!< current number of star particles in gas particle block */
 #endif
 
+#ifdef REFINEMENT
+char *FlagDoNotRefine;
+#endif 
+
 #ifdef TOLERATE_WRITE_ERROR
 int WriteErrorFlag;
 char AlternativeOutputDir[MAXLEN_PATH];
 #endif /* #ifdef TOLERATE_WRITE_ERROR */
 
 double TimeOfLastDomainConstruction; /*!< holds what it says */
-
-int *Ngblist; /*!< Buffer to hold indices of neighbours retrieved by the neighbour search
-                 routines */
 
 double DomainCorner[3], DomainCenter[3], DomainLen, DomainFac;
 double DomainInverseLen, DomainBigFac;
@@ -165,6 +154,15 @@ int domain_bintolevel[TIMEBINS];
 int domain_refbin[TIMEBINS];
 int domain_grav_weight[TIMEBINS];
 int domain_hydro_weight[TIMEBINS];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+int domain_star_weight[TIMEBINS];
+#endif
+
+#ifdef BH_ACTIVE
+int domain_bh_weight[TIMEBINS];
+#endif
+
 int domain_to_be_balanced[TIMEBINS];
 
 int *DomainTask;
@@ -206,9 +204,6 @@ FILE *FdRestartTest;
 FILE *FdSfr; /*!< file handle for sfr.txt log-file. */
 #endif
 
-#ifdef BLACKHOLES   
-FILE *FdBlackHoles; /*!< file handle for blackholes.txt log-file. */
-#endif
 struct pair_data *Pairlist;
 
 #ifdef FORCETEST
@@ -239,14 +234,6 @@ struct subfind_data *PS;
  */
 struct sph_particle_data *SphP, /*!< holds SPH particle data on local processor */
     *DomainSphBuf;              /*!< buffer for SPH particle data in domain decomposition */
-
-#ifdef BLACKHOLES
-struct bh_particle_data *BhP;
-#endif 
-
-#ifdef STARS
-struct star_particle_data *SP;
-#endif
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
 struct special_particle_data *PartSpecialListGlobal;
@@ -310,29 +297,6 @@ struct ExtNODE *ExtNodes;
 #endif /* #ifdef MULTIPLE_NODE_SOFTENING */
 
 float *Nodes_GravCost;
-
-/*! Variables for neighbor tree
- * -----------------
- */
-int Ngb_MaxPart;
-int Ngb_NumNodes;
-int Ngb_MaxNodes;
-int Ngb_FirstNonTopLevelNode;
-int Ngb_NextFreeNode;
-int *Ngb_Father;
-int *Ngb_Marker;
-int Ngb_MarkerValue;
-
-int *Ngb_DomainNodeIndex;
-int *DomainListOfLocalTopleaves;
-int *DomainNLocalTopleave;
-int *DomainFirstLocTopleave;
-int *Ngb_Nextnode;
-
-/*! The ngb-tree data structure
- */
-struct NgbNODE *Ngb_Nodes;
-struct ExtNgbNODE *ExtNgb_Nodes;
 
 #ifdef STATICNFW
 double Rs, R200;

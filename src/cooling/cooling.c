@@ -59,8 +59,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#ifdef COOLING
-
 static double Tmin = 0.0;     /*!< min temperature in log10 */
 static double Tmax = 9.0;     /*!< max temperature in log10 */
 static double deltaT;         /*!< log10 of temperature spacing in the interpolation tables */
@@ -96,10 +94,10 @@ double DoCooling(double u_old, double rho, double dt, double *ne_guess, int i)
 #ifdef USE_GRACKLE
   
   /* NOTE: This protects against the call at the very first time-step of the run. dt = 0 and grackle will complain */
-  if (dt == 0.)
+  if (dt == 0.0)
     return u_old;
   
-  u = CallGrackle(u_old, rho, dt, ne_guess, i, 0);
+  u = CallGrackle(u_old, rho, dt, i, 0);
   return u;
 
 #endif /* ifdef USE_GRACKLE */
@@ -211,7 +209,7 @@ double GetCoolingTime(double u_old, double rho, double *ne_guess, int i)
   
 #ifdef USE_GRACKLE
 
-  LambdaNet = CallGrackle(u_old, rho, 0.0, ne_guess, i, 1);
+  LambdaNet = CallGrackle(u_old, rho, 0.0, i, 1);
   if(LambdaNet >= 0) 
       LambdaNet = 0.0;
     
@@ -927,8 +925,8 @@ void cool_cell(int i)
 
   dtcool = dtime;
 
-  ne         = SphP[i].Ne; /* electron abundance (gives ionization state and mean molecular weight) */
-  unew       = DoCooling(dmax(All.MinEgySpec, SphP[i].Utherm), dens * All.cf_a3inv, dtcool, &ne, i);
+  ne = SphP[i].Ne; /* electron abundance (gives ionization state and mean molecular weight) */
+  unew = DoCooling(dmax(All.MinEgySpec, SphP[i].Utherm), dens * All.cf_a3inv, dtcool, &ne, i);
   SphP[i].Ne = ne;
 
   if(unew < 0)
@@ -949,5 +947,3 @@ void cool_cell(int i)
 
   set_pressure_of_cell(i);
 }
-
-#endif /* #ifdef COOLING */

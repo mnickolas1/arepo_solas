@@ -33,7 +33,7 @@
  *
  * - DD.MM.YYYY Description
  * - 04.05.2018 Prepared file for public release -- Rainer Weinberger
- *  - 10/10/2025 Added functionality to compute initial smoothing lengths for stars and black holes - Chris Power
+ * - 10/10/2025 Added functionality to compute initial smoothing lengths for stars and black holes - Chris Power
  */
 
 #include <gsl/gsl_sf_gamma.h>
@@ -41,12 +41,15 @@
 #include <mpi.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
+
+#include "../fof/fof_seeding.h"
 
 #include "../../celib/src/config.h"
 
@@ -59,7 +62,7 @@
  *  are determined.
  *
  *  \return status code: <0 if finished without errors and run can start,
- *          0 code ends after calling init()  > 0 an error occurred, terminate.
+ *          0 code ends after calling init()   0 an error occurred, terminate.
  */
 int init(void)
 {
@@ -309,6 +312,12 @@ int init(void)
 
   for(i = 0; i < NumGas; i++) /* initialize sph_properties */
     {
+#ifdef HALO_SEEDING
+      /* always reset: refreshed at the first on-the-fly FOF pass, and older
+         snapshots may not contain the HostHaloMass block */
+      SphP[i].HostHaloMass = 0;
+#endif /* #ifdef HALO_SEEDING */
+
       if(RestartFlag == 2 || RestartFlag == 3)
         for(j = 0; j < 3; j++)
           SphP[i].Center[j] = P[i].Pos[j];
@@ -373,9 +382,9 @@ int init(void)
     {
       mark_active_timebins();
       open_logfiles();
-#if defined(USE_SFR) && defined(EEOS_SF)
+#ifdef EEOS_SF
       sfr_init();
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef EEOS_SF */
       set_non_standard_physics_for_current_time();
 
 #ifdef PMGRID
@@ -400,6 +409,13 @@ int init(void)
   /* will build tree */
   ngb_treeallocate();
   ngb_treebuild(NumGas);
+
+#ifdef HALO_SEEDING
+#ifndef FOF
+#error "HALO_SEEDING is only implemented for FOF."
+#endif /* #ifndef FOF */
+  fof_seeding_init(RestartFlag);
+#endif
  
   if(RestartFlag == 3)
     {
@@ -417,10 +433,10 @@ int init(void)
   {
       mpi_printf("Finding smoothing lengths on local processor %d\n", ThisTask);
       setup_smoothinglengths();
-#if defined(STARS) || defined(BLACKHOLES)
-      mpi_printf("Finding smoothing lengths for stars and black holes on local processor %d\n", ThisTask);
-      setup_smoothinglengths_particles();
-#endif /* #if defined(STARS) || defined(BLACKHOLES) */
+#if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
+      //mpi_printf("Finding smoothing lengths for stars and black holes on local processor %d\n", ThisTask);
+      //setup_smoothinglengths_particles();
+#endif 
   }
 
 #ifdef ADDBACKGROUNDGRID
@@ -438,7 +454,8 @@ int init(void)
       write_voronoi_mesh(&Mesh, tess_name, 0, NTask - 1);
       return 0;
     }
-
+  
+  /* Set up gas properties */  
   for(i = 0, mass = 0; i < NumGas; i++)
     {
       if(RestartFlag == 0)
@@ -480,20 +497,16 @@ int init(void)
       mass += P[i].Mass;
     }
 
-/* NOTE: The metals have to be initialised before the PASSIVE_SCALARS.
- * The value in the PScalars are set to zero during reading ICs. If PConservedScalars are set to zero,
- * this the same as no advection!
- * */
-#ifdef METALS
-  for(i=0; i<NumGas; i++)
-      SphP[i].Metals = All.InitMetallicityinSolar * SOLAR_ABUNDANCE;
-#endif /* ifdef METALS */
+#if PASSIVE_SCALARS > 0
+  init_passive_scalars();
+#endif
 
-#ifdef PASSIVE_SCALARS
-  for(i = 0; i < NumGas; i++)
-      for(j = 0; j < PASSIVE_SCALARS; j++)
-        SphP[i].PConservedScalars[j] = SphP[i].PScalars[j] * P[i].Mass;
-#endif /* #ifdef PASSIVE_SCALARS */
+#ifdef METALS
+#ifdef STARS
+  for(i = 0; i < NumStars; i++)
+    SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+#endif
+#endif
 
   if(RestartFlag == 17)
     {
@@ -513,14 +526,14 @@ int init(void)
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
   /* initialize star formation rate */
-#if defined(USE_SFR) && defined(EEOS_SF)
+#ifdef EEOS_SF
   sfr_init();
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef EEOS_SF */
 
-#if defined(USE_SFR)
+#ifdef USE_SFR
   for(i = 0; i < NumGas; i++)
     SphP[i].Sfr = get_starformation_rate(i);
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef USE_SFR */
 
   update_primitive_variables();
 
@@ -537,38 +550,72 @@ int init(void)
 
   free_mesh();
 
-#if defined(STARS) || defined(BH_WITH_FEEDBACK)
-  /* initialize feedback variables */
-  All.FeedbackFlag = 1;
-  All.EnergyExchange[0] = All.EnergyExchange[1] = 0;
-  All.EnergyExchange[2] = All.EnergyExchange[3] = 0;
-  All.EnergyExchange[4] = All.EnergyExchange[5] = 0;
-
-  double *exch = All.EnergyExchangeTot;
-  exch = malloc(6 * sizeof(double));
-#endif 
-/*
-#ifdef STARS
-   
-  for(i=0; i<NumStars; i++)
+#ifdef STAR_PARTICLES
+if(ThisTask == 0)
   {
-    SP[i].Metals = 0.0004;
+    build_imf_cdf();
 
-    struct CELibStructNextEventTimeInput Input = 
-      {
-        .R = (double)rand()/(double)RAND_MAX,
-        .InitialMass_in_Msun = (PPS(i).Mass * All.UnitMass_in_g / SOLAR_MASS),
-        .Metallicity = SP[i].Metals
-      };
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
+    setup_mass_bins();
+#endif
 
-    SP[i].SNIITime = CELibGetNextEventTime(Input, CELibFeedbackType_SNII) 
-      / (1.e6) / All.UnitTime_in_Megayears;
-
-    //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
+#if STAR_PARTICLES == 0
+    setup_imf_integrals();
+#endif
   }
+MPI_Bcast(cdf_masses, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+MPI_Bcast(cdf_values, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
+MPI_Bcast(StarMeanMassInBins, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+
+#if STAR_PARTICLES == 0
+MPI_Bcast(&norm, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+MPI_Bcast(bin_imf, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+#include <gsl/gsl_rng.h>
+
+rng = gsl_rng_alloc(gsl_rng_mt19937);
+gsl_rng_set(rng, ThisTask + 1);
+#endif
 
 #endif
-*/
+
+#ifdef STAR_FEEDBACK_ACTIVE  
+  mpi_printf("Loading star evolution tables\n");
+  load_star_tables(All.StarTablesFile);
+
+  feedback_init(&MechanicalFeedbackEvents);
+
+  for(i = 0; i < NumStars; i++)
+    SP[i].WithFeedback = 1;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  init_h2shield();
+  start_healpix();
+#endif
+
+#ifdef BH_ACCRETION_ACTIVE 
+  for(i=0; i < 2; i++)
+    All.BhAccretionLocal[i] = 0;
+  
+  double *bag = All.BhAccretionGlobal;
+  bag = malloc(2 * sizeof(double));
+#endif 
+
+#ifdef BH_FEEDBACK_ACTIVE 
+  srand((unsigned int)time(NULL));
+  All.FeedbackFlag = 1;
+
+  for(i=0; i < 2; i++)
+    All.BhFeedbackLocal[i] = 0;
+  
+  double *bfg = All.BhFeedbackGlobal;
+  bfg = malloc(2 * sizeof(double));
+#endif 
+
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
 }
 
@@ -742,6 +789,7 @@ void setup_smoothinglengths(void)
 #endif /* #ifdef FIX_SPH_PARTICLES_AT_IDENTICAL_COORDINATES */
 }
 
+#ifdef TODO
 /*! \brief This function is used to find an initial SPH smoothing length for
  *         stars and black holes
  *
@@ -777,12 +825,14 @@ void setup_smoothinglengths_particles(void)
 
   construct_forcetree(0, 1, 0, 0); /* build force tree with all particles only */
 
-#ifdef STARS
+#ifdef STAR_FEEDBACK_ACTIVE
   TimeBinsStar.NActiveParticles = 0;
 #endif /* #ifdef STARS */
-#ifdef BLACKHOLES
+
+#if defined(BH_ACCRETION_ACTIVE) ||defined(BH_FEEDBACK_ACTIVE)
   TimeBinsBh.NActiveParticles = 0;
 #endif /* #ifdef BLACKHOLES */
+
 
   for(i = 0; i < NumPart; i++)
     {
@@ -793,6 +843,7 @@ void setup_smoothinglengths_particles(void)
 #ifdef STARS
       if (P[i].Type==4) DesNgb=All.StarDesNgb;
 #endif
+
 #ifdef BLACKHOLES
       if (P[i].Type==5) DesNgb=All.BhDesNgb;
 #endif
@@ -825,6 +876,7 @@ void setup_smoothinglengths_particles(void)
         TimeBinsStar.NActiveParticles++;  
       }
 #endif /* #ifdef STARS */
+
 #ifdef BLACKHOLES
       if(P[i].Type == 5)
       {
@@ -859,6 +911,7 @@ void setup_smoothinglengths_particles(void)
 
   myfree(save_masses);
 }
+#endif
 
 /*! \brief This function checks for unique particle IDs.
  *

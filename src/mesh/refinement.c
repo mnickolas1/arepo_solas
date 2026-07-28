@@ -37,10 +37,6 @@
 #ifdef REFINEMENT
 #include "../main/proto.h"
 
-#if defined(REFINEMENT_MERGE_CELLS) && defined(REFINEMENT_SPLIT_CELLS)
-char *FlagDoNotRefine;
-#endif /* #if defined (REFINEMENT_MERGE_CELLS) && defined (REFINEMENT_SPLIT_CELLS) */
-
 static void refinement_prepare();
 static void refinement_cleanup();
 
@@ -172,13 +168,15 @@ void move_collisionless_particle(int new_i, int old_i)
   struct TimeBinData *tbData;
 
   P[new_i] = P[old_i];
-#ifdef BLACKHOLES
-  if(P[new_i].Type==5)
-    BPP(new_i).PID = new_i;
-#endif
+
 #ifdef STARS
-  if(P[new_i].Type==4)
+  if(P[new_i].Type == 4)
     SPP(new_i).PID = new_i;
+#endif
+
+#ifdef BLACKHOLES
+  if(P[new_i].Type == 5)
+    BPP(new_i).PID = new_i;
 #endif
 
   if(P[old_i].Mass == 0 && P[old_i].ID == 0)

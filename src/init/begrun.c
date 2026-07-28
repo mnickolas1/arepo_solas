@@ -61,10 +61,6 @@ herr_t my_hdf5_error_handler(void *unused);
 
 #include <time.h>
 
-#ifdef USE_CELIB
-#include "CELib.h"
-#endif
-
 static void delete_end_file(void);
 
 /*! \brief Prints a welcome message.
@@ -155,13 +151,13 @@ void begrun1(void)
   timebins_init(&TimeBinsHydro, "Hydro", &All.MaxPartSph);
   timebins_init(&TimeBinsGravity, "Gravity", &All.MaxPart);
 
-#ifdef BLACKHOLES 
-  timebins_init(&TimeBinsBh, "Bh", &All.MaxPartBhs);
-#endif /* BLACKHOLES */
-
-#ifdef STARS 
+#ifdef STAR_FEEDBACK_ACTIVE 
   timebins_init(&TimeBinsStar, "Star", &All.MaxPartStars);
-#endif /* STARS */
+#endif 
+
+#ifdef BH_ACTIVE
+  timebins_init(&TimeBinsBh, "Bh", &All.MaxPartBhs);
+#endif 
 
 #if defined(COOLING)
   All.Time = All.TimeBegin;
@@ -233,22 +229,9 @@ void begrun2(void)
   if(RestartFlag > 2)
     open_logfiles();
 
-#ifdef USE_CELIB
-    /* celib init */
-    if(ThisTask == 0)
-      CELibShowVersion();
-  
-    CELibInit();
-    
-    srand((unsigned int)time(NULL));
-  
-    if(ThisTask == 0)
-      CELibShowCurrentStatus();
-#endif
-
-#if defined(USE_SFR) && defined(EEOS_SF)   /* For the default SF scheme in Arepo */
+#ifdef EEOS_SF  /* For the default SF scheme in Arepo */
   sfr_init();
-#endif /* #if defined(USE_SFR) && defined(EEOS_SF) */
+#endif /* #ifdef EEOS_SF */
 
 #ifdef PMGRID
   long_range_init_regionsize();
@@ -269,15 +252,16 @@ void begrun2(void)
       All.Ti_nextoutput = find_next_outputtime(All.Ti_Current);
   }
 
+#ifdef HALO_SEEDING
+  if(RestartFlag != 1) /* when restarting from restart files, All.NextTimeOfHaloFinding is restored from them */
+    All.NextTimeOfHaloFinding = All.TimeOfFirstHaloFinding;
+#endif /* #ifdef HALO_SEEDING */
+
   All.TimeLastRestartFile = CPUThisRun;
 
 #ifdef REDUCE_FLUSH
   All.FlushLast = CPUThisRun;
 #endif /* #ifdef REDUCE_FLUSH */
-
-#ifdef FIND_HALOS
-  All.NextTimeOfHaloFinding=All.TimeOfFirstHaloFinding;
-#endif
 
 #if defined(FORCETEST) && defined(FORCETEST_TESTFORCELAW)
   gravity_forcetest_testforcelaw();
@@ -335,9 +319,9 @@ void set_units(void)
       mpi_printf("BEGRUN: MinEgySpec set to %g based on MinGasTemp=%g\n", All.MinEgySpec, All.MinGasTemp);
     }
 
-#if defined(USE_SFR)
+#if defined EEOS_SF
   set_units_sfr();
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef EEOS_SF */
 
 #ifdef STATICNFW
   R200    = pow(NFW_M200 * All.G / (100 * All.Hubble * All.Hubble), 1.0 / 3);

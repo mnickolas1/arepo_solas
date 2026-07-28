@@ -125,6 +125,26 @@ void create_mesh(void)
   reconstruct_timebins();
 #endif /* #ifdef CREATE_FULL_MESH */
 
+#if !defined(CREATE_FULL_MESH) && (defined(WINDS) || defined(SUPERNOVAE))
+  int j;
+
+  short int *FeedbackTimeBin = mymalloc_movable(&FeedbackTimeBin, "FeedbackTimeBin", NumGas * sizeof(short int));
+
+  for(j = 0; j < NumGas; j++)
+    {
+      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+        continue;
+      
+      if(SphP[j].Host)
+        {
+          FeedbackTimeBin[j] = P[j].TimeBinHydro;
+          P[j].TimeBinHydro = 0;
+        }
+    }
+
+  reconstruct_timebins();
+#endif
+
   int tlast;
   int idx, i, iter = 0, n, skip;
   double tstart, tend;
@@ -448,6 +468,23 @@ void create_mesh(void)
 
   myfree_movable(buTimeBin);
 #endif /* #if defined(CREATE_FULL_MESH) */
+
+#if !defined(CREATE_FULL_MESH) && (defined(WINDS) || defined(SUPERNOVAE))
+  for(j = 0; j < NumGas; j++)
+    {
+      if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)
+        continue;
+
+      if(SphP[j].Host)
+        {
+          P[j].TimeBinHydro = FeedbackTimeBin[j];
+        }
+    }
+    
+  reconstruct_timebins();
+
+  myfree_movable(FeedbackTimeBin);
+#endif 
 }
 
 /*! \brief Routine that fetches local gas cells.

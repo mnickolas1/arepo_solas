@@ -86,7 +86,6 @@ void set_cosmo_factors_for_current_time(void)
       All.cf_afac3    = pow(All.Time, 3 * (1 - GAMMA) / 2.0);
       All.cf_hubble_a = All.cf_H = All.cf_Hrate = hubble_function(All.Time);
       All.cf_time_hubble_a                      = All.Time * All.cf_hubble_a;
-      All.cf_time_hubble_a                      = All.Time * All.cf_hubble_a;
       All.cf_redshift                           = 1 / All.Time - 1;
     }
   else
@@ -103,6 +102,41 @@ void set_cosmo_factors_for_current_time(void)
       All.cf_Hrate         = 0;
       All.cf_redshift      = 0;
     }
+
+  set_cf_units();
+  
+}
+
+void set_cf_units(void)
+{
+  double a, H, h;
+
+  a = All.cf_atime;
+  H = All.cf_hubble_a;
+  h = All.HubbleParam;
+    
+  /* Multiply internal quantity by cf to get physical CGS.
+   * Length, mass, time all carry h^-1.
+   * Momentum and energy also absorb the canonical a factors
+   * so that feedback injections are just += feed_cgs / cf. */
+        
+  All.cf_UnitTime_in_s            = All.UnitTime_in_s / H / h;                  
+  All.cf_UnitMass_in_g            = All.UnitMass_in_g / h;                       
+  All.cf_UnitVelocity_in_cm_per_s = All.UnitVelocity_in_cm_per_s;
+  All.cf_UnitLength_in_cm         = a * All.UnitLength_in_cm / h;                       
+  All.cf_UnitDensity_in_cgs       = All.UnitDensity_in_cgs * h*h / a/a/a;     
+  All.cf_UnitPressure_in_cgs      = All.UnitDensity_in_cgs * h*h / a/a/a 
+                                    * All.UnitVelocity_in_cm_per_s
+                                    * All.UnitVelocity_in_cm_per_s;                  
+  All.cf_UnitMomentum_in_cgs      = All.UnitMass_in_g / h 
+                                    * All.UnitVelocity_in_cm_per_s / a;                    
+  All.cf_UnitEnergy_in_cgs        = All.UnitMass_in_g / h
+                                    * All.UnitVelocity_in_cm_per_s
+                                    * All.UnitVelocity_in_cm_per_s
+                                    / a/a;  
+  
+  All.cf_UnitTime_in_yr   = All.cf_UnitTime_in_s / SEC_PER_YEAR;
+  All.cf_UnitMass_in_Msun = All.cf_UnitMass_in_g / SOLAR_MASS;                                 
 }
 
 /*! \brief Finds hydrodynamic timesteps for all particles.
@@ -138,6 +172,27 @@ void find_timesteps_without_gravity(void)
         continue;
 
       ti_step = get_timestep_gravity(i);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      if(P[i].Type == 4)
+        {
+          integertime ti_star_step = star_timestep(P[i].SID);
+          
+          if(ti_star_step < ti_step)
+            ti_step = ti_star_step;
+        }
+#endif
+
+#ifdef BH_ACTIVE
+      if(P[i].Type == 5)
+        {
+          integertime ti_bh_step = bh_timestep(P[i].BhID);
+          
+          if(ti_bh_step < ti_step)
+            ti_step = ti_bh_step;
+        }
+#endif
+
       if(ti_step < globTimeStep)
         globTimeStep = ti_step;
     }
@@ -391,7 +446,7 @@ integertime get_timestep_hydro(int p)
 
   dt = dt_courant;
 
-#if defined(USE_SFR)
+#if defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
 
   if(P[p].Type == 0) /* to protect using a particle that has been turned into a star */
     {
@@ -412,6 +467,13 @@ integertime get_timestep_hydro(int p)
   if(dt_powell < dt)
     dt = dt_powell;
 #endif /* #ifdef MHD_POWELL_LIMIT_TIMESTEP */
+
+#ifdef PHOTOIONIZATION
+  double dt_rad = SphP[p].RT_Timestep;
+  
+  if(dt_rad != 0 && dt_rad < dt) 
+    dt = dt_rad;
+#endif
 
   /* convert the physical timestep to dloga if needed. Note: If comoving integration has not been selected,
      All.cf_hubble_a=1.
@@ -497,6 +559,26 @@ int test_if_grav_timestep_is_too_large(int p, int bin)
   integertime ti_step_bin = bin ? (((integertime)1) << bin) : 0;
 
   integertime ti_step = get_timestep_gravity(p);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  if(P[p].Type == 4)
+    {
+      integertime ti_star_step = star_timestep(P[p].SID);
+          
+      if(ti_star_step < ti_step)
+        ti_step = ti_star_step;
+    }
+#endif
+
+#ifdef BH_ACTIVE
+      if(P[p].Type == 5)
+        {
+          integertime ti_bh_step = bh_timestep(P[p].BhID);
+          
+          if(ti_bh_step < ti_step)
+            ti_step = ti_bh_step;
+        }
+#endif
 
   if(P[p].Type == 0)
     {

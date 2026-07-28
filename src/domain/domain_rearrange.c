@@ -55,7 +55,7 @@
  */
 void domain_rearrange_particle_sequence(void)
 {
-#if defined(USE_SFR)
+#ifdef USE_SFR
   if(Stars_converted)
     {
       struct particle_data psave;
@@ -75,7 +75,7 @@ void domain_rearrange_particle_sequence(void)
             Key[NumGas - 1] = key;
 
 #ifdef STARS
-            SPP(NumGas-1).PID = NumGas-1;
+            SPP(NumGas - 1).PID = NumGas - 1;
 #endif
             NumGas--;
             i--;
@@ -85,9 +85,9 @@ void domain_rearrange_particle_sequence(void)
        */
       Stars_converted = 0;
     }
-#endif /* #if defined(USE_SFR) */
+#endif /* #ifdef USE_SFR */
 
-#if defined(REFINEMENT_MERGE_CELLS)
+#ifdef REFINEMENT_MERGE_CELLS
   int i, count_elim, count_gaselim;
 
   count_elim    = 0;
@@ -104,14 +104,17 @@ void domain_rearrange_particle_sequence(void)
 
             P[NumGas - 1]   = P[NumPart - 1];
             Key[NumGas - 1] = Key[NumPart - 1];
-#ifdef BLACKHOLES
-            if (P[NumGas - 1].Type == 5)
-              BPP(NumGas - 1).PID = NumGas - 1;
-#endif
+
 #ifdef STARS
-            if (P[NumGas - 1].Type == 4)
+            if(P[NumGas - 1].Type == 4)
               SPP(NumGas - 1).PID = NumGas - 1;
 #endif
+
+#ifdef BLACKHOLES
+            if(P[NumGas - 1].Type == 5)
+              BPP(NumGas - 1).PID = NumGas - 1;
+#endif
+
             NumGas--;
             count_gaselim++;
           }
@@ -135,5 +138,5 @@ void domain_rearrange_particle_sequence(void)
   All.TotNumPart -= tot[0];
   All.TotNumGas -= tot[1];
 
-#endif /* #if defined(REFINEMENT_MERGE_CELLS */
+#endif /* #ifdef REFINEMENT_MERGE_CELLS */
 }

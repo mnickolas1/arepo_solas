@@ -1,19 +1,63 @@
-#include <gsl/gsl_math.h>
+#include <stdlib.h>       
 #include <math.h>
-#include <mpi.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <gsl/gsl_math.h>              
+#include <mpi.h>            
+  
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
 
-static int star_density_evaluate(int target, int mode, int threadid);
+
+/* Pass counter: 1 = find host cell, 2 = gather feedback properties */
+static int pass;
+
+static int star_density_evaluate1(int target, int mode, int threadid);
+static int star_density_evaluate2(int target, int mode, int threadid);
+
+/* Thin dispatcher - keeps kernel_local/kernel_imported untouched */
+static int star_density_evaluate(int target, int mode, int threadid)
+{
+  if(pass == 1)
+    return star_density_evaluate1(target, mode, threadid);
+  if(pass == 2)
+    return star_density_evaluate2(target, mode, threadid);
+
+  terminate("Star_density_evaluate: invalid pass value %d\n", pass);
+  return -1;
+}
+
 static int star_density_isactive(int n);
 
-static MyFloat *StarNumNgb;
+static int feedback_compare(const void *a, const void *b)
+{
+  const Mechanical_Feedback_Data *da = a;
+  const Mechanical_Feedback_Data *db = b;
+
+  if(da->HostIndex < db->HostIndex) return -1;
+  if(da->HostIndex > db->HostIndex) return 1;
+
+  if(da->StarTask < db->StarTask) return -1;
+  if(da->StarTask > db->StarTask) return 1;
+
+  if(da->StarIndex < db->StarIndex) return -1;
+  if(da->StarIndex > db->StarIndex) return 1;
+
+  return 0;
+}
+
+static int *StarNgbs;
+static int *StarHostIndex;
+static int *StarHostTask;
+static MyFloat *StarHostDistance;
+
+struct Data 
+{
+  int StarIndex; 
+  int StarTask; 
+  int HostIndex; 
+  int HostTask; 
+};
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
  *         to other processors if needed. Type called data_in and static
@@ -22,6 +66,16 @@ static MyFloat *StarNumNgb;
 typedef struct
 {
   MyDouble Pos[3];
+  
+  struct Data Data;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  MyDouble TimeToSN;
+  MyDouble NextSNEnergy;
+#endif  
+
+  Mechanical_Feedback MechanicalFeedback;
+
   MyFloat Hsml;
   int Firstnode;
 } data_in;
@@ -39,11 +93,33 @@ static data_in *DataIn, *DataGet;
  */
 static void particle2in(data_in *in, int i, int firstnode)
 {
-  in->Pos[0]        = PPS(i).Pos[0];
-  in->Pos[1]        = PPS(i).Pos[1];
-  in->Pos[2]        = PPS(i).Pos[2];
-  in->Hsml          = SP[i].Hsml;
-  in->Firstnode     = firstnode;
+  for(int j = 0; j < 3; j++)
+    in->Pos[j] = PPS(i).Pos[j];
+  
+  if(pass == 1)
+    {
+      in->Data.StarIndex = -1;
+      in->Data.StarTask = -1;
+      in->Data.HostIndex = -1;
+      in->Data.HostTask = -1;
+    }
+  if(pass == 2)
+    {
+      in->Data.StarIndex = i;
+      in->Data.StarTask = ThisTask;
+      in->Data.HostIndex = StarHostIndex[i];
+      in->Data.HostTask = StarHostTask[i];
+    }
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+  in->TimeToSN = SP[i].TimeToSN;
+  in->NextSNEnergy = SP[i].NextSNEnergy;
+#endif  
+
+  in->MechanicalFeedback = SP[i].MechanicalFeedback;
+
+  in->Hsml = SP[i].Hsml;
+  in->Firstnode = firstnode;
 }  
 
 /*! \brief Local data structure that holds results acquired on remote
@@ -51,12 +127,15 @@ static void particle2in(data_in *in, int i, int firstnode)
  *         DataOut needed by generic_comm_helpers2.
  */
 typedef struct
-{
-  MyDouble Ngb;
-  MyDouble Rho;
-  MyDouble Mass;
-  MyDouble Volume;
-  integertime NgbMinStep;
+{ 
+  /* Pass 1 outputs */
+  int Ngbs;
+  int HostIndex;
+  int HostTask;
+  MyFloat HostDistance;
+
+  /* Pass 2 outputs */
+  int HostHydroBin;
 } data_out;
 
 static data_out *DataResult, *DataOut;
@@ -74,22 +153,45 @@ static data_out *DataResult, *DataOut;
  */
 static void out2particle(data_out *out, int i, int mode)
 {
-  if(mode == MODE_LOCAL_PARTICLES) /* initial store */
+  /* Initial store */
+  if(mode == MODE_LOCAL_PARTICLES) 
     {
-      StarNumNgb[i]                   = out->Ngb;
-      SP[i].Density                   = out->Rho;
-      SP[i].NgbMass                   = out->Mass;
-      SP[i].NgbVolume                 = out->Volume;
-      SP[i].NgbMinStep                = out->NgbMinStep;
+      /* Pass 1 outputs */
+      if(pass == 1)
+        {
+          StarNgbs[i] = out->Ngbs;
+          StarHostIndex[i] = out->HostIndex;
+          StarHostTask[i] = out->HostTask;
+          StarHostDistance[i] = out->HostDistance;
+        }
+
+      /* Pass 2 outputs */
+      if(pass == 2)
+        {
+          SP[i].HostHydroBin = out->HostHydroBin;
+        }
     }
-  else /* combine */
+  /* Combine */
+  else 
     {
-      StarNumNgb[i]                   += out->Ngb;
-      SP[i].Density                   += out->Rho;
-      SP[i].NgbMass                   += out->Mass;
-      SP[i].NgbVolume                 += out->Volume;
-      if(out->NgbMinStep < SP[i].NgbMinStep)
-        SP[i].NgbMinStep               = out->NgbMinStep;
+      /* Pass 1 outputs */
+      if(pass == 1)
+        {
+          StarNgbs[i] += out->Ngbs;
+          if(out->HostDistance < StarHostDistance[i])
+            {
+              StarHostIndex[i] = out->HostIndex;
+              StarHostTask[i] = out->HostTask;
+              StarHostDistance[i] = out->HostDistance;
+            }
+        }
+
+      /* Pass 2 outputs */
+      if(pass == 2)
+        {
+          if(!SP[i].HostHydroBin)
+            SP[i].HostHydroBin = out->HostHydroBin;
+        }
     }
 }
 
@@ -104,35 +206,31 @@ static void out2particle(data_out *out, int i, int mode)
  */
 static void kernel_local(void)
 {
-  int i, idx;
+  int idx, i, j;
 
-  {
-    int j, threadid = get_thread_num();
+  int threadid = get_thread_num();
 
-    for(j = 0; j < NTask; j++)
-      Thread[threadid].Exportflag[j] = -1;
+  for(j = 0; j < NTask; j++)
+    Thread[threadid].Exportflag[j] = -1;
 
-    while(1)
-      {
-        if(Thread[threadid].ExportSpace < MinSpace)
-          break;
+  while(1)
+    {
+      if(Thread[threadid].ExportSpace < MinSpace)
+        break;
 
-        //i = NextParticle++;
+      idx = NextParticle++;
 
-        //if(i >= NumStars)
-        //  break;
-        
-        idx = NextParticle++;
+      if(idx >= TimeBinsStar.NActiveParticles)
+        break;
 
-        if(idx >= TimeBinsStar.NActiveParticles)
-          break;
+      i = TimeBinsStar.ActiveParticleList[idx];
 
-        i = TimeBinsStar.ActiveParticleList[idx];
-
-        if(star_density_isactive(i))
-          star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
-      }
-  }
+      if(SP[i].WithFeedback == 0)
+        continue;
+      
+      if(star_density_isactive(i))
+        star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
+    }
 }
 
 /*! \brief Routine that defines what to do with imported particles.
@@ -143,21 +241,20 @@ static void kernel_local(void)
  */
 static void kernel_imported(void)
 {
-  /* now do the particles that were sent to us */
+  /* Now do the particles that were sent to us */
   int i, cnt = 0;
-  {
-    int threadid = get_thread_num();
 
-    while(1)
-      {
-        i = cnt++;
+  int threadid = get_thread_num();
 
-        if(i >= Nimport)
-          break;
+  while(1)
+    {
+      i = cnt++;
 
-        star_density_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
-      }
-  }
+      if(i >= Nimport)
+        break;
+
+      star_density_evaluate(i, MODE_IMPORTED_PARTICLES, threadid);
+    }
 }
 
 /*! \brief Main function of SPH density calculation.
@@ -174,90 +271,71 @@ static void kernel_imported(void)
  */
 void star_density(void)
 {
-  MyFloat *Left, *Right;
+  TIMER_START(CPU_STARS_DENSITY);
+  
   int idx, i, npleft, iter = 0;
   long long ntot;
   double t0, t1;
 
-  CPU_Step[CPU_MISC] += measure_time();
+  pass = 0;
 
-  StarNumNgb  = (MyFloat *)mymalloc("StarNumNgb", NumStars * sizeof(MyFloat));
-  Left      = (MyFloat *)mymalloc("Left", NumStars * sizeof(MyFloat));
-  Right     = (MyFloat *)mymalloc("Right", NumStars * sizeof(MyFloat));
+  StarNgbs = (int *)mymalloc("StarNgbs", NumStars * sizeof(int));
+  StarHostIndex = (int *)mymalloc("StarHostIndex", NumStars * sizeof(int));
+  StarHostTask = (int *)mymalloc("StarHostTask", NumStars * sizeof(int));
+  StarHostDistance = (MyFloat *)mymalloc("StarHostDistance", NumStars * sizeof(MyFloat));
+
+  memset(StarNgbs, 0, NumStars * sizeof(int));
+  memset(StarHostIndex, -1, NumStars * sizeof(int));
+  memset(StarHostTask, -1, NumStars * sizeof(int));
+
+  for(i = 0; i < NumStars; i++)
+    StarHostDistance[i] = MAX_REAL_NUMBER;
 
   for(i = 0; i < NumStars; i++)
     {
-      Left[i] = Right[i] = 0;
+      if(SP[i].WithFeedback == 0)
+        continue;
+
       SP[i].DensityFlag = 1;
-      StarNumNgb[i] = 0;
-      if(SP[i].Hsml == 0)
-        SP[i].Hsml = cbrt((3.0*All.MeanVolume)/(4.0*M_PI));
+      
+      if(SP[i].Hsml <= 0)
+        SP[i].Hsml = All.SofteningTable[PPS(i).SofteningType]; 
     }
+  
+  /* Zero all hosts first */
+  for(i = 0; i < NumGas; i++)
+    SphP[i].Host = 0;
 
   generic_set_MaxNexport();
+  
+  /* Pass 1 - Expand Hsml until we enclose at least one gas cell, then record the closest cell as the host */
 
-  /* we will repeat the whole thing for those particles where we didn't find enough neighbours */
-  do
+  pass++;
+
+  do 
     {
       t0 = second();
 
       generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
 
-      for(idx=0, npleft=0; idx<TimeBinsStar.NActiveParticles; idx++)
+      for(idx = 0, npleft = 0; idx < TimeBinsStar.NActiveParticles; idx++)
         {
           i = TimeBinsStar.ActiveParticleList[idx];
 
-          if(StarNumNgb[i] < (All.StarDesNgb - All.StarDesDev) || StarNumNgb[i] > (All.StarDesNgb + All.StarDesDev))
-          {
-                  /* need to redo this particle */
-            npleft++;
+          if(SP[i].WithFeedback == 0)
+            continue;
 
-            if(Left[i] > 0 && Right[i] > 0)
-              {
-                if((Right[i] - Left[i]) < 1.0e-3 * Left[i])
-                  {
-                        /* this one should be ok */
-                    npleft--;
-                    SP[i].DensityFlag = -1; /* Mark as inactive */
-                    continue;
-                }
-              } 
-
-            if(StarNumNgb[i] < (All.StarDesNgb - All.StarDesDev))
-              Left[i] = dmax(SP[i].Hsml, Left[i]);
-            else
-              {
-                if(Right[i] != 0)
-                  {
-                    if(SP[i].Hsml < Right[i])
-                        Right[i] = SP[i].Hsml;
-                  }
-                    else
-                        Right[i] = SP[i].Hsml;
-              }
-
-            if(Right[i] > 0 && Left[i] > 0)
-                SP[i].Hsml = pow(0.5 * (pow(Left[i], 3) + pow(Right[i], 3)), 1.0 / 3);
-            else
-              {
-                if(Right[i] == 0 && Left[i] == 0)
-                    terminate("should not occur");
-
-                if(Right[i] == 0 && Left[i] > 0)
-                  {
-                    SP[i].Hsml *= 1.26;
-                  }
-
-                if(Right[i] > 0 && Left[i] == 0)
-                  {
-                    SP[i].Hsml /= 1.26;
-                  }
-              }
-          }
-        else
-             SP[i].DensityFlag = -1; /* Mark as inactive */ 
+          if(StarNgbs[i] < 1)
+            {
+              npleft++;
+              
+              SP[i].Hsml *= 2;
+            }
+          else
+            /* Mark as inactive */
+            SP[i].DensityFlag = -1; 
         }
-
+     
       sumup_large_ints(1, &npleft, &ntot);
 
       t1 = second();
@@ -271,25 +349,49 @@ void star_density(void)
                        timediff(t0, t1));
 
           if(iter > MAXITER)
-          {
-              terminate("failed to converge in neighbour iteration in star_density()\n");
-          }
+            terminate("failed to converge in neighbour iteration in star_density()\n");
         }
     }
   while(ntot > 0);
 
-  myfree(Right);
-  myfree(Left);
-  myfree(StarNumNgb);
+  /* Pass 2 - Add star feedback properties to the host cell */
 
-  /* mark as active again */
+  /* Re-activate all stars */
   for(i = 0; i < NumStars; i++)
     {
-     SP[i].DensityFlag = 1;
+      if(SP[i].WithFeedback == 0)
+        continue;
+
+      SP[i].DensityFlag = 1;
     }
+
+  pass++;
+
+  generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
+
+  /* Clean up */
+  for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
+    {
+      i = TimeBinsStar.ActiveParticleList[idx];
+
+      memset(&SP[i].MechanicalFeedback, 0, sizeof(Mechanical_Feedback));
+    }
+
+  /* Sort the hosts list */
+  mysort(MechanicalFeedbackEvents.MechanicalFeedbackData, MechanicalFeedbackEvents.NumEvents, 
+  sizeof(Mechanical_Feedback_Data), feedback_compare);
+
+  /* Find the total number of events */
+  sumup_large_ints(1, &MechanicalFeedbackEvents.NumEvents, &MechanicalFeedbackEvents.TotEvents);
+
+  /* Free arrays */
+  myfree(StarHostDistance); 
+  myfree(StarHostTask); 
+  myfree(StarHostIndex); 
+  myfree(StarNgbs);
   
-  /* collect some timing information */
-  CPU_Step[CPU_INIT] += measure_time();
+  /* Collect timing information */
+  TIMER_STOP(CPU_STARS_DENSITY);
 }
 
 /*! \brief Inner function of the SPH density calculation
@@ -304,19 +406,18 @@ void star_density(void)
  *
  *  \return 0
  */
-static int star_density_evaluate(int target, int mode, int threadid)
+static int star_density_evaluate1(int target, int mode, int threadid)
 {
-  int bin = TIMEBINS;
-  int j, n, numngb;
-  int numnodes, *firstnode;
-  double h, h2, hinv, hinv3, hinv4; 
-  double dx, dy, dz, r, r2, u, wk, dwk;
-  MyDouble  rho, mass, volume;
+  int i, n, numnodes, *firstnode;
+  MyDouble xtmp, ytmp, ztmp;  
+  MyDouble h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos;
-  integertime ngb_min_step;
+
+  int ngbs = 0, host_index = -1, host_task = -1;
+  MyFloat host_distance = MAX_REAL_NUMBER;
   
   data_in local, *target_data;
-  data_out out;
+  data_out out = {0};
 
   if(mode == MODE_LOCAL_PARTICLES)
     {
@@ -333,87 +434,160 @@ static int star_density_evaluate(int target, int mode, int threadid)
       generic_get_numnodes(target, &numnodes, &firstnode);
     }
 
-  pos  = target_data->Pos;
-  h    = target_data->Hsml;
-  h2   = h * h;
-  hinv = 1.0 / h;
-#ifndef TWODIMS
-  hinv3 = hinv * hinv * hinv;
-#else  /* #ifndef  TWODIMS */
-  hinv3 = hinv * hinv / boxSize_Z;
-#endif /* #ifndef  TWODIMS #else */
-  hinv4 = hinv3 * hinv;
-
-  numngb = rho = mass = volume = 0;
+  pos = target_data->Pos;
+  h = target_data->Hsml;
+  h2 = h * h;
 
   int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
 
   for(n = 0; n < nfound; n++)
     {
-      j = Thread[threadid].Ngblist[n];
+      i = Thread[threadid].Ngblist[n];
 
-/* compute star->cell position vectors: posSP-posSphP */
-      dx = pos[0] - P[j].Pos[0];
-      dy = pos[1] - P[j].Pos[1];
-      dz = pos[2] - P[j].Pos[2];
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
 
-#ifndef REFLECTIVE_X
-      if(dx > boxHalf_X)
-        dx -= boxSize_X;
-      if(dx < -boxHalf_X)
-        dx += boxSize_X;
-#endif /* #ifndef REFLECTIVE_X */
+      /* Compute star->cell position vector */
+      dx = NEAREST_X(P[i].Pos[0] - pos[0]);
+      dy = NEAREST_Y(P[i].Pos[1] - pos[1]);
+      dz = NEAREST_Z(P[i].Pos[2] - pos[2]);
 
-#ifndef REFLECTIVE_Y
-      if(dy > boxHalf_Y)
-        dy -= boxSize_Y;
-      if(dy < -boxHalf_Y)
-        dy += boxSize_Y;
-#endif /* #ifndef REFLECTIVE_Y */
-
-#ifndef REFLECTIVE_Z
-      if(dz > boxHalf_Z)
-        dz -= boxSize_Z;
-      if(dz < -boxHalf_Z)
-        dz += boxSize_Z;
-#endif /* #ifndef REFLECTIVE_Z */
       r2 = dx * dx + dy * dy + dz * dz;
 
       if(r2 < h2)
         {
-          numngb++;
+          ngbs++;
 
           r = sqrt(r2);
-
-          u = r * hinv;
-
-          kernel(u, hinv3, hinv4, &wk, &dwk);
-
-/* compute the star density */
-          rho +=  P[j].Mass * wk;
-/* compute the star-ngb-mass */
-          mass += P[j].Mass;
-/* compute the star-ngb-volume */
-          volume += SphP[j].Volume;
-/* compute the min hydro step for neighbors */     
-          if(bin > P[j].TimeBinHydro)
-            bin = P[j].TimeBinHydro;
+              
+          if(r < host_distance)
+            {
+              host_distance = r;
+              host_index = i;
+              host_task = ThisTask;
+            }
         }
     }
 
-/* compute star timestep based on min ngb timestep */
-  if(bin == 0)
-    ngb_min_step = 0;
-  else
-    ngb_min_step   = (((integertime)1) << bin);
-  
-  out.Ngb         = numngb;
-  out.Rho         = rho;
-  out.Mass        = mass;
-  out.Volume      = volume;
-  out.NgbMinStep  = ngb_min_step;
+  out.Ngbs = ngbs;
+  out.HostIndex = host_index;
+  out.HostTask = host_task;
+  out.HostDistance = host_distance;
 
-/* now collect the result at the right place */
+  /* Now collect the result at the right place */
+  if(mode == MODE_LOCAL_PARTICLES)
+    out2particle(&out, target, MODE_LOCAL_PARTICLES);
+  else
+    DataResult[target] = out;
+
+  return 0;
+}
+
+static int star_density_evaluate2(int target, int mode, int threadid)
+{
+  int i, n, numnodes, *firstnode; 
+  MyDouble xtmp, ytmp, ztmp;  
+  MyDouble h, h2, dx, dy, dz, r, r2, wk;
+  MyDouble *pos;
+
+  int hosthydrobin = 0; 
+  int star_index, star_task, host_index, host_task;
+
+  data_in local, *target_data;
+  data_out out = {0};
+
+  if(mode == MODE_LOCAL_PARTICLES)
+    {
+      particle2in(&local, target, 0);
+      target_data = &local;
+
+      numnodes  = 1;
+      firstnode = NULL;
+    }
+  else
+    {
+      target_data = &DataGet[target];
+
+      generic_get_numnodes(target, &numnodes, &firstnode);
+    }
+
+  pos = target_data->Pos;
+  h = target_data->Hsml;
+  h2 = h * h;
+
+  star_index = target_data->Data.StarIndex;
+  star_task = target_data->Data.StarTask;
+  host_index = target_data->Data.HostIndex;
+  host_task = target_data->Data.HostTask;
+
+  int nfound = ngb_treefind_variable_threads(pos, h, target, mode, threadid, numnodes, firstnode);
+
+  for(n = 0; n < nfound; n++)
+    {
+      i = Thread[threadid].Ngblist[n];
+
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
+      /* Compute star->cell position vector */
+      dx = NEAREST_X(P[i].Pos[0] - pos[0]);
+      dy = NEAREST_Y(P[i].Pos[1] - pos[1]);
+      dz = NEAREST_Z(P[i].Pos[2] - pos[2]);
+
+      r2 = dx * dx + dy * dy + dz * dz;
+
+      if(r2 < h2)
+        {
+          if(i == host_index && ThisTask == host_task)
+            {                
+              hosthydrobin = P[i].TimeBinHydro;
+
+#if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
+              /* Limit timestep to resolve the SN */
+              MyDouble time_to_sn = target_data->TimeToSN;
+              MyDouble next_sn_energy = target_data->NextSNEnergy;
+
+              MyDouble sn_lead_time = All.SN_LeadTime / All.UnitTime_in_Megayears;
+          
+              if(time_to_sn < sn_lead_time)
+                {
+                  /* Boost signal speed leading up to an event */
+                  double E_inject_code = next_sn_energy;
+                 
+                  double f = 1.0 - time_to_sn / sn_lead_time;
+                  f = fmin(fmax(f, 0.0), 1.0);
+
+                  double Csn = sqrt(GAMMA * GAMMA_MINUS1 * E_inject_code / P[i].Mass) * f;
+          
+                  if(Csn > SphP[i].Csn)
+                    SphP[i].Csn = Csn;
+                }
+#endif
+
+              /* Setup feedback */
+              SphP[i].Host++;
+
+              /* Reallocate events if needed */
+              if(MechanicalFeedbackEvents.NumEvents >= MechanicalFeedbackEvents.MaxEvents)
+                feedback_reallocate(&MechanicalFeedbackEvents, 2 * MechanicalFeedbackEvents.MaxEvents);
+
+              Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.MechanicalFeedbackData[MechanicalFeedbackEvents.NumEvents++];
+
+              data->StarIndex = star_index;
+              data->StarTask = star_task; 
+              data->HostIndex = host_index;
+              data->HostTask = host_task;
+              data->MechanicalFeedback = target_data->MechanicalFeedback;
+
+              /* Each star has exactly one host - no need to continue */
+              break;
+            }
+        }
+    }
+
+  out.HostHydroBin = hosthydrobin;
+
+  /* now collect the result at the right place */
   if(mode == MODE_LOCAL_PARTICLES)
     out2particle(&out, target, MODE_LOCAL_PARTICLES);
   else

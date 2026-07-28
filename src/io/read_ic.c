@@ -147,11 +147,13 @@ void read_ic(const char *fname, int readTypes)
     {
       NumPart = 0;
       NumGas  = 0;
-#ifdef BLACKHOLES
-      NumBhs  = 0;
-#endif
+
 #ifdef STARS
       NumStars  = 0;
+#endif
+
+#ifdef BLACKHOLES
+      NumBhs  = 0;
 #endif
 
 #if defined(RECOMPUTE_POTENTIAL_IN_SNAPSHOT)
@@ -226,13 +228,15 @@ void read_ic(const char *fname, int readTypes)
           int max_load, max_sphload;
           MPI_Allreduce(&NumPart, &max_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
           MPI_Allreduce(&NumGas, &max_sphload, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-#ifdef BLACKHOLES
-          int max_bhload;
-          MPI_Allreduce(&NumBhs, &max_bhload, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-#endif
+
 #ifdef STARS
           int max_starload;
           MPI_Allreduce(&NumStars, &max_starload, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+#endif
+
+#ifdef BLACKHOLES
+          int max_bhload;
+          MPI_Allreduce(&NumBhs, &max_bhload, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 #endif
 
 #ifdef GENERATE_GAS_IN_ICS
@@ -242,17 +246,19 @@ void read_ic(const char *fname, int readTypes)
 
           All.MaxPart    = max_load / (1.0 - 2 * ALLOC_TOLERANCE);
           All.MaxPartSph = max_sphload / (1.0 - 2 * ALLOC_TOLERANCE);
-#ifdef BLACKHOLES
-          if(max_bhload < ALLOC_BH_ROOM)
-            All.MaxPartBhs = ALLOC_BH_ROOM;
-          else
-            All.MaxPartBhs  = max_bhload / (1.0 - 2 * ALLOC_TOLERANCE);
-#endif
+
 #ifdef STARS
           if(max_starload < ALLOC_STAR_ROOM)
             All.MaxPartStars = ALLOC_STAR_ROOM;
           else
             All.MaxPartStars  = max_starload / (1.0 - 2 * ALLOC_TOLERANCE);
+#endif
+
+#ifdef BLACKHOLES
+          if(max_bhload < ALLOC_BH_ROOM)
+            All.MaxPartBhs = ALLOC_BH_ROOM;
+          else
+            All.MaxPartBhs  = max_bhload / (1.0 - 2 * ALLOC_TOLERANCE);
 #endif
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
@@ -491,19 +497,6 @@ void read_ic(const char *fname, int readTypes)
         SphP[i].Volume = P[i].Mass / SphP[i].Density;
     }
 
-#ifdef BLACKHOLES
-  int jb=0;
-  for(int ib = 0; ib<NumPart; ib++)
-    {
-      if(P[ib].Type == 5)
-        {
-          P[ib].BhID = jb;
-          BhP[jb].PID = ib;
-          jb++;
-        }
-    }
-#endif /* BLACKHOLES */
-
 #ifdef STARS
   int js=0;
   for(int is = 0; is<NumPart; is++)
@@ -516,6 +509,19 @@ void read_ic(const char *fname, int readTypes)
         }
     }
 #endif /* STARS */
+
+#ifdef BLACKHOLES
+  int jb=0;
+  for(int ib = 0; ib<NumPart; ib++)
+    {
+      if(P[ib].Type == 5)
+        {
+          P[ib].BhID = jb;
+          BhP[jb].PID = ib;
+          jb++;
+        }
+    }
+#endif /* BLACKHOLES */
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -697,16 +703,19 @@ void empty_read_buffer(enum iofields blocknr, int offset, int pc, int type)
               case A_P:
                 array_pos = P + offset + n;
                 break;
-#ifdef BLACKHOLES
-              case A_BH:
-                array_pos = BhP + n;
-                break;
-#endif
+
 #ifdef STARS
               case A_S:
                 array_pos = SP + n;
                 break;
 #endif
+
+#ifdef BLACKHOLES
+              case A_BH:
+                array_pos = BhP + n;
+                break;
+#endif
+
               case A_PS:
                 terminate("Not good, trying to read into PS[]?\n");
                 break;
@@ -929,11 +938,13 @@ void share_particle_number_in_file(const char *fname, int filenr, int readTask, 
           All.TotNumPart += header.npartTotal[type];
           All.TotNumPart += (((long long)header.npartTotalHighWord[type]) << 32);
         }
-#ifdef BLACKHOLES
-      All.TotNumBhs += header.npartTotal[5] + (((long long)header.npartTotalHighWord[5]) << 32);
-#endif
+
 #ifdef STARS
       All.TotNumStars += header.npartTotal[4] + (((long long)header.npartTotalHighWord[4]) << 32);
+#endif
+
+#ifdef BLACKHOLES
+      All.TotNumBhs += header.npartTotal[5] + (((long long)header.npartTotalHighWord[5]) << 32);
 #endif
 
 #ifdef GENERATE_GAS_IN_ICS
@@ -1003,13 +1014,15 @@ void share_particle_number_in_file(const char *fname, int filenr, int readTask, 
 
       if(type == 0)
         NumGas += n_for_this_task;
-#ifdef BLACKHOLES
-      if(type==5)
-        NumBhs += n_for_this_task;
-#endif
+
 #ifdef STARS
       if(type==4)
         NumStars += n_for_this_task;
+#endif
+
+#ifdef BLACKHOLES
+      if(type==5)
+        NumBhs += n_for_this_task;
 #endif
     }
 
@@ -1470,13 +1483,15 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
 
       if(type == 0)
         NumGas += n_for_this_task;
-#ifdef BLACKHOLES
-      if(type == 5)
-        NumBhs += n_for_this_task;
-#endif
+
 #ifdef STARS
       if(type == 4)
         NumStars += n_for_this_task;
+#endif
+
+#ifdef BLACKHOLES
+      if(type == 5)
+        NumBhs += n_for_this_task;
 #endif
 }
 

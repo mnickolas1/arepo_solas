@@ -313,14 +313,17 @@ void reorder_particles(int *Id)
 
               P[dest]  = Psource;
               Id[dest] = idsource;
-#ifdef BLACKHOLES
-              if(P[dest].Type==5)
-                BPP(dest).PID = dest;
-#endif
+
 #ifdef STARS
               if(P[dest].Type==4)
                 SPP(dest).PID = dest;
 #endif
+
+#ifdef BLACKHOLES
+              if(P[dest].Type==5)
+                BPP(dest).PID = dest;
+#endif
+
               if(dest == i)
                 break;
 

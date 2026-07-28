@@ -60,6 +60,37 @@
 #include "../domain/domain.h"
 #include "../gravity/forcetree.h"
 
+#include "../ngbtree/ngbtree.h"
+
+/*! Variables for neighbor tree
+ * -----------------
+ */
+int Ngb_MaxPart;
+int Ngb_NumNodes;
+int Ngb_MaxNodes;
+int Ngb_FirstNonTopLevelNode;
+int Ngb_NextFreeNode;
+int *Ngb_Father;
+int *Ngb_Marker;
+int Ngb_MarkerValue;
+
+int *Ngb_DomainNodeIndex;
+int *DomainListOfLocalTopleaves;
+int *DomainNLocalTopleave;
+int *DomainFirstLocTopleave;
+int *Ngb_Nextnode;
+
+/*! The ngb-tree data structure
+ */
+struct NgbNODE *Ngb_Nodes;
+struct ExtNgbNODE *ExtNgb_Nodes;
+
+#ifdef STAR_RADIATION_ACTIVE
+struct RtNgbNODE *RtNgb_Nodes;
+#endif
+
+int *Ngblist; /*!< Buffer to hold indices of neighbours retrieved by the neighbour search routines */
+
 static void ngb_record_topnode_siblings(int no, int sib);
 static int ngb_treebuild_construct(int npart);
 static void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode);
@@ -496,6 +527,18 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
   MyNgbTreeFloat vmin[3], vmax[3], maxcsnd;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
+#ifdef RAD_OPENING_ANGLE
+  MyNgbTreeFloat Volume, dN_H2_OverLength, DtauOverLength_E[WAVEBANDS], DtauOverLength_N[WAVEBANDS];
+
+  Volume = 0, dN_H2_OverLength = 0;
+  
+  for(int w = 0; w < WAVEBANDS; w++)
+    {
+      DtauOverLength_E[w] = 0;
+      DtauOverLength_N[w] = 0;
+    }
+#endif
+
   if(no >= Ngb_MaxPart && no < Ngb_MaxPart + Ngb_MaxNodes) /* internal node */
     {
       if(*last >= 0)
@@ -623,6 +666,17 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
                                 vmax[k] = ExtNgb_Nodes[p].vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
                             }
+#ifdef RAD_OPENING_ANGLE  
+                          Volume += RtNgb_Nodes[p].Volume;
+                          
+                          dN_H2_OverLength += RtNgb_Nodes[p].Volume * RtNgb_Nodes[p].dN_H2_OverLength;
+                          
+                          for(int w = 0; w < WAVEBANDS; w++)
+                            {
+                              DtauOverLength_E[w] += RtNgb_Nodes[p].Volume * RtNgb_Nodes[p].DtauOverLength_E[w];
+                              DtauOverLength_N[w] += RtNgb_Nodes[p].Volume * RtNgb_Nodes[p].DtauOverLength_N[w];
+                            }
+#endif
                         }
                     }
                   else /* a particle */
@@ -655,7 +709,19 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
                           if(vmax[k] < P[p].Vel[k])
                             vmax[k] = P[p].Vel[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+
                         }
+#ifdef RAD_OPENING_ANGLE  
+                      Volume += SphP[p].Volume;
+                      
+                      dN_H2_OverLength += SphP[p].Volume * SphP[p].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[p].Volume;
+                      
+                      for(int w = 0; w < WAVEBANDS; w++)
+                        {
+                          DtauOverLength_E[w] += SphP[p].Volume * SphP[p].DtauOverLength_E[w];
+                          DtauOverLength_N[w] += SphP[p].Volume * SphP[p].DtauOverLength_N[w];
+                        }
+#endif
                     }
                 }
             }
@@ -675,6 +741,37 @@ void ngb_update_node_recursive(int no, int sib, int father, int *last, int mode)
               ExtNgb_Nodes[no].vmax[k] = vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
+#ifdef RAD_OPENING_ANGLE  
+          RtNgb_Nodes[no].Volume = Volume;
+
+          RtNgb_Nodes[no].dN_H2_OverLength = (Volume > 0) ? dN_H2_OverLength / Volume : 0;
+          
+          if(Volume > 0)
+            {
+              for(int w = 0; w < WAVEBANDS; w++)
+                {
+                  DtauOverLength_E[w] /= Volume;
+                  DtauOverLength_N[w] /= Volume;
+                }
+            }
+
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              RtNgb_Nodes[no].DtauOverLength_E[w] = DtauOverLength_E[w];
+              RtNgb_Nodes[no].DtauOverLength_N[w] = DtauOverLength_N[w];
+            }
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          /* Count direct children */
+          int Nchildren = 0;
+          
+          for(int j = 0; j < 8; j++)
+            if(suns[j] >= 0) 
+              Nchildren++;
+              
+          RtNgb_Nodes[no].Nchildren = Nchildren;
+#endif
 
           Ngb_Nodes[no].u.d.sibling = sib;
           Ngb_Nodes[no].father      = father;
@@ -759,6 +856,10 @@ void ngb_exchange_topleafdata(void)
 #ifdef TREE_BASED_TIMESTEPS
     MyNgbTreeFloat MaxCsnd, vmin[3], vmax[3];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+
+#ifdef RAD_OPENING_ANGLE
+    MyNgbTreeFloat Volume, dN_H2_OverLength, DtauOverLength_E[WAVEBANDS], DtauOverLength_N[WAVEBANDS];
+#endif
   };
 
   struct DomainNODE *DomainMoment = (struct DomainNODE *)mymalloc("DomainMoment", NTopleaves * sizeof(struct DomainNODE));
@@ -810,6 +911,18 @@ void ngb_exchange_topleafdata(void)
               loc_DomainMoment[idx].vmax[k] = ExtNgb_Nodes[no].vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
+#ifdef RAD_OPENING_ANGLE
+          loc_DomainMoment[idx].Volume = RtNgb_Nodes[no].Volume;
+          
+          loc_DomainMoment[idx].dN_H2_OverLength = RtNgb_Nodes[no].dN_H2_OverLength;
+          
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              loc_DomainMoment[idx].DtauOverLength_E[w] = RtNgb_Nodes[no].DtauOverLength_E[w];
+              loc_DomainMoment[idx].DtauOverLength_N[w] = RtNgb_Nodes[no].DtauOverLength_N[w];
+            }
+#endif
+
           idx++;
         }
     }
@@ -841,6 +954,18 @@ void ngb_exchange_topleafdata(void)
               ExtNgb_Nodes[no].vmax[k] = DomainMoment[idx].vmax[k];
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
             }
+#ifdef RAD_OPENING_ANGLE
+          RtNgb_Nodes[no].Volume = DomainMoment[idx].Volume;
+
+          RtNgb_Nodes[no].dN_H2_OverLength = DomainMoment[idx].dN_H2_OverLength;
+          
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              RtNgb_Nodes[no].DtauOverLength_E[w] = DomainMoment[idx].DtauOverLength_E[w];
+              RtNgb_Nodes[no].DtauOverLength_N[w] = DomainMoment[idx].DtauOverLength_N[w];
+            }
+#endif
+
           Ngb_Nodes[no].Ti_Current = All.Ti_Current;
         }
     }
@@ -1320,6 +1445,10 @@ void ngb_treemodifylength(int delta_NgbMaxPart)
   ExtNgb_Nodes -= delta_NgbMaxPart;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
 
+#ifdef STAR_RADIATION_ACTIVE
+  RtNgb_Nodes -= delta_NgbMaxPart;
+#endif
+
   Ngb_Father = (int *)myrealloc_movable(Ngb_Father, Ngb_MaxPart * sizeof(int));
 
   Ngb_Marker = (int *)myrealloc_movable(Ngb_Marker, (Ngb_MaxNodes + Ngb_MaxPart) * sizeof(int));
@@ -1354,6 +1483,12 @@ void ngb_treeallocate(void)
   ExtNgb_Nodes = (struct ExtNgbNODE *)mymalloc_movable(&ExtNgb_Nodes, "ExtNgb_Nodes", (Ngb_MaxNodes + 1) * sizeof(struct ExtNgbNODE));
   ExtNgb_Nodes -= Ngb_MaxPart;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+
+#ifdef STAR_RADIATION_ACTIVE
+  RtNgb_Nodes = (struct RtNgbNODE *)mymalloc_movable(&RtNgb_Nodes, "RtNgb_Nodes", (Ngb_MaxNodes + 1) * sizeof(struct RtNgbNODE));
+  RtNgb_Nodes -= Ngb_MaxPart;
+#endif
+
   Ngb_Nextnode = (int *)mymalloc_movable(&Ngb_Nextnode, "Ngb_Nextnode", (Ngb_MaxPart + NTopleaves) * sizeof(int));
   Ngb_Father   = (int *)mymalloc_movable(&Ngb_Father, "Ngb_Father", Ngb_MaxPart * sizeof(int));
 
@@ -1374,10 +1509,17 @@ void ngb_treefree(void)
       myfree_movable(Ngb_Marker);
       myfree_movable(Ngb_Father);
       myfree_movable(Ngb_Nextnode);
+
+#ifdef STAR_RADIATION_ACTIVE
+      myfree_movable(RtNgb_Nodes + Ngb_MaxPart);
+      RtNgb_Nodes = NULL;
+#endif
+
 #ifdef TREE_BASED_TIMESTEPS
       myfree_movable(ExtNgb_Nodes + Ngb_MaxPart);
       ExtNgb_Nodes = NULL;
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+      
       myfree_movable(Ngb_Nodes + Ngb_MaxPart);
       myfree_movable(Ngb_DomainNodeIndex);
 

@@ -48,8 +48,6 @@
 
 #include "../gravity/forcetree.h"
 
-#include "../../celib/src/config.h"
-
 #ifdef USE_SFR
 
 static int stars_spawned;           /*!< local number of star particles spawned in the time step */
@@ -102,24 +100,6 @@ void sfr_create_star_particles(void)
   double rate_in_msunperyear;
   double sfrrate, totsfrrate;
 
-#ifdef STARS
-//Check if we are overflowing the stars array
-int need_realloc_local = 0;
-if (NumStars == All.MaxPartStars)
-    need_realloc_local = 1;
-
-//Determine if any mpi rank needs more memory 
-int need_realloc_global;
-MPI_Allreduce(&need_realloc_local, &need_realloc_global, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
-
-if(need_realloc_global)
-  {
-    //Determine the new MaxPartStars
-    All.MaxPartStars = 1.25*All.MaxPartStars + 1;
-    reallocate_memory_maxpartstars();
-  }
-#endif
-
   stars_spawned = stars_converted = 0;
   sum_sm = sum_mass_stars = 0;
 
@@ -143,13 +123,13 @@ if(need_realloc_global)
           dtime = All.cf_atime * dt / All.cf_time_hubble_a;
 
           mass_of_star = 0;
-          prob         = 0;
-          p            = 0;
-          pall         = 0;
+          prob = 0;
+          p = 0;
+          pall = 0;
 
           if(SphP[i].Sfr > 0)
             {
-              p    = SphP[i].Sfr / ((All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR)) * dtime / P[i].Mass;
+              p = SphP[i].Sfr / ((All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR)) * dtime / P[i].Mass;
               pall = p;
               sum_sm += P[i].Mass * (1 - exp(-p));
 
@@ -214,6 +194,31 @@ if(need_realloc_global)
         }
     } /* end of main loop over active gas particles */
 
+#ifdef STARS
+  /* Check if we are overflowing the stars array based on stars actually formed this step */
+  int local_star_load = NumStars;
+  int global_star_load;
+
+  MPI_Allreduce(&local_star_load, &global_star_load, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  if(global_star_load != 0 && global_star_load > (1.0 - ALLOC_TOLERANCE) * All.MaxPartStars)
+    {
+      int old_alloc = All.MaxPartStars;
+      All.MaxPartStars = global_star_load / (1.0 - 2 * ALLOC_TOLERANCE);
+
+      if(All.MaxPartStars < ALLOC_STAR_ROOM)
+        All.MaxPartStars = ALLOC_STAR_ROOM;
+
+      if(All.MaxPartStars != old_alloc)
+        reallocate_memory_maxpartstars();
+    }
+#endif /* #ifdef STARS */
+
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
+  for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
+    sample_star_particle(PPS(i).Mass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
+#endif
+
   int in[4], out[4], cnt = 2;
   in[0] = stars_spawned;
   in[1] = stars_converted;
@@ -265,6 +270,10 @@ if(need_realloc_global)
       All.TotNumPart += tot_stars_spawned;
       All.TotNumGas -= tot_stars_converted;
       NumPart += stars_spawned;
+
+#ifdef STARS 
+      All.TotNumStars += tot_stars_spawned + tot_stars_converted;
+#endif
     }
 
   for(bin = 0, sfrrate = 0; bin < TIMEBINS; bin++)
@@ -308,13 +317,14 @@ if(need_realloc_global)
  *  particle are initialized.
  *
  *  \param[in] i Index of the gas cell to be converted.
- *  \param[in] birthtime Time of birth (in code units) of the stellar particle.
+ *  \param[in] birthtime Time of birth of the stellar particle.
  *
  *  \return void
  */
 void convert_cell_into_star(int i, double birthtime)
 {
-  P[i].Type          = 4;
+  P[i].Type = 4;
+  
   P[i].SofteningType = All.SofteningTypeOfPartType[P[i].Type];
 
 #if defined(REFINEMENT_HIGH_RES_GAS)
@@ -336,38 +346,29 @@ void convert_cell_into_star(int i, double birthtime)
   voronoi_remove_connection(i);
 
 #ifdef STARS
-  /* assign star_ids */
+  /* Zero star struct */
+  memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
+  /* Assign star_ids */
   P[i].SID = NumStars;
   SP[NumStars].PID = i;
-  /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[i].Volume)/(4.0*M_PI));
-  /* set timebin */
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
-  SP[NumStars].SNIIFlag = 0;
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[i].Metals;
-#endif  
+  SP[NumStars].Metallicity = SphP[i].GasMetals / P[i].Mass;
+#endif 
+#endif 
 
-#ifdef USE_CELIB
-  struct CELibStructNextEventTimeInput Input =
-    {
-      .R = (double)rand()/(double)RAND_MAX,
-      .InitialMass_in_Msun = (P[i].Mass * All.UnitMass_in_g / SOLAR_MASS),
-      .Metallicity = SP[NumStars].Metals,
-    };
-//  Input.Metallicity = SP[NumStars].Metals;
-
-  SP[NumStars].SNIITime = birthtime + CELibGetNextEventTime(Input, CELibFeedbackType_SNII) 
-    / (1.e6) / All.UnitTime_in_Megayears;
-#else
-    SP[NumStars].SNIITime = birthtime + 0.1; //All.FeedbackTime/(1.e6)/All.UnitTime_in_Megayears;
+#ifdef STAR_FEEDBACK_ACTIVE
+  /* Assign density loop properties */
+  SP[NumStars].Hsml = get_cell_radius(i); 
+  /* Set timebin */
+  SP[NumStars].Active = 0;
+  SP[NumStars].WithFeedback = 1;
+  SP[NumStars].HostHydroBin = P[i].TimeBinHydro; 
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);  
 #endif
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
- 
+
+#ifdef STARS
   NumStars++;
-#endif /* STARS */
+#endif
 
   return;
 }
@@ -382,7 +383,7 @@ void convert_cell_into_star(int i, double birthtime)
  *  to ensure conservation.
  *
  *  \param[in] igas Index of the gas cell from which the star is spawned.
- *  \param[in] birthtime Time of birth (in code units) of the stellar particle.
+ *  \param[in] birthtime Time of birth of the stellar particle.
  *  \param[in] istar Index of the spawned stellar particle.
  *  \param[in] mass_of_star The mass of the spawned stellar particle.
  *
@@ -390,12 +391,13 @@ void convert_cell_into_star(int i, double birthtime)
  */
 void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_of_star)
 {
-  P[istar]               = P[igas];
-  P[istar].Type          = 4;
+  P[istar] = P[igas];
+  P[istar].Type = 4;
+  P[istar].Mass = mass_of_star;
+  
   P[istar].SofteningType = All.SofteningTypeOfPartType[P[istar].Type];
-  P[istar].Mass          = mass_of_star;
 
-#if defined(REFINEMENT_HIGH_RES_GAS)
+  #if defined(REFINEMENT_HIGH_RES_GAS)
   if(SphP[igas].HighResMass < HIGHRESMASSFAC * P[igas].Mass)
     {
       /* this cell does not appear to be in the high-res region.
@@ -426,51 +428,48 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   SphP[igas].Momentum[1] *= fac;
   SphP[igas].Momentum[2] *= fac;
 
-#ifdef METALS
-  SphP[igas].Metals *= fac;
-#endif /* ifdef Metals */
-
 //#ifdef MHD
 //  SphP[igas].Energy += Emag;
 //#endif /* #ifdef MHD */
 
 #ifdef MAXSCALARS
-  for(int s = 0; s < N_Scalar; s++) /* Note, the changes in MATERIALS, HIGHRESGASMASS, etc., are treated as part of the Scalars */
+  for(int s = 0; s < N_Scalar; s++)
     *(MyFloat *)(((char *)(&SphP[igas])) + scalar_elements[s].offset_mass) *= fac;
-#endif /* #ifdef MAXSCALARS */
+#endif 
 
 #ifdef STARS
-  /* assign star_ids */
+  /* Zero star struct */
+  memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
+  /* Assign star_ids */
   P[istar].SID = NumStars;
   SP[NumStars].PID = istar;
-  /* assign density loop properties */
-  SP[NumStars].Hsml = cbrt((3.0*SphP[igas].Volume)/(4.0*M_PI));;
-  /* set timebin */
-  SP[NumStars].TimeBinStar = 0;
-  /* set SN properties */
-  SP[NumStars].Birthtime = birthtime;
-  SP[NumStars].SNIIFlag = 0;
-
 #ifdef METALS 
-  SP[NumStars].Metals = SphP[igas].Metals * (1 - fac);
+  SP[NumStars].Metallicity = SphP[igas].GasMetals / P[igas].Mass;
+#endif
 #endif
 
-#ifdef USE_CELIB
-  struct CELibStructNextEventTimeInput Input =
-    {
-      .R = (double)rand()/(double)RAND_MAX,
-      .InitialMass_in_Msun = (P[istar].Mass * All.UnitMass_in_g / SOLAR_MASS),
-      .Metallicity = SP[NumStars].Metals,
-    };
-//  Input.Metallicity = SP[NumStars].Metals;
+#ifdef STAR_FEEDBACK_ACTIVE
+  /* Assign density loop properties */
+  SP[NumStars].Hsml = get_cell_radius(igas);
+  /* Set timebin */
+  SP[NumStars].Active = 0;
+  SP[NumStars].WithFeedback = 1;
+  SP[NumStars].HostHydroBin = P[igas].TimeBinHydro;
+  timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1); 
 
-  SP[NumStars].SNIITime = birthtime + CELibGetNextEventTime(Input, CELibFeedbackType_SNII)
-    / (1.e6) / All.UnitTime_in_Megayears;  
-#else
-  SP[NumStars].SNIITime = birthtime + All.FeedbackTime/(1.e6)/All.UnitTime_in_Megayears;
+  /* Give star small random displacement */
+  double cell_size = get_cell_radius(igas);
+
+  double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+  double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
+  double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+
+  P[istar].Pos[0] += rx;
+  P[istar].Pos[1] += ry;
+  P[istar].Pos[2] += rz;
 #endif
-  //timebin_add_particle(&TimeBinsStar, NumStars, -1, 0, 1);
 
+#ifdef STARS
   NumStars++;
 #endif
 

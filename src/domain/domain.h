@@ -86,8 +86,15 @@ extern int Nbranch;
 
 extern double fac_work, fac_load, fac_worksph;
 extern double normsum_work, normsum_load, normsum_worksph;
-
 extern double totgravcost, totpartcount, gravcost, totsphcost, sphcost;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+extern double normsum_workstar, fac_workstar, totstarcost, starcost;
+#endif
+
+#ifdef BH_ACTIVE
+extern double normsum_workbh, fac_workbh, totbhcost, bhcost;
+#endif
 
 extern struct domain_cost_data
 {
@@ -96,18 +103,29 @@ extern struct domain_cost_data
   float WorkSph; /*!< total "work" due to the particles stored by a leave node */
   int Count;     /*!< a table that gives the total number of particles held by each processor */
   int CountSph;  /*!< a table that gives the total number of SPH particles held by each processor */
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  float WorkStar;
+#endif
+
+#ifdef BH_ACTIVE
+  float WorkBh;
+#endif
 } * DomainLeaveNode;
 
 /* toGo[partner] gives the number of particles on the current task that have to go to task 'partner'
  */
 extern int *toGo, *toGoSph;
 extern int *toGet, *toGetSph;
-#ifdef BLACKHOLES
-extern int *toGoBhs, *toGetBhs;
-#endif
+
 #ifdef STARS
 extern int *toGoStars, *toGetStars;
 #endif
+
+#ifdef BLACKHOLES
+extern int *toGoBhs, *toGetBhs;
+#endif
+
 extern int *list_NumPart;
 extern int *list_NumGas;
 extern int *list_load;
@@ -119,6 +137,15 @@ extern double *list_worksph;
 peano1D domain_double_to_int(double d);
 double domain_grav_tot_costfactor(int i);
 double domain_hydro_tot_costfactor(int i);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+double domain_star_tot_costfactor(int i);
+#endif
+
+#ifdef BH_ACTIVE
+double domain_bh_tot_costfactor(int i);
+#endif
+
 void domain_init_sum_cost(void);
 void domain_printf(char *buf);
 void domain_report_balance(void);

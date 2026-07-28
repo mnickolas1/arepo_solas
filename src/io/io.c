@@ -106,6 +106,7 @@ static int n_type[NTYPES]; /**< contains the local (for a single task) number of
 static long long ntot_type_all[NTYPES]; /**< contains the global number of particles of each type in the snapshot file */
 static int subbox_dump = 0;
 
+
 /*! \brief Function for registering an output field.
  *
  *  Don't forget to add the new IO_FLAG to allvars.h.
@@ -182,16 +183,18 @@ void init_field(enum iofields field, const char *label, const char *datasetname,
     {
       IO_Fields[N_IO_Fields].offset = (size_t)pointer_to_field - (size_t)PS;
     }
-#ifdef BLACKHOLES
-  else if(array == A_BH)
-    {
-      IO_Fields[N_IO_Fields].offset = (size_t)pointer_to_field - (size_t)BhP;
-    }
-#endif
+
 #ifdef STARS
   else if(array == A_S)
     {
       IO_Fields[N_IO_Fields].offset = (size_t)pointer_to_field - (size_t)SP;
+    }
+#endif
+
+#ifdef BLACKHOLES
+  else if(array == A_BH)
+    {
+      IO_Fields[N_IO_Fields].offset = (size_t)pointer_to_field - (size_t)BhP;
     }
 #endif
   
@@ -1153,7 +1156,7 @@ int blockpresent(enum iofields blocknr, int write)
 
   if(!write)
     {
-#ifdef PASSIVE_SCALARS
+#if PASSIVE_SCALARS > 0
       if(RestartFlag == 0 && blocknr == IO_PASS)
         return 1;
 #endif /* #ifdef PASSIVE_SCALARS */

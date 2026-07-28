@@ -92,30 +92,6 @@ void domain_resize_storage(int count_get, int count_get_sph, int option_flag)
     }
 }
 
-#ifdef BLACKHOLES
-void domain_resize_storage_bhs(int count_get_bhs)
-{
-  int bhload = NumBhs + count_get_bhs;
-  int loc_data_bh = bhload;
-  int max_bhload;
-
-  MPI_Allreduce(&loc_data_bh, &max_bhload, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  
-  if(max_bhload != 0 && (max_bhload > (1.0 - ALLOC_TOLERANCE) * All.MaxPartBhs 
-    || max_bhload < (1.0 - 3 * ALLOC_TOLERANCE) * All.MaxPartBhs))
-    {
-      int old_alloc =  All.MaxPartBhs;
-      All.MaxPartBhs = max_bhload / (1.0 - 2 * ALLOC_TOLERANCE);
-      
-      if (All.MaxPartBhs < ALLOC_BH_ROOM)
-        All.MaxPartBhs = ALLOC_BH_ROOM;
-      
-      if(All.MaxPartBhs != old_alloc)
-        reallocate_memory_maxpartbhs();
-    }
-}
-#endif
-
 #ifdef STARS
 void domain_resize_storage_stars(int count_get_stars)
 {
@@ -140,6 +116,30 @@ void domain_resize_storage_stars(int count_get_stars)
 }
 #endif
 
+#ifdef BLACKHOLES
+void domain_resize_storage_bhs(int count_get_bhs)
+{
+  int bhload = NumBhs + count_get_bhs;
+  int loc_data_bh = bhload;
+  int max_bhload;
+
+  MPI_Allreduce(&loc_data_bh, &max_bhload, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  
+  if(max_bhload != 0 && (max_bhload > (1.0 - ALLOC_TOLERANCE) * All.MaxPartBhs 
+    || max_bhload < (1.0 - 3 * ALLOC_TOLERANCE) * All.MaxPartBhs))
+    {
+      int old_alloc =  All.MaxPartBhs;
+      All.MaxPartBhs = max_bhload / (1.0 - 2 * ALLOC_TOLERANCE);
+      
+      if (All.MaxPartBhs < ALLOC_BH_ROOM)
+        All.MaxPartBhs = ALLOC_BH_ROOM;
+      
+      if(All.MaxPartBhs != old_alloc)
+        reallocate_memory_maxpartbhs();
+    }
+}
+#endif
+
 /*! \brief Exchanges particles and cells according to new domain decomposition.
  *
  *  Communicates particles and cells to their new task. P and SphP arrays are
@@ -157,17 +157,19 @@ void domain_exchange(void)
   int i, n, no, target;
   struct particle_data *partBuf;
   struct sph_particle_data *sphBuf;
-#ifdef BLACKHOLES
-  int count_togo_bhs = 0, count_get_bhs = 0;
-  int *count_bhs, *offset_bhs;
-  int *count_recv_bhs, *offset_recv_bhs;
-  struct bh_particle_data *bhBuf;
-#endif
+
 #ifdef STARS
   int count_togo_stars = 0, count_get_stars = 0;
   int *count_stars, *offset_stars;
   int *count_recv_stars, *offset_recv_stars;
-  struct star_particle_data *sBuf;
+  Star_Particle_Data *sBuf;
+#endif
+
+#ifdef BLACKHOLES
+  int count_togo_bhs = 0, count_get_bhs = 0;
+  int *count_bhs, *offset_bhs;
+  int *count_recv_bhs, *offset_recv_bhs;
+  struct Bh_Particle_Data *bhBuf;
 #endif
 
   peanokey *keyBuf;
@@ -187,17 +189,19 @@ void domain_exchange(void)
   count_recv_sph  = (int *)mymalloc_movable(&count_recv_sph, "count_recv_sph", NTask * sizeof(int));
   offset_recv     = (int *)mymalloc_movable(&offset_recv, "offset_recv", NTask * sizeof(int));
   offset_recv_sph = (int *)mymalloc_movable(&offset_recv_sph, "offset_recv_sph", NTask * sizeof(int));
-#ifdef BLACKHOLES
-  count_bhs        = (int *)mymalloc_movable(&count_bhs, "count_bhs", NTask * sizeof(int));
-  offset_bhs       = (int *)mymalloc_movable(&offset_bhs, "offset_bhs", NTask * sizeof(int));
-  count_recv_bhs   = (int *)mymalloc_movable(&count_recv_bhs, "count_recv_bhs", NTask * sizeof(int));
-  offset_recv_bhs  = (int *)mymalloc_movable(&offset_recv_bhs, "offset_recv_bhs", NTask * sizeof(int));
-#endif
+
 #ifdef STARS
   count_stars        = (int *)mymalloc_movable(&count_stars, "count_stars", NTask * sizeof(int));
   offset_stars       = (int *)mymalloc_movable(&offset_stars, "offset_stars", NTask * sizeof(int));
   count_recv_stars   = (int *)mymalloc_movable(&count_recv_stars, "count_recv_stars", NTask * sizeof(int));
   offset_recv_stars  = (int *)mymalloc_movable(&offset_recv_stars, "offset_recv_stars", NTask * sizeof(int));
+#endif
+
+#ifdef BLACKHOLES
+  count_bhs        = (int *)mymalloc_movable(&count_bhs, "count_bhs", NTask * sizeof(int));
+  offset_bhs       = (int *)mymalloc_movable(&offset_bhs, "offset_bhs", NTask * sizeof(int));
+  count_recv_bhs   = (int *)mymalloc_movable(&count_recv_bhs, "count_recv_bhs", NTask * sizeof(int));
+  offset_recv_bhs  = (int *)mymalloc_movable(&offset_recv_bhs, "offset_recv_bhs", NTask * sizeof(int));
 #endif
 
   int prec_offset;
@@ -210,16 +214,18 @@ void domain_exchange(void)
       offset_sph[i] = offset_sph[i - 1] + toGoSph[i - 1];
       decrease[i]   = toGoSph[i - 1];
     }
-#ifdef BLACKHOLES
-  for(i = 1, offset_bhs[0] = 0; i < NTask; i++)
-    {
-      offset_bhs[i] = offset_bhs[i - 1] + toGoBhs[i - 1];
-    }
-#endif
+
 #ifdef STARS
   for(i = 1, offset_stars[0] = 0; i < NTask; i++)
     {
       offset_stars[i] = offset_stars[i - 1] + toGoStars[i - 1];
+    }
+#endif
+
+#ifdef BLACKHOLES
+  for(i = 1, offset_bhs[0] = 0; i < NTask; i++)
+    {
+      offset_bhs[i] = offset_bhs[i - 1] + toGoBhs[i - 1];
     }
 #endif
 
@@ -237,23 +243,27 @@ void domain_exchange(void)
       count_togo_sph += toGoSph[i];
       count_get += toGet[i];
       count_get_sph += toGetSph[i];
-#ifdef BLACKHOLES
-      count_togo_bhs += toGoBhs[i];
-      count_get_bhs += toGetBhs[i];
-#endif
+
 #ifdef STARS
       count_togo_stars += toGoStars[i];
       count_get_stars += toGetStars[i];
+#endif
+
+#ifdef BLACKHOLES
+      count_togo_bhs += toGoBhs[i];
+      count_get_bhs += toGetBhs[i];
 #endif
     }
 
   partBuf = (struct particle_data *)mymalloc_movable(&partBuf, "partBuf", count_togo * sizeof(struct particle_data));
   sphBuf  = (struct sph_particle_data *)mymalloc_movable(&sphBuf, "sphBuf", count_togo_sph * sizeof(struct sph_particle_data));
-#ifdef BLACKHOLES
-  bhBuf = (struct bh_particle_data *)mymalloc_movable(&bhBuf, "bhBuf", count_togo_bhs * sizeof(struct bh_particle_data));
-#endif
+
 #ifdef STARS
-  sBuf = (struct star_particle_data *)mymalloc_movable(&sBuf, "sBuf", count_togo_stars * sizeof(struct star_particle_data));
+  sBuf = (Star_Particle_Data *)mymalloc_movable(&sBuf, "sBuf", count_togo_stars * sizeof(Star_Particle_Data));
+#endif
+
+#ifdef BLACKHOLES
+  bhBuf = (struct Bh_Particle_Data *)mymalloc_movable(&bhBuf, "bhBuf", count_togo_bhs * sizeof(struct Bh_Particle_Data));
 #endif
   
   keyBuf = (peanokey *)mymalloc_movable(&keyBuf, "keyBuf", count_togo * sizeof(peanokey));
@@ -261,11 +271,13 @@ void domain_exchange(void)
   for(i = 0; i < NTask; i++)
     {
       count[i] = count_sph[i] = 0;
-#ifdef BLACKHOLES
-      count_bhs[i] = 0;
-#endif
+
 #ifdef STARS
       count_stars[i] = 0;
+#endif
+
+#ifdef BLACKHOLES
+      count_bhs[i] = 0;
 #endif
     }
 
@@ -297,17 +309,7 @@ void domain_exchange(void)
               sphBuf[offset_sph[target] + count_sph[target]]  = SphP[n];
               count_sph[target]++;
             }
-#ifdef BLACKHOLES
-          else if(P[n].Type == 5)
-            {
-              bhBuf[offset_bhs[target] + count_bhs[target]] = BPP(n);
-              partBuf[offset[target] + count[target]] = P[n];
-              keyBuf[offset[target] + count[target]]  = Key[n];
-              
-              count_bhs[target]++;
-              count[target]++;  
-            }
-#endif
+
 #ifdef STARS
           else if(P[n].Type == 4)
             {
@@ -319,6 +321,19 @@ void domain_exchange(void)
               count[target]++;  
             }
 #endif
+
+#ifdef BLACKHOLES
+          else if(P[n].Type == 5)
+            {
+              bhBuf[offset_bhs[target] + count_bhs[target]] = BPP(n);
+              partBuf[offset[target] + count[target]] = P[n];
+              keyBuf[offset[target] + count[target]]  = Key[n];
+              
+              count_bhs[target]++;
+              count[target]++;  
+            }
+#endif
+
           else
             {
               partBuf[offset[target] + count[target]] = P[n];
@@ -330,14 +345,17 @@ void domain_exchange(void)
             {
               P[n]          = P[NumGas - 1];
               P[NumGas - 1] = P[NumPart - 1];
-#ifdef BLACKHOLES
-              if(P[NumPart-1].Type==5)
-                BPP(NumPart-1).PID = NumGas - 1;
-#endif
+
 #ifdef STARS
               if(P[NumPart-1].Type==4)
                 SPP(NumPart-1).PID = NumGas - 1;
 #endif
+
+#ifdef BLACKHOLES
+              if(P[NumPart-1].Type==5)
+                BPP(NumPart-1).PID = NumGas - 1;
+#endif
+
               Key[n]          = Key[NumGas - 1];
               Key[NumGas - 1] = Key[NumPart - 1];
 
@@ -345,29 +363,7 @@ void domain_exchange(void)
 
               NumGas--;
             }
-#ifdef BLACKHOLES
-          else if(P[n].Type == 5)
-            {
-              BPP(n) = BhP[NumBhs-1];
-              PPB(NumBhs-1).BhID = P[n].BhID; 
 
-              if(n == NumPart-1)
-                { 
-                  NumBhs--;
-                  NumPart--;
-                  n--;
-                  continue; 
-                }  
-
-              P[n] = P[NumPart-1];
-              if(P[NumPart-1].Type == 5)
-                BPP(NumPart-1).PID = n;
-
-              Key[n] = Key[NumPart - 1];
-              
-              NumBhs--;
-            }
-#endif
 #ifdef STARS
           else if(P[n].Type == 4)
             {
@@ -391,17 +387,45 @@ void domain_exchange(void)
               NumStars--;
             }
 #endif
+
+#ifdef BLACKHOLES
+          else if(P[n].Type == 5)
+            {
+              BPP(n) = BhP[NumBhs-1];
+              PPB(NumBhs-1).BhID = P[n].BhID; 
+
+              if(n == NumPart-1)
+                { 
+                  NumBhs--;
+                  NumPart--;
+                  n--;
+                  continue; 
+                }  
+
+              P[n] = P[NumPart-1];
+              if(P[NumPart-1].Type == 5)
+                BPP(NumPart-1).PID = n;
+
+              Key[n] = Key[NumPart - 1];
+              
+              NumBhs--;
+            }
+#endif
+
           else
             {
               P[n]   = P[NumPart - 1];
-#ifdef BLACKHOLES
-              if(P[NumPart-1].Type == 5)
-                BPP(NumPart-1).PID = n;
-#endif
+
 #ifdef STARS
               if(P[NumPart-1].Type == 4)
                 SPP(NumPart-1).PID = n;
 #endif
+
+#ifdef BLACKHOLES
+              if(P[NumPart-1].Type == 5)
+                BPP(NumPart-1).PID = n;
+#endif
+
               Key[n] = Key[NumPart - 1];
             }
 
@@ -412,12 +436,15 @@ void domain_exchange(void)
     }     /* n < NumPart */
 
   /**** now resize the storage for the P[] and SphP[] arrays if needed ****/
-#ifdef BLACKHOLES
-  domain_resize_storage_bhs(count_get_bhs);
-#endif
+
 #ifdef STARS
   domain_resize_storage_stars(count_get_stars);
 #endif
+
+#ifdef BLACKHOLES
+  domain_resize_storage_bhs(count_get_bhs);
+#endif
+
   domain_resize_storage(count_get, count_get_sph, 1);
 
 
@@ -429,14 +456,14 @@ void domain_exchange(void)
       memmove(P + NumGas + count_totget, P + NumGas, (NumPart - NumGas) * sizeof(struct particle_data));
       memmove(Key + NumGas + count_totget, Key + NumGas, (NumPart - NumGas) * sizeof(peanokey));
 
-#ifdef BLACKHOLES
-      for(i=0; i<NumBhs; i++)
-        BhP[i].PID+=count_totget;
-#endif  
-
 #ifdef STARS
       for(i=0; i<NumStars; i++)
         SP[i].PID+=count_totget;
+#endif  
+
+#ifdef BLACKHOLES
+      for(i=0; i<NumBhs; i++)
+        BhP[i].PID+=count_totget;
 #endif  
     }
 
@@ -444,25 +471,30 @@ void domain_exchange(void)
     {
       count_recv_sph[i] = toGetSph[i];
       count_recv[i]     = toGet[i] - toGetSph[i];
-#ifdef BLACKHOLES
-      count_recv_bhs[i]  = toGetBhs[i];
-#endif
+
 #ifdef STARS
       count_recv_stars[i]  = toGetStars[i];
+#endif
+
+#ifdef BLACKHOLES
+      count_recv_bhs[i]  = toGetBhs[i];
 #endif
     }
 
   int prec_count;
   for(i = 1, offset_recv_sph[0] = NumGas; i < NTask; i++)
     offset_recv_sph[i] = offset_recv_sph[i - 1] + count_recv_sph[i - 1];
-#ifdef BLACKHOLES
-  for(i = 1, offset_recv_bhs[0] = NumBhs; i < NTask; i++)
-    offset_recv_bhs[i] = offset_recv_bhs[i - 1] + count_recv_bhs[i - 1];
-#endif
+
 #ifdef STARS
   for(i = 1, offset_recv_stars[0] = NumStars; i < NTask; i++)
     offset_recv_stars[i] = offset_recv_stars[i - 1] + count_recv_stars[i - 1];
 #endif
+
+#ifdef BLACKHOLES
+  for(i = 1, offset_recv_bhs[0] = NumBhs; i < NTask; i++)
+    offset_recv_bhs[i] = offset_recv_bhs[i - 1] + count_recv_bhs[i - 1];
+#endif
+
   prec_count = NumGas + count_get_sph;
 
   offset_recv[0] = NumPart - NumGas + prec_count;
@@ -494,22 +526,25 @@ void domain_exchange(void)
                            Key + offset_recv_sph[target], count_recv_sph[target] * sizeof(peanokey), MPI_BYTE, target, TAG_KEY_SPH,
                            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
-#ifdef BLACKHOLES
-if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
-            {
-              MPI_Sendrecv(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct bh_particle_data), MPI_BYTE, target,
-                           TAG_BHDATA, BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct bh_particle_data),
-                           MPI_BYTE, target, TAG_BHDATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-#endif
+
 #ifdef STARS
 if(count_stars[target] > 0 || count_recv_stars[target] > 0)
             {
-              MPI_Sendrecv(sBuf + offset_stars[target], count_stars[target] * sizeof(struct star_particle_data), MPI_BYTE, target,
-                           TAG_BHDATA, SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(struct star_particle_data),
+              MPI_Sendrecv(sBuf + offset_stars[target], count_stars[target] * sizeof(Star_Particle_Data), MPI_BYTE, target,
+                           TAG_BHDATA, SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(Star_Particle_Data),
                            MPI_BYTE, target, TAG_STARDATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
 #endif
+
+#ifdef BLACKHOLES
+if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
+            {
+              MPI_Sendrecv(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct Bh_Particle_Data), MPI_BYTE, target,
+                           TAG_BHDATA, BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct Bh_Particle_Data),
+                           MPI_BYTE, target, TAG_BHDATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
+#endif
+
           if(count[target] > 0 || count_recv[target] > 0)
             {
               MPI_Sendrecv(partBuf + offset[target], count[target] * sizeof(struct particle_data), MPI_BYTE, target, TAG_PDATA,
@@ -546,20 +581,23 @@ if(count_stars[target] > 0 || count_recv_stars[target] > 0)
               MPI_Irecv(Key + offset_recv_sph[target], count_recv_sph[target] * sizeof(peanokey), MPI_BYTE, target, TAG_KEY_SPH,
                         MPI_COMM_WORLD, &requests[n_requests++]);
             }
-#ifdef BLACKHOLES
-          if(count_recv_bhs[target] > 0)
-            {
-              MPI_Irecv(BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct bh_particle_data), MPI_BYTE, target,
-                        TAG_BHDATA, MPI_COMM_WORLD, &requests[n_requests++]);
-            }
-#endif
+
 #ifdef STARS
           if(count_recv_stars[target] > 0)
             {
-              MPI_Irecv(SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(struct star_particle_data), MPI_BYTE, target,
+              MPI_Irecv(SP + offset_recv_stars[target], count_recv_stars[target] * sizeof(Star_Particle_Data), MPI_BYTE, target,
                         TAG_STARDATA, MPI_COMM_WORLD, &requests[n_requests++]);
             }
 #endif
+
+#ifdef BLACKHOLES
+          if(count_recv_bhs[target] > 0)
+            {
+              MPI_Irecv(BhP + offset_recv_bhs[target], count_recv_bhs[target] * sizeof(struct Bh_Particle_Data), MPI_BYTE, target,
+                        TAG_BHDATA, MPI_COMM_WORLD, &requests[n_requests++]);
+            }
+#endif
+
           if(count_recv[target] > 0)
             {
               MPI_Irecv(P + offset_recv[target], count_recv[target] * sizeof(struct particle_data), MPI_BYTE, target, TAG_PDATA,
@@ -592,20 +630,23 @@ if(count_stars[target] > 0 || count_recv_stars[target] > 0)
               MPI_Isend(keyBuf + offset_sph[target], count_sph[target] * sizeof(peanokey), MPI_BYTE, target, TAG_KEY_SPH,
                         MPI_COMM_WORLD, &requests[n_requests++]);
             }
-#ifdef BLACKHOLES
-          if(count_bhs[target] > 0)
-            {
-              MPI_Isend(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct bh_particle_data), MPI_BYTE, target,
-                        TAG_BHDATA, MPI_COMM_WORLD, &requests[n_requests++]);
-            }
-#endif
+
 #ifdef STARS
           if(count_stars[target] > 0)
             {
-              MPI_Isend(sBuf + offset_stars[target], count_stars[target] * sizeof(struct star_particle_data), MPI_BYTE, target,
+              MPI_Isend(sBuf + offset_stars[target], count_stars[target] * sizeof(Star_Particle_Data), MPI_BYTE, target,
                         TAG_STARDATA, MPI_COMM_WORLD, &requests[n_requests++]);
             }
 #endif
+
+#ifdef BLACKHOLES
+          if(count_bhs[target] > 0)
+            {
+              MPI_Isend(bhBuf + offset_bhs[target], count_bhs[target] * sizeof(struct Bh_Particle_Data), MPI_BYTE, target,
+                        TAG_BHDATA, MPI_COMM_WORLD, &requests[n_requests++]);
+            }
+#endif
+
           if(count[target] > 0)
             {
               MPI_Isend(partBuf + offset[target], count[target] * sizeof(struct particle_data), MPI_BYTE, target, TAG_PDATA,
@@ -631,13 +672,13 @@ if(count_stars[target] > 0 || count_recv_stars[target] > 0)
 
   myMPI_Alltoallv(keyBuf, count_sph, offset_sph, Key, count_recv_sph, offset_recv_sph, sizeof(peanokey), 0, MPI_COMM_WORLD);
 
-#ifdef BLACKHOLES
- myMPI_Alltoallv(bhBuf, count_bhs, offset_bhs, BhP, count_recv_bhs, offset_recv_bhs, sizeof(struct bh_particle_data), 0,
+#ifdef STARS
+ myMPI_Alltoallv(sBuf, count_stars, offset_stars, SP, count_recv_stars, offset_recv_stars, sizeof(Star_Particle_Data), 0,
                   MPI_COMM_WORLD);
 #endif
 
-#ifdef STARS
- myMPI_Alltoallv(sBuf, count_stars, offset_stars, SP, count_recv_stars, offset_recv_stars, sizeof(struct star_particle_data), 0,
+#ifdef BLACKHOLES
+ myMPI_Alltoallv(bhBuf, count_bhs, offset_bhs, BhP, count_recv_bhs, offset_recv_bhs, sizeof(struct Bh_Particle_Data), 0,
                   MPI_COMM_WORLD);
 #endif
 
@@ -647,20 +688,6 @@ if(count_stars[target] > 0 || count_recv_stars[target] > 0)
 
 #endif /* #ifndef USE_MPIALLTOALLV_IN_DOMAINDECOMP #else */
        /* close block of myMPI_Alltoallv communications */
-
-#ifdef BLACKHOLES
-  for(int i = NumPart + count_get_sph, j=NumBhs; i < NumPart + count_get; i++)
-    { 
-      if(P[i].Type == 5)
-        {
-          P[i].BhID = j;  
-          BhP[j].PID = i;
-          j++;
-        } 
-    }
-  
-  NumBhs += count_get_bhs;
-#endif
 
 #ifdef STARS
   for(int i = NumPart + count_get_sph, j=NumStars; i < NumPart + count_get; i++)
@@ -676,30 +703,50 @@ if(count_stars[target] > 0 || count_recv_stars[target] > 0)
   NumStars += count_get_stars;
 #endif
 
+#ifdef BLACKHOLES
+  for(int i = NumPart + count_get_sph, j=NumBhs; i < NumPart + count_get; i++)
+    { 
+      if(P[i].Type == 5)
+        {
+          P[i].BhID = j;  
+          BhP[j].PID = i;
+          j++;
+        } 
+    }
+  
+  NumBhs += count_get_bhs;
+#endif
+
   NumPart += count_get;
   NumGas += count_get_sph;
 
   myfree(keyBuf);
-#ifdef STARS
-  myfree(sBuf);
-#endif
+
 #ifdef BLACKHOLES
   myfree(bhBuf);
 #endif
+
+#ifdef STARS
+  myfree(sBuf);
+#endif
+
   myfree(sphBuf);
   myfree(partBuf);
-#ifdef STARS
-  myfree(offset_recv_stars);
-  myfree(count_recv_stars);
-  myfree(offset_stars);
-  myfree(count_stars);
-#endif
+
 #ifdef BLACKHOLES
   myfree(offset_recv_bhs);
   myfree(count_recv_bhs);
   myfree(offset_bhs);
   myfree(count_bhs);
 #endif
+
+#ifdef STARS
+  myfree(offset_recv_stars);
+  myfree(count_recv_stars);
+  myfree(offset_stars);
+  myfree(count_stars);
+#endif
+
   myfree(offset_recv_sph);
   myfree(offset_recv);
   myfree(count_recv_sph);

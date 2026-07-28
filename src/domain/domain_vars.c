@@ -56,18 +56,29 @@ struct domain_cost_data *DomainLeaveNode;
 double fac_work, fac_load, fac_worksph;
 double normsum_work, normsum_load, normsum_worksph;
 
+#ifdef STAR_FEEDBACK_ACTIVE
+double normsum_workstar, fac_workstar, totstarcost, starcost;
+#endif
+
+#ifdef BH_ACTIVE
+double normsum_workbh, fac_workbh, totbhcost, bhcost;
+#endif
+
 int Nbranch;
 
 /*! toGo[partner] gives the number of particles on the current task that have to go to task 'partner'
  */
 int *toGo, *toGoSph;
 int *toGet, *toGetSph;
-#ifdef BLACKHOLES
-int *toGoBhs, *toGetBhs;
-#endif
+
 #ifdef STARS
 int *toGoStars, *toGetStars;
 #endif
+
+#ifdef BLACKHOLES
+int *toGoBhs, *toGetBhs;
+#endif
+
 int *list_NumPart;
 int *list_NumGas;
 int *list_load;
@@ -89,14 +100,17 @@ void domain_allocate_lists(void)
   toGoSph         = (int *)mymalloc_movable(&toGoSph, "toGoSph", (sizeof(int) * NTask));
   toGet           = (int *)mymalloc_movable(&toGet, "toGet", (sizeof(int) * NTask));
   toGetSph        = (int *)mymalloc_movable(&toGetSph, "toGetSph", (sizeof(int) * NTask));
-#ifdef BLACKHOLES
-  toGoBhs          = (int *)mymalloc_movable(&toGoBhs, "toGoBhs", (sizeof(int) * NTask));
-  toGetBhs         = (int *)mymalloc_movable(&toGetBhs, "toGetBhs", (sizeof(int) * NTask));
-#endif
+
 #ifdef STARS
   toGoStars          = (int *)mymalloc_movable(&toGoStars, "toGoStars", (sizeof(int) * NTask));
   toGetStars         = (int *)mymalloc_movable(&toGetStars, "toGetStars", (sizeof(int) * NTask));
 #endif
+
+#ifdef BLACKHOLES
+  toGoBhs          = (int *)mymalloc_movable(&toGoBhs, "toGoBhs", (sizeof(int) * NTask));
+  toGetBhs         = (int *)mymalloc_movable(&toGetBhs, "toGetBhs", (sizeof(int) * NTask));
+#endif
+
   list_NumPart    = (int *)mymalloc_movable(&list_NumPart, "list_NumPart", (sizeof(int) * NTask));
   list_NumGas     = (int *)mymalloc_movable(&list_NumGas, "list_NumGas", (sizeof(int) * NTask));
   list_load       = (int *)mymalloc_movable(&list_load, "list_load", (sizeof(int) * NTask));
@@ -124,14 +138,17 @@ void domain_free_lists(void)
   myfree(list_load);
   myfree(list_NumGas);
   myfree(list_NumPart);
-#ifdef STARS
-  myfree(toGetStars);
-  myfree(toGoStars);
-#endif
+
 #ifdef BLACKHOLES
   myfree(toGetBhs);
   myfree(toGoBhs);
 #endif
+
+#ifdef STARS
+  myfree(toGetStars);
+  myfree(toGoStars);
+#endif
+
   myfree(toGetSph);
   myfree(toGet);
   myfree(toGoSph);
