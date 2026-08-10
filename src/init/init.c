@@ -600,23 +600,9 @@ int init(void)
   init_h2shield();
 #endif
 
-#ifdef BH_ACCRETION_ACTIVE 
-  for(i=0; i < 2; i++)
-    All.BhAccretionLocal[i] = 0;
-  
-  double *bag = All.BhAccretionGlobal;
-  bag = malloc(2 * sizeof(double));
-#endif 
-
 #ifdef BH_FEEDBACK_ACTIVE 
   srand((unsigned int)time(NULL));
   All.FeedbackFlag = 1;
-
-  for(i=0; i < 2; i++)
-    All.BhFeedbackLocal[i] = 0;
-  
-  double *bfg = All.BhFeedbackGlobal;
-  bfg = malloc(2 * sizeof(double));
 #endif 
 
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code

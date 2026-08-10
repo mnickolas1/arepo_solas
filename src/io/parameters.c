@@ -627,7 +627,6 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "RadOpeningAngle");
       addr[nt] = &All.RadOpeningAngle;
       id[nt++] = REAL;
-#endif  
 
       strcpy(tag[nt], "NodeAspectRatio");
       addr[nt] = &All.NodeAspectRatio;

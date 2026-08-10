@@ -568,10 +568,17 @@ double compute_mu(int i)
   double XHeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / P[i].Mass;
   double XHeIII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII) / P[i].Mass;
 #else
+
+#ifdef METALS
+      const double Z = SphP[i].GasMetallicity;
+#else
+      const double Z = 0.0;
+#endif
+
   /* Fall back to fully neutral cosmic abundances */
-  double XHI = HYDROGEN_MASSFRAC;
+  double XHI = (1.0 - Z) * HYDROGEN_MASSFRAC;
   double XHII = 0.0;
-  double XHeI = 1.0 - HYDROGEN_MASSFRAC;
+  double XHeI = (1.0 - Z) * (1.0 - HYDROGEN_MASSFRAC);
   double XHeII = 0.0;
   double XHeIII = 0.0;
 #endif
