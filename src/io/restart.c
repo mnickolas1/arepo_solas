@@ -1324,7 +1324,7 @@ fof_seeding_registry_io(&HaloSeeds, modus);
 
   if(All.TotNumGas > 0)
     {
-#ifdef STAR_RADIATION_ACTIVE
+#ifdef RAD_OCT_TREE
       byten(RtNgb_Nodes + Ngb_MaxPart, Ngb_NumNodes * sizeof(struct RtNgbNODE), modus);
 #endif
 
