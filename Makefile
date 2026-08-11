@@ -506,7 +506,8 @@ endif
 ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
 OBJS += extern/chealpix.o \
         stars/star_radiation.o \
-        stars/star_radiation_tree.o
+        stars/star_radiation_voronoi.o 
+        #stars/star_radiation_tree.o
 INCL += extern/chealpix.h \
         stars/star_radiation.h
 SUBDIRS += extern
