@@ -134,9 +134,11 @@ void star_update_timesteps(void)
 #if defined(SELFGRAVITY) ||  defined(EXTERNALGRAVITY) || defined(EXACT_GRAVITY_FOR_PARTICLE_TYPE)
       SP[i].TimeBinStar = PPS(i).TimeBinGrav;
 #else
-      int bin;
-      timebins_get_bin_and_do_validity_checks(star_timestep(i), &bin, SP[i].TimeBinStar);
-      SP[i].TimeBinStar = bin;
+     //int bin;
+      //timebins_get_bin_and_do_validity_checks(star_timestep(i), &bin, SP[i].TimeBinStar);
+
+      /* Always active */
+      SP[i].TimeBinStar = 0;
 #endif
     }
     
@@ -246,7 +248,9 @@ void star_prep(void)
       
       /* Advance timestep and age */
       MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
-      SP[i].Age = All.Time - SP[i].Birthtime;
+            
+      /* Always alive */
+      SP[i].Age = 0;
 
       /* Convert properties to yr and msun */
       MyDouble star_mass_msun = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
@@ -302,8 +306,12 @@ void star_prep(void)
 #ifdef STAR_RADIATION_ACTIVE      
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          SP[i].MechanicalFeedback.Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
-          SP[i].MechanicalFeedback.Radiated[w].Energy = StarFeedback.Radiated[w].Energy;
+      /* Monochromatic radiation of fixed intensity for the test */
+      SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Photons = 1.0e49 * All.TimeStep * All.cf_UnitTime_in_s;
+      /* rtype */
+      SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Energy = 0.0;
+      /* dtype */
+      //SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Energy = (15.6 * ELECTRONVOLT_IN_ERGS / All.cf_UnitEnergy_in_cgs) * SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Photons;
         }
 #endif
 

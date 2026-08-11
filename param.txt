@@ -1,34 +1,20 @@
 %---- SOLAS additions
 
-%---- Metal parameters
-InitMetallicityinSolar	    0.0
-
 %---- Cooling parameters
 TreecoolFile                ./TREECOOL_ep
 GrackleDataFile				./CloudyData_UVB=FG2011_shielded.h5
 
-%---- Star Formation options
-StarFormationEfficiency	    0.01
-NumberDensThreshold	        10
-TemperatureThreshold        1e6
-
-
 %---- Star options
 IMF                     1
-StarTablesFile          star_feedback_tables.hdf5
+StarTablesFile          ./star_feedback_tables.hdf5
 
-SN_HostShellSweepFrac    0.1
-SN_LeadTime              40
-
-%RaySplitFactor          4
-%RTIonizationTimestepFraction  1
-
-%RefStarsPerCell         4 %Refine cells hosting more than this number of stars
+RaySplitFactor          4
+RTIonizationTimestepFraction  0.1
 
 %----  Arepo public
 
 %----  Relevant files
-InitCondFile                            ./agora_galaxy_arepo-with-grid
+InitCondFile                            ./ics_rtype_128_glass
 OutputDir                               ./output
 SnapshotFileBase                        snap
 OutputListFilename                      ./output_list.txt
@@ -48,7 +34,7 @@ MaxMemSize                              2500
 
 %---- Caracteristics of run
 TimeBegin                               0.0
-TimeMax                                 1.0 % End of the simulation
+TimeMax                                 0.225228
 
 %---- Basic code options that set the type of simulation
 ComovingIntegrationOn                   0
@@ -57,15 +43,15 @@ PeriodicBoundariesOn                    0
 %---- Cosmological parameters (Planck cosmology)
 Omega0                                  0.0
 OmegaLambda                             0.0
-OmegaBaryon                             0.0     %0.0486
+OmegaBaryon                             0.0   
 HubbleParam                             1.0
-BoxSize                                 1200
+BoxSize                                 12.8
 
 %---- Output frequency and output parameters
 OutputListOn                            0
-TimeBetSnapshot                         0.01
+TimeBetSnapshot                         0.0037538
 TimeOfFirstSnapshot                     0.0
-TimeBetStatistics                       0.0234375
+TimeBetStatistics                       0.0037538
 NumFilesPerSnapshot                     1
 NumFilesWrittenInParallel               1
 
@@ -73,13 +59,13 @@ NumFilesWrittenInParallel               1
 TypeOfTimestepCriterion                 0
 ErrTolIntAccuracy                       0.012
 CourantFac                              0.3
-MaxSizeTimestep                         0.0234375
-MinSizeTimestep                         2.0e-8
+MaxSizeTimestep                         0.00001
+MinSizeTimestep                         1.0e-10
 
 %---- Treatment of empty space and temperature limits
-InitGasTemp                             1.0e4
-MinGasTemp                              10.0
-MinimumDensityOnStartUp                 1.0e-10  %% very important for this setup!
+InitGasTemp                             0.0
+MinGasTemp                              0.0
+MinimumDensityOnStartUp                 0.0
 LimitUBelowThisDensity                  0.0
 LimitUBelowCertainDensityToThisValue    0.0
 MinEgySpec                              0.0
@@ -97,9 +83,9 @@ ActivePartFracForNewDomainDecomp        0.01
  MaxNumNgbDeviation                      4
 
  %---- System of units
- UnitLength_in_cm                        3.085678e21    %  1.0 kpc
- UnitMass_in_g                           1.989e42       %  1.0e9 solar masses
- UnitVelocity_in_cm_per_s                1e5            %  1 km/sec
+ UnitLength_in_cm                        3.085677581e21
+ UnitMass_in_g                           1.98892e33
+ UnitVelocity_in_cm_per_s                100000
  GravityConstantInternal                 0
 
  %---- Gravitational softening lengths
@@ -107,13 +93,15 @@ ActivePartFracForNewDomainDecomp        0.01
  SofteningComovingType1                  0.08
  SofteningComovingType2                  0.08
  SofteningComovingType3                  0.08
+ SofteningComovingType4                  0.08
+ SofteningComovingType5                  0.08
 
  SofteningMaxPhysType0                   0.08
  SofteningMaxPhysType1                   0.08
  SofteningMaxPhysType2                   0.08
  SofteningMaxPhysType3                   0.08
-
- GasSoftFactor                           2.5
+ SofteningMaxPhysType4                   0.08
+ SofteningMaxPhysType5                   0.08
 
  SofteningTypeOfPartType0                0
  SofteningTypeOfPartType1                1
@@ -122,17 +110,12 @@ ActivePartFracForNewDomainDecomp        0.01
  SofteningTypeOfPartType4                3
  SofteningTypeOfPartType5                1
 
- MinimumComovingHydroSoftening           0.08
- AdaptiveHydroSofteningSpacing           1.2
+ GasSoftFactor                           2.5
 
  %---- Mesh regularization options
  CellShapingSpeed                        0.5
  CellMaxAngleFactor                      2.25
- ReferenceGasPartMass                    8.59322e-05
+ ReferenceGasPartMass                    25.0
  TargetGasMassFactor                     1
  RefinementCriterion                     1
  DerefinementCriterion                   1
- MeanVolume                              52734.4
- MaxVolumeDiff                           10  
- MinVolume                               2.14e-3    % dx >= 80 pc limit
- MaxVolume                               1.0e9      % no limits

@@ -84,7 +84,7 @@ void update_dtau(void)
       SphP[i].DtauOverLength_E[LYMAN_WERNER] = (Kappa_E[LYMAN_WERNER] / Units) * Zsol * Density;
 
       /* Band averaged sigma0*(v/v0)^(-3), in cm^2 */
-      sigma_HI = 3.25e-18;
+      sigma_HI = 6.3e-18; 
       sigma_HeI = 5.04e-18;
       sigma_HeII = 1.30e-18;
       SphP[i].DtauOverLength_E[IONIZING_HI] = (sigma_HI / (PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume;
@@ -100,7 +100,7 @@ void update_dtau(void)
       SphP[i].DtauOverLength_N[LYMAN_WERNER] = (Kappa_N[LYMAN_WERNER] / Units) * Zsol * Density;
 
       /* Band averaged sigma0*(v/v0)^(-3), in cm^2 */
-      sigma_HI = 3.48e-18;
+      sigma_HI = 6.3e-18; 
       sigma_HeI = 5.27e-18;
       sigma_HeII = 1.31e-18;
       SphP[i].DtauOverLength_N[IONIZING_HI] = (sigma_HI / (PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume;
@@ -367,7 +367,7 @@ static void init_rays(RayWorkStack *work)
             ray.nside = NSIDE_MIN;
             ray.healpix_pixel = iray;
 
-            ray.active_bands = NO_IR_ACTIVE;
+            ray.active_bands = ONLY_IONIZING_ACTIVE;
 
             for(int w = 0; w < WAVEBANDS; w++)
               {

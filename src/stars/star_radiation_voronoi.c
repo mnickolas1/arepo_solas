@@ -35,67 +35,26 @@
 static inline int ray_absorb(RayPacket *ray, double Dtau_E[WAVEBANDS], double Dtau_N[WAVEBANDS], WavebandData absorbed[WAVEBANDS],
                              double dN_H2, double *lw_line)
 {
-  for(int w = 0; w < WAVEBANDS; w++)
-    {
-      absorbed[w].Energy = absorbed[w].Photons = 0.0;
+  absorbed[IONIZING_HI].Energy = absorbed[IONIZING_HI].Photons = 0.0;
 
-      /* Deactivate band if it has fallen below the dead-fraction threshold */
-      if(ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy &&
-         ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons)
-        ray->active_bands &= (uint8_t)(~(1u << w));
+  /* Deactivate band if it has fallen below the dead-fraction threshold */
+  if(ray->Radiated[IONIZING_HI].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[IONIZING_HI].Energy && 
+     ray->Radiated[IONIZING_HI].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[IONIZING_HI].Photons)
+     ray->active_bands &= (uint8_t)(~(1u << IONIZING_HI));
 
-      if(!(ray->active_bands & (1u << w)))
-        continue;
+    if(!(ray->active_bands & (1u << IONIZING_HI)))
+      return ray->active_bands != 0;
 
-      /* Separate treatment of LW */
-      if(w == LYMAN_WERNER)
-        continue;
+    double absorbed_energy = ray->Radiated[IONIZING_HI].Energy * (1.0 - exp(-Dtau_E[IONIZING_HI]));
+    double absorbed_photons = ray->Radiated[IONIZING_HI].Photons * (1.0 - exp(-Dtau_N[IONIZING_HI]));
 
-      /* Transparent cell for this band: 1 - exp(-0) is exactly 0, so this is
-         bit-identical to falling through, and it removes both exp() calls.
-         Dominant win in ionized gas, where the HI/HeI/HeII opacities vanish. */
-      if(Dtau_E[w] <= 0.0 && Dtau_N[w] <= 0.0)
-        continue;
+    absorbed[IONIZING_HI].Energy += absorbed_energy;
+    ray->Radiated[IONIZING_HI].Energy -= absorbed_energy;
+      
+    absorbed[IONIZING_HI].Photons += absorbed_photons;
+    ray->Radiated[IONIZING_HI].Photons -= absorbed_photons; 
 
-      double absorbed_energy = ray->Radiated[w].Energy * (1.0 - exp(-Dtau_E[w]));
-      double absorbed_photons = ray->Radiated[w].Photons * (1.0 - exp(-Dtau_N[w]));
-
-      absorbed[w].Energy += absorbed_energy;
-      ray->Radiated[w].Energy -= absorbed_energy;
-
-      absorbed[w].Photons += absorbed_photons;
-      ray->Radiated[w].Photons -= absorbed_photons;
-    }
-
-  /* LW band: H2 line self shielding + dust absorption */
-  if((ray->active_bands & (1u << LYMAN_WERNER)) &&
-     (dN_H2 > 0.0 || Dtau_E[LYMAN_WERNER] > 0.0 || Dtau_N[LYMAN_WERNER] > 0.0))
-    {
-      double Dtau_line = h2shield_dtau(ray->N_H2, dN_H2);
-      double Dtau_dust_E = Dtau_E[LYMAN_WERNER];
-      double Dtau_dust_N = Dtau_N[LYMAN_WERNER];
-
-      double tot_E = Dtau_line + Dtau_dust_E;
-      double tot_N = Dtau_line + Dtau_dust_N;
-
-      double absorbed_energy = ray->Radiated[LYMAN_WERNER].Energy * (1.0 - exp(-tot_E));
-      double absorbed_photons = ray->Radiated[LYMAN_WERNER].Photons * (1.0 - exp(-tot_N));
-
-      absorbed[LYMAN_WERNER].Energy += absorbed_energy;
-      ray->Radiated[LYMAN_WERNER].Energy -= absorbed_energy;
-
-      absorbed[LYMAN_WERNER].Photons += absorbed_photons;
-      ray->Radiated[LYMAN_WERNER].Photons -= absorbed_photons;
-
-      if(tot_E > 0)
-        lw_line[0] = Dtau_line / tot_E;
-      if(tot_N > 0)
-        lw_line[1] = Dtau_line / tot_N;
-    }
-
-  ray->N_H2 += dN_H2;
-
-  return ray->active_bands != 0;
+    return ray->active_bands != 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -119,94 +78,15 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   WavebandData absorbed[WAVEBANDS];
 
   /* Line dissociation */
-  double dN_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume * length;
+  double dN_H2 = 0.0;
   /* Fraction of LW absorption that goes into H2 line dissociation */
   double lw_line[2] = {0.0, 0.0};
 
   /* Process ray */
   int still_alive = ray_absorb(ray, Dtau_E, Dtau_N, absorbed, dN_H2, lw_line);
 
-  /* Reradiation in the IR (boosts momentum) */
-  double Dtau_IR = 0.0;
-#ifdef RADIATION_PRESSURE
-  Dtau_IR = dtau_IR(i, length);
-#endif
-
-  const double c_code = CLIGHT / All.cf_UnitVelocity_in_cm_per_s;
-
-
-  const double mj = P[i].Mass + SphP[i].StarMassFeed;
-
-  if(mj <= 0.0)
-    return still_alive;
-
-  double mom[3], smf[3];
-  for(int k = 0; k < 3; k++)
-    {
-      mom[k] = SphP[i].Momentum[k];
-      smf[k] = SphP[i].StarMomentumFeed[k];
-    }
-
-  /* Deposit absorbed energy into the cell, one band at a time */
-  double dK_total = 0.0;
-
-  for(int w = 0; w < WAVEBANDS; w++)
-    {
-      /* Nothing absorbed: dp, dK and both accumulator increments are exactly
-         zero, so skipping is bit-identical and cuts the common case. */
-      if(absorbed[w].Energy == 0.0)
-        continue;
-
-      double dp;
-
-      /* No IR reradiation */
-      if(w == IONIZING_HI || w == IONIZING_HeI || w == IONIZING_HeII)
-        dp = absorbed[w].Energy / c_code / All.cf_atime;
-      /* IR reradiation (dust only) */
-      else if(w == LYMAN_WERNER)
-        dp = absorbed[w].Energy * (1.0 + (1.0 - lw_line[0]) * Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
-      /* IR reradiation (full) */
-      else
-        dp = absorbed[w].Energy * (1.0 + Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
-
-      double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
-
-      /* Partially updated state */
-      double pj[3];
-      for(int k = 0; k < 3; k++)
-        pj[k] = mom[k] + smf[k];
-
-      double sq_momentum = dp_vec[0] * dp_vec[0] + dp_vec[1] * dp_vec[1] + dp_vec[2] * dp_vec[2];
-
-      double cross = 2 * (pj[0] * dp_vec[0] + pj[1] * dp_vec[1] + pj[2] * dp_vec[2]);
-
-      double dK = (sq_momentum + cross) / (2 * mj);
-
-      smf[0] += dp_vec[0];
-      smf[1] += dp_vec[1];
-      smf[2] += dp_vec[2];
-
-      if(w == LYMAN_WERNER)
-        SphP[i].Absorbed[w].Energy += (1.0 - lw_line[0]) * (absorbed[w].Energy - dK);
-      else
-        SphP[i].Absorbed[w].Energy += absorbed[w].Energy - dK;
-
-      dK_total += dK;
-    }
-
-  for(int k = 0; k < 3; k++)
-    SphP[i].StarMomentumFeed[k] = smf[k];
-
-  SphP[i].StarEnergyFeed += dK_total;
-  All.StarFeedbackLocal[2] += dK_total;
-
-  /* Dissociating photons */
-  SphP[i].Absorbed[LYMAN_WERNER].Photons += lw_line[1] * absorbed[LYMAN_WERNER].Photons;
-
-  /* Ionizing photons */
+  SphP[i].Absorbed[IONIZING_HI].Energy += absorbed[IONIZING_HI].Energy;
   SphP[i].Absorbed[IONIZING_HI].Photons += absorbed[IONIZING_HI].Photons;
-  SphP[i].Absorbed[IONIZING_HeI].Photons += absorbed[IONIZING_HeI].Photons;
-  SphP[i].Absorbed[IONIZING_HeII].Photons += absorbed[IONIZING_HeII].Photons;
 
   return still_alive;
 }

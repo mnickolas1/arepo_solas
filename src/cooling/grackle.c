@@ -434,121 +434,41 @@ void InitGrackle(void)
     }
 
   /* Third, fill this chemistry object to set parameter values for chemistry & cooling. */
+  my_grackle_data->use_grackle                      = 1;
+  my_grackle_data->primordial_chemistry             = 1;     
+  my_grackle_data->metal_cooling                    = 0;
+  my_grackle_data->dust_chemistry                   = 0;
+  my_grackle_data->h2_on_dust                       = 0;
+  my_grackle_data->photoelectric_heating            = 0;
+  my_grackle_data->dust_recombination_cooling       = 0;
+  my_grackle_data->UVbackground                     = 0;
+  my_grackle_data->LWbackground_intensity           = 0.0;
+  my_grackle_data->Compton_xray_heating             = 0;
+  my_grackle_data->self_shielding_method            = 0;
+  my_grackle_data->H2_self_shielding                = 0;
+  my_grackle_data->cmb_temperature_floor            = 0;   
+  my_grackle_data->CaseBRecombination               = 1;
+  my_grackle_data->HydrogenFractionByMass           = 1.0;    
+  my_grackle_data->use_radiative_transfer           = 1;
+  my_grackle_data->radiative_transfer_hydrogen_only = 1;
+  my_grackle_data->radiative_transfer_coupled_rate_solver = 0;   
+  my_grackle_data->max_iterations                   = 100000;
 
-  /* main flags */
+  /* rtype */
+  my_grackle_data->Gamma = 1.0001;
+  my_grackle_data->with_radiative_cooling = 0;
+  my_grackle_data->collisional_excitation_rates = 0;
+  my_grackle_data->collisional_ionisation_rates = 0;
+  my_grackle_data->recombination_cooling_rates = 0;
+  my_grackle_data->bremsstrahlung_cooling_rates = 0;
 
-  /* Flag to activate the grackle machinery */
-  my_grackle_data->use_grackle = 1;
-  /* Path to the data file containing the metal cooling and UV background tables (for non-eq mode) and metal and primordial
-   * cooling/heating (for equilibrium mode) */
-  my_grackle_data->grackle_data_file = All.GrackleDataFile;
-  /* Flag to include radiative cooling and actually update the thermal energy during the
-   * chemistry solver. If off, the chemistry species will still be updated. The most
-   * common reason to set this to off is to iterate the chemistry network to an equilibrium state. Default: 1.
-   */
+  /* dtype */
+  /*my_grackle_data->Gamma = 1.6667
   my_grackle_data->with_radiative_cooling = 1;
-
-  /* The ratio of specific heats for an ideal gas. A direct calculation for the molecular component is used if primordial_chemistry
-   * > 1. Default: 5/3. */
-  my_grackle_data->Gamma = GAMMA; /* our eos set in Config.sh */
-
-  my_grackle_data->HydrogenFractionByMass = HYDROGEN_MASSFRAC;    
-
-  /* Flag to control which primordial chemistry network is used (set by Config.sh) */
-#ifndef GRACKLE_CHEMISTRY
-  my_grackle_data->primordial_chemistry = 0; /* if nothing is set assume fully tabulated cooling */
-#else
-  my_grackle_data->primordial_chemistry = GRACKLE_CHEMISTRY;
-#endif
-
-#ifdef METALS
-  /* Flag to enable metal cooling using the Cloudy tables. If enabled, the cooling table to be used must be specified with the
-   * grackle_data_file parameter. Default: 0. */
-  my_grackle_data->metal_cooling = 1;
-  /* Flag to enable H2 formation on dust grains, dust cooling, and dust-gas heat transfer follow Omukai (2000). This assumes that the
-   * dust to gas ratio scales with the metallicity. Default: 0. */
-  my_grackle_data->h2_on_dust = 0;
-  /* Flag to enable a spatially uniform heating term approximating photo-electric heating from dust from Tasker & Bryan (2008).
-   * Default: 0. If photoelectric_heating enabled, photoelectric_heating_rate is the heating rate in units of erg cm-3 s-1.
-   * Default: 8.5e-26. This is not adjusted to local background. (Caution: this tends to heat gas even at extremely high densities to
-   * ~3000 K, when it should be entirely self-shielding) Another comment: this heats also all the low-density gas to 10^4 K, so it's
-   * better not to use it.
-   */
-  my_grackle_data->photoelectric_heating      = 0; /* read above but DO NOT USE */
-  my_grackle_data->photoelectric_heating_rate = 8.5e-26;
-#else
-  my_grackle_data->metal_cooling              = 0;
-  my_grackle_data->h2_on_dust                 = 0;
-  my_grackle_data->photoelectric_heating      = 0;
-  my_grackle_data->photoelectric_heating_rate = 8.5e-26;
-#endif
-
-  /* Flag to control which three-body H2 formation rate is used.
-   *    0: Abel, Bryan & Norman (2002),
-   *    1: Palla, Salpeter & Stahler (1983),
-   *    2: Cohen & Westberg (1983),
-   *    3: Flower & Harris (2007),
-   *    4: Glover (2008).
-   *    These are discussed in Turk et. al. (2011). Default: 0.
-   */
-  my_grackle_data->three_body_rate = 0;
-
-  /* Flag to enable an effective CMB temperature floor.
-   * This is implemented by subtracting the value of the cooling rate at TCMB from the total METAL cooling rate. Default: 1.
-   * Beware! You could still have Tgas<TCBM because it imposes a temperature floor only for the metal cooling.
-   */
-  my_grackle_data->cmb_temperature_floor = 1;
-
-  /* Flag to enable a UV background.
-   * If enabled, the cooling table to be used must be specified with the grackle_data_file parameter. Default: 0.
-   */
-  my_grackle_data->UVbackground = 1;
-  /* The following flags are related to the UVB, but they are automatically set to the right values, so do not need to use. These
-   * numbers are the correct ones for FG2011 UVB. my_grackle_data->UVbackground_redshift_on       = 10.6;
-   * my_grackle_data->UVbackground_redshift_off      = 0;
-   * my_grackle_data->UVbackground_redshift_fullon   = 10.6;
-   * my_grackle_data->UVbackground_redshift_drop     = 0;
-   */
-
-  /* Flag to enable Compton heating from an X-ray background following Madau & Efstathiou (1999). Default: 0.
-   * Beware: this flag is just broken, it causes a runaway ionisation and heating as soon as the UVB kicks in
-   * and you start having some electrons. DO NOT use it.
-   */
-  my_grackle_data->Compton_xray_heating = 0; /* read above but DO NOT USE */
-
-  /* Flag to enable H2 collision-induced emission cooling from Ripamonti & Abel (2004). Default: 0. */
-  my_grackle_data->cie_cooling = 0;
-  /* Flag to enable H2 cooling attenuation from Ripamonti & Abel (2004). Default: 0. */
-  my_grackle_data->h2_optical_depth_approximation = 0;
-
-  /* Rad Intensity of a constant Lyman-Werner H2 photo-dissociating radiation field,
-   * in units of 10-21 erg s-1 cm-2 Hz-1 sr-1. Default: 0.
-   */
-  my_grackle_data->LWbackground_intensity = 0;
-  /* Flag to enable suppression of Lyman-Werner flux due to Lyman-series absorption
-   * (giving a sawtooth pattern), taken from Haiman & Abel, & Rees (2000). Default: 0.
-   */
-  my_grackle_data->LWbackground_sawtooth_suppression = 0;
-
-  /* For both UV bkgd and RT; options for length scale:
-   *     1: Sobolev-like (from WG11)
-   *     2: array of lengths
-   *     3: local Jeans length
-   * Default: 0.
-   */
-  my_grackle_data->H2_self_shielding = 3;
-
-  /* Flag for self-shielding from UV bkgd. Default: 0. */
-  my_grackle_data->self_shielding_method = 0;
-
-#ifdef STAR_RADIATION_ACTIVE
-  /* flag to include RT */
-  my_grackle_data->use_radiative_transfer      = 1;
-  my_grackle_data->use_volumetric_heating_rate = 1;
-#else
-  my_grackle_data->use_radiative_transfer      = 0;
-  my_grackle_data->use_volumetric_heating_rate = 0;
-#endif
+  my_grackle_data->collisional_excitation_rates = 1;
+  my_grackle_data->collisional_ionisation_rates = 0;
+  my_grackle_data->recombination_cooling_rates = 0;
+  my_grackle_data->bremsstrahlung_cooling_rates = 0;*/
 
   /* Finally, initialize the chemistry object. This has to be the last step of the initialisation. */
   if(initialize_chemistry_data(&All.GrackleUnits) == 0)
