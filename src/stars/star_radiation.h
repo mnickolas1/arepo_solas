@@ -8,7 +8,7 @@
 
 #define RAD_TRUNC_FRAC 0.01
 
-/* Safety cap on the number of Voronoi cells a single ray may cross in one call to raytrace_voronoi() /* 
+/* Safety cap on the number of Voronoi cells a single ray may cross in one call to raytrace_voronoi() */ 
 /* Only trips on degenerate geometry */
 #define RAY_MAX_CELL_STEPS (1 << 22)
 
