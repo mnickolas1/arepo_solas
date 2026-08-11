@@ -479,12 +479,6 @@ $(error STAR_HOST_REFINEMENT requires STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
-ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
-ifeq ($(strip $(findstring GRACKLE_CHEMISTRY 2,$(CONFIGVARS))$(findstring GRACKLE_CHEMISTRY 3,$(CONFIGVARS))),)
-$(error STAR_RADIATION_ACTIVE requires GRACKLE_CHEMISTRY >= 2)
-endif
-endif
-
 ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
 OBJS += stars/star_particle.o
 INCL += stars/star_particle.h  
