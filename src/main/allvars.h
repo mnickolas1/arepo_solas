@@ -464,17 +464,11 @@ typedef unsigned long long peano1D;
 #define MIN_REAL_NUMBER MIN_FLOAT_NUMBER
 #endif /* #ifdef DOUBLEPRECISION #else */
 
-/* rtype */
-#define GAMMA 1.0001
+#define GAMMA 1.6667
 #define GAMMA_MINUS1 (GAMMA - 1.)
 #define GAMMA_PLUS1 (GAMMA + 1.)
 
-/* dtype */
-/*#define GAMMA 1.6667
-#define GAMMA_MINUS1 (GAMMA - 1.)
-#define GAMMA_PLUS1 (GAMMA + 1.)*/
-
-#define HYDROGEN_MASSFRAC 1.0 /*!< mass fraction of hydrogen */
+#define HYDROGEN_MASSFRAC 0.76 /*!< mass fraction of hydrogen */
 
 /* ... often used physical constants (cgs units; NIST 2010) */
 
