@@ -169,18 +169,21 @@ void run(void)
     }
 #endif /* #if defined(VORONOI_STATIC_MESH) */
 
+  double count = 0;
   while(1) /* main loop */
     {
       if(RestartFlag !=
          1) /* if we are starting from restart files, skip in the first iteration the parts until the restart files were written  */
         {
+          count++;
+          
           compute_statistics();
 
           flush_everything();
 
           create_snapshot_if_desired();
-
-          if(All.Ti_Current >= TIMEBASE) /* we reached the final time */
+     
+          if(count == 2) /* we reached the final time */
             {
               mpi_printf("\nFinal time=%g reached. Simulation ends.\n", All.TimeMax);
 
