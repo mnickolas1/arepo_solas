@@ -316,15 +316,16 @@ void star_prep(void)
 #endif
 
 #ifdef SUPERNOVAE
-      SP[i].MechanicalFeedback.SN_MassLoss = StarFeedback.SN_MassLoss;
+      /* Easy SN setup for test */
+      SP[i].MechanicalFeedback.SN_MassLoss = 10.0 / All.cf_UnitMass_in_Msun;
 #if GRACKLE_CHEMISTRY >= 1
-      SP[i].MechanicalFeedback.SN_HLoss = StarFeedback.SN_HLoss;
-      SP[i].MechanicalFeedback.SN_HeLoss = StarFeedback.SN_HeLoss;
+      SP[i].MechanicalFeedback.SN_HLoss = 0.0;
+      SP[i].MechanicalFeedback.SN_HeLoss = 0.0;
 #endif
 #ifdef METALS
-      SP[i].MechanicalFeedback.SN_MetalsLoss = StarFeedback.SN_MetalsLoss;
+      SP[i].MechanicalFeedback.SN_MetalsLoss = 0.1 / All.cf_UnitMass_in_Msun;
 #endif
-      SP[i].MechanicalFeedback.SN_EnergyInject = StarFeedback.SN_EnergyInject;
+      SP[i].MechanicalFeedback.SN_EnergyInject = 1.0e51 / All.cf_UnitEnergy_in_cgs;
 #endif
 
       /* Determine if star provides feedback */
