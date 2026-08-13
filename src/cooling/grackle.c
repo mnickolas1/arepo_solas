@@ -221,11 +221,13 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
           // Grackle assumes non-metal portion of the gas always retains its original primordial abundances ratio.
           // https://arxiv.org/abs/2604.00100v1 (Appendix A)
           // check make_consistent_g in solve_rate_cool_g.F
-          gr_float HHemassfrac = 1.0 - Metallicity;  // X_H+Y_He
-          // For H: X/(X+Y) divided value used in grackle 0.76
-          gr_float fh_correct = (X_H / HHemassfrac) / HYDROGEN_MASSFRAC;
-          // For He: Y/(X+Y) divided value in grackle 0.24
-          gr_float fhe_correct = (Y_He / HHemassfrac) / (1 - HYDROGEN_MASSFRAC);
+          const double X_ref = grackle_data->HydrogenFractionByMass;
+          const double Y_ref = 1.0 - X_ref;
+
+          gr_float HHemassfrac = 1.0 - Metallicity;
+
+          gr_float fh_correct = (X_ref > 0.0) ? (X_H / HHemassfrac) / X_ref : 1.0;
+          gr_float fhe_correct = (Y_ref > 0.0) ? (Y_He / HHemassfrac) / Y_ref : 0.0;
 
           /* if non-eq chemistry assign abundances back */
 #if (GRACKLE_CHEMISTRY >= 1)
