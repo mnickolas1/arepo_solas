@@ -451,14 +451,12 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
 
       if(q < 0)
         {
-          terminate("RAYTRACE_VORONOI: cell %d unbounded along ray %d (star %llu) - stale DC list?\n", i, ray->ray_id,
-                   (unsigned long long)ray->star_id);
+          terminate("RAYTRACE_VORONOI: cell %d unbounded along ray %d - stale DC list?\n", i, ray->ray_id);
         }
 
       if(t_step < 0.0)
         {
-          terminate("RAYTRACE_VORONOI: cell %d gives negative t along ray %d (star %llu) - stale DC list?\n", i, ray->ray_id,
-                   (unsigned long long)ray->star_id);
+          warn("RAYTRACE_VORONOI: cell %d gives negative t %g along ray %d - stale DC list?\n", i, t_step, ray->ray_id);
         }
 
       int truncated = 0;
