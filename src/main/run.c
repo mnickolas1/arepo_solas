@@ -292,7 +292,7 @@ void run(void)
       special_particle_update_list();
 #endif /* #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE */
 
-     calculate_non_standard_physics_prior_mesh_construction();
+      calculate_non_standard_physics_prior_mesh_construction();
 
 #if !defined(VORONOI_STATIC_MESH)
       create_mesh();
