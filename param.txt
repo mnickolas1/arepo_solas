@@ -65,7 +65,7 @@ BoxSize                                 1200
 OutputListOn                            0
 TimeBetSnapshot                         0.01
 TimeOfFirstSnapshot                     0.0
-TimeBetStatistics                       0.0234375
+TimeBetStatistics                       0.0
 NumFilesPerSnapshot                     1
 NumFilesWrittenInParallel               1
 
