@@ -304,36 +304,6 @@ void star_feedback(void)
           if(MechanicalFeedback->SN_MassLoss || MechanicalFeedback->SN_EnergyInject)
             flag_sn = 1;
 #endif
-        
-#ifdef WINDS
-          /* Wind radius */
-          /* Skip the mesh-neighbour geometry entirely and dump Wind into the host cell */
-          if(flag_wind)
-            {
-              int wind_mode = Wind_feedback_radius(i, ev, h);
-              
-              if(wind_mode != MESH)
-                {
-                  Wind_feedback_host(i, ev, h, wind_mode);
-                  flag_wind_host = 1;
-                }
-            }
-#endif
-
-#ifdef SUPERNOVAE
-          /* SN radius */
-          /* Skip the mesh-neighbour geometry entirely and dump SN into the host cell */
-          if(flag_sn)
-            {
-              int sn_mode = SN_feedback_radius(i, ev, h);
-
-              if(sn_mode != MESH)
-                {
-                  SN_feedback_host(i, ev, h, sn_mode);
-                  flag_sn_host = 1;
-                }
-            }
-#endif
           
           /* No feedback star */
           if(!flag_wind && !flag_sn)
