@@ -26,6 +26,7 @@ GRAVITY_NOT_PERIODIC          # gravity is not treated periodically
 #--------------------------------------- Single/Double Precision
 DOUBLEPRECISION=1              # Mode of double precision: not defined: single; 1: full double precision 2: mixed, 3: mixed, fewer single precisions; unless short of memory, use 1.
 INPUT_IN_DOUBLEPRECISION
+OUTPUT_IN_DOUBLEPRECISION
 
 #--------------------------------------- output options
 HAVE_HDF5                     # needed when HDF5 I/O support is desired (recommended)
