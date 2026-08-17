@@ -59,7 +59,7 @@ NumFilesWrittenInParallel               1
 TypeOfTimestepCriterion                 0
 ErrTolIntAccuracy                       0.012
 CourantFac                              0.3
-MaxSizeTimestep                         0.00001
+MaxSizeTimestep                         0.0037538
 MinSizeTimestep                         1.0e-10
 
 %---- Treatment of empty space and temperature limits

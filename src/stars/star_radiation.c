@@ -732,7 +732,7 @@ void star_radiation(void)
         mpi_printf("STAR_RADIATION: Rad iteration %3d: need to repeat for %12lld rays. (took %g sec)\n", iter, n_global,
         timediff(t0, t1));
 
-      if(iter > MAXITER)
+      if(iter > 4 * MAXITER)
         terminate("STAR_RADIATION: %lld rays still in flight after %d iterations\n", n_global, iter);
 
     } while(n_global > 0);
