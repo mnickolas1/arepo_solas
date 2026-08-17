@@ -58,6 +58,14 @@ typedef signed long int IntegerMapType;
 
 #define DOUBLE_to_VORONOIINT(y) ((IntegerMapType)(((*((long long *)&y)) & 0xFFFFFFFFFFFFFllu) >> (52 - USEDBITS)))
 
+#define MASK_X_SHIFT_RIGHT 38347922
+#define MASK_X_SHIFT_LEFT 76695844
+#define MASK_Y_SHIFT_RIGHT 14708792
+#define MASK_Y_SHIFT_LEFT 117670336
+#define MASK_Z_SHIFT_RIGHT 261632
+#define MASK_Z_SHIFT_LEFT 133955584
+#define MASK ((1 << 27) - 1)
+
 /*    Prerequisites for this function:
  *    sizeof(double)==sizeof(unsigned long long)
  *    doubles must be stored according to IEEE 754

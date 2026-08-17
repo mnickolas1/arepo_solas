@@ -59,14 +59,6 @@ struct foreign_connection
   int image_flags;
 } * ForeignDC, *ImportedDC;
 
-#define MASK_X_SHIFT_RIGHT 38347922
-#define MASK_X_SHIFT_LEFT 76695844
-#define MASK_Y_SHIFT_RIGHT 14708792
-#define MASK_Y_SHIFT_LEFT 117670336
-#define MASK_Z_SHIFT_RIGHT 261632
-#define MASK_Z_SHIFT_LEFT 133955584
-#define MASK ((1 << 27) - 1)
-
 int FirstUnusedConnection;
 
 /*! \brief Gets connected active cells from a mesh.

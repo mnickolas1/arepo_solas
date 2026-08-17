@@ -211,6 +211,30 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   return still_alive;
 }
 
+/* Non-periodic wall: the face-defining "neighbour" is the mirror image of this
+   cell across a box face. Both REFLECTIVE_* = 1 and = 2 build the same mirror
+   ghost; for now we treat either as outflow and drop the ray. */
+static inline int dc_is_boundary(int q)
+{
+#if defined(REFLECTIVE_X) || defined(REFLECTIVE_Y) || defined(REFLECTIVE_Z)
+  const int flags = DC[q].image_flags & MASK;
+
+#ifdef REFLECTIVE_X
+  if(flags & (MASK_X_SHIFT_RIGHT | MASK_X_SHIFT_LEFT))
+    return 1;
+#endif
+#ifdef REFLECTIVE_Y
+  if(flags & (MASK_Y_SHIFT_RIGHT | MASK_Y_SHIFT_LEFT))
+    return 1;
+#endif
+#ifdef REFLECTIVE_Z
+  if(flags & (MASK_Z_SHIFT_RIGHT | MASK_Z_SHIFT_LEFT))
+    return 1;
+#endif
+#endif
+  return 0;
+}
+
 #define RAY_MAX_LOCATE 4096
 
 /* Returns 0 if the head now lies inside ray->cell (possibly on its boundary),
@@ -272,6 +296,10 @@ static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
           ray->locate_head = 0;
           return 0;                  
         }
+
+      /* Head is outside the box: the child has already escaped */
+      if(dc_is_boundary(q_best))
+        return 1;
 
       ray->pos[0] -= d_best[0];
       ray->pos[1] -= d_best[1];
@@ -472,6 +500,11 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
       ray->t += t_step;
 
       if(!still_alive || truncated)
+        return;
+
+      /* ---- Outflow boundary ----
+       * Everything up to the wall has already been deposited; the ray leaves */
+      if(dc_is_boundary(q))
         return;
 
       /* ---- Re-anchor on the neighbour's generator ----
