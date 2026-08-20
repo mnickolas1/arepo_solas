@@ -7,6 +7,9 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+
+#define MAX_FACES 128
+
 /* SN host-injection modes, returned by SN_feedback_radius() */
 #define MESH 0 /* Couple across Voronoi faces */
 #define HOST 1 /* Thermal dump into host  */
@@ -265,12 +268,140 @@ static void SN_feedback_host(int i, int ev, int h, int mode)
 }
 #endif
 
+/* Face weights for source position xsrc anchored at host cell i */
+static void compute_face_weights(int i, const double xsrc[3], 
+                                 int *dc_list, int *n_faces,
+                                 double weights[][3], double *wtot)
+{
+  double omega[MAX_FACES], rhat[MAX_FACES][3];
+  double Splus[3] = {0}, Sminus[3] = {0};
+  int nf = 0, k, f;
+
+  int q = SphP[i].first_connection;
+  while(q >= 0)
+    {
+      if(q >= MaxNvc)
+        terminate("Strange connectivity q=%d Nvc=%d", q, MaxNvc);
+              
+      int dp = DC[q].dp_index;
+      int vf = DC[q].vf_index;
+      int particle = Mesh.DP[dp].index;
+          
+      /* Cell has been removed */
+      if(particle < 0)
+        {
+          if(q == SphP[i].last_connection)
+            break;
+                  
+          q = DC[q].next;
+            continue;
+        }
+
+      if(nf >= MAX_FACES)
+        terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
+  
+      /* Face normal - from cell generator to cell generator */
+      double n[3], nn; 
+
+      n[0] = Mesh.DP[dp].x - P[i].Pos[0];
+      n[1] = Mesh.DP[dp].y - P[i].Pos[1];
+      n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+          
+      nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+
+      /* Source-to-face direction */
+      double d[3], dd; 
+                  
+      d[0] = Mesh.VF[vf].cx - xsrc[0];
+      d[1] = Mesh.VF[vf].cy - xsrc[1];
+      d[2] = Mesh.VF[vf].cz - xsrc[2];
+              
+      dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+
+      double costheta = 0, solid_angle = 0;
+
+      for(k = 0; k < 3; k++) 
+        rhat[nf][k] = 0.0;
+
+      if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
+        {
+#ifdef SN_CELL        
+          costheta = 0.5 * nn / dd;
+          
+          for(k = 0; k < 3; k++) 
+            rhat[nf][k] = n[k] / nn;
+#else
+          costheta = (n[0]*d[0] + n[1]*d[1] + n[2]*d[2]) / (nn * dd);
+          if(costheta < 0.0) costheta = 0.0;  
+
+          /* Source-to-cell direction */
+          double r[3], rr; 
+                  
+          r[0] = Mesh.DP[dp].x - xsrc[0];
+          r[1] = Mesh.DP[dp].y - xsrc[1];
+          r[2] = Mesh.DP[dp].z - xsrc[2];
+
+          rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+
+          if(rr > 0.0) 
+            { 
+              for(k = 0; k < 3; k++) 
+                rhat[nf][k] = r[k] / rr; 
+            }
+          else
+            costheta = 0.0;
+#endif
+
+          if(costheta > 0.0)
+            solid_angle = 0.5 * (1.0 - 1.0 / sqrt(1.0 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
+        }
+      
+      omega[nf] = solid_angle;
+
+      for(k = 0; k < 3; k++)
+        {
+          Splus[k] += solid_angle * (rhat[nf][k] > 0.0 ? rhat[nf][k] : 0.0);
+          Sminus[k] += solid_angle * (rhat[nf][k] < 0.0 ? -rhat[nf][k] : 0.0);
+        }
+
+      dc_list[nf++] = q;
+
+      if(q == SphP[i].last_connection) 
+        break;
+          
+      q = DC[q].next;
+    }
+
+  double fplus[3], fminus[3];
+  for(k = 0; k < 3; k++)
+    {
+      fplus[k] = (Splus[k] > 0.0) ? sqrt(0.5 * (1.0 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0.0;
+      fminus[k] = (Sminus[k] > 0.0) ? sqrt(0.5 * (1.0 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0.0;
+    }
+
+  double wt = 0.0;
+  for(f = 0; f < nf; f++)
+    {
+      double w[3];
+      for(k = 0; k < 3; k++)
+        {
+          double rp = rhat[f][k] > 0.0 ? rhat[f][k] : 0.0;
+          double rm = rhat[f][k] < 0.0 ? rhat[f][k] : 0.0;
+          w[k] = omega[f] * (rp * fplus[k] + rm * fminus[k]);
+          weights[f][k] = w[k];
+        }
+      
+      wt += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
+    }
+
+  *n_faces = nf;
+  *wtot = wt;
+}
+
 /* star_feedback() -> main entry point */
 void star_feedback(void)
 {
   TIMER_START(CPU_STARS_FEEDBACK);
-
-  #define MAX_FACES 128
 
   int ev, h, i, k, q, f;
   double xtmp, ytmp, ztmp;
@@ -286,6 +417,10 @@ void star_feedback(void)
   for(ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
     {
       i = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
+
+      int geometry_done = 0;
+      int dc_list[MAX_FACES], n_faces = 0;
+      double weights[MAX_FACES][3], wtot = 0.0;
 
       for(h = 0; h < SphP[i].Host; h++)
         {                    
@@ -343,196 +478,30 @@ void star_feedback(void)
           if((!flag_wind || flag_wind_host) && (!flag_sn || flag_sn_host))
             continue;
 
-          /* Treat periodic boundaries */
+          /* Mesh deposition */
+          /* We will loop over the cell faces 4 times */
+
+          /* Geometry: passes 1 & 2 (Voronoi mesh) */
+          /* Compute weights */
+
+#ifdef SN_CELL
+          if(!geometry_done)
+            {
+              compute_face_weights(i, P[i].Pos, dc_list, &n_faces, weights, &wtot);
+              geometry_done = 1;
+            }
+#else
           double xstar[3];
 
           xstar[0] = P[i].Pos[0] - NEAREST_X(P[i].Pos[0] - MechanicalFeedback->StarPosition[0]);
           xstar[1] = P[i].Pos[1] - NEAREST_Y(P[i].Pos[1] - MechanicalFeedback->StarPosition[1]);
           xstar[2] = P[i].Pos[2] - NEAREST_Z(P[i].Pos[2] - MechanicalFeedback->StarPosition[2]);
 
-          /* Mesh deposition */
-          /* We will loop over the cell faces 4 times */
-          int n_faces = 0;
-          int dc_list[MAX_FACES];     
+          compute_face_weights(i, xstar, dc_list, &n_faces, weights, &wtot);
+#endif
 
-          /* GEOMETRY: passes 1 & 2 (Voronoi mesh) */
-          /* Compute weights */
-          double nplus[3], nminus[3], fplus[3], fminus[3];
-          
-          for(k = 0; k < 3; k++) 
-            nplus[k] = nminus[k] = fplus[k] = fminus[k] = 0.0;
-      
-          /* Accumulate helper */
-          double Splus[3], Sminus[3];
-          
-          for(k = 0; k < 3; k++)
-            Splus[k] = Sminus[k] = 0.0;
-
-          /* First pass */            
-          q = SphP[i].first_connection;
-
-          while(q >= 0)
-            {
-              if(q < 0 || q >= MaxNvc)
-                {
-                  char buf[1000];
-                  sprintf(buf, "Strange connectivity q=%d Nvc=%d", q, MaxNvc);
-                  terminate(buf);
-                }
-              
-              int dp = DC[q].dp_index;
-              int vf = DC[q].vf_index;
-              int particle = Mesh.DP[dp].index;
-          
-              /* Cell has been removed */
-              if(particle < 0)
-                {
-                  if(q == SphP[i].last_connection)
-                    break;
-                  
-                  q = DC[q].next;
-                    continue;
-                }
-
-              /* Face normal - from cell generator to cell generator */
-              double n[3], nn; 
-
-              n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-              n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-              n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-          
-              nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-
-              /* Star-to-face direction */
-              double d[3], dd; 
-                  
-              d[0] = Mesh.VF[vf].cx - xstar[0];
-              d[1] = Mesh.VF[vf].cy - xstar[1];
-              d[2] = Mesh.VF[vf].cz - xstar[2];
-              
-              dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
-
-              if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
-                {
-                  n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-                  
-                  d[0] /= dd;  d[1] /= dd;  d[2] /= dd;
-
-                  double costheta = n[0]*d[0] + n[1]*d[1] + n[2]*d[2];
-                  if(costheta < 0.0) costheta = 0.0;
-            
-                  double omega = 0.5 * (1 - 1 / sqrt(1 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
-
-                  /* Star-to-cell direction */
-                  double r[3], rr; 
-                  
-                  r[0] = Mesh.DP[dp].x - xstar[0];
-                  r[1] = Mesh.DP[dp].y - xstar[1];
-                  r[2] = Mesh.DP[dp].z - xstar[2];
-
-                  rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-
-                  if(rr > 0.0)
-                    {
-                      r[0] /= rr;  r[1] /= rr;  r[2] /= rr;
-
-                      for(k = 0; k < 3; k++)
-                        {
-                          nplus[k] = r[k] >= 0 ? r[k] : 0;
-                          nminus[k] = r[k] < 0 ? r[k] : 0; 
-                        
-                          Splus[k] += omega * fabs(nplus[k]);
-                          Sminus[k] += omega * fabs(nminus[k]);
-                        }
-                    }
-                }
-          
-              if(n_faces >= MAX_FACES)
-                terminate("star_feedback: MAX_FACES exceeded for cell %d\n", i);
-
-              dc_list[n_faces++] = q;
-
-              if(q == SphP[i].last_connection) 
-                break;
-          
-              q = DC[q].next;
-            }
-
-          double weights[MAX_FACES][3];
-          double wtot = 0.0; 
-  
-          /* Second pass */
-          for(f = 0; f < n_faces; f++)
-            {
-              q = dc_list[f];
-          
-              int dp = DC[q].dp_index;
-              int vf = DC[q].vf_index;
-
-              double w[3] = {0.0, 0.0, 0.0};
-
-             /* Face normal - from cell generator to cell generator */
-              double n[3], nn; 
-
-              n[0] = Mesh.DP[dp].x - P[i].Pos[0];
-              n[1] = Mesh.DP[dp].y - P[i].Pos[1];
-              n[2] = Mesh.DP[dp].z - P[i].Pos[2];
-          
-              nn = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-
-              /* Star-to-face direction */
-              double d[3], dd; 
-                  
-              d[0] = Mesh.VF[vf].cx - xstar[0];
-              d[1] = Mesh.VF[vf].cy - xstar[1];
-              d[2] = Mesh.VF[vf].cz - xstar[2];
-              
-              dd = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
-
-              if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
-                {
-                  n[0] /= nn;  n[1] /= nn;  n[2] /= nn;
-                  
-                  d[0] /= dd;  d[1] /= dd;  d[2] /= dd;
-
-                  double costheta = n[0]*d[0] + n[1]*d[1] + n[2]*d[2];
-                  if(costheta < 0.0) costheta = 0.0;
-            
-                  double omega = 0.5 * (1 - 1 / sqrt(1 + Mesh.VF[vf].area * costheta / (M_PI * dd*dd)));
-
-                  /* Star-to-cell direction */
-                  double r[3], rr; 
-                  
-                  r[0] = Mesh.DP[dp].x - xstar[0];
-                  r[1] = Mesh.DP[dp].y - xstar[1];
-                  r[2] = Mesh.DP[dp].z - xstar[2];
-
-                  rr = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-
-                  if(rr > 0.0)
-                    {
-                      r[0] /= rr;  r[1] /= rr;  r[2] /= rr;
-                    
-                      for(k = 0; k < 3; k++)
-                        {
-                          nplus[k] = r[k] >= 0 ? r[k] : 0;
-                          nminus[k] = r[k] < 0 ? r[k] : 0; 
-                          fplus[k] = (Splus[k] > 0.0) ? sqrt(0.5 * (1 + Sminus[k]*Sminus[k] / (Splus[k]*Splus[k]))) : 0;
-                          fminus[k] =(Sminus[k] > 0.0) ? sqrt(0.5 * (1 + Splus[k]*Splus[k] / (Sminus[k]*Sminus[k]))) : 0;
-
-                          w[k] = omega * (nplus[k] * fplus[k] + nminus[k] * fminus[k]); 
-                        }
-                    }                                         
-                }
-                
-              for(k = 0; k < 3; k++)
-                weights[f][k] = w[k];
-                                    
-              wtot += sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
-            }
-
-          if(wtot <= 0.0)
-            terminate("STAR_FEEDBACK: invalid weight for host cell %d\n", i);
+        if(wtot <= 0.0)
+          terminate("STAR_FEEDBACK: invalid weight for host cell %d\n", i);
     
 #ifdef SUPERNOVAE
           /* Directed momentum magnitude and thermal budget for this event */
@@ -596,9 +565,9 @@ void star_feedback(void)
 
           /* Per-face state carried from the coefficient pass to deposition */
           double SN_ptilde[MAX_FACES][3]; /* pre-kick momentum m_j v_j + advected */
-          double SN_mfj[MAX_FACES];       /* final neighbour mass m_j + |w|m_dep   */
-          double SN_KEj[MAX_FACES];       /* initial neighbour kinetic energy      */
-          double SN_Dj[MAX_FACES];        /* kinetic energy dissipated in-place    */
+          double SN_mfj[MAX_FACES]; /* final neighbour mass m_j + |w|m_dep */
+          double SN_KEj[MAX_FACES]; /* initial neighbour kinetic energy */
+          double SN_Dj[MAX_FACES]; /* kinetic energy dissipated in-place */
 
           if(flag_sn && !flag_sn_host)
             {
@@ -665,7 +634,7 @@ void star_feedback(void)
                   beta += bw_dot_pt / mfj;
 
                   /* Kinetic energy dissipated in the inelastic merge of the
-                   * (neighbour, ejecta, host) streams; thermalised in place. */
+                   * (neighbour, ejecta, host) streams; thermalised in place */
                   double ke_streams = 0.5 * mj * sq_vj + 0.5 * m_ej * sqrtsq_wbar * sq_vstar + 0.5 * dm_h * sqrtsq_wbar * sq_vh;
 
                   double D = ke_streams - 0.5 * sq_ptilde / mfj;
@@ -767,7 +736,7 @@ void star_feedback(void)
                   Kick.SN_DeltaMetals = (MechanicalFeedback->SN_MetalsLoss + dmZ_h) * sqrtsq_wbar ;
 #endif
                   /* Momentum = advected (ejecta @ v_star + host @ v_host)
-                   * + directed energy-conserving kick p_SN * wbar.          */
+                   * + directed energy-conserving kick p_SN * wbar */
                   for(k = 0; k < 3; k++)
                     Kick.SN_DeltaP[k] = (m_ej * MechanicalFeedback->StarVelocity[k] + dm_h * v_h[k]) * sqrtsq_wbar
                     + p_SN * wbar[k];
@@ -776,7 +745,7 @@ void star_feedback(void)
                    * StarEnergyFeed tracks *total* energy, so we form the
                    * exact final-minus-initial cell energy here:
                    *   DKE = |ptilde + p_SN wbar|^2 / (2 m_f) - KE_j
-                   *   dU  = |wbar|(U_ej + dU_h + dU_SN,th) + D_j            */
+                   *   dU  = |wbar|(U_ej + dU_h + dU_SN,th) + D_j */
                   double pf[3];
                   for(k = 0; k < 3; k++)
                     pf[k] = SN_ptilde[f][k] + p_SN * wbar[k];
