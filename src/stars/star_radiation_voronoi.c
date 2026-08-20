@@ -51,9 +51,6 @@ static inline int ray_absorb(RayPacket *ray, double Dtau_E[WAVEBANDS], double Dt
       if(w == LYMAN_WERNER)
         continue;
 
-      /* Transparent cell for this band: 1 - exp(-0) is exactly 0, so this is
-         bit-identical to falling through, and it removes both exp() calls.
-         Dominant win in ionized gas, where the HI/HeI/HeII opacities vanish. */
       if(Dtau_E[w] <= 0.0 && Dtau_N[w] <= 0.0)
         continue;
 
@@ -98,10 +95,7 @@ static inline int ray_absorb(RayPacket *ray, double Dtau_E[WAVEBANDS], double Dt
   return ray->active_bands != 0;
 }
 
-/* ------------------------------------------------------------------ */
-/* Deposition into one cell over an exact path length                  */
-/* ------------------------------------------------------------------ */
-
+/* Deposition into one cell over an exact path length */
 /* Returns 0 once every band of this ray is exhausted */
 static inline int ray_deposit(RayPacket *ray, int i, double length)
 {
@@ -134,7 +128,6 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
   const double c_code = CLIGHT / All.cf_UnitVelocity_in_cm_per_s;
 
-
   const double mj = P[i].Mass + SphP[i].StarMassFeed;
 
   if(mj <= 0.0)
@@ -152,8 +145,6 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
   for(int w = 0; w < WAVEBANDS; w++)
     {
-      /* Nothing absorbed: dp, dK and both accumulator increments are exactly
-         zero, so skipping is bit-identical and cuts the common case. */
       if(absorbed[w].Energy == 0.0)
         continue;
 
@@ -213,7 +204,7 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
 /* Non-periodic wall: the face-defining "neighbour" is the mirror image of this
    cell across a box face. Both REFLECTIVE_* = 1 and = 2 build the same mirror
-   ghost; for now we treat either as outflow and drop the ray. */
+   ghost; for now we treat either as outflow and drop the ray */
 static inline int dc_is_boundary(int q)
 {
 #if defined(REFLECTIVE_X) || defined(REFLECTIVE_Y) || defined(REFLECTIVE_Z)
@@ -238,7 +229,7 @@ static inline int dc_is_boundary(int q)
 #define RAY_MAX_LOCATE 4096
 
 /* Returns 0 if the head now lies inside ray->cell (possibly on its boundary),
-   1 if the ray was handed to another rank and the caller must return. */
+   1 if the ray was handed to another rank and the caller must return */
 static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
 {
   for(int it = 0; it < RAY_MAX_LOCATE; it++)
@@ -271,7 +262,7 @@ static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
               double d2 = dx*dx + dy*dy + dz*dz;
 
               /* v = 1/2 (|x-s_i|^2 - |x-s_j|^2); v/|d| is the signed distance
-                 to the bisector plane. v > 0 means s_j is the closer generator. */
+                 to the bisector plane. v > 0 means s_j is the closer generator */
               double v = (px*dx + py*dy + pz*dz) - 0.5 * d2;
 
               if(v > v_best && v > eps * sqrt(d2))
@@ -319,15 +310,10 @@ static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
   return 0;
 }
 
-/* ------------------------------------------------------------------ */
-/* Exit face search                                                    */
-/* ------------------------------------------------------------------ */
-/*
+/* Exit face search */
+/* P. Camps (2013)
  * Min-reduction of t_j over the forward-facing bisectors of cell i.
- * Returns the DC index of the exit connection (or -1 if no forward-facing
- * bisector exists, i.e. the cell is unbounded along n), writes the path
- * length to the exit into *t_out, and writes the winning generator offset
- * d = s_j - s_i into d_out so the caller does not have to re-fetch DP.
+ * Returns the DC index of the exit connection (or -1 if no forward-facing bisector exists, i.e. the cell is unbounded along n)
  */
 static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, double *t_out, double d_out[3])
 {
@@ -428,10 +414,7 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, 
   return q_best;
 }
 
-/* ------------------------------------------------------------------ */
-/* Main traversal                                                      */
-/* ------------------------------------------------------------------ */
-
+/* Main traversal */
 void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf)
 {
   long long steps = 0;
@@ -448,9 +431,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
 
       const double r_cell = get_cell_radius(i);
 
-      /* ---- Adaptive splitting, evaluated on cell entry ----
-       * Omega_cell / Omega_ray is the number of rays crossing this cell;
-       * split while that would fall below All.RaySplitFactor. */
+      /* Adaptive splitting, evaluated on cell entry */
       if(ray->nside < NSIDE_MAX && ray->t > 0.0)
         {
           double A_cell = RAY_CELL_CROSS_SECTION(r_cell);
@@ -473,7 +454,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
             }
         }
 
-      /* ---- Exact path length through this cell ---- */
+      /* Exact path length through this cell */
       double t_step, d[3];
       int q = voronoi_exit_face(ray, i, r_cell, &t_step, d);
 
@@ -494,7 +475,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
           truncated = 1;
         }
 
-      /* ---- Absorption, heating, dissociation, radiation pressure ---- */
+      /* Absorption, heating, radiation pressure */
       int still_alive = ray_deposit(ray, i, t_step);
 
       ray->t += t_step;
@@ -502,15 +483,11 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
       if(!still_alive || truncated)
         return;
 
-      /* ---- Outflow boundary ----
-       * Everything up to the wall has already been deposited; the ray leaves */
+      /* Outflow boundary */
       if(dc_is_boundary(q))
         return;
 
-      /* ---- Re-anchor on the neighbour's generator ----
-       * x_new - s_j = (x_old - s_i) + t n - (s_j - s_i)
-       * Exact, image-shift aware, and leaves the ray sitting precisely on
-       * the shared bisector so the return face is excluded by sign alone. */
+      /* Re-anchor on the neighbour's generator */
       ray->pos[0] -= d[0];
       ray->pos[1] -= d[1];
       ray->pos[2] -= d[2];
@@ -526,8 +503,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
           return;
         }
 
-      /* A self-connection means the exit face is a reflective mirror image of
-         this cell, which this scheme does not transport across */
+      /* A self-connection means the exit face is a reflective mirror image of itself (not treated here) */
       if(ray->cell == i)
         terminate("RAYTRACE_VORONOI: self-connection at cell %d (mirror boundary?)\n", i);
 

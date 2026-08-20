@@ -317,6 +317,90 @@ static void init_rays(RayWorkStack *work)
   {
     int host = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
 
+#ifdef STAR_IN_CELL
+
+    /* Superpose every star in this cell into one source on the host generator */
+    WavebandData Radiated_Cell[WAVEBANDS];
+
+    for(int w = 0; w < WAVEBANDS; w++)
+      Radiated_Cell[w].Energy = Radiated_Cell[w].Photons = 0.0;
+
+    for(int h = 0; h < SphP[host].Host; h++)
+      {
+        Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h].MechanicalFeedback;
+
+        for(int w = 0; w < WAVEBANDS; w++)
+          {
+            Radiated_Cell[w].Energy  += MechanicalFeedback->Radiated[w].Energy;
+            Radiated_Cell[w].Photons += MechanicalFeedback->Radiated[w].Photons;
+          }
+      }
+
+    /* Skip dark stars entirely rather than pushing dead rays */
+    int flag_luminosity = 0;
+    for(int w = 0; w < WAVEBANDS; w++)
+      {
+        if(Radiated_Cell[w].Energy > 0.0 || Radiated_Cell[w].Photons > 0.0)
+          {
+            flag_luminosity = 1;
+            break;
+          }
+      }
+
+    if(flag_luminosity)
+      {
+        unsigned long long rotation_seed = seed_rotation(P[host].ID);
+
+        /* Loop over rays for this host */
+        for(int iray = 0; iray < NRays; iray++)
+          {
+            RayPacket ray = {0};
+
+            ray.star_id = P[host].ID; 
+
+            ray.cell = host;
+
+            ray.pos[0] = 0.0;
+            ray.pos[1] = 0.0;
+            ray.pos[2] = 0.0;
+
+            ray.rotation_seed = rotation_seed;
+            healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
+
+            ray.t = 0.0;
+            ray.t_maximum = SQRT3 * All.BoxSize;
+
+            ray.nside = NSIDE_MIN;
+            ray.healpix_pixel = iray;
+
+            ray.active_bands = NO_IR_ACTIVE;
+
+            for(int w = 0; w < WAVEBANDS; w++)
+              {
+                ray.Radiated[w].Energy  = Radiated_Cell[w].Energy / NRays;
+                ray.Radiated[w].Photons = Radiated_Cell[w].Photons / NRays;
+
+                ray.Radiated_Init[w].Energy  = Radiated_Cell[w].Energy / NRays;
+                ray.Radiated_Init[w].Photons = Radiated_Cell[w].Photons / NRays;
+
+                if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
+                  ray.active_bands &= (uint8_t)(~(1u << w));
+              }
+
+            if(ray.active_bands == 0)
+              continue;
+
+            ray.N_H2 = 0.0;
+
+            ray.ray_id = ray_idx++;
+            ray.home_task = ThisTask;
+
+            append_ray(work, &ray);
+          }
+      }
+
+#else
+
     for(int h = 0; h < SphP[host].Host; h++)
       {
         Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
@@ -392,6 +476,8 @@ static void init_rays(RayWorkStack *work)
             append_ray(work, &ray);
           }
       }
+
+#endif
     
     ev += SphP[host].Host;
   }
@@ -685,8 +771,20 @@ void star_radiation(void)
     for(int w = 0; w < WAVEBANDS; w++)
       SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
 
-  int n_stars = MechanicalFeedbackEvents.NumEvents;
-  long long n_rays_local = (long long)n_stars * NRays;
+    long long n_sources_local = 0;
+
+#ifdef STAR_IN_CELL
+  for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
+    {
+      int host = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
+      n_sources_local++;
+      ev += SphP[host].Host;
+    }
+#else
+  n_sources_local = MechanicalFeedbackEvents.NumEvents;
+#endif
+  
+  long long n_rays_local = n_sources_local * NRays;
 
   long long n_rays_global;
   sumup_longs(1, &n_rays_local, &n_rays_global);

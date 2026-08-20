@@ -325,7 +325,7 @@ static void compute_face_weights(int i, const double xsrc[3],
 
       if(nn > 0.0 && dd > 0.0 && Mesh.VF[vf].area > 0.0)
         {
-#ifdef SN_CELL        
+#ifdef STAR_IN_CELL        
           costheta = 0.5 * nn / dd;
           
           for(k = 0; k < 3; k++) 
@@ -484,7 +484,7 @@ void star_feedback(void)
           /* Geometry: passes 1 & 2 (Voronoi mesh) */
           /* Compute weights */
 
-#ifdef SN_CELL
+#ifdef STAR_IN_CELL
           if(!geometry_done)
             {
               compute_face_weights(i, P[i].Pos, dc_list, &n_faces, weights, &wtot);
