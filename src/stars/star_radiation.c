@@ -13,7 +13,7 @@ double Kappa_E[WAVEBANDS] =
   [INFRARED] = 34.9,
   [OPTICAL] = 278.3,
   [ULTRAVIOLET] = 417.7,
-  [LYMAN_WERNER] = 736.6, /* Dust component */
+  [LYMAN_WERNER] = 736.6, 
   [IONIZING_HI] = 1.0,
   [IONIZING_HeI] = 1.0,
   [IONIZING_HeII] = 1.0,
@@ -24,7 +24,7 @@ double Kappa_N[WAVEBANDS] =
   [INFRARED] = 30.0,
   [OPTICAL] = 242.3,
   [ULTRAVIOLET] = 406.9,
-  [LYMAN_WERNER] = 731.4, /* Dust component */
+  [LYMAN_WERNER] = 731.4, 
   [IONIZING_HI] = 1.0,
   [IONIZING_HeI] = 1.0,
   [IONIZING_HeII] = 1.0,
@@ -40,7 +40,7 @@ double TrueAbsorbedFraction[WAVEBANDS] =
   [INFRARED] = 0.54,
   [OPTICAL] = 0.62,
   [ULTRAVIOLET] = 0.81,
-  [LYMAN_WERNER] = 0.88, /* Dust share only; H2 line share is pure absorption */
+  [LYMAN_WERNER] = 0.88, 
   [IONIZING_HI] = 1.0,
   [IONIZING_HeI] = 1.0,
   [IONIZING_HeII] = 1.0,
@@ -50,21 +50,28 @@ double ReradiatedFraction[WAVEBANDS] =
 {
   [INFRARED] = 0.54,
   [OPTICAL] = 0.62,
-  [ULTRAVIOLET] = 0.77, /* 5% goes to pe heating */
-  [LYMAN_WERNER] = 0.84, /* 5% goes to pe heating */
-  [IONIZING_HI] = 0.0, /* No reradiation */
-  [IONIZING_HeI] = 0.0, /* No reradiation */
-  [IONIZING_HeII] = 0.0, /* No reradiation */
+  [ULTRAVIOLET] = 0.77,
+  [LYMAN_WERNER] = 0.84, 
+  [IONIZING_HI] = 0.0,
+  [IONIZING_HeI] = 0.0,
+  [IONIZING_HeII] = 0.0, 
 };
 
-void update_dtau(void)
+double SigmaH2 = SIGMA_DISS / F_DISS;
+
+double Sigma_E[3][3];
+double Sigma_N[3][3]; 
+
+void update_opac(void)
 {
   for(int i = 0; i < NumGas; i++)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
+      
+      double Units;
 
-      double Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
+      Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
 
 #ifdef METALS
       double Zsol = ((SphP[i].GasMetals + SphP[i].StarMetalsFeed) / (P[i].Mass + SphP[i].StarMassFeed)) / SOLAR_METALLICITY;
@@ -73,39 +80,21 @@ void update_dtau(void)
 #endif
 
       double Density = (P[i].Mass + SphP[i].StarMassFeed) / SphP[i].Volume;
+      
+      SphP[i].OpacityScaling[CH_DUST] = Zsol * Density / Units;
 
-      double sigma_HI, sigma_HeI, sigma_HeII;
+      Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;
 
-      SphP[i].DtauOverLength_E[INFRARED] = (Kappa_E[INFRARED] / Units) * Zsol * Density;
-      SphP[i].DtauOverLength_E[OPTICAL] = (Kappa_E[OPTICAL] / Units) * Zsol * Density;
-      SphP[i].DtauOverLength_E[ULTRAVIOLET] = (Kappa_E[ULTRAVIOLET] / Units) * Zsol * Density;
+      double n_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g);
 
-      /* Dust only */
-      SphP[i].DtauOverLength_E[LYMAN_WERNER] = (Kappa_E[LYMAN_WERNER] / Units) * Zsol * Density;
+      SphP[i].OpacityScaling[CH_H2] = n_H2 / Units;
 
-      /* Band averaged sigma0*(v/v0)^(-3), in cm^2 */
-      sigma_HI = 3.25e-18;
-      sigma_HeI = 5.04e-18;
-      sigma_HeII = 1.30e-18;
-      SphP[i].DtauOverLength_E[IONIZING_HI] = (sigma_HI / (PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume;
-      SphP[i].DtauOverLength_E[IONIZING_HeI] = (sigma_HeI / (4.0 * PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume;
-      SphP[i].DtauOverLength_E[IONIZING_HeII] = (sigma_HeII / (4.0 * PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume;
+      double n_Ionizing[3] = {SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
+                              SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g), 
+                              SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)};
 
-
-      SphP[i].DtauOverLength_N[INFRARED] = (Kappa_N[INFRARED] / Units) * Zsol * Density;
-      SphP[i].DtauOverLength_N[OPTICAL] = (Kappa_N[OPTICAL] / Units) * Zsol * Density;
-      SphP[i].DtauOverLength_N[ULTRAVIOLET] = (Kappa_N[ULTRAVIOLET] / Units) * Zsol * Density;
-
-      /* Dust only */
-      SphP[i].DtauOverLength_N[LYMAN_WERNER] = (Kappa_N[LYMAN_WERNER] / Units) * Zsol * Density;
-
-      /* Band averaged sigma0*(v/v0)^(-3), in cm^2 */
-      sigma_HI = 3.48e-18;
-      sigma_HeI = 5.27e-18;
-      sigma_HeII = 1.31e-18;
-      SphP[i].DtauOverLength_N[IONIZING_HI] = (sigma_HI / (PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume;
-      SphP[i].DtauOverLength_N[IONIZING_HeI] = (sigma_HeI / (4.0 * PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume;
-      SphP[i].DtauOverLength_N[IONIZING_HeII] = (sigma_HeII / (4.0 * PROTONMASS) / Units) * SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume;
+      for(int a = 0; a < 3; a++)
+        SphP[i].OpacityScaling[CH_HI + a] = n_Ionizing[a] / Units;
     }
 }
 
@@ -130,7 +119,7 @@ double dtau_IR(int i, double length)
 
 static double H2Tab_A[H2TAB_N]; /* A at table nodes */
 static double H2Tab_dlogN; /* log10 spacing */
-static double H2Tab_A_thinmin; /* A(NMIN) = SIGMA_PUMP * NMIN */
+static double H2Tab_A_thinmin; /* A(NMIN) = SigmaH2 * NMIN */
 
 /* Wolcott-Green et al. (2011) self-shielding function */
 static inline double f_selfshield_H2(double N_H2)
@@ -146,7 +135,7 @@ static inline double f_selfshield_H2(double N_H2)
 void init_h2shield(void)
 {
   H2Tab_dlogN = (H2TAB_LOGNMAX - H2TAB_LOGNMIN) / (H2TAB_N - 1);
-  H2Tab_A_thinmin = SIGMA_PUMP * pow(10.0, H2TAB_LOGNMIN);
+  H2Tab_A_thinmin = SigmaH2 * pow(10.0, H2TAB_LOGNMIN);
 
   /* Thin part below NMIN: f_sh=1 */
   double A = H2Tab_A_thinmin;
@@ -162,7 +151,7 @@ void init_h2shield(void)
       for(int k = 0; k < nsub; k++)
         {
           double Na = N0 + k * dN;
-          A += 0.5 * (f_selfshield_H2(Na) + f_selfshield_H2(Na + dN)) * dN * SIGMA_PUMP;
+          A += 0.5 * (f_selfshield_H2(Na) + f_selfshield_H2(Na + dN)) * dN * SigmaH2;
         }
 
       H2Tab_A[i] = A;
@@ -179,14 +168,14 @@ static inline double h2shield_A(double N_H2)
 
   /* f_sh = 1 exactly */
   if(logN <= H2TAB_LOGNMIN)
-    return SIGMA_PUMP * N_H2;
+    return SigmaH2 * N_H2;
 
   /* Lines exhausted */
   if(logN >= H2TAB_LOGNMAX)
     return H2Tab_A[H2TAB_N - 1];
 
   double u = (logN - H2TAB_LOGNMIN) / H2Tab_dlogN;
-  int    j = (int)u;
+  int j = (int)u;
   double f = u - j;
 
   return H2Tab_A[j] * (1.0 - f) + H2Tab_A[j + 1] * f;
@@ -196,10 +185,7 @@ static inline double h2shield_A(double N_H2)
    that has already accumulated N_H2 */
 double h2shield_dtau(double N_H2, double dN_H2)
 {
-  double N_H2_cgs = N_H2 * (All.cf_UnitMass_in_g / (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm)) / (2.0 * PROTONMASS);
-  double dN_H2_cgs = dN_H2 * (All.cf_UnitMass_in_g / (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm)) / (2.0 * PROTONMASS);
-
-  double dtau = h2shield_A(N_H2_cgs + dN_H2_cgs) - h2shield_A(N_H2_cgs);
+  double dtau = h2shield_A(N_H2 + dN_H2) - h2shield_A(N_H2);
   return dtau > 0.0 ? dtau : 0.0;
 }
 
@@ -627,95 +613,75 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
 
 static void radiation_feedback(void)
 {
-  /* Photoionization and photoelectric heating here -> we do rad pressure inside the mesh walk */
-  int i, w;
+  /* Indexed by ionizing species a = 0,1,2 (HI, HeI, HeII) */
+  static const double IonThreshold_eV[3] = {13.6, 24.6, 54.4};
+  static const int IonGrackle[3] = {GRACKLE_HI, GRACKLE_HeI, GRACKLE_HeII};
+  static const double IonAtomicMass[3] = {1.0, 4.0, 4.0};
 
-  for(i = 0; i < NumGas; i++)
+  const double L3 = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;
+
+  for(int i = 0; i < NumGas; i++)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
 
-      /* Volume, timestep */
-      double V = SphP[i].Volume;
-      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+      const double V = SphP[i].Volume;
+      const double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
 
-      /* In cgs */
-      double V_cgs = V * (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
-      double dt_cgs = dt * All.cf_UnitTime_in_s;
+      if(dt <= 0.0 || V <= 0.0)
+        goto reset;
+
+      const double V_cgs  = V * L3;
+      const double dt_cgs = dt * All.cf_UnitTime_in_s;
 
 #ifdef PHOTOELECTRIC_HEATING
-      /* Photoelectric heating */
-      double epsilon_pe = 0.05;
+      /* TrueAbsorbedFraction already applied in ray_deposit */
+      const double epsilon_pe = 0.05;
+      const double E_pe = SphP[i].AbsorbedPE * epsilon_pe * All.cf_UnitEnergy_in_cgs;
 
-      double E_pe = (SphP[i].Absorbed[ULTRAVIOLET].Energy  * TrueAbsorbedFraction[ULTRAVIOLET]
-                     + SphP[i].Absorbed[LYMAN_WERNER].Energy * TrueAbsorbedFraction[LYMAN_WERNER])
-                     * epsilon_pe * All.cf_UnitEnergy_in_cgs;
-
-      /* Volumetric_heating_rate: grackle docs say erg/(s cm^3), straight CGS, no conversion */
-      SphP[i].PE_VolHeatingRate +=  E_pe / dt_cgs / V_cgs;
+      SphP[i].PE_VolHeatingRate += E_pe / dt_cgs / V_cgs;
 #endif
 
 #ifdef DISSOCIATION
-      /* H2 Dissociation */
-      /* Number density */
-      double n_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / V / (2 * PROTONMASS / All.cf_UnitMass_in_g);
+      const double n_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / V
+                          / (2.0 * PROTONMASS / All.cf_UnitMass_in_g);
 
-      double N_abs_H2 = SphP[i].Absorbed[LYMAN_WERNER].Photons;
-
-      SphP[i].H2_DissociationRate += n_H2 > 0 ? (F_DISS * N_abs_H2 / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_H2 : 0.0;
+      /* AbsorbedH2Line holds pumped photons; F_DISS is the branching ratio */
+      if(n_H2 > 0.0)
+        SphP[i].H2_DissociationRate += (F_DISS * SphP[i].AbsorbedH2Line / dt / All.cf_hubble_a / All.HubbleParam / V) / n_H2;
 #endif
 
 #ifdef PHOTOIONIZATION
-      /* Photoionization */
-      /* Number densities */
-      double n_HI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / V / (PROTONMASS / All.cf_UnitMass_in_g);
-      double n_HeI = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / V / (4 * PROTONMASS / All.cf_UnitMass_in_g);
-      double n_HeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / V / (4 * PROTONMASS / All.cf_UnitMass_in_g);
+      for(int a = 0; a < 3; a++)
+        {
+          const double n = SphP[i].GrackleSpeciesConserved(IonGrackle[a]) / V
+                           / (IonAtomicMass[a] * PROTONMASS / All.cf_UnitMass_in_g);
 
-      /* In cgs */
-      double n_HI_cgs = n_HI / (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
-      double n_HeI_cgs = n_HeI / (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
-      double n_HeII_cgs = n_HeII / (All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm);
+          const double N_abs = SphP[i].AbsorbedIonizing[a].Photons;
+          const double E_abs = SphP[i].AbsorbedIonizing[a].Energy * All.cf_UnitEnergy_in_cgs;
 
-      /* Threshold energies */
-      double energy_thresh_HI = 13.6 * ELECTRONVOLT_IN_ERGS;
-      double energy_thresh_HeI = 24.6 * ELECTRONVOLT_IN_ERGS;
-      double energy_thresh_HeII = 54.4 * ELECTRONVOLT_IN_ERGS;
+          const double E_exc = E_abs - N_abs * IonThreshold_eV[a] * ELECTRONVOLT_IN_ERGS;
 
-      double E_abs_HI = SphP[i].Absorbed[IONIZING_HI].Energy * All.cf_UnitEnergy_in_cgs;
-      double E_abs_HeI = SphP[i].Absorbed[IONIZING_HeI].Energy * All.cf_UnitEnergy_in_cgs;
-      double E_abs_HeII = SphP[i].Absorbed[IONIZING_HeII].Energy * All.cf_UnitEnergy_in_cgs;
+          if(n <= 0.0)
+            continue;
 
-      double N_abs_HI = SphP[i].Absorbed[IONIZING_HI].Photons;
-      double N_abs_HeI = SphP[i].Absorbed[IONIZING_HeI].Photons;
-      double N_abs_HeII = SphP[i].Absorbed[IONIZING_HeII].Photons;
+          const double n_cgs = n / L3;
 
-      /* RT_heating_rate: grackle docs say erg/(s cm^3) / n, straight CGS, no conversion */
-      double E_threshold_HI = N_abs_HI * energy_thresh_HI;
+          if(E_exc > 0.0)
+            SphP[i].IonHeatingRate[a] += (E_exc / dt_cgs / V_cgs) / n_cgs;
+          else if(N_abs > 0.0)
+            warn("STAR_RADIATION: sub-threshold mean photon energy, species %d, cell %d "
+                 "(E_abs=%g N_abs=%g) \n", a, i, E_abs, N_abs);
 
-      if(n_HI_cgs)
-        SphP[i].HI_HeatingRate += (E_abs_HI - E_threshold_HI) > 0 ? ((E_abs_HI - E_threshold_HI) / dt_cgs / V_cgs) / n_HI_cgs : 0.0;
-
-      double E_threshold_HeI = N_abs_HeI * energy_thresh_HeI;
-
-      if(n_HeI_cgs)
-        SphP[i].HeI_HeatingRate += (E_abs_HeI - E_threshold_HeI) > 0 ? ((E_abs_HeI - E_threshold_HeI) / dt_cgs / V_cgs) / n_HeI_cgs : 0.0;
-
-      double E_threshold_HeII = N_abs_HeII * energy_thresh_HeII;
-
-      if(n_HeII_cgs)
-        SphP[i].HeII_HeatingRate += (E_abs_HeII - E_threshold_HeII) > 0 ? ((E_abs_HeII - E_threshold_HeII) / dt_cgs / V_cgs) / n_HeII_cgs : 0.0;
-
-      /* RT_ionization_rate: 1 / (time Units) */
-      SphP[i].HI_IonizationRate += n_HI > 0 ? (N_abs_HI / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_HI : 0.0;
-
-      SphP[i].HeI_IonizationRate += n_HeI > 0 ? (N_abs_HeI / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_HeI : 0.0;
-
-      SphP[i].HeII_IonizationRate += n_HeII > 0 ? (N_abs_HeII / (dt/All.cf_hubble_a/All.HubbleParam) / V) / n_HeII : 0.0;
+          SphP[i].IonizationRate[a] += (N_abs / dt / All.cf_hubble_a / All.HubbleParam / V) / n;
+        }
 #endif
 
-      for(w = 0; w < WAVEBANDS; w++)
-        SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
+    reset:
+      SphP[i].AbsorbedPE = 0.0;
+      SphP[i].AbsorbedH2Line = 0.0;
+      for(int s = 0; s < 3; s++)
+        SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
     }
 }
 
@@ -750,7 +716,7 @@ static void rt_timestep(void)
       if(m_H > 0)
         {
           double x_HI = m_HI / m_H;
-          rate = SphP[i].HI_IonizationRate * x_HI;
+          rate = SphP[i].IonizationRate[0] * x_HI;
         }
 
       SphP[i].RT_Timestep = (rate > 0.0) ? eps_ion / rate : All.MaxSizeTimestep / All.cf_hubble_a;
@@ -764,12 +730,17 @@ void star_radiation(void)
 
   double t0, t1;
 
-  update_dtau();
+  update_opac();
 
   /* Zero accumulators before the walk */
-  for(int i = 0; i < NumGas; i++)
-    for(int w = 0; w < WAVEBANDS; w++)
-      SphP[i].Absorbed[w].Energy = SphP[i].Absorbed[w].Photons = 0.0;
+   for(int i = 0; i < NumGas; i++)
+    {
+      SphP[i].AbsorbedPE = 0.0;
+      SphP[i].AbsorbedH2Line = 0.0;
+      
+      for(int a = 0; a < 3; a++)
+        SphP[i].AbsorbedIonizing[a].Energy = SphP[i].AbsorbedIonizing[a].Photons = 0.0;
+    }
 
     long long n_sources_local = 0;
 

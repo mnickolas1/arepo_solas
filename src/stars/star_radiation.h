@@ -24,11 +24,9 @@
 #define NRays (12 * NSIDE_MIN * NSIDE_MIN)
 
 /* Dissociation of H2 */
-#define SIGMA_DISS 2.47e-18 /* cm^2, dissociation-weighted eff. cross
-                               section (DB96, Baczynski+15) */
+#define SIGMA_DISS 2.47e-18 /* cm^2, dissociation-weighted eff. cross-section (DB96, Baczynski+15) */
 
 #define F_DISS 0.15 /* dissociation branching per absorption */
-#define SIGMA_PUMP (SIGMA_DISS / F_DISS) /* total line absorption */
 
 #define H2_SHIELD_B5 3.0 /* Doppler b / (km/s); fixed */
 
@@ -37,7 +35,7 @@
 #define H2TAB_LOGNMIN 11.0 /* log10 N_H2 [cm^-2]: f_sh = 1 below */
 #define H2TAB_LOGNMAX 24.0 /* f_sh negligible above */
 
-/* Change at init_rays */
+/* Active bands - change at init_rays */
 #define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
 #define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
 #define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
@@ -75,14 +73,57 @@ typedef enum
 
 typedef struct WavebandData
 {
-  double Photons;
   double Energy;
+  double Photons;
 } WavebandData;
 
+enum
+{
+  CH_DUST = 0,
+  CH_H2,
+  CH_HI,
+  CH_HeI,
+  CH_HeII,
+  CHANNELS
+};
+
+/* Which channels can absorb in each band */
+static const uint8_t BandChannels[WAVEBANDS] =
+{
+  [INFRARED] = (1u << CH_DUST),
+  [OPTICAL] = (1u << CH_DUST),
+  [ULTRAVIOLET] = (1u << CH_DUST),
+  [LYMAN_WERNER] = (1u << CH_DUST) | (1u << CH_H2),
+  [IONIZING_HI] = (1u << CH_DUST) | (1u << CH_HI),
+  [IONIZING_HeI] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_HeI),
+  [IONIZING_HeII] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_HeI) | (1u << CH_HeII),
+};
+
+ typedef struct
+{
+  double E[CHANNELS];
+  double N[CHANNELS];
+} ChannelsDtau;
+
+typedef struct
+{
+  WavebandData Band[WAVEBANDS]; /* total removed from the ray */
+  WavebandData Ch[WAVEBANDS][CHANNELS];  /* attribution; sums to Band */
+} Absorption;
+
+/* Dust */
 extern double Kappa_E[WAVEBANDS];
 extern double Kappa_N[WAVEBANDS];
 
+extern double TrueAbsorbedFraction[WAVEBANDS];
 extern double ReradiatedFraction[WAVEBANDS];
+
+/* H2 lines */
+extern double SigmaH2;
+
+/* Ionizing */
+extern double Sigma_E[3][3];
+extern double Sigma_N[3][3];
 
 /*
  * RayPacket
@@ -124,7 +165,7 @@ typedef struct RayPacket
   WavebandData Radiated_Init[WAVEBANDS];
 
   /* Accumulated H2 column since source */
-  double N_H2;
+  double N_H2; /* cgs! */
 
   /* Ray bookkeeping */
   int ray_id;
@@ -145,6 +186,5 @@ typedef struct RayExportBuffer
   int *task; /* Where to send each ray */
   RayPacket *rays;
 } RayExportBuffer;
-
 
 #endif

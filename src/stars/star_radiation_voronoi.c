@@ -19,12 +19,9 @@
  * The exit is t_exit = min_j t_j over forward-facing bisectors only, and the
  * argmin IS the next cell. Backward-facing bisectors have n . d_ij < 0 and
  * drop out automatically - in particular the face we just entered through,
- * whose sign flips exactly (not approximately) on the crossing. There is
- * therefore no need to nudge the ray off the face at re-entry.
+ * whose sign flips exactly (not approximately) on the crossing.
  *
- * All quantities are held relative to the current generator s_i, so d_ij is
- * literally Mesh.DP[dp] - P[i].Pos and inherits AREPO's image shifts for
- * free. No NEAREST_* wrapping appears below.
+ * All quantities are held relative to the current generator.
  */
 
 /* Sphere-equivalent cross section of a cell, pi r^2, used for the ray
@@ -32,14 +29,52 @@
    minimum number of rays required to sample each cell */
 #define RAY_CELL_CROSS_SECTION(r) (M_PI * (r) * (r))
 
-static inline int ray_absorb(RayPacket *ray, double Dtau_E[WAVEBANDS], double Dtau_N[WAVEBANDS], WavebandData absorbed[WAVEBANDS],
-                             double dN_H2, double *lw_line)
+static inline double cell_dtau(int i, double length, double N_H2_ray,
+                               ChannelsDtau dtau[WAVEBANDS])
 {
+  const double dust_length = SphP[i].OpacityScaling[CH_DUST] * length;
+  
+  const double dN_H2 = SphP[i].OpacityScaling[CH_H2] * length;  
+  const double dtau_line = h2shield_dtau(N_H2_ray, dN_H2);
+
+  double ionizing_length[3];
+  for(int s = 0; s < 3; s++)
+    ionizing_length[s] = SphP[i].OpacityScaling[CH_HI + s] * length;
+
   for(int w = 0; w < WAVEBANDS; w++)
     {
-      absorbed[w].Energy = absorbed[w].Photons = 0.0;
+      for(int c = 0; c < CHANNELS; c++)
+        dtau[w].E[c] = dtau[w].N[c] = 0.0;
 
-      /* Deactivate band if it has fallen below the dead-fraction threshold */
+      const uint8_t ch = BandChannels[w];
+
+      if(ch & (1u << CH_DUST))
+        {
+          dtau[w].E[CH_DUST] = Kappa_E[w] * dust_length;
+          dtau[w].N[CH_DUST] = Kappa_N[w] * dust_length;
+        }
+
+      if(ch & (1u << CH_H2))
+        dtau[w].E[CH_H2] = dtau[w].N[CH_H2] = dtau_line;
+
+      for(int a = 0; a < 3; a++)
+        if(ch & (1u << (CH_HI + a)))
+          {
+            dtau[w].E[CH_HI + a] = Sigma_E[w - IONIZING_HI][a] * ionizing_length[a];
+            dtau[w].N[CH_HI + a] = Sigma_N[w - IONIZING_HI][a] * ionizing_length[a];
+          }
+    }
+
+  return dN_H2;
+}
+
+static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
+                             Absorption *a)
+{
+  memset(a, 0, sizeof(*a));
+
+  for(int w = 0; w < WAVEBANDS; w++)
+    {
       if(ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy &&
          ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons)
         ray->active_bands &= (uint8_t)(~(1u << w));
@@ -47,50 +82,32 @@ static inline int ray_absorb(RayPacket *ray, double Dtau_E[WAVEBANDS], double Dt
       if(!(ray->active_bands & (1u << w)))
         continue;
 
-      /* Separate treatment of LW */
-      if(w == LYMAN_WERNER)
+      double tot_E = 0.0, tot_N = 0.0;
+      for(int c = 0; c < CHANNELS; c++)
+        {
+          tot_E += dtau[w].E[c];
+          tot_N += dtau[w].N[c];
+        }
+
+      if(tot_E <= 0.0 && tot_N <= 0.0)
         continue;
 
-      if(Dtau_E[w] <= 0.0 && Dtau_N[w] <= 0.0)
-        continue;
+      /* expm1, not 1-exp: more accurate for optically thin cells */
+      double dE = ray->Radiated[w].Energy * -expm1(-tot_E);
+      double dN = ray->Radiated[w].Photons * -expm1(-tot_N);
 
-      double absorbed_energy = ray->Radiated[w].Energy * (1.0 - exp(-Dtau_E[w]));
-      double absorbed_photons = ray->Radiated[w].Photons * (1.0 - exp(-Dtau_N[w]));
+      a->Band[w].Energy = dE;
+      a->Band[w].Photons = dN;
 
-      absorbed[w].Energy += absorbed_energy;
-      ray->Radiated[w].Energy -= absorbed_energy;
+      ray->Radiated[w].Energy -= dE;
+      ray->Radiated[w].Photons -= dN;
 
-      absorbed[w].Photons += absorbed_photons;
-      ray->Radiated[w].Photons -= absorbed_photons;
+      for(int c = 0; c < CHANNELS; c++)
+        {
+          if(tot_E > 0.0) a->Ch[w][c].Energy = dE * dtau[w].E[c] / tot_E;
+          if(tot_N > 0.0) a->Ch[w][c].Photons = dN * dtau[w].N[c] / tot_N;
+        }
     }
-
-  /* LW band: H2 line self shielding + dust absorption */
-  if((ray->active_bands & (1u << LYMAN_WERNER)) &&
-     (dN_H2 > 0.0 || Dtau_E[LYMAN_WERNER] > 0.0 || Dtau_N[LYMAN_WERNER] > 0.0))
-    {
-      double Dtau_line = h2shield_dtau(ray->N_H2, dN_H2);
-      double Dtau_dust_E = Dtau_E[LYMAN_WERNER];
-      double Dtau_dust_N = Dtau_N[LYMAN_WERNER];
-
-      double tot_E = Dtau_line + Dtau_dust_E;
-      double tot_N = Dtau_line + Dtau_dust_N;
-
-      double absorbed_energy = ray->Radiated[LYMAN_WERNER].Energy * (1.0 - exp(-tot_E));
-      double absorbed_photons = ray->Radiated[LYMAN_WERNER].Photons * (1.0 - exp(-tot_N));
-
-      absorbed[LYMAN_WERNER].Energy += absorbed_energy;
-      ray->Radiated[LYMAN_WERNER].Energy -= absorbed_energy;
-
-      absorbed[LYMAN_WERNER].Photons += absorbed_photons;
-      ray->Radiated[LYMAN_WERNER].Photons -= absorbed_photons;
-
-      if(tot_E > 0)
-        lw_line[0] = Dtau_line / tot_E;
-      if(tot_N > 0)
-        lw_line[1] = Dtau_line / tot_N;
-    }
-
-  ray->N_H2 += dN_H2;
 
   return ray->active_bands != 0;
 }
@@ -102,23 +119,15 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   if(length <= 0.0)
     return ray->active_bands != 0;
 
-  double Dtau_E[WAVEBANDS], Dtau_N[WAVEBANDS];
-
-  for(int w = 0; w < WAVEBANDS; w++)
-    {
-      Dtau_E[w] = SphP[i].DtauOverLength_E[w] * length;
-      Dtau_N[w] = SphP[i].DtauOverLength_N[w] * length;
-    }
-
-  WavebandData absorbed[WAVEBANDS];
-
-  /* Line dissociation */
-  double dN_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume * length;
-  /* Fraction of LW absorption that goes into H2 line dissociation */
-  double lw_line[2] = {0.0, 0.0};
+  ChannelsDtau dtau[WAVEBANDS];
+  double dN_H2 = cell_dtau(i, length, ray->N_H2, dtau);
 
   /* Process ray */
-  int still_alive = ray_absorb(ray, Dtau_E, Dtau_N, absorbed, dN_H2, lw_line);
+  Absorption a;
+  int still_alive = ray_absorb(ray, dtau, &a);
+
+  /* Accumulate H2 column */
+  ray->N_H2 += dN_H2;
 
   /* Reradiation in the IR (boosts momentum) */
   double Dtau_IR = 0.0;
@@ -145,20 +154,14 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
   for(int w = 0; w < WAVEBANDS; w++)
     {
-      if(absorbed[w].Energy == 0.0)
+      const double E_w = a.Band[w].Energy;
+      if(E_w <= 0.0)
         continue;
 
-      double dp;
+      /* Only the dust channel reradiates in the IR */
+      const double f_dust = a.Ch[w][CH_DUST].Energy / E_w;
 
-      /* No IR reradiation */
-      if(w == IONIZING_HI || w == IONIZING_HeI || w == IONIZING_HeII)
-        dp = absorbed[w].Energy / c_code / All.cf_atime;
-      /* IR reradiation (dust only) */
-      else if(w == LYMAN_WERNER)
-        dp = absorbed[w].Energy * (1.0 + (1.0 - lw_line[0]) * Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
-      /* IR reradiation (full) */
-      else
-        dp = absorbed[w].Energy * (1.0 + Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
+      double dp = E_w * (1.0 + f_dust * Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
 
       double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
 
@@ -177,10 +180,9 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
       smf[1] += dp_vec[1];
       smf[2] += dp_vec[2];
 
-      if(w == LYMAN_WERNER)
-        SphP[i].Absorbed[w].Energy += (1.0 - lw_line[0]) * (absorbed[w].Energy - dK);
-      else
-        SphP[i].Absorbed[w].Energy += absorbed[w].Energy - dK;
+      const double f_K = dK / E_w;
+      for(int c = 0; c < CHANNELS; c++)
+        a.Ch[w][c].Energy *= (1.0 - f_K);
 
       dK_total += dK;
     }
@@ -191,13 +193,17 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   SphP[i].StarEnergyFeed += dK_total;
   All.StarFeedbackLocal[2] += dK_total;
 
-  /* Dissociating photons */
-  SphP[i].Absorbed[LYMAN_WERNER].Photons += lw_line[1] * absorbed[LYMAN_WERNER].Photons;
+  SphP[i].AbsorbedPE += a.Ch[ULTRAVIOLET][CH_DUST].Energy * TrueAbsorbedFraction[ULTRAVIOLET]
+                      + a.Ch[LYMAN_WERNER][CH_DUST].Energy * TrueAbsorbedFraction[LYMAN_WERNER];
 
-  /* Ionizing photons */
-  SphP[i].Absorbed[IONIZING_HI].Photons += absorbed[IONIZING_HI].Photons;
-  SphP[i].Absorbed[IONIZING_HeI].Photons += absorbed[IONIZING_HeI].Photons;
-  SphP[i].Absorbed[IONIZING_HeII].Photons += absorbed[IONIZING_HeII].Photons;
+  SphP[i].AbsorbedH2Line += a.Ch[LYMAN_WERNER][CH_H2].Photons;
+
+  for(int s = 0; s < 3; s++)
+    for(int w = IONIZING_HI; w <= IONIZING_HeII; w++)
+      {
+        SphP[i].AbsorbedIonizing[s].Energy += a.Ch[w][CH_HI + s].Energy;
+        SphP[i].AbsorbedIonizing[s].Photons += a.Ch[w][CH_HI + s].Photons;
+      }
 
   return still_alive;
 }
@@ -312,7 +318,7 @@ static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
 
 /* Exit face search */
 /* P. Camps (2013)
- * Min-reduction of t_j over the forward-facing bisectors of cell i.
+ * Min-reduction of t_j over the forward-facing bisectors of cell i
  * Returns the DC index of the exit connection (or -1 if no forward-facing bisector exists, i.e. the cell is unbounded along n)
  */
 static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, double *t_out, double d_out[3])

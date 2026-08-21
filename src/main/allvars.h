@@ -1796,9 +1796,11 @@ extern struct sph_particle_data
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  MyDouble DtauOverLength_E[WAVEBANDS];
-  MyDouble DtauOverLength_N[WAVEBANDS];
-  WavebandData Absorbed[WAVEBANDS];
+  MyDouble OpacityScaling[CHANNELS];
+
+  MyDouble AbsorbedPE;
+  MyDouble AbsorbedH2Line; 
+  WavebandData AbsorbedIonizing[3]; 
 #endif
 
 #ifdef PHOTOELECTRIC_HEATING
@@ -1810,12 +1812,8 @@ extern struct sph_particle_data
 #endif
 
 #ifdef PHOTOIONIZATION
-  MyDouble HI_HeatingRate;
-  MyDouble HeI_HeatingRate;
-  MyDouble HeII_HeatingRate;
-  MyDouble HI_IonizationRate;
-  MyDouble HeI_IonizationRate;
-  MyDouble HeII_IonizationRate;
+  MyDouble IonHeatingRate[3];
+  MyDouble IonizationRate[3];
 
   MyDouble RT_Timestep;
 #endif 
