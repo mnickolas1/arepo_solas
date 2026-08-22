@@ -72,32 +72,32 @@ void star_density(void);
 /* Radiation */
 #include "../stars/star_radiation.h"
 
-void update_dtau(void);
+/* Opacities and per-cell optical depths (star_radiation.c) */
+void update_opac(void);
 double dtau_IR(int i, double length);
 
+/* H2 self-shielding table (star_radiation.c) */
 void init_h2shield(void);
 double h2shield_dtau(double N_H2, double dN_H2);
 
+/* Ray bookkeeping (star_radiation.c) */
 void append_ray(RayWorkStack *w, const RayPacket *ray);
 void split_ray(const RayPacket *parent, RayPacket children[4]);
 
-void append_export(RayExportBuffer *buf, const RayPacket *ray, int task);
+/* Communications */
+void ray_neighbours_init(void);
+void ray_neighbours_free(void);
 
-void ray_comms_init(void); 
-void ray_comms_free(void);
-void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_global);
+RayComms *ray_comms_init(RayWorkStack *work);
+void ray_comms_walk(RayWorkStack *work, RayComms *comm);
+void ray_comms_free(RayComms *comm);
 
+void append_export(RayComms *comm, const RayPacket *ray, int task);
+
+void ray_comms_progress(RayComms *comm);
+void ray_comms_flush(RayComms *comm);
+
+/* Driver and traversal */
 void star_radiation(void);
-void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);
-void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);
-#endif
-
-#if defined(WINDS) || defined(SUPERNOVAE)
-void star_feedback(void);
-#endif
-
-#ifdef STAR_FEEDBACK_ACTIVE
-void star_perform_end_of_step_physics(void);
-#endif
-
+void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm);
 #endif

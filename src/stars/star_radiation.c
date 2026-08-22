@@ -299,8 +299,6 @@ static void free_work_stack(RayWorkStack *w)
  */
 static void init_rays(RayWorkStack *work)
 {
-  double xtmp, ytmp, ztmp;
-
   double SQRT3 = sqrt(3.0);
 
   for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
@@ -385,6 +383,8 @@ static void init_rays(RayWorkStack *work)
       }
 
 #else
+    
+    double xtmp, ytmp, ztmp;
 
     for(int h = 0; h < SphP[host].Host; h++)
       {
@@ -492,40 +492,111 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
     }
 }
 
-static RayExportBuffer *init_export_buffer(long long capacity)
+/*
+ * Sparse, neighbour-restricted ray exchange
+ *
+ * Isend/Irecv over the mesh-neighbour graph only (counts)
+ * MPI_Iallreduce (termination, posted early)
+ * Isend/Irecv over the neighbour graph, zero-count pairs skipped (payload)
+ * MPI_Wait (termination)
+ */
+
+#define TAG_RAY_COUNT 30201
+#define TAG_RAY_DATA 30202
+
+int RayNgbNTask = 0;
+int *RayNgbTask = NULL;
+int *RayTaskToNgb = NULL;
+
+/*
+ * Mesh-neighbour graph - shared by both back ends
+ *
+ * Walk every local cell's Delaunay connection list and flag the ranks that own
+ * a face-defining neighbour
+ * This is the exact superset of possible export
+ * destinations, and append_export() terminates loudly if a ray is ever handed
+ * to a rank outside it
+ */
+void ray_neighbours_init(void)
 {
-  RayExportBuffer *buf = malloc(sizeof(RayExportBuffer));
+  char *sflag = malloc(NTask * sizeof(char));
+  char *rflag = malloc(NTask * sizeof(char));
 
-  buf->n = 0;
-  buf->capacity = capacity;
-  buf->ngbs = malloc(capacity * sizeof(int));
-  buf->rays = malloc(capacity * sizeof(RayPacket));
+  memset(sflag, 0, NTask * sizeof(char));
 
-  return buf;
-}
-
-void append_export(RayExportBuffer *buf, const RayPacket *ray, int task)
-{
-  const int k = RayTaskToNgb[task];
-
-  if(k < 0)
-    terminate("STAR_RADIATION: export to task %d, which is not a mesh neighbour of task %d\n", task, ThisTask);
-
-  if(buf->n >= buf->capacity)
+  for(int i = 0; i < NumGas; i++)
     {
-      buf->capacity *= 2;
-      buf->ngbs = realloc(buf->ngbs, buf->capacity * sizeof(int));
-      buf->rays = realloc(buf->rays, buf->capacity * sizeof(RayPacket));
+      int q = SphP[i].first_connection;
+
+      while(q >= 0)
+        {
+          if(q >= MaxNvc)
+            terminate("RAY_COMM: strange connectivity q=%d MaxNvc=%d cell=%d\n", q, MaxNvc, i);
+
+          const int dp = DC[q].dp_index;
+
+          if(Mesh.DP[dp].index >= 0)
+            {
+              const int t = DC[q].task;
+
+              if(t < 0 || t >= NTask)
+                terminate("RAY_COMM: DC[%d].task = %d out of range on cell %d\n", q, t, i);
+
+              if(t != ThisTask)
+                sflag[t] = 1;
+            }
+
+          if(q == SphP[i].last_connection)
+            break;
+
+          q = DC[q].next;
+        }
     }
 
-  buf->ngbs[buf->n] = k;
-  buf->rays[buf->n] = *ray;
-  buf->n++;
+  /*
+   * Symmetrise: this rank must be able to RECEIVE from anyone who can send to
+   * it - AREPO's face connectivity should already be symmetric (the hydro flux
+   * exchange relies on it), so in practice rflag == sflag
+   */
+  MPI_Alltoall(sflag, 1, MPI_CHAR, rflag, 1, MPI_CHAR, MPI_COMM_WORLD);
+
+  RayNgbNTask = 0;
+  for(int t = 0; t < NTask; t++)
+    if(sflag[t] || rflag[t])
+      RayNgbNTask++;
+
+  RayNgbTask = malloc((RayNgbNTask > 0 ? RayNgbNTask : 1) * sizeof(int));
+  RayTaskToNgb = malloc(NTask * sizeof(int));
+
+  for(int t = 0; t < NTask; t++)
+    RayTaskToNgb[t] = -1;
+
+  int k = 0;
+  for(int t = 0; t < NTask; t++)
+    if(sflag[t] || rflag[t])
+      {
+        RayTaskToNgb[t] = k;
+        RayNgbTask[k++] = t;
+      }
+
+  free(rflag);
+  free(sflag);
+
+  int ngb_max, ngb_sum;
+  MPI_Allreduce(&RayNgbNTask, &ngb_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&RayNgbNTask, &ngb_sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  mpi_printf("STAR_RADIATION: RayPacket = %d B, comm neighbours: mean %.1f, max %d (of %d ranks)\n",
+             (int)sizeof(RayPacket), (double)ngb_sum / NTask, ngb_max, NTask);
 }
 
-static void free_export_buffer(RayExportBuffer *buf)
+void ray_neighbours_free(void)
 {
-  free(buf->rays); free(buf->ngbs); free(buf);
+  free(RayTaskToNgb);
+  RayTaskToNgb = NULL;
+  free(RayNgbTask);
+  RayNgbTask = NULL;
+  RayNgbNTask = 0;
 }
 
 static void radiation_feedback(void)
@@ -658,9 +729,7 @@ void star_radiation(void)
 
   update_opac();
 
-  ray_comms_init();
-
-  /* Zero accumulators before the walk */
+   /* Zero accumulators before the walk */
    for(int i = 0; i < NumGas; i++)
     {
 #ifdef PHOTOELECTRIC_HEATING
@@ -699,73 +768,27 @@ void star_radiation(void)
 
   /* Floor so ranks with no local stars still have a buffer to receive imports */
   long long work_capacity = n_rays_local > 0 ? 4 * n_rays_local : 1024;
-  long long export_capacity = n_rays_local > 0 ? n_rays_local : 1024;
 
   RayWorkStack *work = init_work_stack(work_capacity);
-  RayExportBuffer *export_buf = init_export_buffer(export_capacity);
+  RayComms *comm = ray_comms_init(work);
 
   init_rays(work);
 
-  long long n_global;
-  int iter = 0;
-  do
-    {
-      t0 = second();
+  t0 = second();
 
-      /* Do local work first then exchange */
-      while(work->n > 0)
-        {
-          RayPacket ray = work->rays[--work->n];
-          raytrace_voronoi(&ray, work, export_buf);
-        }
+  ray_comms_walk(work, comm);
 
-      /* Sparse neighbour exchange; also completes the termination reduce */
-      exchange_rays(export_buf, work, &n_global);
+  t1 = second();
+  mpi_printf("STAR_RADIATION: walk complete (%g sec)\n", timediff(t0, t1));
 
-      /* Reset export buffer for this round */
-      export_buf->n = 0;
-
-      t1 = second();
-
-      iter++;
-
-      if(n_global > 0 && iter > 0)
-        mpi_printf("STAR_RADIATION: Rad iteration %3d: need to repeat for %12lld rays. (took %g sec)\n", iter, n_global,
-        timediff(t0, t1));
-
-      if(iter > 4 * MAXITER)
-        terminate("STAR_RADIATION: %lld rays still in flight after %d iterations\n", n_global, iter);
-
-    } while(n_global > 0);
+  ray_comms_free(comm);
+  free_work_stack(work);
 
   radiation_feedback();
 
 #ifdef PHOTOIONIZATION
   rt_timestep();
 #endif
-
-#ifdef RT_COMM_STATS
-  {
-    extern double RayCommTimeCounts, RayCommTimePayload, RayCommTimeTerm;
-    extern long long RayCommMsgSent, RayCommRaysSent;
-
-    double loc[3] = {RayCommTimeCounts, RayCommTimePayload, RayCommTimeTerm}, mx[3];
-    MPI_Reduce(loc, mx, 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-
-    long long lmsg[2] = {RayCommMsgSent, RayCommRaysSent}, smsg[2];
-    MPI_Reduce(lmsg, smsg, 2, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    mpi_printf("STAR_RADIATION: %d rounds | comm max/rank: counts %g s, payload %g s, term %g s "
-               "| %lld msgs, %lld rays, %.1f rays/msg\n",
-               iter, mx[0], mx[1], mx[2], smsg[0], smsg[1],
-               smsg[0] ? (double)smsg[1] / smsg[0] : 0.0);
-  }
-#endif
-
-  ray_comms_free();
-
-  free_export_buffer(export_buf);
-  free_work_stack(work);
 
   TIMER_STOP(CPU_STARS_RADIATION);
 }

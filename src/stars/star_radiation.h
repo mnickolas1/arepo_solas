@@ -180,4 +180,39 @@ extern int RayNgbNTask; /* number of mesh-neighbour ranks */
 extern int *RayNgbTask; /* ascending list of neighbour ranks, length RayNgbNTask */
 extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
 
+/* Cell steps between in-traversal progress calls */
+/* A single ray may cross millions of cells; without this a long traversal stalls */
+#define RAY_STEP_PROGRESS_MASK 1023
+
+#ifdef RT_COMM_SYNC
+ 
+typedef RayExportBuffer RayComms;
+ 
+/* No-op: the synchronous path only communicates between rounds */
+static inline void ray_comms_progress(RayComms *comm) { (void)comm; }
+ 
+#else
+ 
+/* Packets per message */
+#define RAY_MSG_MAX 256
+ 
+/* Send slots beyond the one-per-neighbour minimum */
+#define RAY_SEND_SPARE 32
+ 
+/* Pre-posted receives: 2 per neighbour */
+#define RAY_RECV_SLOTS_MIN 8
+#define RAY_RECV_SLOTS_MAX 64
+ 
+/* Rays traced between calls into the comm layer */
+#define RAY_PROGRESS_CHUNK 64
+ 
+/* Progress calls between forced flushes of partially filled send buffers */
+#define RAY_FLUSH_INTERVAL 8
+ 
+/* Spin count at which the driver starts complaining about a possible hang */
+#define RAY_ASYNC_SPIN_WARN 50000000LL
+ 
+typedef struct RayCommsAsync RayComms;
+#endif
+
 #endif

@@ -243,7 +243,7 @@ static inline int dc_is_boundary(int q)
 
 /* Returns 0 if the head now lies inside ray->cell (possibly on its boundary),
    1 if the ray was handed to another rank and the caller must return */
-static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
+static int voronoi_relocate(RayPacket *ray, RayComms *comm)
 {
   for(int it = 0; it < RAY_MAX_LOCATE; it++)
     {
@@ -314,7 +314,7 @@ static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
 
       if(DC[q_best].task != ThisTask)
         {
-          append_export(export_buf, ray, DC[q_best].task);
+          append_export(comm, ray, DC[q_best].task);
           return 1;                   
         }
     }
@@ -430,7 +430,7 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, 
 }
 
 /* Main traversal */
-void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf)
+void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 {
   long long steps = 0;
 
@@ -438,7 +438,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
     {
       if(ray->locate_head)
         {
-          if(voronoi_relocate(ray, export_buf))
+          if(voronoi_relocate(ray, comm))
             return;
         }
 
@@ -459,7 +459,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
               
               for(int k = 0; k < 4; k++)
                 {
-                  if(voronoi_relocate(&children[k], export_buf))
+                  if(voronoi_relocate(&children[k], comm))
                     continue;           
     
                   append_ray(work, &children[k]);
@@ -515,7 +515,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
       /* Hand off to the owning rank */
       if(task != ThisTask)
         {
-          append_export(export_buf, ray, task);
+          append_export(comm, ray, task);
           return;
         }
 
@@ -525,9 +525,11 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
 
       if(++steps > RAY_MAX_CELL_STEPS)
         {       
-          warn("RAYTRACE_VORONOI: ray exceeded %d cell steps on task %d, dropping\n", RAY_MAX_CELL_STEPS, ThisTask)
-          
+          warn("RAYTRACE_VORONOI: ray exceeded %d cell steps on task %d, dropping\n", RAY_MAX_CELL_STEPS, ThisTask);          
           return;
         }
+
+      if((steps & RAY_STEP_PROGRESS_MASK) == 0)
+        ray_comms_progress(comm);
     }
 }

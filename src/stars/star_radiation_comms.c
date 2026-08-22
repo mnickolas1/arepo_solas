@@ -6,23 +6,11 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+
 /*
- * Sparse, neighbour-restricted ray exchange
- *
- * Isend/Irecv over the mesh-neighbour graph only (counts)
- * MPI_Iallreduce (termination, posted early)
- * Isend/Irecv over the neighbour graph, zero-count pairs skipped (payload)
- * MPI_Wait (termination)
+ * Synchronous back end
  */
-
-#define TAG_RAY_COUNT 30201
-#define TAG_RAY_DATA 30202
-
-int RayNgbNTask = 0;
-int *RayNgbTask = NULL;
-int *RayTaskToNgb = NULL;
-
-double RayTMax = 0.0;
+#ifdef RT_COMM_SYNC
 
 static MPI_Datatype MPI_RAYPACKET = MPI_DATATYPE_NULL;
 
@@ -34,101 +22,32 @@ static int *RecvOffset = NULL;
 static int *Cursor = NULL;
 static MPI_Request *Req = NULL;
 
-/* Scratch for the stable counting sort; persists across rounds */
+/* Scratch for the stable counting sort */
 static int *SortNgb = NULL;
 static RayPacket *SortRays = NULL;
 static long long SortCapacity = 0;
 
+static int NRounds = 0;
+
 #ifdef RT_COMM_STATS
-double RayCommTimeCounts = 0.0;
-double RayCommTimePayload = 0.0;
-double RayCommTimeTerm = 0.0;
-long long RayCommMsgSent = 0;
-long long RayCommRaysSent = 0;
+static double TimeCounts = 0.0, TimePayload = 0.0, TimeTerm = 0.0;
+static double TraceLocalTotal = 0.0, TraceMaxSum = 0.0;
+static long long MsgsSent = 0, RaysSent = 0;
 #endif
 
-/*
- * Walk every local cell's Delaunay connection list and flag the ranks that own
- * a face-defining neighbour
- * This is the exact superset of possible export destinations, 
- * so no ray can ever be handed to a rank outside it - and
- * append_export() terminates loudly if one ever is
- */
-void ray_comms_init(void)
+RayComms *ray_comms_init(RayWorkStack *work)
 {
+  (void)work; /* the synchronous path receives into the work stack directly */
+
+  ray_neighbours_init();
+
   if(MPI_RAYPACKET == MPI_DATATYPE_NULL)
     {
       MPI_Type_contiguous(sizeof(RayPacket), MPI_BYTE, &MPI_RAYPACKET);
       MPI_Type_commit(&MPI_RAYPACKET);
     }
 
-  char *sflag = malloc(NTask * sizeof(char));
-  char *rflag = malloc(NTask * sizeof(char));
-
-  memset(sflag, 0, NTask * sizeof(char));
-
-  for(int i = 0; i < NumGas; i++)
-    {
-      int q = SphP[i].first_connection;
-
-      while(q >= 0)
-        {
-          if(q >= MaxNvc)
-            terminate("RAY_COMM: strange connectivity q=%d MaxNvc=%d cell=%d\n", q, MaxNvc, i);
-
-          int dp = DC[q].dp_index;
-          int particle = Mesh.DP[dp].index;
-
-          if(particle >= 0)
-            {
-              const int t = DC[q].task;
-
-              if(t < 0 || t >= NTask)
-                terminate("RAY_COMM: DC[%d].task = %d out of range on cell %d\n", q, t, i);
-
-              if(t != ThisTask)
-                sflag[t] = 1;
-            }
-
-          if(q == SphP[i].last_connection)
-            break;
-
-          q = DC[q].next;
-        }
-    }
-
-  /*
-   * Symmetrise: I must be able to RECEIVE from anyone who can send to me
-   * AREPO's face connectivity should already be symmetric (the hydro flux
-   * exchange relies on it), so in practice rflag == sflag
-   */
-  MPI_Alltoall(sflag, 1, MPI_CHAR, rflag, 1, MPI_CHAR, MPI_COMM_WORLD);
-
-  RayNgbNTask = 0;
-  for(int t = 0; t < NTask; t++)
-    if(sflag[t] || rflag[t])
-      RayNgbNTask++;
-
   const int n = RayNgbNTask > 0 ? RayNgbNTask : 1;
-
-  RayNgbTask = malloc(n * sizeof(int));
-  RayTaskToNgb = malloc(NTask * sizeof(int));
-
-  for(int t = 0; t < NTask; t++)
-    RayTaskToNgb[t] = -1;
-
-  /* Ascending rank order: this is what makes the receive layout match the
-     dense Alltoallv layout exactly */
-  int k = 0;
-  for(int t = 0; t < NTask; t++)
-    if(sflag[t] || rflag[t])
-      {
-        RayTaskToNgb[t] = k;
-        RayNgbTask[k++] = t;
-      }
-
-  free(rflag);
-  free(sflag);
 
   SendCount = malloc(n * sizeof(int));
   RecvCount = malloc(n * sizeof(int));
@@ -137,53 +56,50 @@ void ray_comms_init(void)
   Cursor = malloc(n * sizeof(int));
   Req = malloc(2 * n * sizeof(MPI_Request));
 
-#ifdef RT_COMM_STATS
-  RayCommTimeCounts = RayCommTimePayload = RayCommTimeTerm = 0.0;
-  RayCommMsgSent = RayCommRaysSent = 0;
-#endif
-
-  int ngb_max, ngb_sum;
-  MPI_Allreduce(&RayNgbNTask, &ngb_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  MPI_Allreduce(&RayNgbNTask, &ngb_sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  NRounds = 0;
 
 #ifdef RT_COMM_STATS
-  mpi_printf("STAR_RADIATION: RayPacket = %d B, comm neighbours: mean %d, max %d (of %d ranks)\n",
-             (int)sizeof(RayPacket), ngb_sum / NTask, ngb_max, NTask);
+  TimeCounts = TimePayload = TimeTerm = 0.0;
+  TraceLocalTotal = TraceMaxSum = 0.0;
+  MsgsSent = RaysSent = 0;
 #endif
+
+  RayExportBuffer *buf = malloc(sizeof(RayExportBuffer));
+
+  buf->n = 0;
+  buf->capacity = 1024;
+  buf->ngbs = malloc(buf->capacity * sizeof(int));
+  buf->rays = malloc(buf->capacity * sizeof(RayPacket));
+
+  return buf;
 }
 
-void ray_comms_free(void)
+void append_export(RayComms *comm, const RayPacket *ray, int task)
 {
-  free(Req);
-  Req = NULL;
-  free(Cursor);
-  Cursor = NULL;
-  free(RecvOffset);
-  RecvOffset = NULL;
-  free(SendOffset);
-  SendOffset = NULL;
-  free(RecvCount);
-  RecvCount = NULL;
-  free(SendCount);
-  SendCount = NULL;
+  RayExportBuffer *buf = comm;
 
-  free(RayTaskToNgb);
-  RayTaskToNgb = NULL;
-  free(RayNgbTask);
-  RayNgbTask = NULL;
-  RayNgbNTask = 0;
+  const int k = RayTaskToNgb[task];
 
-  free(SortRays);
-  SortRays = NULL;
-  free(SortNgb);
-  SortNgb = NULL;
-  SortCapacity = 0;
+  if(k < 0)
+    terminate("STAR_RADIATION: export to task %d, which is not a mesh neighbour of task %d\n", task, ThisTask);
 
-  /* MPI_RAYPACKET is deliberately kept committed across calls */
+  if(buf->n >= buf->capacity)
+    {
+      buf->capacity *= 2;
+      buf->ngbs = realloc(buf->ngbs, buf->capacity * sizeof(int));
+      buf->rays = realloc(buf->rays, buf->capacity * sizeof(RayPacket));
+
+      if(!buf->ngbs || !buf->rays)
+        terminate("RAY_COMM: out of memory growing export buffer to %lld rays\n", buf->capacity);
+    }
+
+  buf->ngbs[buf->n] = k;
+  buf->rays[buf->n] = *ray;
+  buf->n++;
 }
 
 /*
- * Stable counting sort by neighbour slot, using SendOffset[] as the bucket bases
+ * Stable counting sort by neighbour slot, using SendOffset[] as bucket bases
  */
 static void sort_by_ngb(RayExportBuffer *buf)
 {
@@ -197,7 +113,7 @@ static void sort_by_ngb(RayExportBuffer *buf)
       SortRays = realloc(SortRays, SortCapacity * sizeof(RayPacket));
 
       if(!SortNgb || !SortRays)
-        terminate("RAY_COMM: out of memory growing sort scratch to %lld rays\n", (long long)SortCapacity);
+        terminate("RAY_COMM: out of memory growing sort scratch to %lld rays\n", SortCapacity);
     }
 
   for(int k = 0; k < RayNgbNTask; k++)
@@ -216,13 +132,17 @@ static void sort_by_ngb(RayExportBuffer *buf)
   memcpy(buf->rays, SortRays, buf->n * sizeof(RayPacket));
 }
 
-void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_global)
+/*
+ * Sparse neighbour exchange with the termination reduce posted as soon as the
+ * post-exchange local count is known, so it completes underneath the payload
+ * movement rather than serialising behind it
+ */
+static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_global)
 {
   const int nn = RayNgbNTask;
 
 #ifdef RT_COMM_STATS
-  double ta, tb;
-  ta = second();
+  double ta = second(), tb;
 #endif
 
   if(send->n > (long long)INT_MAX)
@@ -233,7 +153,6 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_globa
   for(long long i = 0; i < send->n; i++)
     SendCount[send->ngbs[i]]++;
 
-  /* --- counts, over the neighbour graph only --- */
   int nreq = 0;
 
   for(int k = 0; k < nn; k++)
@@ -256,14 +175,10 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_globa
 
 #ifdef RT_COMM_STATS
   tb = second();
-  RayCommTimeCounts += timediff(ta, tb);
+  TimeCounts += timediff(ta, tb);
   ta = tb;
 #endif
 
-  /*
-   * Termination reduce, posted as soon as the post-exchange local count is
-   * known and left to complete underneath the payload movement
-   */
   long long n_after = work->n + total_recv;
 
   MPI_Request term_req;
@@ -281,7 +196,6 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_globa
 
   sort_by_ngb(send);
 
-  /* --- payload, zero-count pairs skipped --- */
   nreq = 0;
 
   for(int k = 0; k < nn; k++)
@@ -294,9 +208,10 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_globa
       {
         MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET,
                   RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
+
 #ifdef RT_COMM_STATS
-        RayCommMsgSent++;
-        RayCommRaysSent += SendCount[k];
+        MsgsSent++;
+        RaysSent += SendCount[k];
 #endif
       }
 
@@ -306,7 +221,7 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_globa
 
 #ifdef RT_COMM_STATS
   tb = second();
-  RayCommTimePayload += timediff(ta, tb);
+  TimePayload += timediff(ta, tb);
   ta = tb;
 #endif
 
@@ -314,6 +229,108 @@ void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_globa
 
 #ifdef RT_COMM_STATS
   tb = second();
-  RayCommTimeTerm += timediff(ta, tb);
+  TimeTerm += timediff(ta, tb);
 #endif
 }
+
+void ray_comms_walk(RayWorkStack *work, RayComms *comm)
+{
+  RayExportBuffer *send = comm;
+
+  long long n_global;
+  int iter = 0;
+
+  do
+    {
+      const double t0 = second();
+
+      /* Do local work first, then exchange */
+      while(work->n > 0)
+        {
+          RayPacket ray = work->rays[--work->n];
+          raytrace_voronoi(&ray, work, comm);
+        }
+
+#ifdef RT_COMM_STATS
+      /* The imbalance diagnostic: sum-of-max is what the barrier charges you,
+         max-of-sum is the floor any barrier-free scheme could reach */
+      {
+        double dt = timediff(t0, second()), dtmax;
+        TraceLocalTotal += dt;
+        MPI_Allreduce(&dt, &dtmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        TraceMaxSum += dtmax;
+      }
+#endif
+
+      exchange_rays(send, work, &n_global);
+
+      send->n = 0;
+
+      iter++;
+
+      if(n_global > 0)
+        mpi_printf("STAR_RADIATION: Rad iteration %3d: need to repeat for %12lld rays. (took %g sec)\n",
+                   iter, n_global, timediff(t0, second()));
+
+      if(iter > 4 * MAXITER)
+        terminate("STAR_RADIATION: %lld rays still in flight after %d iterations\n", n_global, iter);
+    }
+  while(n_global > 0);
+
+  NRounds = iter;
+}
+
+void ray_comms_free(RayComms *comm)
+{
+  RayExportBuffer *buf = comm;
+
+#ifdef RT_COMM_STATS
+  {
+    double loc[3] = {TimeCounts, TimePayload, TimeTerm}, mx[3];
+    MPI_Reduce(loc, mx, 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    long long lmsg[2] = {MsgsSent, RaysSent}, smsg[2];
+    MPI_Reduce(lmsg, smsg, 2, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    double worst_rank;
+    MPI_Reduce(&TraceLocalTotal, &worst_rank, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    mpi_printf("STAR_RADIATION: sync done | %d rounds | comm max/rank: counts %g s, payload %g s, term %g s "
+               "| %lld msgs, %lld rays (%.1f/msg)\n",
+               NRounds, mx[0], mx[1], mx[2], smsg[0], smsg[1],
+               smsg[0] ? (double)smsg[1] / smsg[0] : 0.0);
+
+    mpi_printf("STAR_RADIATION: imbalance | Smax = %g s, maxS = %g s, S_max = %.2f\n",
+               TraceMaxSum, worst_rank, worst_rank > 0.0 ? TraceMaxSum / worst_rank : 1.0);
+  }
+#endif
+
+  free(buf->rays);
+  free(buf->ngbs);
+  free(buf);
+
+  free(SortRays);
+  SortRays = NULL;
+  free(SortNgb);
+  SortNgb = NULL;
+  SortCapacity = 0;
+
+  free(Req);
+  Req = NULL;
+  free(Cursor);
+  Cursor = NULL;
+  free(RecvOffset);
+  RecvOffset = NULL;
+  free(SendOffset);
+  SendOffset = NULL;
+  free(RecvCount);
+  RecvCount = NULL;
+  free(SendCount);
+  SendCount = NULL;
+
+  /* MPI_RAYPACKET is deliberately kept committed across calls */
+
+  ray_neighbours_free();
+}
+
+#endif /* RT_COMM_SYNC */
