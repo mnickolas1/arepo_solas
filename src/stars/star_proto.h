@@ -101,3 +101,13 @@ void ray_comms_flush(RayComms *comm);
 void star_radiation(void);
 void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm);
 #endif
+
+#if defined(WINDS) || defined(SUPERNOVAE)
+void star_feedback(void);
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+void star_perform_end_of_step_physics(void);
+#endif
+
+#endif
