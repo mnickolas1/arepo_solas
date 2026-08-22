@@ -621,6 +621,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "RaySplitFactor");
       addr[nt] = &All.RaySplitFactor;
       id[nt++] = REAL;
+
+      strcpy(tag[nt], "IRDtauMomentumBoostCoeff");
+      addr[nt] = &All.IRDtauMomentumBoostCoeff;
+      id[nt++] = REAL;
 #endif  
 
 #ifdef RAD_OPENING_ANGLE
@@ -636,12 +640,6 @@ void read_parameter_file(char *fname)
 #ifdef PHOTOIONIZATION
       strcpy(tag[nt], "RTIonizationTimestepFraction");
       addr[nt] = &All.RTIonizationTimestepFraction;
-      id[nt++] = REAL;
-#endif  
-
-#ifdef RADIATION_PRESSURE
-      strcpy(tag[nt], "IRDtauMomentumBoostCoeff");
-      addr[nt] = &All.IRDtauMomentumBoostCoeff;
       id[nt++] = REAL;
 #endif  
 

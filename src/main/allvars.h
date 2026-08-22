@@ -1449,6 +1449,7 @@ double InitMetallicityinSolar;
 
 #ifdef STAR_RADIATION_ACTIVE
   double RaySplitFactor;
+  double IRDtauMomentumBoostCoeff;
 #endif
 
 #ifdef RAD_OPENING_ANGLE
@@ -1458,10 +1459,6 @@ double InitMetallicityinSolar;
 
 #ifdef PHOTOIONIZATION
   double RTIonizationTimestepFraction;
-#endif
-
-#ifdef RADIATION_PRESSURE
-  double IRDtauMomentumBoostCoeff;
 #endif
 
 #if defined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
@@ -1797,21 +1794,20 @@ extern struct sph_particle_data
 
 #ifdef STAR_RADIATION_ACTIVE
   MyDouble OpacityScaling[CHANNELS];
-
-  MyDouble AbsorbedPE;
-  MyDouble AbsorbedH2Line; 
-  WavebandData AbsorbedIonizing[3]; 
 #endif
 
 #ifdef PHOTOELECTRIC_HEATING
+  MyDouble AbsorbedPE;
   MyDouble PE_VolHeatingRate;
 #endif
 
 #ifdef DISSOCIATION
+  MyDouble AbsorbedH2Line; 
   MyDouble H2_DissociationRate;
 #endif
 
 #ifdef PHOTOIONIZATION
+  WavebandData AbsorbedIonizing[3]; 
   MyDouble IonHeatingRate[3];
   MyDouble IonizationRate[3];
 

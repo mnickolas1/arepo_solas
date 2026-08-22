@@ -3,8 +3,12 @@
 
 #include <stdint.h>
 
-
-#define TAG_RAD 18
+/*
+ *   RADIATION_PRESSURE      direct + IR-reradiated momentum coupling
+ *   PHOTOELECTRIC_HEATING   grain photoelectric heating (FUV: UV + LW dust)
+ *   DISSOCIATION            H2 Lyman-Werner photodissociation (+ self-shielding)
+ *   PHOTOIONIZATION         HI / HeI / HeII photoionization + photoheating
+ */
 
 #define RAD_TRUNC_FRAC 0.01
 
@@ -16,7 +20,7 @@
    between coincident bisectors at cell edges/vertices */
 #define RAY_TOL 1.0e-10
 
-/* Healpix: Multiples of 2! */
+/* Healpix: Powers of 2! */
 #define NSIDE_MIN 1
 #define NSIDE_MAX 128
 
@@ -34,12 +38,6 @@
 #define H2TAB_N 1024
 #define H2TAB_LOGNMIN 11.0 /* log10 N_H2 [cm^-2]: f_sh = 1 below */
 #define H2TAB_LOGNMAX 24.0 /* f_sh negligible above */
-
-/* Active bands - change at init_rays */
-#define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
-#define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
-#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
-#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
 
 /*
  * INFRARED: inf A - 12398.4 A (0 eV - 1 eV)
@@ -67,16 +65,6 @@ typedef enum
   WAVEBANDS
 } Waveband;
 
-#if WAVEBANDS > 8
-#error "Active_bands is uint8_t but WAVEBANDS > 8 - use uint16_t instead"
-#endif
-
-typedef struct WavebandData
-{
-  double Energy;
-  double Photons;
-} WavebandData;
-
 enum
 {
   CH_DUST = 0,
@@ -99,7 +87,13 @@ static const uint8_t BandChannels[WAVEBANDS] =
   [IONIZING_HeII] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_HeI) | (1u << CH_HeII),
 };
 
- typedef struct
+typedef struct WavebandData
+{
+  double Energy;
+  double Photons;
+} WavebandData;
+
+typedef struct
 {
   double E[CHANNELS];
   double N[CHANNELS];
@@ -108,7 +102,7 @@ static const uint8_t BandChannels[WAVEBANDS] =
 typedef struct
 {
   WavebandData Band[WAVEBANDS]; /* total removed from the ray */
-  WavebandData Ch[WAVEBANDS][CHANNELS];  /* attribution; sums to Band */
+  WavebandData Ch[WAVEBANDS][CHANNELS]; /* attribution; sums to Band */
 } Absorption;
 
 /* Dust */

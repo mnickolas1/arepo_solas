@@ -57,11 +57,11 @@ static inline double cell_dtau(int i, double length, double N_H2_ray,
       if(ch & (1u << CH_H2))
         dtau[w].E[CH_H2] = dtau[w].N[CH_H2] = dtau_line;
 
-      for(int a = 0; a < 3; a++)
-        if(ch & (1u << (CH_HI + a)))
+      for(int s = 0; s < 3; s++)
+        if(ch & (1u << (CH_HI + s)))
           {
-            dtau[w].E[CH_HI + a] = Sigma_E[w - IONIZING_HI][a] * ionizing_length[a];
-            dtau[w].N[CH_HI + a] = Sigma_N[w - IONIZING_HI][a] * ionizing_length[a];
+            dtau[w].E[CH_HI + s] = Sigma_E[w - IONIZING_HI][s] * ionizing_length[s];
+            dtau[w].N[CH_HI + s] = Sigma_N[w - IONIZING_HI][s] * ionizing_length[s];
           }
     }
 
@@ -130,17 +130,11 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   ray->N_H2 += dN_H2;
 
   /* Reradiation in the IR (boosts momentum) */
-  double Dtau_IR = 0.0;
-#ifdef RADIATION_PRESSURE
-  Dtau_IR = dtau_IR(i, length);
-#endif
+  double Dtau_IR = dtau_IR(i, length);
 
   const double c_code = CLIGHT / All.cf_UnitVelocity_in_cm_per_s;
 
   const double mj = P[i].Mass + SphP[i].StarMassFeed;
-
-  if(mj <= 0.0)
-    return still_alive;
 
   double mom[3], smf[3];
   for(int k = 0; k < 3; k++)
@@ -187,23 +181,33 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
       dK_total += dK;
     }
 
+#ifdef RADIATION_PRESSURE
   for(int k = 0; k < 3; k++)
     SphP[i].StarMomentumFeed[k] = smf[k];
 
   SphP[i].StarEnergyFeed += dK_total;
   All.StarFeedbackLocal[2] += dK_total;
+#endif
 
+#ifdef PHOTOELECTRIC_HEATING
   SphP[i].AbsorbedPE += a.Ch[ULTRAVIOLET][CH_DUST].Energy * TrueAbsorbedFraction[ULTRAVIOLET]
                       + a.Ch[LYMAN_WERNER][CH_DUST].Energy * TrueAbsorbedFraction[LYMAN_WERNER];
+#endif
 
+#ifdef DISSOCIATION
   SphP[i].AbsorbedH2Line += a.Ch[LYMAN_WERNER][CH_H2].Photons;
+#endif
 
+#ifdef PHOTOIONIZATION
   for(int s = 0; s < 3; s++)
-    for(int w = IONIZING_HI; w <= IONIZING_HeII; w++)
-      {
-        SphP[i].AbsorbedIonizing[s].Energy += a.Ch[w][CH_HI + s].Energy;
-        SphP[i].AbsorbedIonizing[s].Photons += a.Ch[w][CH_HI + s].Photons;
-      }
+    {
+      for(int w = IONIZING_HI; w <= IONIZING_HeII; w++)
+        {
+          SphP[i].AbsorbedIonizing[s].Energy += a.Ch[w][CH_HI + s].Energy;
+          SphP[i].AbsorbedIonizing[s].Photons += a.Ch[w][CH_HI + s].Photons;
+        }
+    }
+#endif
 
   return still_alive;
 }
@@ -220,15 +224,18 @@ static inline int dc_is_boundary(int q)
   if(flags & (MASK_X_SHIFT_RIGHT | MASK_X_SHIFT_LEFT))
     return 1;
 #endif
+
 #ifdef REFLECTIVE_Y
   if(flags & (MASK_Y_SHIFT_RIGHT | MASK_Y_SHIFT_LEFT))
     return 1;
 #endif
+
 #ifdef REFLECTIVE_Z
   if(flags & (MASK_Z_SHIFT_RIGHT | MASK_Z_SHIFT_LEFT))
     return 1;
 #endif
 #endif
+
   return 0;
 }
 
@@ -258,8 +265,9 @@ static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
       while(q >= 0)
         {
           int dp = DC[q].dp_index;
-
-          if(Mesh.DP[dp].index >= 0)
+          int particle = Mesh.DP[dp].index;
+          
+          if(particle >= 0)
             {
               double dx = Mesh.DP[dp].x - sx;
               double dy = Mesh.DP[dp].y - sy;
@@ -345,14 +353,16 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, 
         terminate("RAYTRACE_VORONOI: strange connectivity q=%d MaxNvc=%d cell=%d\n", q, MaxNvc, i);
 
       int dp = DC[q].dp_index;
-
+      int particle = Mesh.DP[dp].index;
+          
       /* Cell has been removed */
-      if(Mesh.DP[dp].index < 0)
+      if(particle < 0)
         {
           if(q == SphP[i].last_connection)
             break;
 
           q = DC[q].next;
+          
           continue;
         }
 
@@ -472,6 +482,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
       if(t_step < 0.0)
         {
           warn("RAYTRACE_VORONOI: cell %d gives negative t %g along ray %d - stale DC list?\n", i, t_step, ray->ray_id);
+          t_step = 0.0;
         }
 
       int truncated = 0;

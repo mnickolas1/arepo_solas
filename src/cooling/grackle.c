@@ -184,15 +184,16 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
 #endif
 
 #ifdef PHOTOIONIZATION
-  *All.GrackleFieldData.RT_HI_heating_rate = (gr_float)(SphP[target].HI_HeatingRate);
-  *All.GrackleFieldData.RT_HeI_heating_rate = (gr_float)(SphP[target].HeI_HeatingRate);
-  *All.GrackleFieldData.RT_HeII_heating_rate = (gr_float)(SphP[target].HeII_HeatingRate);
-  *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].HI_IonizationRate);
-  *All.GrackleFieldData.RT_HeI_ionization_rate = (gr_float)(SphP[target].HeI_IonizationRate);
-  *All.GrackleFieldData.RT_HeII_ionization_rate = (gr_float)(SphP[target].HeII_IonizationRate);
+  *All.GrackleFieldData.RT_HI_heating_rate = (gr_float)(SphP[target].IonHeatingRate[0]);
+  *All.GrackleFieldData.RT_HeI_heating_rate = (gr_float)(SphP[target].IonHeatingRate[1]);
+  *All.GrackleFieldData.RT_HeII_heating_rate = (gr_float)(SphP[target].IonHeatingRate[2]);
+  *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].IonizationRate[0]);
+  *All.GrackleFieldData.RT_HeI_ionization_rate = (gr_float)(SphP[target].IonizationRate[1]);
+  *All.GrackleFieldData.RT_HeII_ionization_rate = (gr_float)(SphP[target].IonizationRate[2]);
 
-  SphP[target].HI_HeatingRate = SphP[target].HeI_HeatingRate = SphP[target].HeII_HeatingRate 
-  = SphP[target].HI_IonizationRate = SphP[target].HeI_IonizationRate = SphP[target].HeII_IonizationRate = 0;
+  for(int s = 0; s < 3; s++)
+    SphP[target].IonHeatingRate[s] = SphP[target].IonizationRate[s] = 0.0;
+
 #else
   *All.GrackleFieldData.RT_HI_heating_rate = 0;
   *All.GrackleFieldData.RT_HeI_heating_rate = 0;

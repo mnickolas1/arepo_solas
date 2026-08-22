@@ -294,7 +294,8 @@ static void compute_face_weights(int i, const double xsrc[3],
             break;
                   
           q = DC[q].next;
-            continue;
+          
+          continue;
         }
 
       if(nf >= MAX_FACES)
