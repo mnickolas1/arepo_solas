@@ -303,8 +303,6 @@ static void init_rays(RayWorkStack *work)
 
   double SQRT3 = sqrt(3.0);
 
-  int ray_idx = 0;
-
   for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
   {
     int host = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
