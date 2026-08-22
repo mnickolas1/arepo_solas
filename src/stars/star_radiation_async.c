@@ -170,7 +170,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
 
   c->flush_countdown = RAY_FLUSH_INTERVAL;
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   mpi_printf("STAR_RADIATION: async comm, %d send slots + %d recv slots = %.1f MB/rank, %d packets/msg\n",
              c->nslots, c->nrecv,
              (double)(c->nslots + c->nrecv) * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0),
@@ -495,7 +495,7 @@ void ray_comms_free(RayComms *comm)
         }
     }
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   {
     long long lsum[5] = {c->msgs_sent, c->rays_sent, c->rays_traced, c->slot_stalls, c->n_snapshots};
     long long gsum[5];

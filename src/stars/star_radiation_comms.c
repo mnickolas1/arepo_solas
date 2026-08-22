@@ -29,7 +29,7 @@ static long long SortCapacity = 0;
 
 static int NRounds = 0;
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
 static double TimeCounts = 0.0, TimePayload = 0.0, TimeTerm = 0.0;
 static double TraceLocalTotal = 0.0, TraceMaxSum = 0.0;
 static long long MsgsSent = 0, RaysSent = 0;
@@ -58,7 +58,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
 
   NRounds = 0;
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   TimeCounts = TimePayload = TimeTerm = 0.0;
   TraceLocalTotal = TraceMaxSum = 0.0;
   MsgsSent = RaysSent = 0;
@@ -141,7 +141,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
 {
   const int nn = RayNgbNTask;
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   double ta = second(), tb;
 #endif
 
@@ -173,7 +173,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
       total_recv += RecvCount[k];
     }
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   tb = second();
   TimeCounts += timediff(ta, tb);
   ta = tb;
@@ -209,7 +209,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
         MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET,
                   RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
         MsgsSent++;
         RaysSent += SendCount[k];
 #endif
@@ -219,7 +219,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
 
   work->n += total_recv;
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   tb = second();
   TimePayload += timediff(ta, tb);
   ta = tb;
@@ -227,7 +227,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
 
   MPI_Wait(&term_req, MPI_STATUS_IGNORE);
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   tb = second();
   TimeTerm += timediff(ta, tb);
 #endif
@@ -251,7 +251,7 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
           raytrace_voronoi(&ray, work, comm);
         }
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
       /* The imbalance diagnostic: sum-of-max is what the barrier charges you,
          max-of-sum is the floor any barrier-free scheme could reach */
       {
@@ -284,7 +284,7 @@ void ray_comms_free(RayComms *comm)
 {
   RayExportBuffer *buf = comm;
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   {
     double loc[3] = {TimeCounts, TimePayload, TimeTerm}, mx[3];
     MPI_Reduce(loc, mx, 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);

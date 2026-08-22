@@ -586,7 +586,7 @@ void ray_neighbours_init(void)
   MPI_Allreduce(&RayNgbNTask, &ngb_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
   MPI_Allreduce(&RayNgbNTask, &ngb_sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-#ifdef RT_COMM_STATS
+#ifdef RT_COMM_STATISTICS
   mpi_printf("STAR_RADIATION: RayPacket = %d B, comm neighbours: mean %d, max %d (of %d ranks)\n",
              (int)sizeof(RayPacket), ngb_sum / NTask, ngb_max, NTask);
 #endif
