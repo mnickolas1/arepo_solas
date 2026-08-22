@@ -146,7 +146,6 @@ typedef struct RayPacket
 
   int nside; /* Current HEALPix nside level */
   int healpix_pixel; /* Current HEALPix pixel (NESTED) */
-  unsigned long long rotation_seed; /* HEALPix basis rotation seed (per star) */
   uint8_t locate_head; /* Locate flag for split rays */
 
   /* Bitmask: bit w is SET while band w is still alive */
@@ -160,10 +159,6 @@ typedef struct RayPacket
 
   /* Accumulated H2 column since source */
   double N_H2; /* cgs! */
-
-  /* Ray bookkeeping */
-  int ray_id;
-  int home_task;
 } RayPacket;
 
 typedef struct RayWorkStack
@@ -177,8 +172,12 @@ typedef struct RayExportBuffer
 {
   long long n; /* Number of rays to export */
   long long capacity; /* Allocated capacity */
-  int *task; /* Where to send each ray */
+  int *ngbs; /* Ngbs slot */
   RayPacket *rays;
 } RayExportBuffer;
+
+extern int RayNgbNTask; /* number of mesh-neighbour ranks */
+extern int *RayNgbTask; /* ascending list of neighbour ranks, length RayNgbNTask */
+extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
 
 #endif

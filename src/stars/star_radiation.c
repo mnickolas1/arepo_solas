@@ -118,7 +118,7 @@ double dtau_IR(int i, double length)
 {
   double kappa_rerad = 1.0;
 
-  double Dtau_IR = All.IRDtauMomentumBoostCoeff * kappa_rerard * SphP[i].OpacityScaling[CH_DUST] * length;
+  double Dtau_IR = All.IRDtauMomentumBoostCoeff * kappa_rerad * SphP[i].OpacityScaling[CH_DUST] * length;
 
   return Dtau_IR;
 }
@@ -341,8 +341,6 @@ static void init_rays(RayWorkStack *work)
 
     if(flag_luminosity)
       {
-        unsigned long long rotation_seed = seed_rotation(P[host].ID);
-
         /* Loop over rays for this host */
         for(int iray = 0; iray < NRays; iray++)
           {
@@ -356,7 +354,7 @@ static void init_rays(RayWorkStack *work)
             ray.pos[1] = 0.0;
             ray.pos[2] = 0.0;
 
-            ray.rotation_seed = rotation_seed;
+            unsigned long long rotation_seed = seed_rotation(ray.star_id);
             healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
 
             ray.t = 0.0;
@@ -383,9 +381,6 @@ static void init_rays(RayWorkStack *work)
               continue;
 
             ray.N_H2 = 0.0;
-
-            ray.ray_id = ray_idx++;
-            ray.home_task = ThisTask;
 
             append_ray(work, &ray);
           }
@@ -419,8 +414,6 @@ static void init_rays(RayWorkStack *work)
         xrel[1] = NEAREST_Y(MechanicalFeedback->StarPosition[1] - P[host].Pos[1]);
         xrel[2] = NEAREST_Z(MechanicalFeedback->StarPosition[2] - P[host].Pos[2]);
 
-        unsigned long long rotation_seed = seed_rotation(MechanicalFeedbackData->StarID);
-
         /* Loop over rays for this star */
         for(int iray = 0; iray < NRays; iray++)
           {
@@ -434,7 +427,7 @@ static void init_rays(RayWorkStack *work)
             ray.pos[1] = xrel[1];
             ray.pos[2] = xrel[2];
 
-            ray.rotation_seed = rotation_seed;
+            unsigned long long rotation_seed = seed_rotation(ray.star_id);
             healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
 
             ray.t = 0.0;
@@ -462,9 +455,6 @@ static void init_rays(RayWorkStack *work)
 
             ray.N_H2 = 0.0;
 
-            ray.ray_id = ray_idx++;
-            ray.home_task = ThisTask;
-
             append_ray(work, &ray);
           }
       }
@@ -490,7 +480,8 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
       children[k].healpix_pixel = 4 * parent->healpix_pixel + k;
       children[k].locate_head = 1;
 
-      healpix_dir(parent->rotation_seed, new_nside, children[k].healpix_pixel, children[k].dir);
+      unsigned long long rotation_seed = seed_rotation(parent->star_id);
+      healpix_dir(rotation_seed, new_nside, children[k].healpix_pixel, children[k].dir);
 
       for(int w = 0; w < WAVEBANDS; w++)
         {
@@ -509,7 +500,7 @@ static RayExportBuffer *init_export_buffer(long long capacity)
 
   buf->n = 0;
   buf->capacity = capacity;
-  buf->task = malloc(capacity * sizeof(int));
+  buf->ngbs = malloc(capacity * sizeof(int));
   buf->rays = malloc(capacity * sizeof(RayPacket));
 
   return buf;
@@ -517,104 +508,26 @@ static RayExportBuffer *init_export_buffer(long long capacity)
 
 void append_export(RayExportBuffer *buf, const RayPacket *ray, int task)
 {
+  const int k = RayTaskToNgb[task];
+
+  if(k < 0)
+    terminate("STAR_RADIATION: export to task %d, which is not a mesh neighbour of task %d\n", task, ThisTask);
+
   if(buf->n >= buf->capacity)
     {
       buf->capacity *= 2;
-      buf->task = realloc(buf->task, buf->capacity * sizeof(int));
+      buf->ngbs = realloc(buf->ngbs, buf->capacity * sizeof(int));
       buf->rays = realloc(buf->rays, buf->capacity * sizeof(RayPacket));
     }
 
-  buf->task[buf->n] = task;
+  buf->ngbs[buf->n] = k;
   buf->rays[buf->n] = *ray;
   buf->n++;
 }
 
 static void free_export_buffer(RayExportBuffer *buf)
 {
-  free(buf->rays); free(buf->task); free(buf);
-}
-
-static void sort_by_task(RayExportBuffer *buf)
-{
-  int *count = calloc(NTask, sizeof(int));
-  int *cursor = malloc(NTask * sizeof(int));
-
-  for(long long i = 0; i < buf->n; i++)
-    count[buf->task[i]]++;
-
-  cursor[0] = 0;
-  for(int t = 1; t < NTask; t++)
-    cursor[t] = cursor[t-1] + count[t-1];
-
-  int *sorted_task = malloc(buf->n * sizeof(int));
-  RayPacket *sorted_rays = malloc(buf->n * sizeof(RayPacket));
-
-  for(long long i = 0; i < buf->n; i++)
-    {
-      int t = buf->task[i];
-      long long pos = cursor[t]++;
-      sorted_task[pos] = t;
-      sorted_rays[pos] = buf->rays[i];
-    }
-
-  memcpy(buf->task, sorted_task, buf->n * sizeof(int));
-  memcpy(buf->rays, sorted_rays, buf->n * sizeof(RayPacket));
-
-  free(sorted_rays);
-  free(sorted_task);
-  free(cursor);
-  free(count);
-}
-
-static void exchange_rays(RayExportBuffer *send, RayWorkStack *work)
-{
-  static MPI_Datatype MPI_RAYPACKET = MPI_DATATYPE_NULL;
-  if(MPI_RAYPACKET == MPI_DATATYPE_NULL)
-    {
-      MPI_Type_contiguous(sizeof(RayPacket), MPI_BYTE, &MPI_RAYPACKET);
-      MPI_Type_commit(&MPI_RAYPACKET);
-    }
-
-  /* Heap, not VLA: int send_count[NTask] blows the C stack for large NTask */
-  int *send_count = malloc(NTask * sizeof(int));
-  int *recv_count = malloc(NTask * sizeof(int));
-  int *send_offset = malloc(NTask * sizeof(int));
-  int *recv_offset = malloc(NTask * sizeof(int));
-
-  memset(send_count, 0, NTask * sizeof(int));
-  for(long long i = 0; i < send->n; i++)
-    send_count[send->task[i]]++;
-
-  MPI_Alltoall(send_count, 1, MPI_INT, recv_count, 1, MPI_INT, MPI_COMM_WORLD);
-
-  send_offset[0] = recv_offset[0] = 0;
-  long long total_recv = recv_count[0];
-  for(int i = 1; i < NTask; i++)
-    {
-      send_offset[i] = send_offset[i-1] + send_count[i-1];
-      recv_offset[i] = recv_offset[i-1] + recv_count[i-1];
-      total_recv += recv_count[i];
-    }
-
-  while(work->n + total_recv > work->capacity)
-    {
-      work->capacity *= 2;
-      work->rays = realloc(work->rays, work->capacity * sizeof(RayPacket));
-    }
-
-  /* In ray Units */
-  sort_by_task(send);
-
-  MPI_Alltoallv(send->rays, send_count, send_offset, MPI_RAYPACKET,
-  work->rays + work->n, recv_count, recv_offset, MPI_RAYPACKET,
-  MPI_COMM_WORLD);
-
-  work->n += total_recv;
-
-  free(recv_offset);
-  free(send_offset);
-  free(recv_count);
-  free(send_count);
+  free(buf->rays); free(buf->ngbs); free(buf);
 }
 
 static void radiation_feedback(void)
@@ -747,6 +660,8 @@ void star_radiation(void)
 
   update_opac();
 
+  ray_comms_init();
+
   /* Zero accumulators before the walk */
    for(int i = 0; i < NumGas; i++)
     {
@@ -806,14 +721,11 @@ void star_radiation(void)
           raytrace_voronoi(&ray, work, export_buf);
         }
 
-      /* Send rays to remote ranks, receive rays from remote ranks */
-      exchange_rays(export_buf, work);
+      /* Sparse neighbour exchange; also completes the termination reduce */
+      exchange_rays(export_buf, work, &n_global);
 
       /* Reset export buffer for this round */
       export_buf->n = 0;
-
-      /* Check if anyone still has rays in flight */
-      sumup_longs(1, &work->n, &n_global);
 
       t1 = second();
 
@@ -833,6 +745,26 @@ void star_radiation(void)
 #ifdef PHOTOIONIZATION
   rt_timestep();
 #endif
+
+#ifdef RT_COMM_STATS
+  {
+    extern double RayCommTimeCounts, RayCommTimePayload, RayCommTimeTerm;
+    extern long long RayCommMsgSent, RayCommRaysSent;
+
+    double loc[3] = {RayCommTimeCounts, RayCommTimePayload, RayCommTimeTerm}, mx[3];
+    MPI_Reduce(loc, mx, 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    long long lmsg[2] = {RayCommMsgSent, RayCommRaysSent}, smsg[2];
+    MPI_Reduce(lmsg, smsg, 2, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    mpi_printf("STAR_RADIATION: %d rounds | comm max/rank: counts %g s, payload %g s, term %g s "
+               "| %lld msgs, %lld rays, %.1f rays/msg\n",
+               iter, mx[0], mx[1], mx[2], smsg[0], smsg[1],
+               smsg[0] ? (double)smsg[1] / smsg[0] : 0.0);
+  }
+#endif
+
+  ray_comms_free();
 
   free_export_buffer(export_buf);
   free_work_stack(work);

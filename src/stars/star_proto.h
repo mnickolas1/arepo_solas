@@ -83,6 +83,10 @@ void split_ray(const RayPacket *parent, RayPacket children[4]);
 
 void append_export(RayExportBuffer *buf, const RayPacket *ray, int task);
 
+void ray_comms_init(void); 
+void ray_comms_free(void);
+void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_global);
+
 void star_radiation(void);
 void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);
 void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *export_buf);

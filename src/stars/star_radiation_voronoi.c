@@ -319,8 +319,7 @@ static int voronoi_relocate(RayPacket *ray, RayExportBuffer *export_buf)
         }
     }
 
-  terminate("RAYTRACE_VORONOI: locate walk did not converge for ray %d (star %llu)\n",
-            ray->ray_id, (unsigned long long)ray->star_id);
+  terminate("RAYTRACE_VORONOI: locate walk did not converge for ray\n");
   return 0;
 }
 
@@ -476,12 +475,12 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
 
       if(q < 0)
         {
-          terminate("RAYTRACE_VORONOI: cell %d unbounded along ray %d - stale DC list?\n", i, ray->ray_id);
+          terminate("RAYTRACE_VORONOI: cell %d unbounded along ray - stale DC list?\n", i);
         }
 
       if(t_step < 0.0)
         {
-          warn("RAYTRACE_VORONOI: cell %d gives negative t %g along ray %d - stale DC list?\n", i, t_step, ray->ray_id);
+          warn("RAYTRACE_VORONOI: cell %d gives negative t %g along ray - stale DC list?\n", i, t_step);
           t_step = 0.0;
         }
 
@@ -525,9 +524,9 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expor
         terminate("RAYTRACE_VORONOI: self-connection at cell %d (mirror boundary?)\n", i);
 
       if(++steps > RAY_MAX_CELL_STEPS)
-        {
-          warn("RAYTRACE_VORONOI: ray %d from star %llu exceeded %d cell steps on task %d, dropping\n", ray->ray_id,
-               (unsigned long long)ray->star_id, RAY_MAX_CELL_STEPS, ThisTask);
+        {       
+          warn("RAYTRACE_VORONOI: ray exceeded %d cell steps on task %d, dropping\n", RAY_MAX_CELL_STEPS, ThisTask)
+          
           return;
         }
     }
