@@ -511,10 +511,10 @@ int *RayTaskToNgb = NULL;
 /*
  * Mesh-neighbour graph - shared by both back ends
  *
- * Walk every local cell's Delaunay connection list and flag the ranks that own
- * a face-defining neighbour
- * This is the exact superset of possible export
- * destinations, and append_export() terminates loudly if a ray is ever handed
+ * Walk every local cell's Delaunay connection list 
+ * and flag the ranks that own a face-defining neighbour
+ * This is the exact superset of possible export destinations, 
+ * and append_export() terminates loudly if a ray is ever handed
  * to a rank outside it
  */
 void ray_neighbours_init(void)
@@ -554,8 +554,8 @@ void ray_neighbours_init(void)
     }
 
   /*
-   * Symmetrise: this rank must be able to RECEIVE from anyone who can send to
-   * it - AREPO's face connectivity should already be symmetric (the hydro flux
+   * Symmetrise: this rank must be able to RECEIVE from anyone who can send to it 
+   * AREPO's face connectivity should already be symmetric (the hydro flux
    * exchange relies on it), so in practice rflag == sflag
    */
   MPI_Alltoall(sflag, 1, MPI_CHAR, rflag, 1, MPI_CHAR, MPI_COMM_WORLD);

@@ -122,6 +122,10 @@ static struct flux_list_data
 #ifdef MAXSCALARS
   double dConservedScalars[MAXSCALARS];
 #endif /* #ifdef MAXSCALARS */
+
+#ifdef STAR_RADIATION_ACTIVE
+  double RTCost;
+#endif
 } * FluxList;
 
 static int Nflux, MaxNflux;
@@ -606,6 +610,7 @@ int do_derefinements(void)
 
                           if(p >= NumGas) /* this is a local ghost point */
                             p -= NumGas;
+
                           P[p].Mass += fac * P[i].Mass;
                           SphP[p].Momentum[0] += fac * SphP[i].Momentum[0];
                           SphP[p].Momentum[1] += fac * SphP[i].Momentum[1];
@@ -630,6 +635,10 @@ int do_derefinements(void)
 #ifdef REFINEMENT_SPLIT_CELLS
                           FlagDoNotRefine[p] = 1;
 #endif /* #ifdef REFINEMENT_SPLIT_CELLS */
+
+#ifdef STAR_RADIATION_ACTIVE
+                          SphP[p].RTCost += fac * SphP[i].RTCost;
+#endif
                         }
                       else
                         {
@@ -676,6 +685,10 @@ int do_derefinements(void)
                             FluxList[Nflux].dConservedScalars[s] =
                                 fac * (*(MyFloat *)(((char *)(&SphP[i])) + scalar_elements[s].offset_mass));
 #endif /* #ifdef MAXSCALARS */
+
+#ifdef STAR_RADIATION_ACTIVE
+                          FluxList[Nflux].RTCost = fac * SphP[i].RTCost;
+#endif
                           Nflux++;
                         }
                     }
@@ -917,6 +930,10 @@ static void derefine_apply_flux_list(void)
 #ifdef REFINEMENT_SPLIT_CELLS
       FlagDoNotRefine[p] = 1;
 #endif /* #ifdef REFINEMENT_SPLIT_CELLS */
+
+#ifdef STAR_RADIATION_ACTIVE
+      SphP[p].RTCost += FluxListGet[i].RTCost;
+#endif
     }
 
   myfree(FluxListGet);

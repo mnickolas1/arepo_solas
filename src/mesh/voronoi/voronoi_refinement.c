@@ -389,6 +389,11 @@ int do_refinements(void)
               SphP[j].AllowRefinement += 2;
 #endif /* #ifdef REFINEMENT_HIGH_RES_GAS */
 
+#ifdef STAR_RADIATION_ACTIVE
+              SphP[i].RTCost *= faci;
+              SphP[j].RTCost *= facj;
+#endif
+
               /* add the new particle into the neighbour tree */
               int no          = Ngb_Nextnode[i];
               Ngb_Nextnode[i] = j;

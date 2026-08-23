@@ -163,9 +163,12 @@ double domain_star_tot_costfactor(int i)
         factor *= 0;
 
       for(int bin = SPP(i).TimeBinStar; bin <= All.HighestOccupiedTimeBin; bin++)
-        if(domain_to_be_balanced[bin])
-          w += domain_star_weight[bin] * factor;
+        {
+          if(domain_to_be_balanced[bin])
+            w += domain_star_weight[bin] * factor;
+        }
     }
+  
   return w;
 }
 #endif
@@ -175,9 +178,14 @@ double domain_bh_tot_costfactor(int i)
 {
   double w = 0;
   if(P[i].Type == 5)
-    for(int bin = BPP(i).TimeBinBh; bin <= All.HighestOccupiedTimeBin; bin++)
-      if(domain_to_be_balanced[bin])
-        w += domain_bh_weight[bin];
+    {
+      for(int bin = BPP(i).TimeBinBh; bin <= All.HighestOccupiedTimeBin; bin++)
+        {
+          if(domain_to_be_balanced[bin])
+            w += domain_bh_weight[bin];
+        }
+    }
+
   return w;
 }
 #endif
@@ -576,7 +584,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
 #ifdef STAR_FEEDBACK_ACTIVE
   int nabove_star = 0;
   double todistribute_star = 0.0;
-  double weightsum_star    = 0.0;
+  double weightsum_star = 0.0;
 
   for(int i = 0; i < ndomain; i++)
     {
@@ -593,7 +601,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
 #ifdef BH_ACTIVE
   int nabove_bh = 0;
   double todistribute_bh = 0.0;
-  double weightsum_bh    = 0.0;
+  double weightsum_bh = 0.0;
 
   for(int i = 0; i < ndomain; i++)
     {
@@ -685,6 +693,7 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
 #ifdef BH_ACTIVE
       work += fac_workbh * leaf[end].workbh;
 #endif
+
    while(1)
         {
           /* compute cost of next node, zero if none left */

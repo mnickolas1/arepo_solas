@@ -481,7 +481,9 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       if(t_step < 0.0)
         {
-          warn("RAYTRACE_VORONOI: cell %d gives negative t %g along ray - stale DC list?\n", i, t_step);
+          if(t_step < -eps)
+            warn("RAYTRACE_VORONOI: cell %d gives negative t %g along ray - stale DC list?\n", i, t_step);
+          
           t_step = 0.0;
         }
 
@@ -494,6 +496,8 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       /* Absorption, heating, radiation pressure */
       int still_alive = ray_deposit(ray, i, t_step);
+
+      SphP[i].RTCost += 1.0f;
 
       ray->t += t_step;
 
