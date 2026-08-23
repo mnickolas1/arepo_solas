@@ -380,6 +380,7 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, 
 
           double t = num / ndotd;
 
+          /* Genuinely closer */
           if(t < t_best - eps)
             {
               t_best = t;
@@ -389,9 +390,9 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, 
               d_out[1] = dy;
               d_out[2] = dz;
 
-              /* Defer the VF load until a tie actually needs it */
               area_best_valid = 0;
             }
+          /* Within error */
           else if(t < t_best + eps && q_best >= 0)
             {
               if(!area_best_valid)
@@ -402,9 +403,9 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, 
 
               double area = Mesh.VF[DC[q].vf_index].area;
 
+              /* Tie break */
               if(area > area_best)
                 {
-                  /* Keep the tighter bound, step through the real face */
                   if(t < t_best)
                     t_best = t;
 
