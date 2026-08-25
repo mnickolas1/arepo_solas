@@ -380,6 +380,7 @@ void domain_find_total_cost(void)
   double bhpartcount = 0;
 #endif
 
+  /* Sum cost over all particles */
   for(int i = 0; i < NumPart; i++)
     {
 #ifdef ADDBACKGROUNDGRID
@@ -590,6 +591,7 @@ void domain_find_total_cost(void)
 
 #endif /* #ifdef DOMAIN_MEASURED_WEIGHTS #else */
 
+  /* Normalise by both share of channel and total particle cost */
   normsum_load = w;
   normsum_work = share[DOMAIN_CH_GRAV];
   normsum_worksph = share[DOMAIN_CH_HYDRO];

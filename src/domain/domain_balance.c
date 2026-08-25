@@ -388,7 +388,7 @@ void domain_sumCost(void)
   for(j = 0; j < NTask; j++)
     Send_count[j] = 0;
 
-  /* find for each particle its top-leave, and then add the associated cost with it */
+  /* Sum cost for all particles in each top level leaf */
   for(n = 0; n < NumPart; n++)
     {
 #ifdef ADDBACKGROUNDGRID
@@ -568,6 +568,24 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
   double weightsum_grav    = 0.0;
   double weightsum_sph     = 0.0;
 
+#ifdef STAR_FEEDBACK_ACTIVE
+  int nabove_star = 0;
+  double todistribute_star = 0.0;
+  double weightsum_star = 0.0;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  int nabove_rt = 0;
+  double todistribute_rt = 0.0;
+  double weightsum_rt = 0.0;
+#endif
+
+#ifdef BH_ACTIVE
+  int nabove_bh = 0;
+  double todistribute_bh = 0.0;
+  double weightsum_bh = 0.0;
+#endif
+
   for(int i = 0; i < ndomain; i++)
     {
       if(fac_work * DomainLeaveNode[i].Work > normsum_work / ncpu)
@@ -585,15 +603,8 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
         }
       else
         weightsum_sph += DomainLeaveNode[i].Count;
-    }
-
+    
 #ifdef STAR_FEEDBACK_ACTIVE
-  int nabove_star = 0;
-  double todistribute_star = 0.0;
-  double weightsum_star = 0.0;
-
-  for(int i = 0; i < ndomain; i++)
-    {
       if(fac_workstar * DomainLeaveNode[i].WorkStar > normsum_workstar / ncpu)
         {
           nabove_star++;
@@ -601,16 +612,9 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
         }
       else
         weightsum_star += DomainLeaveNode[i].Count;
-    }
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  int nabove_rt = 0;
-  double todistribute_rt = 0.0;
-  double weightsum_rt = 0.0;
-
-  for(int i = 0; i < ndomain; i++)
-    {
       if(fac_workrt * DomainLeaveNode[i].WorkRT > normsum_workrt / ncpu)
         {
           nabove_rt++;
@@ -618,16 +622,9 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
         }
       else
         weightsum_rt += DomainLeaveNode[i].Count;
-    }
 #endif
 
 #ifdef BH_ACTIVE
-  int nabove_bh = 0;
-  double todistribute_bh = 0.0;
-  double weightsum_bh = 0.0;
-
-  for(int i = 0; i < ndomain; i++)
-    {
       if(fac_workbh * DomainLeaveNode[i].WorkBh > normsum_workbh / ncpu)
         {
           nabove_bh++;
@@ -635,8 +632,8 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
         }
       else
         weightsum_bh += DomainLeaveNode[i].Count;
-    }
 #endif
+    }
 
   struct leafnode_data
   {
@@ -758,7 +755,6 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
 #ifdef BH_ACTIVE
               next_work += fac_workbh * leaf[end + 1].workbh;
 #endif
-
             }
 
           if(!((work + work_before + next_work < workavg + workavg_before + workhalfnode) ||
@@ -1206,7 +1202,8 @@ void domain_combine_multipledomains(void)
 #endif
     }
 
-  int cost_data_nfields = 2;  /* GravCost + HydroCost always present */
+  /* GravCost + HydroCost always present */
+  int cost_data_nfields = 2;  
 
 #ifdef STAR_FEEDBACK_ACTIVE
   cost_data_nfields += 1;
