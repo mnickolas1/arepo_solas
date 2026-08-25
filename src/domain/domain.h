@@ -84,12 +84,29 @@ extern int N_trans;
 
 extern int Nbranch;
 
+enum
+{
+  DOMAIN_CH_GRAV = 0,
+  DOMAIN_CH_HYDRO,
+  DOMAIN_CH_STAR,
+  DOMAIN_CH_RT,
+  DOMAIN_CH_BH,
+  DOMAIN_NCHANNELS
+};
+
+void domain_accumulate_step_times(void);
+void domain_reset_channel_times(void);
+
 extern double fac_work, fac_load, fac_worksph;
 extern double normsum_work, normsum_load, normsum_worksph;
 extern double totgravcost, totpartcount, gravcost, totsphcost, sphcost;
 
 #ifdef STAR_FEEDBACK_ACTIVE
 extern double normsum_workstar, fac_workstar, totstarcost, starcost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+extern double normsum_workrt, fac_workrt, totrtcost, rtcost;
 #endif
 
 #ifdef BH_ACTIVE
@@ -106,6 +123,10 @@ extern struct domain_cost_data
 
 #ifdef STAR_FEEDBACK_ACTIVE
   float WorkStar;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  float WorkRT;  
 #endif
 
 #ifdef BH_ACTIVE
@@ -140,6 +161,10 @@ double domain_hydro_tot_costfactor(int i);
 
 #ifdef STAR_FEEDBACK_ACTIVE
 double domain_star_tot_costfactor(int i);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+double domain_rt_tot_costfactor(int i);
 #endif
 
 #ifdef BH_ACTIVE

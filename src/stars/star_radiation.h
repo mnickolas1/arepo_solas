@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+
 /*
  *   RADIATION_PRESSURE      direct + IR-reradiated momentum coupling
  *   PHOTOELECTRIC_HEATING   grain photoelectric heating (FUV: UV + LW dust)
@@ -55,7 +56,8 @@
  * IONIZING_HeII: 227.9 A - 0 A (54.4 eV - inf eV)
  */
 typedef enum
-{ INFRARED = 0,
+{ 
+  INFRARED = 0,
   OPTICAL,
   ULTRAVIOLET,
   LYMAN_WERNER,
@@ -182,7 +184,7 @@ extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
 
 /* Cell steps between in-traversal progress calls */
 /* A single ray may cross millions of cells; without this a long traversal stalls */
-#define RAY_STEP_PROGRESS_MASK 1023
+#define RAY_STEPS_PROGRESS_MASK 1023
 
 #ifdef RT_COMM_SYNC
  

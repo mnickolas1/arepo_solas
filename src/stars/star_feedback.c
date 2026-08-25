@@ -734,7 +734,7 @@ void star_feedback(void)
                   Kick.SN_DeltaChem[CHEM_HeIII] += MechanicalFeedback->SN_HeLoss * sqrtsq_wbar;
 #endif 
 #ifdef METALS
-                  Kick.SN_DeltaMetals = (MechanicalFeedback->SN_MetalsLoss + dmZ_h) * sqrtsq_wbar ;
+                  Kick.SN_DeltaMetals = (MechanicalFeedback->SN_MetalsLoss + dmZ_h) * sqrtsq_wbar;
 #endif
                   /* Momentum = advected (ejecta @ v_star + host @ v_host)
                    * + directed energy-conserving kick p_SN * wbar */

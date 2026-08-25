@@ -66,12 +66,66 @@
 #include "../mesh/voronoi/voronoi.h"
 #include "domain.h"
 
-/*! \brief The main routine for the domain decomposition.
+/*! \brief Per-rank accumulated wall-clock per cost channel */
+static double DomainChannelTime[DOMAIN_NCHANNELS];
+
+void domain_accumulate_step_times(void)
+{
+  int i;
+  double summed_CPU_Step[CPU_LAST];
+
+  for(i = 0; i < CPU_LAST; i++)
+    summed_CPU_Step[i] = CPU_Step[i];
+
+  /* Add every timer into all of its ancestors */
+  for(i = CPU_LAST - 1; i > CPU_ALL; i--)
+  {
+    int parent = Timer_data[i].parent;
+
+    if(parent >= 0)
+      summed_CPU_Step[parent] += summed_CPU_Step[i];
+  }
+  
+  int mesh_channels = 1;
+  
+#ifdef STAR_FEEDBACK_ACTIVE
+  mesh_channels++;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  mesh_channels++;
+#endif
+
+  DomainChannelTime[DOMAIN_CH_GRAV] += summed_CPU_Step[CPU_TREE];
+  DomainChannelTime[DOMAIN_CH_HYDRO] += summed_CPU_Step[CPU_HYDRO] + 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  DomainChannelTime[DOMAIN_CH_STAR] += summed_CPU_Step[CPU_STARS_PREP] + summed_CPU_Step[CPU_STARS_DENSITY] 
+  + summed_CPU_Step[CPU_STARS_FEEDBACK] + 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  DomainChannelTime[DOMAIN_CH_RT] += summed_CPU_Step[CPU_STARS_RADIATION] + 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
+#endif
+
+#ifdef BH_ACTIVE
+  DomainChannelTime[DOMAIN_CH_BH] += summed_CPU_Step[CPU_BLACKHOLES_DENSITY] + summed_CPU_Step[CPU_BLACKHOLES_ACCRETION] 
+  + summed_CPU_Step[CPU_BLACKHOLES_SWALLOW] + summed_CPU_Step[CPU_BLACKHOLES_FEEDBACK];
+#endif
+}
+
+void domain_reset_channel_times(void)
+{
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    DomainChannelTime[c] = 0.0;
+}
+
+/*! \brief The main routine for the domain decomposition
  *
  *  It acts as a driver routine that allocates various temporary buffers,
  *  maps the particles back onto the periodic box if needed, and then does the
  *  domain decomposition, and a final Peano-Hilbert order of all particles
- *  as a tuning measure.
+ *  as a tuning measure
  *
  *  \return void
  */
@@ -178,18 +232,25 @@ void domain_Decomposition(void)
     
 #ifdef STAR_FEEDBACK_ACTIVE
   star_reconstruct_timebins();
-  star_update_list_of_active_particles();;
+  star_update_list_of_active_particles();
 #endif
 
 #ifdef BH_ACTIVE
   bh_reconstruct_timebins();
-  bh_update_list_of_active_particles();;
+  bh_update_list_of_active_particles();
 #endif
 
   for(int i = 0; i < GRAVCOSTLEVELS; i++)
     All.LevelHasBeenMeasured[i] = 0;
 
   domain_report_balance();
+
+  domain_reset_channel_times();
+
+#ifdef STAR_RADIATION_ACTIVE
+  for(int i = 0; i < NumGas; i++)
+    SphP[i].RTCost = 0.0f;
+#endif
 
   TIMER_STOP(CPU_DOMAIN);
 }
@@ -283,8 +344,15 @@ void domain_preserve_relevant_topnode_data(void)
 
 /*! \brief Calculates the total cost of different operations.
  *
- *  This function gathers information about the cost of gravity and
- *  hydrodynamics calculation as well as the particle load.
+ *  This function gathers information about the cost of gravity, hydrodynamics,
+ *  stars, black holes and radiative transfer, as well as the particle load,
+ *  and turns them into the normalisation factors fac_* used by the two
+ *  balancing stages
+ *
+ *      sum over leaves of  fac_X * work_X  ==  normsum_X 
+ *
+ *  so each channel contributes precisely normsum_X to the global work budget,
+ *  and sum over channels of normsum_X == 1
  *
  *  \return void
  */
@@ -293,13 +361,18 @@ void domain_find_total_cost(void)
   if(All.MultipleDomains < 1 || All.MultipleDomains > 512)
     terminate("All.MultipleDomains < 1 || All.MultipleDomains > 512");
 
-  gravcost = sphcost  = 0;
-  double partcount    = 0;
+  gravcost = sphcost = 0;
+  double partcount = 0;
   double sphpartcount = 0;
 
 #ifdef STAR_FEEDBACK_ACTIVE
   starcost = 0;
   double starpartcount = 0;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  rtcost = 0;
+  double rtpartcount = 0;
 #endif
 
 #ifdef BH_ACTIVE
@@ -326,13 +399,23 @@ void domain_find_total_cost(void)
 #ifdef STAR_FEEDBACK_ACTIVE
       double scost = domain_star_tot_costfactor(i);
       starcost += scost;
+      
       if(scost > 0)
         starpartcount += 1.0;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      double rcost = domain_rt_tot_costfactor(i);
+      rtcost += rcost;
+      
+      if(rcost > 0)
+        rtpartcount += 1.0;
 #endif
 
 #ifdef BH_ACTIVE
       double bcost = domain_bh_tot_costfactor(i);
       bhcost += bcost;
+      
       if(bcost > 0)
         bhpartcount += 1.0;
 #endif
@@ -344,20 +427,30 @@ void domain_find_total_cost(void)
   nloc += 2;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  nloc += 2;
+#endif
+
 #ifdef BH_ACTIVE
   nloc += 2;
 #endif
 
+  int idx = 0;
   double loc[nloc], sum[nloc];
-  loc[0] = gravcost;
-  loc[1] = sphcost;
-  loc[2] = partcount;
-  loc[3] = sphpartcount;
-  int idx = 4;
+  loc[idx++] = gravcost;
+  loc[idx++] = sphcost;
+  loc[idx++] = partcount;
+  loc[idx++] = sphpartcount;
+ 
 
 #ifdef STAR_FEEDBACK_ACTIVE
   loc[idx++] = starcost;
   loc[idx++] = starpartcount;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  loc[idx++] = rtcost;
+  loc[idx++] = rtpartcount;
 #endif
 
 #ifdef BH_ACTIVE
@@ -367,15 +460,20 @@ void domain_find_total_cost(void)
 
   MPI_Allreduce(loc, sum, nloc, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-  totgravcost  = sum[0];
-  totsphcost   = sum[1];
-  totpartcount = sum[2];
-  double totsphpartcount = sum[3];
-  idx = 4;
-
+  idx = 0;
+  totgravcost = sum[idx++];
+  totsphcost = sum[idx++];
+  totpartcount = sum[idx++];
+  double totsphpartcount = sum[idx++];
+  
 #ifdef STAR_FEEDBACK_ACTIVE
   totstarcost = sum[idx++];
   double totstarpartcount = sum[idx++];
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  totrtcost = sum[idx++];
+  double totrtpartcount = sum[idx++];
 #endif
 
 #ifdef BH_ACTIVE
@@ -383,43 +481,142 @@ void domain_find_total_cost(void)
   double totbhpartcount = sum[idx++];
 #endif
 
-  /* count active channels */
-  int nchannels = 1; /* always load counts */
-  if(totgravcost > 0) nchannels++;
-  if(totsphcost  > 0) nchannels++;
+  int active[DOMAIN_NCHANNELS];
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    active[c] = 0;
+
+#ifdef SELFGRAVITY
+  active[DOMAIN_CH_GRAV] = (totgravcost > totpartcount * MIN_FLOAT_NUMBER);
+#else
+  active[DOMAIN_CH_GRAV] = 0;
+#endif
+
+#ifdef NOHYDRO
+  active[DOMAIN_CH_HYDRO] = 0;
+#else
+  active[DOMAIN_CH_HYDRO] = (totsphcost > 0);
+#endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  if(totstarcost > 0) nchannels++;
+  active[DOMAIN_CH_STAR] = (totstarcost > 0);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  active[DOMAIN_CH_RT] = (totrtcost > 0);
 #endif
 
 #ifdef BH_ACTIVE
-  if(totbhcost > 0) nchannels++;
+  active[DOMAIN_CH_BH] = (totbhcost > 0);
 #endif
+
+  double share[DOMAIN_NCHANNELS];
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    share[c] = 0.0;
+
+  /* Every active channel, plus the particle load, gets an equal slice of the budget */
+  int nchannels = 1; /* always load counts */
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    {
+      if(active[c])
+        nchannels++;
+    }
 
   double w = 1.0 / nchannels;
 
-  normsum_work = (totgravcost > 0) ? w : 0;
-  normsum_worksph = (totsphcost  > 0) ? w : 0;
-  normsum_load = w;
+#ifdef DOMAIN_MEASURED_WEIGHTS
 
-  fac_work = (totgravcost > 0) ? normsum_work    / totgravcost  : 0;
-  fac_worksph = (totsphcost  > 0) ? normsum_worksph / totsphcost   : 0;
+  double loc_t[DOMAIN_NCHANNELS], tot_t[DOMAIN_NCHANNELS];
+
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    loc_t[c] = DomainChannelTime[c];
+
+  MPI_Allreduce(loc_t, tot_t, DOMAIN_NCHANNELS, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  int measured_ok = 1;
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    {
+      if(active[c] && tot_t[c] <= 0.0)
+        measured_ok = 0;
+    }
+
+  double tsum = 0.0;
+  if(measured_ok)
+    {
+      for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+        {
+          if(active[c])
+            tsum += tot_t[c];
+        }
+    }
+
+  if(measured_ok && tsum > 0.0)
+    {
+      for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+        share[c] = active[c] ? (1 - w) * tot_t[c] / tsum : 0.0;
+    }
+  else
+    {
+      for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+        share[c] = active[c] ? w : 0.0;
+    }
+
+  static double share_sm[DOMAIN_NCHANNELS];
+  static int share_active[DOMAIN_NCHANNELS];
+  static int share_init = 0;
+
+  int set_changed = !share_init;
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    {
+      if(active[c] != share_active[c])
+        set_changed = 1;
+    }
+
+  const double alpha = 0.5;
+
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    {
+      share_sm[c] = set_changed ? share[c] : (1.0 - alpha) * share_sm[c] + alpha * share[c];
+      share_active[c] = active[c];
+    }
+
+  share_init = 1;
+
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    share[c] = share_sm[c];
+  
+#else /* #ifdef DOMAIN_MEASURED_WEIGHTS */
+
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    share[c] = active[c] ? w : 0.0;
+
+#endif /* #ifdef DOMAIN_MEASURED_WEIGHTS #else */
+
+  normsum_load = w;
+  normsum_work = share[DOMAIN_CH_GRAV];
+  normsum_worksph = share[DOMAIN_CH_HYDRO];
+
   fac_load = normsum_load / totpartcount;
+  fac_work = (totgravcost > 0) ? normsum_work / totgravcost : 0;
+  fac_worksph = (totsphcost > 0) ? normsum_worksph / totsphcost : 0;
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  normsum_workstar = (totstarcost > 0) ? w : 0;
+  normsum_workstar = share[DOMAIN_CH_STAR];
   fac_workstar = (totstarcost > 0) ? normsum_workstar / totstarcost : 0;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  normsum_workrt = share[DOMAIN_CH_RT];
+  fac_workrt = (totrtcost > 0) ? normsum_workrt / totrtcost : 0;
+#endif
+
 #ifdef BH_ACTIVE
-  normsum_workbh = (totbhcost > 0) ? w : 0;
+  normsum_workbh = share[DOMAIN_CH_BH];
   fac_workbh = (totbhcost > 0) ? normsum_workbh / totbhcost : 0;
 #endif
 
   if(totgravcost == 0 && totsphcost == 0)
     terminate("strange: totsphcost=%g  totgravcost=%g\n", totsphcost, totgravcost);
 }
-
 
 /*! \brief Coordinate conversion to integer.
  *
@@ -500,6 +697,92 @@ void domain_printf(char *buf)
 {
   if(RestartFlag <= 2)
     fprintf(FdDomain, "%s", buf);
+}
+
+/*! \brief Reports post-decomposition balance for the extra cost channels
+ *
+ *  \return void
+ */
+static void domain_report_extra_channels(void)
+{
+  double loc[DOMAIN_NCHANNELS], mx[DOMAIN_NCHANNELS], sm[DOMAIN_NCHANNELS];
+
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    loc[c] = 0.0;
+
+  for(int i = 0; i < NumPart; i++)
+    {
+      loc[DOMAIN_CH_GRAV] += domain_grav_tot_costfactor(i);
+      loc[DOMAIN_CH_HYDRO] += domain_hydro_tot_costfactor(i);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      loc[DOMAIN_CH_STAR] += domain_star_tot_costfactor(i);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      loc[DOMAIN_CH_RT] += domain_rt_tot_costfactor(i);
+#endif
+
+#ifdef BH_ACTIVE
+      loc[DOMAIN_CH_BH] += domain_bh_tot_costfactor(i);
+#endif
+    }
+
+  MPI_Reduce(loc, mx, DOMAIN_NCHANNELS, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(loc, sm, DOMAIN_NCHANNELS, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  if(ThisTask != 0)
+    return;
+
+  static const char *chname[DOMAIN_NCHANNELS] = {"grav", "hydro", "star", "rt", "bh"};
+
+  static const double *shares[DOMAIN_NCHANNELS] = {
+      &normsum_work,
+      &normsum_worksph,
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      &normsum_workstar,
+#else
+      NULL,
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      &normsum_workrt,
+#else
+      NULL,
+#endif
+
+#ifdef BH_ACTIVE
+      &normsum_workbh,
+#else
+      NULL,
+#endif
+  };
+
+  char buf[1000];
+
+  sprintf(buf, "Channel balance (max/mean over ranks) and budget share:\n");
+  domain_printf(buf);
+
+  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    {
+      if(sm[c] <= 0.0)
+        continue;
+
+      double bal = mx[c] / (sm[c] / NTask);
+
+      sprintf(buf, "  %-6s balance %6.3f   share %6.3f\n", chname[c], bal, shares[c] ? *shares[c] : 0.0);
+      domain_printf(buf);
+
+      /* also to stdout: this is the number to compare against the async
+         RT_COMM_STATS imbalance figure */
+      printf("DOMAIN: channel %-6s balance %6.3f  share %6.3f\n", chname[c], bal, shares[c] ? *shares[c] : 0.0);
+    }
+
+  sprintf(buf, "  load   balance %6.3f   share %6.3f\n", 0.0, normsum_load);
+  domain_printf(buf);
+
+  myflush(FdDomain);
 }
 
 /*! \brief Function that reports load-balancing
@@ -689,11 +972,16 @@ void domain_report_balance(void)
       sprintf(buf, "-------------------------------------------------------------------------------------\n");
 
       domain_printf(buf);
+    }
 
+  /* star / BH / RT balance and the budget shares that produced it */
+  domain_report_extra_channels();
+
+  if(ThisTask == 0)
+    {
+      char buf[1000];
       sprintf(buf, "\n");
-
       domain_printf(buf);
-
       myflush(FdDomain);
     }
 

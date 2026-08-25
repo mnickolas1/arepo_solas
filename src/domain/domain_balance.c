@@ -141,34 +141,32 @@ double domain_hydro_tot_costfactor(int i)
 #ifdef STAR_FEEDBACK_ACTIVE
 double domain_star_tot_costfactor(int i)
 {
-  double w = 0;
+  double w = 0.0;
   if(P[i].Type == 4)
     {
-      double factor = 1;
-
-#if defined(WINDS) || defined(SUPERNOVAE)
-      factor *= 1;
-#endif
-
-#ifdef STAR_RADIATION_ACTIVE
-      factor *= 2;
-#endif
-      
       double star_mass = P[i].Mass * All.cf_UnitMass_in_Msun;
 
-      if(star_mass < 8)
-        factor *= 0.1;
-      
-      if(star_mass < 2)
-        factor *= 0;
+      if(star_mass < LOWEST_MASS_FEEDBACK)
+        return 0.0;
 
       for(int bin = SPP(i).TimeBinStar; bin <= All.HighestOccupiedTimeBin; bin++)
         {
           if(domain_to_be_balanced[bin])
-            w += domain_star_weight[bin] * factor;
+            w += domain_star_weight[bin];
         }
     }
-  
+
+  return w;
+}
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+double domain_rt_tot_costfactor(int i)
+{
+  double w = 0.0;
+  if(P[i].Type == 0)
+    w = SphP[i].RTCost;
+
   return w;
 }
 #endif
@@ -176,7 +174,7 @@ double domain_star_tot_costfactor(int i)
 #ifdef BH_ACTIVE
 double domain_bh_tot_costfactor(int i)
 {
-  double w = 0;
+  double w = 0.0;
   if(P[i].Type == 5)
     {
       for(int bin = BPP(i).TimeBinBh; bin <= All.HighestOccupiedTimeBin; bin++)
@@ -439,6 +437,10 @@ void domain_sumCost(void)
       listCost[p].WorkStar += domain_star_tot_costfactor(n);
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      listCost[p].WorkRT += domain_rt_tot_costfactor(n);
+#endif
+
 #ifdef BH_ACTIVE
       listCost[p].WorkBh += domain_bh_tot_costfactor(n);
 #endif
@@ -505,6 +507,10 @@ void domain_sumCost(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
       loc_DomainLeaveNode[j].WorkStar += import_node_data[i].WorkStar;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      loc_DomainLeaveNode[j].WorkRT += import_node_data[i].WorkRT;
 #endif
 
 #ifdef BH_ACTIVE
@@ -598,6 +604,24 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
     }
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  int nabove_rt = 0;
+  double todistribute_rt = 0.0;
+  double weightsum_rt = 0.0;
+
+  for(int i = 0; i < ndomain; i++)
+    {
+      if(fac_workrt * DomainLeaveNode[i].WorkRT > normsum_workrt / ncpu)
+        {
+          nabove_rt++;
+          todistribute_rt += DomainLeaveNode[i].WorkRT - normsum_workrt / ncpu / fac_workrt;
+        }
+      else
+        weightsum_rt += DomainLeaveNode[i].Count;
+    }
+#endif
+
+
 #ifdef BH_ACTIVE
   int nabove_bh = 0;
   double todistribute_bh = 0.0;
@@ -622,6 +646,10 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
 
 #ifdef STAR_FEEDBACK_ACTIVE
     double workstar;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+    double workrt;
 #endif
 
 #ifdef BH_ACTIVE
@@ -664,6 +692,18 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
         }
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      leaf[i].workrt = DomainLeaveNode[i].WorkRT;
+
+      if(fac_workrt > 0 && weightsum_rt > 0)
+        {
+          if(fac_workrt * DomainLeaveNode[i].WorkRT > normsum_workrt / ncpu)
+            leaf[i].workrt = normsum_workrt / ncpu / fac_workrt;
+          else
+            leaf[i].workrt += (DomainLeaveNode[i].Count / weightsum_rt) * todistribute_rt;
+        }
+#endif
+
 #ifdef BH_ACTIVE
       leaf[i].workbh = DomainLeaveNode[i].WorkBh;
 
@@ -690,6 +730,10 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
       work += fac_workstar * leaf[end].workstar;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      work += fac_workrt * leaf[end].workrt;
+#endif
+
 #ifdef BH_ACTIVE
       work += fac_workbh * leaf[end].workbh;
 #endif
@@ -703,12 +747,19 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
               next_work += fac_work    * leaf[end + 1].workgrav
                          + fac_load    * DomainLeaveNode[end + 1].Count
                          + fac_worksph * leaf[end + 1].worksph;
+
 #ifdef STAR_FEEDBACK_ACTIVE
               next_work += fac_workstar * leaf[end + 1].workstar;
 #endif
+
+#ifdef STAR_RADIATION_ACTIVE
+              next_work += fac_workrt * leaf[end + 1].workrt;
+#endif
+
 #ifdef BH_ACTIVE
               next_work += fac_workbh * leaf[end + 1].workbh;
 #endif
+
             }
 
           if(!((work + work_before + next_work < workavg + workavg_before + workhalfnode) ||
@@ -726,6 +777,10 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
 
 #ifdef STAR_FEEDBACK_ACTIVE
           work += fac_workstar * leaf[end].workstar;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          work += fac_workrt * leaf[end].workrt;
 #endif
 
 #ifdef BH_ACTIVE
@@ -763,6 +818,10 @@ static struct domain_segments_data
   double bin_StarCost[TIMEBINS];
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  double bin_RTCost[TIMEBINS];
+#endif
+
 #ifdef BH_ACTIVE
   double bin_BhCost[TIMEBINS];
 #endif
@@ -775,9 +834,14 @@ static struct domain_segments_data
   double workstar;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  double workrt;
+#endif
+
 #ifdef BH_ACTIVE
   double workbh;
 #endif
+
   double normalized_load;
 } * domainAssign;
 
@@ -792,6 +856,10 @@ struct tasklist_data
   double bin_StarCost[TIMEBINS];
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  double bin_RTCost[TIMEBINS];
+#endif
+
 #ifdef BH_ACTIVE
   double bin_BhCost[TIMEBINS];
 #endif
@@ -804,11 +872,32 @@ struct tasklist_data
   double workstar;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  double workrt;
+#endif
+
 #ifdef BH_ACTIVE
   double workbh;
 #endif
+
   int count;
 } * tasklist;
+
+static double max_GravCost[TIMEBINS], max_HydroCost[TIMEBINS];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+static double max_StarCost[TIMEBINS];
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+static double max_RTCost[TIMEBINS];
+#endif
+
+#ifdef BH_ACTIVE
+static double max_BhCost[TIMEBINS];
+#endif
+
+static double max_load;
 
 /*! \brief Comparison function for domain_segments_data structure.
  *
@@ -873,6 +962,80 @@ static int mydata_cmp(struct mydata *lhs, struct mydata *rhs)
   return 0;
 }
 
+/*! \brief Estimated runtime if domain piece n were assigned to task target
+ *
+ *  Each channel is normalised by its own global total and then weighted by
+ *  that channel's budget share
+ *
+ *  \param[in] n Index into domainAssign.
+ *  \param[in] target Candidate task.
+ *
+ *  \return estimated normalised runtime.
+ */
+static double domain_runtime_estimate(int n, int target)
+{
+  double runtime = 0;
+
+  for(int i = 0; i < TIMEBINS; i++)
+    {
+      double sum = domainAssign[n].bin_GravCost[i] + tasklist[target].bin_GravCost[i];
+      if(sum < max_GravCost[i])
+        sum = max_GravCost[i];
+
+      runtime += normsum_work * sum / (totgravcost + MIN_FLOAT_NUMBER);
+    }
+
+  for(int i = 0; i < TIMEBINS; i++)
+    {
+      double sum = domainAssign[n].bin_HydroCost[i] + tasklist[target].bin_HydroCost[i];
+      if(sum < max_HydroCost[i])
+        sum = max_HydroCost[i];
+
+      runtime += normsum_worksph * sum / (totsphcost + MIN_FLOAT_NUMBER);
+    }
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  for(int i = 0; i < TIMEBINS; i++)
+    {
+      double sum = domainAssign[n].bin_StarCost[i] + tasklist[target].bin_StarCost[i];
+      if(sum < max_StarCost[i])
+        sum = max_StarCost[i];
+
+      runtime += normsum_workstar * sum / (totstarcost + MIN_FLOAT_NUMBER);
+    }
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  for(int i = 0; i < TIMEBINS; i++)
+    {
+      double sum = domainAssign[n].bin_RTCost[i] + tasklist[target].bin_RTCost[i];
+      if(sum < max_RTCost[i])
+        sum = max_RTCost[i];
+
+      runtime += normsum_workrt * sum / (totrtcost + MIN_FLOAT_NUMBER);
+    }
+#endif
+
+#ifdef BH_ACTIVE
+  for(int i = 0; i < TIMEBINS; i++)
+    {
+      double sum = domainAssign[n].bin_BhCost[i] + tasklist[target].bin_BhCost[i];
+      if(sum < max_BhCost[i])
+        sum = max_BhCost[i];
+
+      runtime += normsum_workbh * sum / (totbhcost + MIN_FLOAT_NUMBER);
+    }
+#endif
+
+  double load = domainAssign[n].load + tasklist[target].load;
+  if(load < max_load)
+    load = max_load;
+
+  runtime += normsum_load * ((double)load) / totpartcount;
+
+  return runtime;
+}
+
 /*! \brief Assigns the domain pieces to individual MPI tasks with the goal to
  *         balance the work-load on different timebins.
  *
@@ -907,6 +1070,10 @@ void domain_combine_multipledomains(void)
       tasklist[ta].workstar = 0;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      tasklist[ta].workrt = 0;
+#endif
+
 #ifdef BH_ACTIVE
       tasklist[ta].workbh = 0;
 #endif
@@ -920,6 +1087,10 @@ void domain_combine_multipledomains(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
           tasklist[ta].bin_StarCost[i] = 0;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          tasklist[ta].bin_RTCost[i] = 0;
 #endif
 
 #ifdef BH_ACTIVE
@@ -944,6 +1115,10 @@ void domain_combine_multipledomains(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
     double StarCost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+    double RTCost;
 #endif
 
 #ifdef BH_ACTIVE
@@ -1017,6 +1192,11 @@ void domain_combine_multipledomains(void)
         }
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      if(P[i].Type == 0)
+        loc_bin_Cost[All.HighestActiveTimeBin * ndomains + n].RTCost += SphP[i].RTCost;
+#endif
+
 #ifdef BH_ACTIVE
       if(P[i].Type == 5)
         {
@@ -1033,10 +1213,16 @@ void domain_combine_multipledomains(void)
   cost_data_nfields += 1;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+  cost_data_nfields += 1;
+#endif
+
 #ifdef BH_ACTIVE
   cost_data_nfields += 1;
 #endif
 
+  if(cost_data_nfields * (int)sizeof(double) != (int)sizeof(struct cost_data))
+    terminate("cost_data_nfields=%d does not match sizeof(struct cost_data)=%d", cost_data_nfields, (int)sizeof(struct cost_data));
 
   allreduce_sparse_double_sum((double *)(loc_bin_Cost + All.LowestOccupiedTimeBin * ndomains),
                               (double *)(glob_bin_Cost + All.LowestOccupiedTimeBin * ndomains),
@@ -1049,6 +1235,10 @@ void domain_combine_multipledomains(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   double tot_workstar = 0;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  double tot_workrt = 0;
 #endif
 
 #ifdef BH_ACTIVE
@@ -1067,6 +1257,10 @@ void domain_combine_multipledomains(void)
       domainAssign[n].workstar = 0;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      domainAssign[n].workrt = 0;
+#endif
+
 #ifdef BH_ACTIVE
       domainAssign[n].workbh = 0;
 #endif
@@ -1078,6 +1272,10 @@ void domain_combine_multipledomains(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
           domainAssign[n].bin_StarCost[i] = glob_bin_Cost[i * ndomains + n].StarCost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          domainAssign[n].bin_RTCost[i] = glob_bin_Cost[i * ndomains + n].RTCost;
 #endif
 
 #ifdef BH_ACTIVE
@@ -1095,6 +1293,10 @@ void domain_combine_multipledomains(void)
           domainAssign[n].workstar += DomainLeaveNode[i].WorkStar;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+          domainAssign[n].workrt += DomainLeaveNode[i].WorkRT;
+#endif
+
 #ifdef BH_ACTIVE
           domainAssign[n].workbh += DomainLeaveNode[i].WorkBh;
 #endif
@@ -1106,6 +1308,10 @@ void domain_combine_multipledomains(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
       tot_workstar += domainAssign[n].workstar;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      tot_workrt += domainAssign[n].workrt;
 #endif
 
 #ifdef BH_ACTIVE
@@ -1123,6 +1329,10 @@ void domain_combine_multipledomains(void)
       domainAssign[n].normalized_load += domainAssign[n].workstar / (tot_workstar + MIN_FLOAT_NUMBER);
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      domainAssign[n].normalized_load += domainAssign[n].workrt / (tot_workrt + MIN_FLOAT_NUMBER);
+#endif
+
 #ifdef BH_ACTIVE
       domainAssign[n].normalized_load += domainAssign[n].workbh / (tot_workbh + MIN_FLOAT_NUMBER);
 #endif
@@ -1135,16 +1345,6 @@ void domain_combine_multipledomains(void)
   mysort(domainAssign, ndomains, sizeof(struct domain_segments_data), domain_sort_load);
 
   /* initialize a structure that stores the maximum gravity and hydro cost load for each timebin */
-  double max_GravCost[TIMEBINS], max_HydroCost[TIMEBINS];
-
-#ifdef STAR_FEEDBACK_ACTIVE
-  double max_StarCost[TIMEBINS];
-#endif
-
-#ifdef BH_ACTIVE
-  double max_BhCost[TIMEBINS];
-#endif
-
   for(int i = 0; i < TIMEBINS; i++)
     {
       max_GravCost[i]  = 0;
@@ -1154,12 +1354,16 @@ void domain_combine_multipledomains(void)
       max_StarCost[i] = 0;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+      max_RTCost[i] = 0;
+#endif
+
 #ifdef BH_ACTIVE
       max_BhCost[i] = 0;
 #endif
     }
 
-  double max_load = 0;
+  max_load = 0;
 
   /* create priority trees, one for the cost of each occupied timebin,
    * one for the hydro cost of each occupied timebin */
@@ -1173,6 +1377,11 @@ void domain_combine_multipledomains(void)
 #ifdef STAR_FEEDBACK_ACTIVE
   struct mytree queue_starcost[TIMEBINS];
   struct mydata *nstar[TIMEBINS];
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  struct mytree queue_rtcost[TIMEBINS];
+  struct mydata *nrt[TIMEBINS];
 #endif
 
 #ifdef BH_ACTIVE
@@ -1193,6 +1402,11 @@ void domain_combine_multipledomains(void)
 #ifdef STAR_FEEDBACK_ACTIVE
           RB_INIT(&queue_starcost[bin]);
           nstar[bin] = mymalloc("nstar[bin]", NTask * sizeof(struct mydata));
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          RB_INIT(&queue_rtcost[bin]);
+          nrt[bin] = mymalloc("nrt[bin]", NTask * sizeof(struct mydata));
 #endif
 
 #ifdef BH_ACTIVE
@@ -1229,13 +1443,19 @@ void domain_combine_multipledomains(void)
           RB_INSERT(mytree, &queue_hydrocost[bin], &nhydro[bin][i]);
 
 #ifdef STAR_FEEDBACK_ACTIVE
-          nstar[bin][i].pri    = 0;
+          nstar[bin][i].pri = 0;
           nstar[bin][i].target = i;
           RB_INSERT(mytree, &queue_starcost[bin], &nstar[bin][i]);
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+          nrt[bin][i].pri = 0;
+          nrt[bin][i].target = i;
+          RB_INSERT(mytree, &queue_rtcost[bin], &nrt[bin][i]);
+#endif
+
 #ifdef BH_ACTIVE
-          nbh[bin][i].pri    = 0;
+          nbh[bin][i].pri = 0;
           nbh[bin][i].target = i;
           RB_INSERT(mytree, &queue_bhcost[bin], &nbh[bin][i]);
 #endif
@@ -1262,7 +1482,7 @@ void domain_combine_multipledomains(void)
 
           int target;
 
-          for(int set = 0; set < 4; set++)
+          for(int set = 0; set < 5; set++)
             {
               if(set == 0)
                 {
@@ -1293,67 +1513,35 @@ void domain_combine_multipledomains(void)
                 continue;
 #endif
 
-#ifdef BH_ACTIVE
+#ifdef STAR_RADIATION_ACTIVE
               else if(set == 3)
+                {
+                  for(np = RB_MIN(mytree, &queue_rtcost[bin]), rep = 0; np && rep < n_lowest;
+                      np = RB_NEXT(mytree, &queue_rtcost[bin], np), rep++)
+                    candidates[rep] = np->target;
+                }
+#else
+              else if(set == 3)
+                continue;
+#endif
+
+#ifdef BH_ACTIVE
+              else if(set == 4)
                 {
                   for(np = RB_MIN(mytree, &queue_bhcost[bin]), rep = 0; np && rep < n_lowest;
                       np = RB_NEXT(mytree, &queue_bhcost[bin], np), rep++)
                     candidates[rep] = np->target;
                 }
 #else
-              else if(set == 3)
+              else if(set == 4)
                 continue; 
 #endif
-              
+
               for(rep = 0; rep < n_lowest; rep++)
                 {
                   target = candidates[rep];
 
-                  double runtime = 0;
-
-                  for(int i = 0; i < TIMEBINS; i++)
-                    {
-                      double sum = domainAssign[n].bin_GravCost[i] + tasklist[target].bin_GravCost[i];
-                      if(sum < max_GravCost[i])
-                        sum = max_GravCost[i];
-
-                      runtime += sum / (totgravcost + MIN_FLOAT_NUMBER);
-                    }
-                      
-                  for(int i = 0; i < TIMEBINS; i++)
-                    {
-                      double sum = domainAssign[n].bin_HydroCost[i] + tasklist[target].bin_HydroCost[i];
-                      if(sum < max_HydroCost[i])
-                        sum = max_HydroCost[i];
-
-                      runtime += sum / (totsphcost + MIN_FLOAT_NUMBER);
-                    }
-
-#ifdef STAR_FEEDBACK_ACTIVE
-                  for(int i = 0; i < TIMEBINS; i++)
-                    {
-                      double sum = domainAssign[n].bin_StarCost[i] + tasklist[target].bin_StarCost[i];
-                      if(sum < max_StarCost[i])
-                        sum = max_StarCost[i];
-                      runtime += sum / (totstarcost + MIN_FLOAT_NUMBER);
-                    }
-#endif
-
-#ifdef BH_ACTIVE
-                  for(int i = 0; i < TIMEBINS; i++)
-                    {
-                      double sum = domainAssign[n].bin_BhCost[i] + tasklist[target].bin_BhCost[i];
-                      if(sum < max_BhCost[i])
-                        sum = max_BhCost[i];
-                      runtime += sum / (totbhcost + MIN_FLOAT_NUMBER);
-                    }
-#endif
-
-                  double load = domainAssign[n].load + tasklist[target].load;
-                  if(load < max_load)
-                    load = max_load;
-
-                  runtime += ((double)load) / totpartcount;
+                  double runtime = domain_runtime_estimate(n, target);
 
                   if(runtime < best_runtime || best_target < 0)
                     {
@@ -1374,53 +1562,7 @@ void domain_combine_multipledomains(void)
         {
           target = candidates[rep];
 
-          double runtime = 0;
-
-          for(int i = 0; i < TIMEBINS; i++)
-            {
-              double sum = domainAssign[n].bin_GravCost[i] + tasklist[target].bin_GravCost[i];
-              if(sum < max_GravCost[i])
-                sum = max_GravCost[i];
-
-              runtime += sum / (totgravcost + 1.0e-60);
-            }
-
-          for(int i = 0; i < TIMEBINS; i++)
-            {
-              double sum = domainAssign[n].bin_HydroCost[i] + tasklist[target].bin_HydroCost[i];
-              if(sum < max_HydroCost[i])
-                sum = max_HydroCost[i];
-
-              runtime += sum / (totsphcost + 1.0e-60);
-            }
-
-#ifdef STAR_FEEDBACK_ACTIVE
-          for(int i = 0; i < TIMEBINS; i++)
-            {
-              double sum = domainAssign[n].bin_StarCost[i] + tasklist[target].bin_StarCost[i];
-              if(sum < max_StarCost[i])
-                sum = max_StarCost[i];
-
-              runtime += sum / (totstarcost + 1.0e-60);
-            }
-#endif
-
-#ifdef BH_ACTIVE
-          for(int i = 0; i < TIMEBINS; i++)
-            {
-              double sum = domainAssign[n].bin_BhCost[i] + tasklist[target].bin_BhCost[i];
-              if(sum < max_BhCost[i])
-                sum = max_BhCost[i];
-
-              runtime += sum / (totbhcost + 1.0e-60);
-            }
-#endif
-
-          double load = domainAssign[n].load + tasklist[target].load;
-          if(load < max_load)
-            load = max_load;
-
-          runtime += ((double)load) / totpartcount;
+          double runtime = domain_runtime_estimate(n, target);
 
           if(runtime < best_runtime || best_target < 0)
             {
@@ -1441,6 +1583,10 @@ void domain_combine_multipledomains(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
       tasklist[target].workstar += domainAssign[n].workstar;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      tasklist[target].workrt += domainAssign[n].workrt;
 #endif
 
 #ifdef BH_ACTIVE
@@ -1469,6 +1615,10 @@ void domain_combine_multipledomains(void)
               tasklist[target].bin_StarCost[bin] += domainAssign[n].bin_StarCost[bin];
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+              tasklist[target].bin_RTCost[bin] += domainAssign[n].bin_RTCost[bin];
+#endif
+
 #ifdef BH_ACTIVE
               tasklist[target].bin_BhCost[bin] += domainAssign[n].bin_BhCost[bin];
 #endif
@@ -1480,6 +1630,10 @@ void domain_combine_multipledomains(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
               double eps_star = 1.0e-9 * (domainAssign[n].load / totpartcount) * totstarcost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+              double eps_rt = 1.0e-9 * (domainAssign[n].load / totpartcount) * totrtcost;
 #endif
 
 #ifdef BH_ACTIVE
@@ -1500,6 +1654,12 @@ void domain_combine_multipledomains(void)
               RB_INSERT(mytree, &queue_starcost[bin], &nstar[bin][target]);
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+              RB_REMOVE(mytree, &queue_rtcost[bin], &nrt[bin][target]);
+              nrt[bin][target].pri = nrt[bin][target].pri + domainAssign[n].bin_RTCost[bin] + eps_rt;
+              RB_INSERT(mytree, &queue_rtcost[bin], &nrt[bin][target]);
+#endif
+
 #ifdef BH_ACTIVE
               RB_REMOVE(mytree, &queue_bhcost[bin], &nbh[bin][target]);
               nbh[bin][target].pri = nbh[bin][target].pri + domainAssign[n].bin_BhCost[bin] + eps_bh;
@@ -1515,6 +1675,11 @@ void domain_combine_multipledomains(void)
 #ifdef STAR_FEEDBACK_ACTIVE
               if(max_StarCost[bin] < tasklist[target].bin_StarCost[bin])
                 max_StarCost[bin] = tasklist[target].bin_StarCost[bin];
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+              if(max_RTCost[bin] < tasklist[target].bin_RTCost[bin])
+                max_RTCost[bin] = tasklist[target].bin_RTCost[bin];
 #endif
 
 #ifdef BH_ACTIVE
@@ -1535,6 +1700,10 @@ void domain_combine_multipledomains(void)
         {
 #ifdef BH_ACTIVE
           myfree(nbh[bin]);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          myfree(nrt[bin]);
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE

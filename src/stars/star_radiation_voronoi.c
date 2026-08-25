@@ -3,6 +3,7 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
+
 /*
  * Exact ray transport on the Voronoi mesh via face connectivity.
  *
@@ -534,7 +535,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
           return;
         }
 
-      if((steps & RAY_STEP_PROGRESS_MASK) == 0)
+      if((steps & RAY_STEPS_PROGRESS_MASK) == 0)
         ray_comms_progress(comm);
     }
 }

@@ -230,6 +230,8 @@ void run(void)
           do_derefinements_and_refinements();
 #endif /* #ifdef REFINEMENT */
 
+          domain_accumulate_step_times();
+
           write_cpu_log(); /* output some CPU usage log-info (accounts for everything needed up to completion of the current
                               sync-point) */
 

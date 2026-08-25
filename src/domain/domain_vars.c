@@ -60,6 +60,10 @@ double normsum_work, normsum_load, normsum_worksph;
 double normsum_workstar, fac_workstar, totstarcost, starcost;
 #endif
 
+#ifdef STAR_RADIATION_ACTIVE
+double normsum_workrt, fac_workrt, totrtcost, rtcost;
+#endif
+
 #ifdef BH_ACTIVE
 double normsum_workbh, fac_workbh, totbhcost, bhcost;
 #endif
