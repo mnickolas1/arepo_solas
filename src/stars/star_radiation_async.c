@@ -455,9 +455,9 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
 
       done = termination_check(c);
 
-      if(++spins >= RAY_ASYNC_SPIN_WARN && (spins % RAY_ASYNC_SPIN_WARN) == 0)
-        warn("RAY_ASYNC: task %d has spun %lld times (work=%lld sent=%lld recv=%lld snapshots=%lld)\n",
-             ThisTask, spins, work->n, c->n_sent, c->n_recv, c->n_snapshots);
+      //if(++spins >= RAY_ASYNC_SPIN_WARN && (spins % RAY_ASYNC_SPIN_WARN) == 0)
+      //  warn("RAY_ASYNC: task %d has spun %lld times (work=%lld sent=%lld recv=%lld snapshots=%lld)\n",
+      //       ThisTask, spins, work->n, c->n_sent, c->n_recv, c->n_snapshots);
     }
 }
 

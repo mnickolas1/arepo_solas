@@ -244,7 +244,7 @@ static inline int dc_is_boundary(int q)
 
 /* Returns 0 if the head now lies inside ray->cell (possibly on its boundary),
    1 if the ray was handed to another rank and the caller must return */
-static int voronoi_relocate(RayPacket *ray, RayComms *comm)
+static int voronoi_relocate(RayPacket *ray, RayComms *comm, double eps)
 {
   for(int it = 0; it < RAY_MAX_LOCATE; it++)
     {
@@ -253,8 +253,6 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
       double d_best[3] = {0.0, 0.0, 0.0};
 
       const int i = ray->cell;
-
-      const double eps = RAY_TOL * get_cell_radius(i);
 
       const double sx = P[i].Pos[0], sy = P[i].Pos[1], sz = P[i].Pos[2];
       
@@ -329,14 +327,12 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
  * Min-reduction of t_j over the forward-facing bisectors of cell i
  * Returns the DC index of the exit connection (or -1 if no forward-facing bisector exists, i.e. the cell is unbounded along n)
  */
-static inline int voronoi_exit_face(const RayPacket *ray, int i, double r_cell, double *t_out, double d_out[3])
+static inline int voronoi_exit_face(const RayPacket *ray, int i, double eps, double *t_out, double d_out[3])
 {
   int q_best = -1;
   double t_best = MAX_REAL_NUMBER;
   double area_best = -1.0;
   int area_best_valid = 0;
-
-  const double eps = RAY_TOL * r_cell;
 
   const double nx = ray->dir[0], ny = ray->dir[1], nz = ray->dir[2];
   const double sx = P[i].Pos[0], sy = P[i].Pos[1], sz = P[i].Pos[2];
@@ -438,15 +434,16 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
   while(1)
     {
-      if(ray->locate_head)
-        {
-          if(voronoi_relocate(ray, comm))
-            return;
-        }
-
       int i = ray->cell;
 
       const double r_cell = get_cell_radius(i);
+      const double eps = RAY_TOL * r_cell;
+      
+      if(ray->locate_head)
+        {
+          if(voronoi_relocate(ray, comm, eps))
+            return;
+        }
 
       /* Adaptive splitting, evaluated on cell entry */
       if(ray->nside < NSIDE_MAX && ray->t > 0.0)
@@ -461,7 +458,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
               
               for(int k = 0; k < 4; k++)
                 {
-                  if(voronoi_relocate(&children[k], comm))
+                  if(voronoi_relocate(&children[k], comm, eps))
                     continue;           
     
                   append_ray(work, &children[k]);
@@ -473,7 +470,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       /* Exact path length through this cell */
       double t_step, d[3];
-      int q = voronoi_exit_face(ray, i, r_cell, &t_step, d);
+      int q = voronoi_exit_face(ray, i, eps, &t_step, d);
 
       if(q < 0)
         {
