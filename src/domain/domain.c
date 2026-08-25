@@ -442,7 +442,6 @@ void domain_find_total_cost(void)
   loc[idx++] = partcount;
   loc[idx++] = sphpartcount;
  
-
 #ifdef STAR_FEEDBACK_ACTIVE
   loc[idx++] = starcost;
   loc[idx++] = starpartcount;
@@ -771,15 +770,13 @@ static void domain_report_extra_channels(void)
 
       double bal = mx[c] / (sm[c] / NTask);
 
-      sprintf(buf, "  %-6s balance %6.3f   share %6.3f\n", chname[c], bal, shares[c] ? *shares[c] : 0.0);
+      sprintf(buf, "  %-6s balance %6.3f share %6.3f\n", chname[c], bal, shares[c] ? *shares[c] : 0.0);
       domain_printf(buf);
 
-      /* also to stdout: this is the number to compare against the async
-         RT_COMM_STATS imbalance figure */
-      printf("DOMAIN: channel %-6s balance %6.3f  share %6.3f\n", chname[c], bal, shares[c] ? *shares[c] : 0.0);
+      printf("DOMAIN: channel %-6s balance %6.3f share %6.3f\n", chname[c], bal, shares[c] ? *shares[c] : 0.0);
     }
 
-  sprintf(buf, "  load   balance %6.3f   share %6.3f\n", 0.0, normsum_load);
+  sprintf(buf, "  load balance %6.3f share %6.3f\n", 0.0, normsum_load);
   domain_printf(buf);
 
   myflush(FdDomain);

@@ -621,7 +621,6 @@ void domain_combine_topleaves_to_domains(int ncpu, int ndomain)
     }
 #endif
 
-
 #ifdef BH_ACTIVE
   int nabove_bh = 0;
   double todistribute_bh = 0.0;

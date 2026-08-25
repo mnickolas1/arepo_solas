@@ -244,7 +244,7 @@ static inline int dc_is_boundary(int q)
 
 /* Returns 0 if the head now lies inside ray->cell (possibly on its boundary),
    1 if the ray was handed to another rank and the caller must return */
-static int voronoi_relocate(RayPacket *ray, RayComms *comm, double eps)
+static int voronoi_relocate(RayPacket *ray, RayComms *comm)
 {
   for(int it = 0; it < RAY_MAX_LOCATE; it++)
     {
@@ -253,6 +253,9 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm, double eps)
       double d_best[3] = {0.0, 0.0, 0.0};
 
       const int i = ray->cell;
+
+      const double r_cell = get_cell_radius(i);
+      const double eps = RAY_TOL * r_cell;
 
       const double sx = P[i].Pos[0], sy = P[i].Pos[1], sz = P[i].Pos[2];
       
@@ -434,16 +437,16 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
   while(1)
     {
+      if(ray->locate_head)
+        {
+          if(voronoi_relocate(ray, comm))
+            return;
+        }
+
       int i = ray->cell;
 
       const double r_cell = get_cell_radius(i);
       const double eps = RAY_TOL * r_cell;
-      
-      if(ray->locate_head)
-        {
-          if(voronoi_relocate(ray, comm, eps))
-            return;
-        }
 
       /* Adaptive splitting, evaluated on cell entry */
       if(ray->nside < NSIDE_MAX && ray->t > 0.0)
@@ -458,7 +461,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
               
               for(int k = 0; k < 4; k++)
                 {
-                  if(voronoi_relocate(&children[k], comm, eps))
+                  if(voronoi_relocate(&children[k], comm))
                     continue;           
     
                   append_ray(work, &children[k]);
