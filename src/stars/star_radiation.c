@@ -494,11 +494,6 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
 
 /*
  * Sparse, neighbour-restricted ray exchange
- *
- * Isend/Irecv over the mesh-neighbour graph only (counts)
- * MPI_Iallreduce (termination, posted early)
- * Isend/Irecv over the neighbour graph, zero-count pairs skipped (payload)
- * MPI_Wait (termination)
  */
 
 #define TAG_RAY_COUNT 30201
@@ -513,9 +508,6 @@ int *RayTaskToNgb = NULL;
  *
  * Walk every local cell's Delaunay connection list 
  * and flag the ranks that own a face-defining neighbour
- * This is the exact superset of possible export destinations, 
- * and append_export() terminates loudly if a ray is ever handed
- * to a rank outside it
  */
 void ray_neighbours_init(void)
 {
@@ -531,7 +523,7 @@ void ray_neighbours_init(void)
       while(q >= 0)
         {
           if(q >= MaxNvc)
-            terminate("RAY_COMM: strange connectivity q=%d MaxNvc=%d cell=%d\n", q, MaxNvc, i);
+            terminate("ray_neighbours_init(): strange connectivity q=%d MaxNvc=%d cell=%d!\n", q, MaxNvc, i);
 
           const int dp = DC[q].dp_index;
 
@@ -540,7 +532,7 @@ void ray_neighbours_init(void)
               const int t = DC[q].task;
 
               if(t < 0 || t >= NTask)
-                terminate("RAY_COMM: DC[%d].task = %d out of range on cell %d\n", q, t, i);
+                terminate("ray_neighbours_init(): DC[%d].task = %d out of range on cell%d!\n", q, t, i);
 
               if(t != ThisTask)
                 sflag[t] = 1;
@@ -555,15 +547,16 @@ void ray_neighbours_init(void)
 
   /*
    * Symmetrise: this rank must be able to RECEIVE from anyone who can send to it 
-   * AREPO's face connectivity should already be symmetric (the hydro flux
-   * exchange relies on it), so in practice rflag == sflag
+   * (AREPO's face connectivity should already be symmetric so sflag == rflag)
    */
   MPI_Alltoall(sflag, 1, MPI_CHAR, rflag, 1, MPI_CHAR, MPI_COMM_WORLD);
 
   RayNgbNTask = 0;
   for(int t = 0; t < NTask; t++)
-    if(sflag[t] || rflag[t])
-      RayNgbNTask++;
+    {
+      if(sflag[t] || rflag[t])
+        RayNgbNTask++;
+    }
 
   RayNgbTask = malloc((RayNgbNTask > 0 ? RayNgbNTask : 1) * sizeof(int));
   RayTaskToNgb = malloc(NTask * sizeof(int));
@@ -573,11 +566,13 @@ void ray_neighbours_init(void)
 
   int k = 0;
   for(int t = 0; t < NTask; t++)
-    if(sflag[t] || rflag[t])
-      {
-        RayTaskToNgb[t] = k;
-        RayNgbTask[k++] = t;
-      }
+    {
+      if(sflag[t] || rflag[t])
+        {
+          RayTaskToNgb[t] = k;
+          RayNgbTask[k++] = t;
+        }
+    }
 
   free(rflag);
   free(sflag);

@@ -321,7 +321,7 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
         }
     }
 
-  terminate("RAYTRACE_VORONOI: locate walk did not converge for ray\n");
+  terminate("voronoi_relocate(): locate walk did not converge for ray!\n");
   return 0;
 }
 
@@ -349,7 +349,7 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double eps, dou
   while(q >= 0)
     {
       if(q >= MaxNvc)
-        terminate("RAYTRACE_VORONOI: strange connectivity q=%d MaxNvc=%d cell=%d\n", q, MaxNvc, i);
+        terminate("voronoi_exit_face(): strange connectivity q=%d MaxNvc=%d cell=%d!\n", q, MaxNvc, i);
 
       int dp = DC[q].dp_index;
       int particle = Mesh.DP[dp].index;
@@ -477,13 +477,13 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       if(q < 0)
         {
-          terminate("RAYTRACE_VORONOI: cell %d unbounded along ray - stale DC list?\n", i);
+          terminate("raytrace_voronoi(): cell %d unbounded along ray - stale DC list!\n", i);
         }
 
       if(t_step < 0.0)
         {
           if(t_step < -eps)
-            warn("RAYTRACE_VORONOI: cell %d gives negative t %g along ray - stale DC list?\n", i, t_step);
+            warn("raytrace_voronoi(): cell %d gives negative t %g along ray - stale DC list?\n", i, t_step);
           
           t_step = 0.0;
         }
@@ -527,11 +527,11 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       /* A self-connection means the exit face is a reflective mirror image of itself (not treated here) */
       if(ray->cell == i)
-        terminate("RAYTRACE_VORONOI: self-connection at cell %d (mirror boundary?)\n", i);
+        terminate("raytrace_voronoi(): self-connection at cell %d (mirror boundary)!\n", i);
 
       if(++steps > RAY_MAX_CELL_STEPS)
         {       
-          warn("RAYTRACE_VORONOI: ray exceeded %d cell steps on task %d, dropping\n", RAY_MAX_CELL_STEPS, ThisTask);          
+          warn("raytrace_voronoi(): ray exceeded %d cell steps on task %d?\n", RAY_MAX_CELL_STEPS, ThisTask);          
           return;
         }
 

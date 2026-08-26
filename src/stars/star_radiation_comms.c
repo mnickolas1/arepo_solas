@@ -81,7 +81,7 @@ void append_export(RayComms *comm, const RayPacket *ray, int task)
   const int k = RayTaskToNgb[task];
 
   if(k < 0)
-    terminate("STAR_RADIATION: export to task %d, which is not a mesh neighbour of task %d\n", task, ThisTask);
+    terminate("append_export(): export to task %d, which is not a mesh neighbour of task %d!\n", task, ThisTask);
 
   if(buf->n >= buf->capacity)
     {
@@ -90,7 +90,7 @@ void append_export(RayComms *comm, const RayPacket *ray, int task)
       buf->rays = realloc(buf->rays, buf->capacity * sizeof(RayPacket));
 
       if(!buf->ngbs || !buf->rays)
-        terminate("RAY_COMM: out of memory growing export buffer to %lld rays\n", buf->capacity);
+        terminate("append_export(): out of memory growing export buffer to %lld rays!\n", buf->capacity);
     }
 
   buf->ngbs[buf->n] = k;
@@ -113,7 +113,7 @@ static void sort_by_ngb(RayExportBuffer *buf)
       SortRays = realloc(SortRays, SortCapacity * sizeof(RayPacket));
 
       if(!SortNgb || !SortRays)
-        terminate("RAY_COMM: out of memory growing sort scratch to %lld rays\n", SortCapacity);
+        terminate("sort_by_ngb(): out of memory growing sort scratch to %lld rays!\n", SortCapacity);
     }
 
   for(int k = 0; k < RayNgbNTask; k++)
@@ -146,7 +146,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
 #endif
 
   if(send->n > (long long)INT_MAX)
-    terminate("RAY_COMM: %lld rays to export exceeds MPI int count on task %d\n", send->n, ThisTask);
+    terminate("exchange_rays(): %lld rays to export exceeds MPI int count on task %d!\n", send->n, ThisTask);
 
   memset(SendCount, 0, (nn > 0 ? nn : 1) * sizeof(int));
 
@@ -191,7 +191,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
       work->rays = realloc(work->rays, work->capacity * sizeof(RayPacket));
 
       if(!work->rays)
-        terminate("RAY_COMM: out of memory growing work stack to %lld rays\n", work->capacity);
+        terminate("exchange_rays(): out of memory growing work stack to %lld rays!\n", work->capacity);
     }
 
   sort_by_ngb(send);
@@ -273,7 +273,7 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
                    iter, n_global, timediff(t0, second()));
 
       if(iter > 4 * MAXITER)
-        terminate("STAR_RADIATION: %lld rays still in flight after %d iterations\n", n_global, iter);
+        terminate("ray_comms_walk(): %lld rays still in flight after %d iterations!\n", n_global, iter);
     }
   while(n_global > 0);
 

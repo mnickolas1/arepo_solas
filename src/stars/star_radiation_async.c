@@ -101,7 +101,7 @@ static void work_reserve(RayWorkStack *w, long long need)
   w->rays = realloc(w->rays, w->capacity * sizeof(RayPacket));
 
   if(!w->rays)
-    terminate("RAY_ASYNC: out of memory growing work stack to %lld rays\n", w->capacity);
+    terminate("work_reserve(): out of memory growing work stack to %lld rays!\n", w->capacity);
 }
 
 RayComms *ray_comms_init(RayWorkStack *work)
@@ -125,7 +125,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
   c->fill = malloc(nn * sizeof(int));
 
   if(!c->sendbuf)
-    terminate("RAY_ASYNC: could not allocate %g MB of send buffers\n",
+    terminate("ray_comms_init(): could not allocate %g MB of send buffers!\n",
               (double)c->nslots * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0));
 
   for(int s = 0; s < c->nslots; s++)
@@ -150,7 +150,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
   c->recv_req = malloc(c->nrecv * sizeof(MPI_Request));
 
   if(!c->recvbuf)
-    terminate("RAY_ASYNC: could not allocate %g MB of receive buffers\n",
+    terminate("ray_comms_init(): could not allocate %g MB of receive buffers!\n",
               (double)c->nrecv * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0));
 
   for(int r = 0; r < c->nrecv; r++)
@@ -239,7 +239,7 @@ static int drain_recvs(struct RayCommsAsync *c)
       MPI_Get_count(&c->done_stat[i], MPI_BYTE, &nbytes);
 
       if(nbytes % (int)sizeof(RayPacket))
-        terminate("RAY_ASYNC: received %d bytes, not a multiple of %d\n", nbytes, (int)sizeof(RayPacket));
+        terminate("drain_recvs(): received %d bytes, not a multiple of %d!\n", nbytes, (int)sizeof(RayPacket));
 
       const long long cnt = nbytes / (long long)sizeof(RayPacket);
 
@@ -293,7 +293,7 @@ static int acquire_slot(struct RayCommsAsync *c)
       drain_recvs(c);
 
       if(++spin > RAY_SLOT_SPIN_MAX)
-        terminate("RAY_ASYNC: task %d stalled waiting for a send slot (%d slots, all in flight)\n",
+        terminate("acquire_slot(): task %d stalled waiting for a send slot (%d slots, all in flight)!\n",
                   ThisTask, c->nslots);
     }
 
@@ -310,7 +310,7 @@ void append_export(RayComms *comm, const RayPacket *ray, int task)
   const int k = RayTaskToNgb[task];
 
   if(k < 0)
-    terminate("STAR_RADIATION: export to task %d, which is not a mesh neighbour of task %d\n", task, ThisTask);
+    terminate("append_export(): export to task %d, which is not a mesh neighbour of task %d!\n", task, ThisTask);
 
   if(c->fill[k] < 0)
     c->fill[k] = acquire_slot(c);
@@ -489,8 +489,8 @@ void ray_comms_free(RayComms *comm)
         {
           int nbytes = 0;
           MPI_Get_count(&st, MPI_BYTE, &nbytes);
-          terminate("RAY_ASYNC: %d bytes of rays arrived after termination on task %d "
-                    "(sent=%lld recv=%lld) - termination detection is wrong\n",
+          terminate("ray_comms_free(): %d bytes of rays arrived after termination on task %d "
+                    "(sent=%lld recv=%lld) - termination detection is wrong!\n",
                     nbytes, ThisTask, c->n_sent, c->n_recv);
         }
     }
