@@ -275,16 +275,12 @@ int do_refinements(void)
                       sqrt(pow(DeRefMesh.DP[DeRefMesh.Ndp].x - P[i].Pos[0], 2) + pow(DeRefMesh.DP[DeRefMesh.Ndp].y - P[i].Pos[1], 2) +
                            pow(DeRefMesh.DP[DeRefMesh.Ndp].z - P[i].Pos[2], 2));
 
-#if(REFINEMENT_AROUND_BH == 1)
                   if(r < 2 * fac)
                     printf(
                         "WARNING! - We are trying to split a heavily distorted cell... We better stop. Check your refinement "
                         "criterion - ratio = %g.\n",
                         fac / r);
-#else
-                  if(r < 2 * fac)
-                    terminate("We are trying to split a heavily distorted cell... We better stop. Check your refinement criterion.");
-#endif
+
 #ifndef OPTIMIZE_MEMORY_USAGE
                   set_integers_for_point(&DeRefMesh, DeRefMesh.Ndp);
 #endif /* #ifndef OPTIMIZE_MEMORY_USAGE */

@@ -471,7 +471,7 @@ integertime get_timestep_hydro(int p)
 #ifdef PHOTOIONIZATION
   double dt_rad = SphP[p].RT_Timestep;
   
-  if(dt_rad != 0 && dt_rad < dt) 
+  if(dt_rad > 0 && dt_rad < dt) 
     dt = dt_rad;
 #endif
 
@@ -524,12 +524,11 @@ void validate_timestep(double dt, integertime ti_step, int p)
       printf(
           "\nError: An invalid timestep was assigned on the integer timeline!\n"
           "We better stop.\n"
-          "Task=%d Part-ID=%lld type=%d",
-          ThisTask, (long long)P[p].ID, P[p].Type);
-
-      printf("tibase=%g dt=%g ti_step=%d, xyz=(%g|%g|%g) vel=(%g|%g|%g) tree=(%g|%g|%g) mass=%g\n\n", All.Timebase_interval, dt,
-             (int)ti_step, P[p].Pos[0], P[p].Pos[1], P[p].Pos[2], P[p].Vel[0], P[p].Vel[1], P[p].Vel[2], P[p].GravAccel[0],
-             P[p].GravAccel[1], P[p].GravAccel[2], P[p].Mass);
+          
+          "Task=%d Part-ID=%lld type=%d tibase=%g dt=%g ti_step=%d xyz=(%g|%g|%g) vel=(%g|%g|%g) tree=(%g|%g|%g) mass=%g\n\n",
+          ThisTask, (long long)P[p].ID, P[p].Type, All.Timebase_interval, dt, (int)ti_step, 
+          P[p].Pos[0], P[p].Pos[1], P[p].Pos[2], P[p].Vel[0], P[p].Vel[1], P[p].Vel[2], P[p].GravAccel[0],
+          P[p].GravAccel[1], P[p].GravAccel[2], P[p].Mass);
 
       print_particle_info(p);
       myflush(stdout);
