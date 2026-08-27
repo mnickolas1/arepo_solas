@@ -427,9 +427,6 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
     {
       int k = 0;
 
-      /* LIFO: imports pushed by drain_recvs() sit on top and are traced first.
-         They carry the largest t, so they split hardest and export soonest -
-         draining them early keeps neighbours fed and shortens the chain */
       const double t0 = second();
 
       while(work->n > 0 && k < RAY_PROGRESS_CHUNK)
@@ -454,10 +451,6 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
         ray_comms_flush(comm);
 
       done = termination_check(c);
-
-      //if(++spins >= RAY_ASYNC_SPIN_WARN && (spins % RAY_ASYNC_SPIN_WARN) == 0)
-      //  warn("RAY_ASYNC: task %d has spun %lld times (work=%lld sent=%lld recv=%lld snapshots=%lld)\n",
-      //       ThisTask, spins, work->n, c->n_sent, c->n_recv, c->n_snapshots);
     }
 }
 
@@ -467,14 +460,9 @@ void ray_comms_free(RayComms *comm)
 {
   struct RayCommsAsync *c = comm;
 
-  /* Termination proved sum(sent) == sum(recv), so every posted send has been
-     matched. Waitall is a formality that makes the buffers safe to release */
+  /* Termination proved sum(sent) == sum(recv), so every posted send has been matched */
   MPI_Waitall(c->nslots, c->send_req, MPI_STATUSES_IGNORE);
 
-  /* Tear down the pre-posted receives 
-     Any that actually complete here would
-     mean a ray arrived after termination was declared, i.e. a bug in the
-     detection - so report loudly rather than silently dropping photons */
   for(int r = 0; r < c->nrecv; r++)
     {
       MPI_Cancel(&c->recv_req[r]);
@@ -514,8 +502,6 @@ void ray_comms_free(RayComms *comm)
                gsum[0], gsum[1], gsum[0] ? (double)gsum[1] / gsum[0] : 0.0,
                gsum[2], gmax[1], gmax[0], gsum[3], gsum[4]);
 
-    /* Compare against the S_max measured on the sync path: realised speedup
-       well below it means the tuning constants, not the algorithm, are wrong */
     mpi_printf("STAR_RADIATION: async trace time max/rank %g s, mean %g s (imbalance %.2f)\n",
                tmax, tsum / NTask, tsum > 0.0 ? tmax * NTask / tsum : 1.0);
   }

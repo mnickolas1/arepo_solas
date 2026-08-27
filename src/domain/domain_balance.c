@@ -131,7 +131,7 @@ double domain_hydro_tot_costfactor(int i)
   double w = 0;
 
   if(P[i].Type == 0)
-    for(int bin = P[i].TimeBinHydro; bin <= All.HighestOccupiedTimeBin; bin++)
+    for(int bin = P[i].TimeBinHydro; bin <= All.HighestActiveTimeBin; bin++)
       if(domain_to_be_balanced[bin])
         w += domain_hydro_weight[bin];
 
@@ -149,7 +149,7 @@ double domain_star_tot_costfactor(int i)
       if(star_mass < LOWEST_MASS_FEEDBACK)
         return 0.0;
 
-      for(int bin = SPP(i).TimeBinStar; bin <= All.HighestOccupiedTimeBin; bin++)
+      for(int bin = SPP(i).TimeBinStar; bin <= All.HighestActiveTimeBin; bin++)
         {
           if(domain_to_be_balanced[bin])
             w += domain_star_weight[bin];
@@ -177,7 +177,7 @@ double domain_bh_tot_costfactor(int i)
   double w = 0.0;
   if(P[i].Type == 5)
     {
-      for(int bin = BPP(i).TimeBinBh; bin <= All.HighestOccupiedTimeBin; bin++)
+      for(int bin = BPP(i).TimeBinBh; bin <= All.HighestActiveTimeBin; bin++)
         {
           if(domain_to_be_balanced[bin])
             w += domain_bh_weight[bin];
