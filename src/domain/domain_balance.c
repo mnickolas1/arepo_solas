@@ -1181,6 +1181,11 @@ void domain_combine_multipledomains(void)
 #ifdef STAR_FEEDBACK_ACTIVE
       if(P[i].Type == 4)
         {
+          double star_mass = P[i].Mass * All.cf_UnitMass_in_Msun;
+
+          if(star_mass < LOWEST_MASS_FEEDBACK)
+            continue;
+
           for(int bin = SPP(i).TimeBinStar; bin <= All.HighestActiveTimeBin; bin++)
             if(domain_to_be_balanced[bin])
               loc_bin_Cost[bin * ndomains + n].StarCost += domain_star_weight[bin];
@@ -1317,20 +1322,20 @@ void domain_combine_multipledomains(void)
 
   for(int n = 0; n < ndomains; n++)
     {
-      domainAssign[n].normalized_load = domainAssign[n].work / (tot_work + MIN_FLOAT_NUMBER) +
-                                        domainAssign[n].worksph / (tot_worksph + MIN_FLOAT_NUMBER) +
-                                        domainAssign[n].load / ((double)tot_load + MIN_FLOAT_NUMBER);
+      domainAssign[n].normalized_load = normsum_work * domainAssign[n].work / (tot_work + MIN_FLOAT_NUMBER) +
+                                        normsum_worksph * domainAssign[n].worksph / (tot_worksph + MIN_FLOAT_NUMBER) +
+                                        normsum_load * domainAssign[n].load / ((double)tot_load + MIN_FLOAT_NUMBER);
 
 #ifdef STAR_FEEDBACK_ACTIVE
-      domainAssign[n].normalized_load += domainAssign[n].workstar / (tot_workstar + MIN_FLOAT_NUMBER);
+      domainAssign[n].normalized_load += normsum_workstar * domainAssign[n].workstar / (tot_workstar + MIN_FLOAT_NUMBER);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-      domainAssign[n].normalized_load += domainAssign[n].workrt / (tot_workrt + MIN_FLOAT_NUMBER);
+      domainAssign[n].normalized_load += normsum_workrt * domainAssign[n].workrt / (tot_workrt + MIN_FLOAT_NUMBER);
 #endif
 
 #ifdef BH_ACTIVE
-      domainAssign[n].normalized_load += domainAssign[n].workbh / (tot_workbh + MIN_FLOAT_NUMBER);
+      domainAssign[n].normalized_load += normsum_workbh * domainAssign[n].workbh / (tot_workbh + MIN_FLOAT_NUMBER);
 #endif
     }
 
