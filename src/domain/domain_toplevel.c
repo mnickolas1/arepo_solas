@@ -98,6 +98,18 @@ RB_GENERATE_STATIC(mytree, mydata, linkage, mydata_cmp);
 
 static double *list_cost, *list_sphcost;
 
+#ifdef STAR_FEEDBACK_ACTIVE
+static double *list_starcost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+static double *list_rtcost;
+#endif
+
+#ifdef BH_ACTIVE
+static double *list_bhcost;
+#endif
+
 /*! \brief Construct top-level tree.
  *
  *  This function constructs the global top-level tree node that is used
@@ -117,6 +129,18 @@ int domain_determineTopTree(void)
   list_cost    = mymalloc_movable(&list_cost, "list_cost", sizeof(double) * NumPart);
   list_sphcost = mymalloc_movable(&list_sphcost, "listsph_cost", sizeof(double) * NumPart);
 
+#ifdef STAR_FEEDBACK_ACTIVE
+  list_starcost = mymalloc_movable(&list_starcost, "list_starcost", sizeof(double) * NumPart);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  list_rtcost = mymalloc_movable(&list_rtcost, "list_rtcost", sizeof(double) * NumPart);
+#endif
+
+#ifdef BH_ACTIVE
+  list_bhcost = mymalloc_movable(&list_bhcost, "list_bhcost", sizeof(double) * NumPart);
+#endif
+
   for(int i = 0; i < NumPart; i++)
     {
       peano1D xb = domain_double_to_int(((P[i].Pos[0] - DomainCorner[0]) * DomainInverseLen) + 1.0);
@@ -129,6 +153,18 @@ int domain_determineTopTree(void)
 
       list_cost[i]    = domain_grav_tot_costfactor(i);
       list_sphcost[i] = domain_hydro_tot_costfactor(i);
+
+#ifdef STAR_FEEDBACK_ACTIVE
+      list_starcost[i] = domain_star_tot_costfactor(i);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+      list_rtcost[i] = domain_rt_tot_costfactor(i);
+#endif
+
+#ifdef BH_ACTIVE
+      list_bhcost[i] = domain_bh_tot_costfactor(i);
+#endif
     }
 
   /* sort according to key (local particles!) */
@@ -144,6 +180,18 @@ int domain_determineTopTree(void)
   topNodes[0].Count    = count;
   topNodes[0].Cost     = gravcost;
   topNodes[0].SphCost  = sphcost;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  topNodes[0].StarCost = starcost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  topNodes[0].RTCost = rtcost;
+#endif
+
+#ifdef BH_ACTIVE
+  topNodes[0].BhCost = bhcost;
+#endif
 
   int limitNTopNodes = 2 * imax(1 + (NTask / 7 + 1) * 8, All.TopNodeFactor * All.MultipleDomains * NTask);
 
@@ -246,6 +294,19 @@ int domain_determineTopTree(void)
 
   myfree(list);
   myfree(nload);
+
+#ifdef BH_ACTIVE
+  myfree(list_bhcost);
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  myfree(list_rtcost);
+#endif
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  myfree(list_starcost);
+#endif
+
   myfree(list_sphcost);
   myfree(list_cost);
   myfree(mp);
@@ -304,6 +365,18 @@ void domain_do_local_refine(int n, int *list)
           topNodes[sub].Count    = 0;
           topNodes[sub].Cost     = 0;
           topNodes[sub].SphCost  = 0;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          topNodes[sub].StarCost = 0;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          topNodes[sub].RTCost = 0;
+#endif
+
+#ifdef BH_ACTIVE
+          topNodes[sub].BhCost = 0;
+#endif
         }
 
       int sub = topNodes[i].Daughter;
@@ -322,15 +395,42 @@ void domain_do_local_refine(int n, int *list)
 
           topNodes[sub].Cost += list_cost[mp[p].index];
           topNodes[sub].SphCost += list_sphcost[mp[p].index];
+
+#ifdef STAR_FEEDBACK_ACTIVE
+          topNodes[sub].StarCost += list_starcost[mp[p].index];
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          topNodes[sub].RTCost += list_rtcost[mp[p].index];
+#endif
+
+#ifdef BH_ACTIVE
+          topNodes[sub].BhCost += list_bhcost[mp[p].index];
+#endif
+
           topNodes[sub].Count++;
         }
 
       for(int j = 0; j < 8; j++)
         {
-          int sub             = topNodes[i].Daughter + j;
-          worklist[k * 8 + j] = fac_work * topNodes[sub].Cost + fac_worksph * topNodes[sub].SphCost + fac_load * topNodes[sub].Count;
+          int sub = topNodes[i].Daughter + j;
+          double w = fac_work * topNodes[sub].Cost + fac_worksph * topNodes[sub].SphCost + fac_load * topNodes[sub].Count;
 
-          if(worklist[k * 8 + j] != 0)
+#ifdef STAR_FEEDBACK_ACTIVE
+          w += fac_workstar * topNodes[sub].StarCost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+          w += fac_workrt * topNodes[sub].RTCost;
+#endif
+
+#ifdef BH_ACTIVE
+          w += fac_workbh * topNodes[sub].BhCost;
+#endif
+
+          worklist[k * 8 + j] = w;
+
+          if(w != 0)
             non_zero++;
         }
     }

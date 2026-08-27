@@ -52,6 +52,19 @@ extern struct local_topnode_data
   long long Count;   /*!< counts the number of particles in this top-level node */
   double Cost;
   double SphCost;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  double StarCost;
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE
+  double RTCost;
+#endif
+
+#ifdef BH_ACTIVE
+  double BhCost;
+#endif
+
   int Daughter; /*!< index of first daughter cell (out of 8) of top-level node */
   int Leaf;     /*!< if the node is a leaf, this gives its number when all leaves are traversed in Peano-Hilbert order */
   int Parent;

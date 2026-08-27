@@ -213,9 +213,10 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   return still_alive;
 }
 
-/* Non-periodic wall: the face-defining "neighbour" is the mirror image of this
-   cell across a box face. Both REFLECTIVE_* = 1 and = 2 build the same mirror
-   ghost; for now we treat either as outflow and drop the ray */
+/* Non-periodic wall: the face-defining "neighbour" is the 
+   mirror image of this cell across a box face 
+   Both REFLECTIVE_* = 1 and = 2 build the same mirror ghost; 
+   for now we treat either as outflow and drop the ray */
 static inline int dc_is_boundary(int q)
 {
 #if defined(REFLECTIVE_X) || defined(REFLECTIVE_Y) || defined(REFLECTIVE_Z)
@@ -277,8 +278,9 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
 
               double d2 = dx*dx + dy*dy + dz*dz;
 
-              /* v = 1/2 (|x-s_i|^2 - |x-s_j|^2); v/|d| is the signed distance
-                 to the bisector plane. v > 0 means s_j is the closer generator */
+              /* v = 1/2 (|x-s_i|^2 - |x-s_j|^2); 
+                 v/|d| is the signed distance to the bisector plane 
+                 so that v > 0 means s_j is the closer generator */
               double v = (px*dx + py*dy + pz*dz) - 0.5 * d2;
 
               if(v > v_best && v > eps * sqrt(d2))

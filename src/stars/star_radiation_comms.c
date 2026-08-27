@@ -23,7 +23,7 @@ static int *Cursor = NULL;
 static MPI_Request *Req = NULL;
 
 /* Scratch for the stable counting sort */
-static int *SortNgb = NULL;
+static int *SortNgbs = NULL;
 static RayPacket *SortRays = NULL;
 static long long SortCapacity = 0;
 
@@ -99,7 +99,7 @@ void append_export(RayComms *comm, const RayPacket *ray, int task)
 }
 
 /*
- * Stable counting sort by neighbour slot, using SendOffset[] as bucket bases
+ * Sort rays by destined task
  */
 static void sort_by_ngb(RayExportBuffer *buf)
 {
@@ -109,10 +109,10 @@ static void sort_by_ngb(RayExportBuffer *buf)
   if(buf->n > SortCapacity)
     {
       SortCapacity = buf->n;
-      SortNgb = realloc(SortNgb, SortCapacity * sizeof(int));
+      SortNgbs = realloc(SortNgbs, SortCapacity * sizeof(int));
       SortRays = realloc(SortRays, SortCapacity * sizeof(RayPacket));
 
-      if(!SortNgb || !SortRays)
+      if(!SortNgbs || !SortRays)
         terminate("sort_by_ngb(): out of memory growing sort scratch to %lld rays!\n", SortCapacity);
     }
 
@@ -124,11 +124,11 @@ static void sort_by_ngb(RayExportBuffer *buf)
       const int k = buf->ngbs[i];
       const int pos = Cursor[k]++;
 
-      SortNgb[pos] = k;
+      SortNgbs[pos] = k;
       SortRays[pos] = buf->rays[i];
     }
 
-  memcpy(buf->ngbs, SortNgb, buf->n * sizeof(int));
+  memcpy(buf->ngbs, SortNgbs, buf->n * sizeof(int));
   memcpy(buf->rays, SortRays, buf->n * sizeof(RayPacket));
 }
 
@@ -311,8 +311,8 @@ void ray_comms_free(RayComms *comm)
 
   free(SortRays);
   SortRays = NULL;
-  free(SortNgb);
-  SortNgb = NULL;
+  free(SortNgbs);
+  SortNgbs = NULL;
   SortCapacity = 0;
 
   free(Req);
