@@ -278,7 +278,7 @@ void domain_init_sum_cost(void)
 
   for(int j = All.HighestActiveTimeBin - 1; j >= All.LowestOccupiedTimeBin; j--)
     {
-      if(tot_count[j] > 0 || tot_count_sph[j] > 0)
+      if(tot_count[j] > 0 || tot_count_sph[j] > 0 || tot_count_star[j] > 0 || tot_count_bh[j] > 0)
         domain_to_be_balanced[j] = 1;
 
       domain_grav_weight[j] += 2;
