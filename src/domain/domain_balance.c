@@ -324,8 +324,8 @@ void domain_init_sum_cost(void)
 
   for(int i = All.SmallestTimeBinWithDomainDecomposition - 1, weight = 1; i >= All.LowestOccupiedTimeBin; i--, weight *= 2)
     {
-      if(tot_count[i] > 0 || tot_count_sph[i] > 0)
-        domain_to_be_balanced[i] = 1;
+      if(tot_count[j] > 0 || tot_count_sph[j] > 0 || tot_count_star[j] > 0 || tot_count_bh[j] > 0)
+        domain_to_be_balanced[j] = 1;
 
       if(tot_count[i] > 0)
         domain_grav_weight[i] = weight;
@@ -1426,8 +1426,7 @@ void domain_combine_multipledomains(void)
       RB_INSERT(mytree, &queue_load, &nload[i]);
     }
 
-  /* fill in all the tasks into each queue. The priority will be the current cost of the bin, the tag 'val' is used to label the task
-   */
+  /* fill in all the tasks into each queue. The priority will be the current cost of the bin, the tag 'val' is used to label the task */
   for(int bin = All.LowestOccupiedTimeBin; bin <= All.HighestOccupiedTimeBin; bin++)
     {
       if(!domain_to_be_balanced[bin])

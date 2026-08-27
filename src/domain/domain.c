@@ -86,7 +86,7 @@ void domain_accumulate_step_times(void)
       summed_CPU_Step[parent] += summed_CPU_Step[i];
   }
   
-  int mesh_channels = 1;
+  /*int mesh_channels = 1;
   
 #ifdef STAR_FEEDBACK_ACTIVE
   mesh_channels++;
@@ -94,18 +94,18 @@ void domain_accumulate_step_times(void)
 
 #ifdef STAR_RADIATION_ACTIVE
   mesh_channels++;
-#endif
+#endif*/
 
   DomainChannelTime[DOMAIN_CH_GRAV] += summed_CPU_Step[CPU_TREE];
-  DomainChannelTime[DOMAIN_CH_HYDRO] += summed_CPU_Step[CPU_HYDRO] + 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
+  DomainChannelTime[DOMAIN_CH_HYDRO] += summed_CPU_Step[CPU_HYDRO]; //+ 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
 
 #ifdef STAR_FEEDBACK_ACTIVE
   DomainChannelTime[DOMAIN_CH_STAR] += summed_CPU_Step[CPU_STARS_PREP] + summed_CPU_Step[CPU_STARS_DENSITY] 
-  + summed_CPU_Step[CPU_STARS_FEEDBACK] + 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
+  + summed_CPU_Step[CPU_STARS_FEEDBACK]; //+ 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  DomainChannelTime[DOMAIN_CH_RT] += summed_CPU_Step[CPU_STARS_RADIATION] + 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
+  DomainChannelTime[DOMAIN_CH_RT] += summed_CPU_Step[CPU_STARS_RADIATION]; //+ 1.0 / (double)mesh_channels * summed_CPU_Step[CPU_MESH];
 #endif
 
 #ifdef BH_ACTIVE

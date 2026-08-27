@@ -1793,7 +1793,7 @@ extern struct sph_particle_data
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  float RTCost; 
+  MyDouble RTCost; 
   MyDouble OpacityScaling[CHANNELS];
 #endif
 
