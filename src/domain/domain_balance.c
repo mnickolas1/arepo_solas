@@ -278,8 +278,18 @@ void domain_init_sum_cost(void)
 
   for(int j = All.HighestActiveTimeBin - 1; j >= All.LowestOccupiedTimeBin; j--)
     {
-      if(tot_count[j] > 0 || tot_count_sph[j] > 0 || tot_count_star[j] > 0 || tot_count_bh[j] > 0)
+      if(tot_count[j] > 0 || tot_count_sph[j] > 0)
         domain_to_be_balanced[j] = 1;
+
+#ifdef STAR_FEEDBACK_ACTIVE 
+      if(tot_count_star[j] > 0)
+        domain_to_be_balanced[j] = 1;
+#endif
+
+#ifdef BH_ACTIVE
+      if(tot_count_bh[j] > 0)
+        domain_to_be_balanced[j] = 1;
+#endif
 
       domain_grav_weight[j] += 2;
     }
@@ -324,8 +334,18 @@ void domain_init_sum_cost(void)
 
   for(int i = All.SmallestTimeBinWithDomainDecomposition - 1, weight = 1; i >= All.LowestOccupiedTimeBin; i--, weight *= 2)
     {
-      if(tot_count[j] > 0 || tot_count_sph[j] > 0 || tot_count_star[j] > 0 || tot_count_bh[j] > 0)
-        domain_to_be_balanced[j] = 1;
+      if(tot_count[i] > 0 || tot_count_sph[i] > 0)
+        domain_to_be_balanced[i] = 1;
+
+#ifdef STAR_FEEDBACK_ACTIVE 
+      if(tot_count_star[i] > 0)
+        domain_to_be_balanced[i] = 1;
+#endif
+
+#ifdef BH_ACTIVE
+      if(tot_count_bh[i] > 0)
+        domain_to_be_balanced[i] = 1;
+#endif
 
       if(tot_count[i] > 0)
         domain_grav_weight[i] = weight;
