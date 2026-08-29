@@ -70,13 +70,6 @@ double get_jeans_length(int i);
 double get_jeans_mass(int i);
 #endif
 
-#ifdef HALO_SEEDING
-#ifndef FOF
-#error "HALO_SEEDING requires FOF to be defined"
-#endif /* #ifndef FOF */
-/* seeding API lives in src/fof/fof_seeding.h */
-#endif
-
 void sfr_init(void);
 void sfr_create_star_particles(void);
 void ngb_finish_rangebounds_update(int nchanged, int *nodelist);

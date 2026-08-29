@@ -1407,6 +1407,8 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
                                           // no, pad with zeros
                                           if((ThisTask == readTask) && (task == ThisTask))
                                             mpi_printf("\tDataset %s not present for particle type %d, using zero.\n", buf, type);
+
+                                          
                                           memset(CommBuffer, 0, dims[0] * dims[1] * my_H5Tget_size(hdf5_datatype));
                                         }
                                       else

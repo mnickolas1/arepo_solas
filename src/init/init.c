@@ -49,8 +49,6 @@
 #include "../domain/domain.h"
 #include "../mesh/voronoi/voronoi.h"
 
-#include "../fof/fof_seeding.h"
-
 /*! \brief Prepares the loaded initial conditions for the run.
  *
  *  It is only called if RestartFlag !=1. Various counters and variables are
@@ -310,12 +308,6 @@ int init(void)
 
   for(i = 0; i < NumGas; i++) /* initialize sph_properties */
     {
-#ifdef HALO_SEEDING
-      /* always reset: refreshed at the first on-the-fly FOF pass, and older
-         snapshots may not contain the HostHaloMass block */
-      SphP[i].HostHaloMass = 0;
-#endif /* #ifdef HALO_SEEDING */
-
       if(RestartFlag == 2 || RestartFlag == 3)
         for(j = 0; j < 3; j++)
           SphP[i].Center[j] = P[i].Pos[j];
@@ -407,14 +399,6 @@ int init(void)
   /* will build tree */
   ngb_treeallocate();
   ngb_treebuild(NumGas);
-
-#ifdef HALO_SEEDING
-#ifndef FOF
-#error "HALO_SEEDING is only implemented for FOF."
-#endif /* #ifndef FOF */
-  fof_seeding_init(RestartFlag);
-#endif
- 
   if(RestartFlag == 3)
     {
 #ifdef FOF
@@ -431,10 +415,6 @@ int init(void)
   {
       mpi_printf("Finding smoothing lengths on local processor %d\n", ThisTask);
       setup_smoothinglengths();
-#if defined(STAR_FEEDBACK_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
-      //mpi_printf("Finding smoothing lengths for stars and black holes on local processor %d\n", ThisTask);
-      //setup_smoothinglengths_particles();
-#endif 
   }
 
 #ifdef ADDBACKGROUNDGRID
@@ -777,130 +757,6 @@ void setup_smoothinglengths(void)
   ngb_treebuild(NumGas);
 #endif /* #ifdef FIX_SPH_PARTICLES_AT_IDENTICAL_COORDINATES */
 }
-
-#ifdef TODO
-/*! \brief This function is used to find an initial SPH smoothing length for
- *         stars and black holes
- *
- *  It guarantees that the number of neighbours will be between
- *  desired_ngb-MAXDEV and desired_ngb+MAXDEV. For simplicity, a first guess
- *  of the smoothing length is provided to the function density(), which will
- *  then iterate if needed to find the right smoothing length.
- *
- *  \return void
- */
-void setup_smoothinglengths_particles(void)
-{
-  int i, no, p;
-  int DesNgb;    /* How many neighbours within Hsml?*/
-  double Hsml;   /* Smoothing length */
-    
-  double *save_masses = mymalloc("save_masses", NumPart * sizeof(double));
-
-  for(i = 0; i < NumPart; i++)
-    {
-      save_masses[i] = P[i].Mass;
-      P[i].Mass      = 1.0;
-    }
-
-#ifdef HIERARCHICAL_GRAVITY
-  TimeBinsGravity.NActiveParticles = 0;
-  for(i = 0; i < NumPart; i++)
-    {
-      TimeBinsGravity.ActiveParticleList[TimeBinsGravity.NActiveParticles] = i;
-      TimeBinsGravity.NActiveParticles++;
-    }
-#endif /* #ifdef HIERARCHICAL_GRAVITY */
-
-  construct_forcetree(0, 1, 0, 0); /* build force tree with all particles only */
-
-#ifdef STAR_FEEDBACK_ACTIVE
-  TimeBinsStar.NActiveParticles = 0;
-#endif /* #ifdef STARS */
-
-#if defined(BH_ACCRETION_ACTIVE) ||defined(BH_FEEDBACK_ACTIVE)
-  TimeBinsBh.NActiveParticles = 0;
-#endif /* #ifdef BLACKHOLES */
-
-
-  for(i = 0; i < NumPart; i++)
-    {
-      if (P[i].Type != 4 && P[i].Type !=5) continue; /* only stars and BH */
-        
-      DesNgb=All.DesNumNgb;    /* Assumes as default in case STARS/BLACKHOLES not defined*/
-
-#ifdef STARS
-      if (P[i].Type==4) DesNgb=All.StarDesNgb;
-#endif
-
-#ifdef BLACKHOLES
-      if (P[i].Type==5) DesNgb=All.BhDesNgb;
-#endif
-
-      no = Father[i];
-
-      if(no < 0)
-        terminate("i=%d no=%d\n", i, no);
-
-      while(10 * DesNgb * P[i].Mass > Nodes[no].u.d.mass)
-        {
-          p = Nodes[no].u.d.father;
-
-          if(p < 0)
-            break;
-
-          no = p;
-        }
-
-#ifdef STARS
-      if(P[i].Type == 4) 
-      {
-#ifndef TWODIMS
-        Hsml = pow(3.0 / (4 * M_PI) * All.StarDesNgb * P[i].Mass / Nodes[no].u.d.mass, 1.0 / 3) * Nodes[no].len;
-#else  /* #ifndef TWODIMS */
-        Hsml = pow(1.0 / (M_PI)*All.StarDesNgb * P[i].Mass / Nodes[no].u.d.mass, 1.0 / 2) * Nodes[no].len;
-#endif /* #ifndef TWODIMS #else */
-        TimeBinsStar.ActiveParticleList[TimeBinsStar.NActiveParticles] = TimeBinsStar.NActiveParticles;
-        SP[TimeBinsStar.NActiveParticles].Hsml = Hsml;
-        TimeBinsStar.NActiveParticles++;  
-      }
-#endif /* #ifdef STARS */
-
-#ifdef BLACKHOLES
-      if(P[i].Type == 5)
-      {
-#ifndef TWODIMS
-        Hsml = pow(3.0 / (4 * M_PI) * All.BhDesNgb * P[i].Mass / Nodes[no].u.d.mass, 1.0 / 3) * Nodes[no].len;
-#else  /* #ifndef TWODIMS */
-        Hsml = pow(1.0 / (M_PI)*All.BhDesNgb * P[i].Mass / Nodes[no].u.d.mass, 1.0 / 2) * Nodes[no].len;
-#endif /* #ifndef TWODIMS #else */
-        TimeBinsBh.ActiveParticleList[TimeBinsBh.NActiveParticles] = TimeBinsBh.NActiveParticles;
-        BhP[TimeBinsBh.NActiveParticles].Hsml = Hsml;
-        TimeBinsBh.NActiveParticles++;  
-      }
-#endif /* #ifdef BLACKHOLES */
-    }
-
-  myfree(Father);
-  myfree(Nextnode);
-
-  myfree(Tree_Points);
-  force_treefree();
-
-#ifdef STARS
-  star_density();
-#endif
-
-#ifdef BLACKHOLES
-  bh_density();
-#endif
-    
-  for(i = 0; i < NumPart; i++)
-    P[i].Mass = save_masses[i];
-
-  myfree(save_masses);
-}
-#endif
 
 /*! \brief This function checks for unique particle IDs.
  *

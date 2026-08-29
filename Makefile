@@ -602,17 +602,6 @@ OBJS += fof/fof.o \
 INCL += fof/fof.h
 SUBDIRS += fof
 
-ifeq (FIND_HALOS,$(findstring FIND_HALOS,$(CONFIGVARS)))
-OBJS += fof/fof_seeding.o 
-endif
-endif
-
-ifeq (HALO_SEEDING,$(findstring HALO_SEEDING,$(CONFIGVARS)))
-OBJS    += fof/fof_seeding.o \
-		   fof/fof_seeding_registry.o
-INCL    += fof/fof_seeding.h
-endif
-
 ifeq (SUBFIND,$(findstring SUBFIND,$(CONFIGVARS)))
 OBJS += subfind/subfind.o \
         subfind/subfind_vars.o \
@@ -634,12 +623,6 @@ OBJS += subfind/subfind.o \
         subfind/subfind_so_potegy.o
 INCL += subfind/subfind.h
 SUBDIRS += subfind
-endif
-
-ifeq (BLACKHOLE_SEEDING,$(findstring BLACKHOLE_SEEDING,$(CONFIGVARS)))
-OBJS    += blackholes/bh_seed.o
-INCL    += blackholes/bh_proto.h
-SUBDIRS += blackholes
 endif
 
 ##########################

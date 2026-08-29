@@ -56,11 +56,6 @@
 
 #include "../fof/fof.h"
 
-#ifdef HALO_SEEDING
-#include "../fof/fof_seeding.h"
-#define MAX_HALO_SEED 10000 /* maximum number of seed events per FOF pass */
-#endif /* #ifdef HALO_SEEDING */
-
 static void do_second_order_source_terms_first_half(void);
 static void do_second_order_source_terms_second_half(void);
 static void create_end_file(void);
@@ -319,35 +314,6 @@ void run(void)
 
       /* do any extra physics, Strang-split (update both primitive and conserved variables as needed ) */
       calculate_non_standard_physics_end_of_step();
-
-#ifdef HALO_SEEDING
-#ifndef FOF
-#error "HALO_SEEDING requires FOF to be defined"
-#endif /* #ifndef FOF */
-      /* On-the-fly FOF + seeding: run only when the halo finding is due AND
-       * all particles are synchronized (so that a consistent FOF can be run
-       * and new particles can be injected safely). Donor cell indices from
-       * the FOF pass are only valid at this synchronisation point, so the
-       * spawn must happen right here, before the next domain decomposition. */
-      if(All.Time >= All.NextTimeOfHaloFinding && All.HighestActiveTimeBin == All.HighestOccupiedTimeBin)
-        {
-          static HaloSeedEvent halo_seed_events[MAX_HALO_SEED];
-
-          mpi_printf("FOF_SEEDING: halo finding due at Time=%g (HighestActiveTimeBin=%d HighestOccupiedTimeBin=%d)\n", All.Time,
-                     All.HighestActiveTimeBin, All.HighestOccupiedTimeBin);
-
-          int num_seed_events = fof_seeding_list(halo_seed_events, MAX_HALO_SEED);
-
-          mpi_printf("FOF_SEEDING: Found %d seed events at Time=%g\n", num_seed_events, All.Time);
-
-#ifdef BLACKHOLE_SEEDING
-          seed_black_holes_from_events(halo_seed_events, num_seed_events);
-#endif /* #ifdef BLACKHOLE_SEEDING */
-
-          All.NextTimeOfHaloFinding *= All.TimeBetweenHaloFinding;
-        }
-#endif /* #ifdef HALO_SEEDING */
-
     }
 
   restart(0); /* write a restart file at final time - can be used to continue simulation beyond final time */
@@ -431,15 +397,6 @@ void calculate_non_standard_physics_prior_mesh_construction(void)
 {
   if(All.Time > 0) 
     {
-#ifdef FIND_HALOS
-      if(All.Time>=All.NextTimeOfHaloFinding)
-        {
-          fof_seeding();
-          mpi_printf("FOF_SEEDING: Found %d FOF groups at %g...\n",TotNgroups, All.Time);
-          All.NextTimeOfHaloFinding *= All.TimeBetweenHaloFinding;
-        }
-#endif
-
 #if defined(COOLING) && defined(USE_SFR) && !defined(INDIVIDUAL_STAR_BY_STAR_FORMATION)
       sfr_create_star_particles();
 #endif 
