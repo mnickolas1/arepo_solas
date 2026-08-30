@@ -1218,6 +1218,10 @@ static void contents_restart_file(int modus)
   byten(gsl_rng_state(random_generator), gsl_rng_size(random_generator), modus);
   byten(gsl_rng_state(random_generator_aux), gsl_rng_size(random_generator_aux), modus);
 
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 0
+  byten(gsl_rng_state(rng), gsl_rng_size(rng), modus);
+#endif
+
   /* now store variables for time integration bookkeeping */
   byten(TimeBinSynchronized, TIMEBINS * sizeof(int), modus);
 
@@ -1253,14 +1257,18 @@ static void contents_restart_file(int modus)
   in(&NumStars, modus);
   
     if(NumStars > 0)
-    {
-      /* Star-Particle data  */
-      byten(&SP[0], NumStars * sizeof(Star_Particle_Data), modus);
-    }
+      {
+        if(NumStars > All.MaxPartStars) 
+          terminate("contents_restart_file(): NumStars > MaxPartStars -> check the restart file!");
+
+        /* Star-Particle data  */
+        byten(&SP[0], NumStars * sizeof(Star_Particle_Data), modus);
+      }
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
   in(&TimeBinsStar.NActiveParticles, modus);
+  byten(&TimeBinStar.GlobalNActiveParticles, sizeof(long long), modus);
   byten(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles * sizeof(int), modus);
   byten(TimeBinsStar.NextInTimeBin, NumStars * sizeof(int), modus);
   byten(TimeBinsStar.PrevInTimeBin, NumStars * sizeof(int), modus);
@@ -1274,6 +1282,9 @@ static void contents_restart_file(int modus)
   
     if(NumBhs > 0)
     {
+      if(NumBhs > All.MaxPartBhs) 
+          terminate("contents_restart_file(): NumBhs > MaxPartBhs -> check the restart file!");
+
       /* Bh-Particle data  */
       byten(&BhP[0], NumBhs * sizeof(struct Bh_Particle_Data), modus);
     }
@@ -1281,6 +1292,7 @@ static void contents_restart_file(int modus)
 
 #ifdef BH_ACTIVE
   in(&TimeBinsBh.NActiveParticles, modus);
+  byten(&TimeBinBh.GlobalNActiveParticles, sizeof(long long), modus);
   byten(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles * sizeof(int), modus);
   byten(TimeBinsBh.NextInTimeBin, NumBhs * sizeof(int), modus);
   byten(TimeBinsBh.PrevInTimeBin, NumBhs * sizeof(int), modus);
@@ -1312,13 +1324,12 @@ static void contents_restart_file(int modus)
 
   if(All.TotNumGas > 0)
     {
-#ifdef RAD_OCT_TREE
-      byten(RtNgb_Nodes + Ngb_MaxPart, Ngb_NumNodes * sizeof(struct RtNgbNODE), modus);
-#endif
-
 #ifdef TREE_BASED_TIMESTEPS
       byten(ExtNgb_Nodes + Ngb_MaxPart, Ngb_NumNodes * sizeof(struct ExtNgbNODE), modus);
 #endif /* #ifdef TREE_BASED_TIMESTEPS */
+#ifdef RAD_OCT_TREE
+      byten(RtNgb_Nodes + Ngb_MaxPart, Ngb_NumNodes * sizeof(struct RtNgbNODE), modus);
+#endif
       byten(Ngb_Nodes + Ngb_MaxPart, Ngb_NumNodes * sizeof(struct NgbNODE), modus);
       byten(Ngb_DomainNodeIndex, NTopleaves * sizeof(int), modus);
       byten(Ngb_Nextnode, (Ngb_MaxPart + NTopleaves) * sizeof(int), modus);

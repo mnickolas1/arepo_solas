@@ -8,13 +8,20 @@
 void reallocate_memory_maxpartstars(void);
 void domain_resize_storage_stars(int count_get_star);
 
+/* Initialization */
+void star_init(void);
+
 #ifdef STAR_PARTICLES
 /* IMF */
+double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
+
 double imf_kroupa(double m); 
 double imf_chabrier(double m); 
 double imf_salpeter(double m);
+
 double imf(double m); 
 double m_times_imf(double m); 
+
 void build_imf_cdf(void);
 double sample_imf(double u);
 #endif
@@ -22,6 +29,7 @@ double sample_imf(double u);
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 void setup_mass_bins(void);
 void sample_star_particle(double m, int *bins);
+
 #ifdef STAR_FEEDBACK_ACTIVE
 Star_Feedback star_particle_feedback(int index, double dt, double z, double a);
 #endif
@@ -44,8 +52,6 @@ void load_star_tables(const char *filename);
 void free_stellar_tables(void);
 Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, double a);
 Star_Feedback units_for_feedback(Star_Feedback star);
-
-double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 
 /* Wrap stars module */
 void star_in(void);
@@ -72,15 +78,15 @@ void star_density(void);
 /* Radiation */
 #include "../stars/star_radiation.h"
 
-/* Opacities and per-cell optical depths (star_radiation.c) */
+/* Opacities and per-cell optical depths */
 void update_opac(void);
 double dtau_IR(int i, double length);
 
-/* H2 self-shielding table (star_radiation.c) */
+/* H2 self-shielding table */
 void init_h2shield(void);
 double h2shield_dtau(double N_H2, double dN_H2);
 
-/* Ray bookkeeping (star_radiation.c) */
+/* Ray bookkeeping */
 void append_ray(RayWorkStack *w, const RayPacket *ray);
 void split_ray(const RayPacket *parent, RayPacket children[4]);
 

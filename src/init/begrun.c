@@ -148,6 +148,11 @@ void begrun1(void)
   gsl_rng_set(random_generator, 42 + ThisTask);
   gsl_rng_set(random_generator_aux, 31452 + ThisTask);
 
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 0
+  rng = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rng, ThisTask);
+#endif
+
   timebins_init(&TimeBinsHydro, "Hydro", &All.MaxPartSph);
   timebins_init(&TimeBinsGravity, "Gravity", &All.MaxPart);
 
@@ -261,6 +266,14 @@ void begrun2(void)
 #if defined(FORCETEST) && defined(FORCETEST_TESTFORCELAW)
   gravity_forcetest_testforcelaw();
 #endif /* #if defined(FORCETEST) && defined(FORCETEST_TESTFORCELAW) */
+
+#ifdef STARS
+  star_init();
+#endif
+
+#ifdef BLACKHOLES
+  bh_init();
+#endif
 }
 
 /*! \brief Computes conversion factors between internal code units and the

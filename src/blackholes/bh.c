@@ -10,3 +10,13 @@ struct TimeBinData TimeBinsBh;
 #endif
 
 struct Bh_Particle_Data *BhP;
+
+void bh_init(void);
+{
+#ifdef BH_FEEDBACK_ACTIVE
+  if(RestartFlag != 1) 
+    {
+      All.FeedbackFlag = 1;
+    }
+#endif
+} 

@@ -2,11 +2,14 @@
 #define BH_PROTO_H
 
 
-/* black hole functions */
+/* Black hole functions */
 
 /* Memory allocation */
 void reallocate_memory_maxpartbhs(void);
 void domain_resize_storage_bhs(int count_get_bh);
+
+/* Initialization */
+void bh_init(void);
 
 #ifdef BH_ACTIVE
 /* Timesteps */

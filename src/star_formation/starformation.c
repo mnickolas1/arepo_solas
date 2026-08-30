@@ -460,9 +460,9 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   /* Give star small random displacement */
   double cell_size = get_cell_radius(igas);
 
-  double rx = (rand()/RAND_MAX - 0.5) * cell_size / 50;
-  double ry = (rand()/RAND_MAX - 0.5) * cell_size / 50; 
-  double rz = (rand()/RAND_MAX - 0.5) * cell_size / 50;
+  double rx = (get_random_number_aux() - 0.5) * cell_size / 50;
+  double ry = (get_random_number_aux() - 0.5) * cell_size / 50; 
+  double rz = (get_random_number_aux() - 0.5) * cell_size / 50;
 
   P[istar].Pos[0] += rx;
   P[istar].Pos[1] += ry;
