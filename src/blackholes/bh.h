@@ -1,11 +1,11 @@
 #ifndef BH_H
 #define BH_H
 
-#define ALLOC_BH_ROOM 4
-extern int NumBhs;
-
 #include "../main/allvars.h"
 
+
+#define ALLOC_BH_ROOM 4
+extern int NumBhs;
 
 extern FILE *FdBlackHoles; 
 

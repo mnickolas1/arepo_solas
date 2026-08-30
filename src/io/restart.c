@@ -1268,7 +1268,7 @@ static void contents_restart_file(int modus)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   in(&TimeBinsStar.NActiveParticles, modus);
-  byten(&TimeBinStar.GlobalNActiveParticles, sizeof(long long), modus);
+  byten(&TimeBinsStar.GlobalNActiveParticles, sizeof(long long), modus);
   byten(TimeBinsStar.ActiveParticleList, TimeBinsStar.NActiveParticles * sizeof(int), modus);
   byten(TimeBinsStar.NextInTimeBin, NumStars * sizeof(int), modus);
   byten(TimeBinsStar.PrevInTimeBin, NumStars * sizeof(int), modus);
@@ -1292,7 +1292,7 @@ static void contents_restart_file(int modus)
 
 #ifdef BH_ACTIVE
   in(&TimeBinsBh.NActiveParticles, modus);
-  byten(&TimeBinBh.GlobalNActiveParticles, sizeof(long long), modus);
+  byten(&TimeBinsBh.GlobalNActiveParticles, sizeof(long long), modus);
   byten(TimeBinsBh.ActiveParticleList, TimeBinsBh.NActiveParticles * sizeof(int), modus);
   byten(TimeBinsBh.NextInTimeBin, NumBhs * sizeof(int), modus);
   byten(TimeBinsBh.PrevInTimeBin, NumBhs * sizeof(int), modus);

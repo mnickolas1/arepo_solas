@@ -1,4 +1,5 @@
 #include "../main/allvars.h"
+#include "../main/proto.h"
 
 
 int NumStars;
@@ -44,7 +45,7 @@ void star_init(void)
 #if STAR_PARTICLES < 2
   if(RestartFlag != 1)
     {
-      for(i = 0; i < NumStars; i++)
+      for(int i = 0; i < NumStars; i++)
         sample_star_particle(PPS(i).Mass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
     }
 #endif
@@ -56,8 +57,11 @@ void star_init(void)
 
   feedback_init(&MechanicalFeedbackEvents);
 
-  for(i = 0; i < NumStars; i++)
-    SP[i].WithFeedback = 1;
+  if(RestartFlag != 1)
+    {
+      for(int i = 0; i < NumStars; i++)
+        SP[i].WithFeedback = 1;
+    }
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE

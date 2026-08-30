@@ -1,4 +1,5 @@
 #include "../main/allvars.h"
+#include "../main/proto.h"
 
 
 int NumBhs;
@@ -11,7 +12,7 @@ struct TimeBinData TimeBinsBh;
 
 struct Bh_Particle_Data *BhP;
 
-void bh_init(void);
+void bh_init(void)
 {
 #ifdef BH_FEEDBACK_ACTIVE
   if(RestartFlag != 1) 
