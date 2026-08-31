@@ -1485,12 +1485,6 @@ double InitMetallicityinSolar;
   int DesLinkNgb;
   double ErrTolThetaSubfind;
 #endif /* #ifdef SUBFIND */
-
-#ifdef FIND_HALOS
-  double TimeOfFirstHaloFinding;
-  double NextTimeOfHaloFinding;
-  double TimeBetweenHaloFinding;
-#endif
 } All;
 
 /*****************************************************************************
@@ -1560,7 +1554,7 @@ extern struct particle_data
   signed char TimeBinHydro;
 
 #ifdef STARS
-  MyIDType SID;
+  MyIDType StarID;
 #endif
 
 #ifdef BLACKHOLES
@@ -2115,7 +2109,7 @@ enum arrays
   A_SPHP,
   A_P,
 #ifdef STARS
-  A_S,
+  A_STAR,
 #endif
 #ifdef BLACKHOLES
   A_BH,
@@ -2185,6 +2179,8 @@ typedef struct
   double M;
   double V;
   double c;
+
+  int read_from_ic;
 } IO_Field;
 
 extern IO_Field *IO_Fields;

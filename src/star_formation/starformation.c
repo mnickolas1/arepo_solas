@@ -349,7 +349,7 @@ void convert_cell_into_star(int i, double birthtime)
   /* Zero star struct */
   memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
   /* Assign star_ids */
-  P[i].SID = NumStars;
+  P[i].StarID = NumStars;
   SP[NumStars].PID = i;
 #ifdef METALS 
   SP[NumStars].Metallicity = SphP[i].GasMetals / P[i].Mass;
@@ -441,7 +441,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   /* Zero star struct */
   memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
   /* Assign star_ids */
-  P[istar].SID = NumStars;
+  P[istar].StarID = NumStars;
   SP[NumStars].PID = istar;
 #ifdef METALS 
   SP[NumStars].Metallicity = SphP[igas].GasMetals / P[igas].Mass;

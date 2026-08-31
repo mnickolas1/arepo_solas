@@ -416,6 +416,12 @@ OBJS += star_formation/individual_star_formation/sfr_starbystar.o \
 SUBDIRS += star_formation/individual_star_formation
 endif
 
+ifneq (,$(filter STARS BLACKHOLES,$(CONFIGVARS)))
+ifneq (,$(filter GENERATE_GAS_IN_ICS, READ_DM_AS_GAS, COMBINETYPES, TILE_ICS,$(CONFIGVARS)))
+$(error STARS and BLACKHOLES probably do not work with GENERATE_GAS_IN_ICS, READ_DM_AS_GAS, COMBINETYPES, TILE_ICS)
+endif
+endif
+
 #STARS
 ifneq (,$(filter STARS,$(CONFIGVARS)))
 OBJS += stars/star.o 

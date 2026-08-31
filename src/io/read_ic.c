@@ -498,29 +498,39 @@ void read_ic(const char *fname, int readTypes)
     }
 
 #ifdef STARS
-  int js=0;
-  for(int is = 0; is<NumPart; is++)
+  int nstars = 0;
+  for(int i = 0; i < NumPart; i++)
     {
-      if(P[is].Type == 4)
+      if(P[i].Type == 4)
         {
-          P[is].SID = js;
-          SP[js].PID = is;
-          js++;
-        }
+          if(P[i].StarID < 0 || P[i].StarID >= NumStars)
+            terminate("read_ic(): bad StarID %d for particle %d (NumStars=%d)!", P[i].StarID, i, NumStars);
+        
+          SPP(i).PID = i;
+          nstars++;
+       }
     }
+  
+  if(nstars != NumStars)
+    terminate("read_ic(): star count mismatch: %d vs NumStars=%d!", nstars, NumStars);
 #endif /* STARS */
 
 #ifdef BLACKHOLES
-  int jb=0;
-  for(int ib = 0; ib<NumPart; ib++)
+  int nbhs = 0;
+  for(int i = 0; i < NumPart; i++)
     {
-      if(P[ib].Type == 5)
+      if(P[i].Type == 5)
         {
-          P[ib].BhID = jb;
-          BhP[jb].PID = ib;
-          jb++;
+          if(P[i].BhID < 0 || P[i].BhID >= NumBhs)
+            terminate("read_ic(): bad BhID %d for particle %d (NumBhs=%d)!", P[i].BhID, i, NumBhs);
+
+          BPP(i).PID = i;
+          nbhs++;
         }
     }
+
+  if(nbhs != NumBhs)
+    terminate("read_ic(): bh count mismatch: %d vs NumBhs=%d!", nbhs, NumBhs);
 #endif /* BLACKHOLES */
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -654,9 +664,23 @@ void empty_read_buffer(enum iofields blocknr, int offset, int pc, int type)
               case A_P:
                 particle = offset + n;
                 break;
+
+#ifdef STARS
+              case A_STAR:
+                particle = P[offset + n].StarID;
+                break;
+#endif
+
+#ifdef BLACKHOLES
+              case A_BH:
+                particle = P[offset + n].BhID;
+                break;
+#endif
+
               case A_PS:
                 terminate("Not good, trying to read into PS[]?\n");
                 break;
+
               default:
                 terminate("ERROR in empty_read_buffer: Array not found!\n");
                 break;
@@ -705,20 +729,21 @@ void empty_read_buffer(enum iofields blocknr, int offset, int pc, int type)
                 break;
 
 #ifdef STARS
-              case A_S:
-                array_pos = SP + n;
+              case A_STAR:
+                array_pos = SP + P[offset + n].StarID;
                 break;
 #endif
 
 #ifdef BLACKHOLES
               case A_BH:
-                array_pos = BhP + n;
+                array_pos = BhP + P[offset + n].BhID;
                 break;
 #endif
 
               case A_PS:
                 terminate("Not good, trying to read into PS[]?\n");
                 break;
+
               default:
                 terminate("ERROR in empty_read_buffer: Array not found!\n");
                 break;
@@ -940,11 +965,11 @@ void share_particle_number_in_file(const char *fname, int filenr, int readTask, 
         }
 
 #ifdef STARS
-      All.TotNumStars += header.npartTotal[4] + (((long long)header.npartTotalHighWord[4]) << 32);
+      All.TotNumStars = header.npartTotal[4] + (((long long)header.npartTotalHighWord[4]) << 32);
 #endif
 
 #ifdef BLACKHOLES
-      All.TotNumBhs += header.npartTotal[5] + (((long long)header.npartTotalHighWord[5]) << 32);
+      All.TotNumBhs = header.npartTotal[5] + (((long long)header.npartTotalHighWord[5]) << 32);
 #endif
 
 #ifdef GENERATE_GAS_IN_ICS
@@ -1016,12 +1041,12 @@ void share_particle_number_in_file(const char *fname, int filenr, int readTask, 
         NumGas += n_for_this_task;
 
 #ifdef STARS
-      if(type==4)
+      if(type == 4)
         NumStars += n_for_this_task;
 #endif
 
 #ifdef BLACKHOLES
-      if(type==5)
+      if(type == 5)
         NumBhs += n_for_this_task;
 #endif
     }
@@ -1069,7 +1094,7 @@ void share_particle_number_in_file(const char *fname, int filenr, int readTask, 
 void read_file(const char *fname, int filenr, int readTask, int lastTask, int readTypes)
 {
   int blockmaxlen;
-  int n_in_file, n_for_this_task, ntask, pc, offset = 0, task;
+  int n_in_file, n_for_this_task, ntask, pc, task, offset = 0;
   int blksize1, blksize2;
   MPI_Status status;
   FILE *fd = 0;
@@ -1198,7 +1223,6 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
             header.npart[5], header.npartTotal[5] + (((long long)header.npartTotalHighWord[5]) << 32), All.MassTable[5]);
     }
 
-
   /* to collect the gas particles all at the beginning (in case several
      snapshot files are read on the current CPU) we move the collisionless
      particles such that a gap of the right size is created */
@@ -1216,6 +1240,34 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
 
   memmove(&P[NumGas + nall], &P[NumGas], (NumPart - NumGas) * sizeof(struct particle_data));
   nstart = NumGas;
+
+  /* Set ids for special particles */
+  int off = nstart;
+  for(type = 0; type < NTYPES; type++)
+    {
+      n_in_file = header.npart[type];
+      n_for_this_task = n_in_file / ntask;
+      if((ThisTask - readTask) < (n_in_file % ntask))
+        n_for_this_task++;
+
+#ifdef STARS
+      if(type == 4)
+        {
+          for(int i = 0; i < n_for_this_task; i++)
+            P[off + i].StarID = nstars_before_file + i;
+        }
+#endif
+
+#ifdef BLACKHOLES
+      if(type == 5)
+        {
+          for(int i = 0; i < n_for_this_task; i++)
+            P[off + i].BhID = nbhs_before_file + i;
+        }
+#endif
+
+      off += n_for_this_task;
+    }  
 
   for(bnr = 0; bnr < 1000; bnr++)
     {
@@ -1316,7 +1368,6 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
                       offset += n_for_this_task;
                     }
                   else
-
                     {
                       /* we are expecting (npart>0) this block for this particle type, read or recv */
                       for(task = readTask; task <= lastTask; task++)
@@ -1334,7 +1385,6 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
                             {
                               pc = n_for_this_task;
                       
-
                               if(pc > blockmaxlen)
                                 pc = blockmaxlen;
 
@@ -1438,7 +1488,7 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
                                 {
                                   empty_read_buffer(blocknr, nstart + offset, pc, type);
 
-                                  offset += pc;
+                                  offset += pc;                        
                                 }
 
                               n_for_this_task -= pc;

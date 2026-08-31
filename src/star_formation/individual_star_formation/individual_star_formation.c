@@ -291,7 +291,7 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   /* Zero star struct */
   memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
   /* Assign star_ids */
-  P[istar].SID = NumStars;
+  P[istar].StarID = NumStars;
   SP[NumStars].PID = istar;
   
   /* Prepare for star forming loop */
@@ -369,7 +369,7 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   /* Zero star struct */
   memset(&SP[NumStars], 0, sizeof(Star_Particle_Data));
   /* Assign star_ids */
-  P[istar].SID = NumStars;
+  P[istar].StarID = NumStars;
   SP[NumStars].PID = istar;
 
 #ifdef METALS 

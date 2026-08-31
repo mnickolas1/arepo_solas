@@ -224,7 +224,7 @@ typedef struct Star_Particle_Data
 
 extern Star_Particle_Data *SP;
 
-#define SPP(i) SP[P[i].SID]
+#define SPP(i) SP[P[i].StarID]
 #define PPS(i) P[SP[i].PID]
 
 #endif

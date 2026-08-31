@@ -775,11 +775,11 @@ void init_io_fields()
 #endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
 
 #ifdef STARS
-  init_field(IO_STARID, "SID  ", "StarIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].SID, 0, STARS_ONLY);
+  init_field(IO_STARID, "StarID  ", "StarIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].StarID, 0, STARS_ONLY);
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_STARID, SN_MINI);
 #ifdef METALS
-  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_S, &SP[0].Metallicity, 0, STARS_ONLY);
+  init_field(IO_STAR_METALS, "SZ ", "Metallicity", MEM_MY_FLOAT, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_STAR, &SP[0].Metallicity, 0, STARS_ONLY);
   init_units(IO_STAR_METALS, 0., 0., 0., 0., 0., 0);
   init_snapshot_type(IO_STAR_METALS, SN_MINI);
 #endif

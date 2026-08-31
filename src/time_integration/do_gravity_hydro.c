@@ -297,7 +297,7 @@ void find_gravity_timesteps_and_do_gravity_step_first_half(void)
 #ifdef STAR_FEEDBACK_ACTIVE
       if(P[i].Type == 4)
         {
-          integertime ti_star_step = star_timestep(P[i].SID);
+          integertime ti_star_step = star_timestep(P[i].StarID);
           
           if(ti_star_step < ti_step)
             ti_step = ti_star_step;

@@ -368,7 +368,7 @@ void domain_exchange(void)
           else if(P[n].Type == 4)
             {
               SPP(n) = SP[NumStars-1];
-              PPS(NumStars-1).SID = P[n].SID; 
+              PPS(NumStars-1).StarID = P[n].StarID; 
 
               if(n == NumPart-1)
                 { 
@@ -694,7 +694,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
     { 
       if(P[i].Type == 4)
         {
-          P[i].SID = j;  
+          P[i].StarID = j;  
           SP[j].PID = i;
           j++;
         } 
