@@ -690,7 +690,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
        /* close block of myMPI_Alltoallv communications */
 
 #ifdef STARS
-  for(int i = NumPart + count_get_sph, j=NumStars; i < NumPart + count_get; i++)
+  for(int i = NumPart + count_get_sph, j = NumStars; i < NumPart + count_get; i++)
     { 
       if(P[i].Type == 4)
         {
@@ -704,7 +704,7 @@ if(count_bhs[target] > 0 || count_recv_bhs[target] > 0)
 #endif
 
 #ifdef BLACKHOLES
-  for(int i = NumPart + count_get_sph, j=NumBhs; i < NumPart + count_get; i++)
+  for(int i = NumPart + count_get_sph, j = NumBhs; i < NumPart + count_get; i++)
     { 
       if(P[i].Type == 5)
         {

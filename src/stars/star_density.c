@@ -53,7 +53,7 @@ static MyFloat *StarHostDistance;
 
 struct Data 
 {
-  MyIDType StarID;
+  int StarID;
 
   int StarIndex; 
   int StarTask; 

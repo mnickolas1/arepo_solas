@@ -1374,7 +1374,7 @@ double InitMetallicityinSolar;
   char GrackleDataFile[100];
 #endif
 
-#if GRACKLE_CHEMISTRY > 1
+#if GRACKLE_CHEMISTRY >= 1
   int GrackleSpeciesState;
 #endif
 
@@ -1558,11 +1558,11 @@ extern struct particle_data
   signed char TimeBinHydro;
 
 #ifdef STARS
-  MyIDType StarID;
+  int StarID;
 #endif
 
 #ifdef BLACKHOLES
-  MyIDType BhID;
+  int BhID;
 #endif
 } * P,              /*!< holds particle data on local processor */
     *DomainPartBuf; /*!< buffer for particle data used in domain decomposition */

@@ -108,83 +108,86 @@ void init_passive_scalars(void)
 {
   const int from_file = field_read_from_ic(IO_PASS);
 
-  if(from_file || RestartFlag != 0)
-    return;
-
-  warn("INIT: no PassiveScalars block in the input file - seeding from the parameter file\n");
-
-  int i;
-
-  for(i = 0; i < NumGas; i++)
+  if(!from_file)
     {
+      warn("INIT: no PassiveScalars block in the input file - seeding from the parameter file\n");
+
+      int i;
+
+      for(i = 0; i < NumGas; i++)
+        {
 #ifdef METALS
-      SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+          SphP[i].GasMetallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
 #endif /* #ifdef METALS */
 
-#if GRACKLE_CHEMISTRY > 1 
+#if GRACKLE_CHEMISTRY >= 1 
 
 #ifdef METALS
-      const double Z0 = SphP[i].GasMetallicity;
+          const double Z0 = SphP[i].GasMetallicity;
 #else
-      const double Z0 = 0.0;
+          const double Z0 = 0.0;
 #endif
       
-      /* Fully neutral initial conditions */
-      if(All.GrackleSpeciesState == 0)
-        {
+          /* Fully neutral initial conditions */
+          if(All.GrackleSpeciesState == 0)
+            {
 #if GRACKLE_CHEMISTRY >= 1
-          SphP[i].GrackleSpecies(GRACKLE_HI) = (1.0 - Z0) * HYDROGEN_MASSFRAC; /* all H is neutral */
-          SphP[i].GrackleSpecies(GRACKLE_HII) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_HeI) = (1.0 - Z0) * (1.0 - HYDROGEN_MASSFRAC); /* all He is neutral */
-          SphP[i].GrackleSpecies(GRACKLE_HeII) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_HeIII) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HI) = (1.0 - Z0) * HYDROGEN_MASSFRAC; /* all H is neutral */
+              SphP[i].GrackleSpecies(GRACKLE_HII) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HeI) = (1.0 - Z0) * (1.0 - HYDROGEN_MASSFRAC); /* all He is neutral */
+              SphP[i].GrackleSpecies(GRACKLE_HeII) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HeIII) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 1) */
 
 #if GRACKLE_CHEMISTRY >= 2
-          SphP[i].GrackleSpecies(GRACKLE_H2I) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_H2II) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_H2I) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_H2II) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 2) */
 
 #if GRACKLE_CHEMISTRY >= 3
-          SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 3) */
-        } 
-      /* Fully ionized initial conditions */  
-      else if(All.GrackleSpeciesState == 1)
-        {
+            } 
+          /* Fully ionized initial conditions */  
+          else if(All.GrackleSpeciesState == 1)
+            {
 #if GRACKLE_CHEMISTRY >= 1
-          SphP[i].GrackleSpecies(GRACKLE_HI) = GRACKLE_TINY;  
-          SphP[i].GrackleSpecies(GRACKLE_HII) = (1.0 - Z0) * HYDROGEN_MASSFRAC; /* all H is ionized */
-          SphP[i].GrackleSpecies(GRACKLE_HeI) = GRACKLE_TINY; 
-          SphP[i].GrackleSpecies(GRACKLE_HeII) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_HeIII) = (1.0 - Z0) * (1.0 - HYDROGEN_MASSFRAC); /* all He is ionized */
+              SphP[i].GrackleSpecies(GRACKLE_HI) = GRACKLE_TINY;  
+              SphP[i].GrackleSpecies(GRACKLE_HII) = (1.0 - Z0) * HYDROGEN_MASSFRAC; /* all H is ionized */
+              SphP[i].GrackleSpecies(GRACKLE_HeI) = GRACKLE_TINY; 
+              SphP[i].GrackleSpecies(GRACKLE_HeII) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HeIII) = (1.0 - Z0) * (1.0 - HYDROGEN_MASSFRAC); /* all He is ionized */
 #endif /* #if (GRACKLE_CHEMISTRY >= 1) */
 
 #if GRACKLE_CHEMISTRY >= 2
-          SphP[i].GrackleSpecies(GRACKLE_H2I) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_H2II) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_H2I) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_H2II) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 2) */
 
 #if GRACKLE_CHEMISTRY >= 3
-          SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
-          SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 3) */
-        }
+            }
 
 #endif /* #if GRACKLE_CHEMISTRY > 1  */
 
 #ifdef JET_TRACER
           SphP[i].JetTracer = 0.0;
 #endif /* #ifdef JET_TRACER */
-
-          /* Convert every primitive passive scalar to its conserved form */
-          for(int j = 0; j < PASSIVE_SCALARS; j++)
-            sync_conserved_from_primitive(i, j);
+        }       
+    }
+  
+  /* Convert every primitive passive scalar to its conserved form */
+  for(int i = 0; i < NumGas; i++)
+    {
+      for(int j = 0; j < PASSIVE_SCALARS; j++)
+        sync_conserved_from_primitive(i, j);
     }
 }
 

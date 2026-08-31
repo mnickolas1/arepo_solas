@@ -11,6 +11,10 @@ void domain_resize_storage_stars(int count_get_star);
 /* Initialization */
 void star_init(void);
 
+#ifdef METALS
+void init_star_metallicity(void);
+#endif
+
 #ifdef STAR_PARTICLES
 /* IMF */
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));

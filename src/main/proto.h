@@ -367,6 +367,11 @@ int get_values_per_blockelement(enum iofields blocknr);
 int get_datatype_in_block(enum iofields blocknr, int mode);
 void get_dataset_name(enum iofields blocknr, char *buf);
 int blockpresent(enum iofields blocknr, int write);
+void init_fields_read_from_ic(void);
+void set_field_read_from_ic(enum iofields blocknr, int present);
+int field_read_from_ic(enum iofields blocknr);
+void reduce_fields_read_from_ic(void);
+
 void fill_write_buffer(void *buffer, enum iofields blocknr, int *pindex, int pc, int type, int subbox_flag);
 void empty_read_buffer(enum iofields blocknr, int offset, int pc, int type);
 int get_particles_in_block(enum iofields blocknr, int *typelist);

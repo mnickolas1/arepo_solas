@@ -1116,6 +1116,13 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
 
 #endif /* #ifdef HAVE_HDF5 */
 
+#ifdef STARS
+  const int nstars_before_file = NumStars;
+#endif
+#ifdef BLACKHOLES
+  const int nbhs_before_file = NumBhs;
+#endif
+
   if(ThisTask == readTask)
     {
       if(All.ICFormat == 1 || All.ICFormat == 2)

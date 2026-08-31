@@ -775,7 +775,7 @@ void init_io_fields()
 #endif /* #if defined(REFINEMENT_HIGH_RES_GAS) */
 
 #ifdef STARS
-  init_field(IO_STARID, "SID ", "StarIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].StarID, 0, STARS_ONLY);
+  init_field(IO_STARID, "SID ", "StarIDs", MEM_INT, FILE_INT, FILE_NONE, 1, A_P, &P[0].StarID, 0, STARS_ONLY);
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_STARID, SN_MINI);
 #ifdef METALS
@@ -786,7 +786,7 @@ void init_io_fields()
 #endif
 
 #ifdef BLACKHOLES
-  init_field(IO_BHID, "BID ", "BlackholeIDs", MEM_MY_ID_TYPE, FILE_MY_ID_TYPE, FILE_NONE, 1, A_P, &P[0].BhID, 0, BHS_ONLY);
+  init_field(IO_BHID, "BID ", "BlackholeIDs", MEM_INT, FILE_INT, FILE_NONE, 1, A_P, &P[0].BhID, 0, BHS_ONLY);
   init_units(IO_BHID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_BHID, SN_MINI);
 #endif
@@ -802,7 +802,7 @@ void init_io_fields()
 #endif
 
 #ifdef BH_ACCRETION_ACTIVE 
-  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_NONE, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_NONE, 0, io_func_accretion_rate, BHS_ONLY);
+  init_field(IO_ACCRETION_RATE, "ACR ", "AccretionRate", MEM_NONE, FILE_MY_IO_FLOAT, FILE_NONE, 1, A_BH, 0, io_func_accretion_rate, BHS_ONLY);
   init_units(IO_ACCRETION_RATE, 0., 0., 0., 0., 0., All.UnitMass_in_g / All.UnitTime_in_s);
   init_snapshot_type(IO_ACCRETION_RATE, SN_MINI);
 #endif

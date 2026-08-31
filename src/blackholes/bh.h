@@ -15,7 +15,7 @@ extern struct TimeBinData TimeBinsBh;
 
 typedef struct Bh_Particle_Data
 {
-  MyIDType PID;
+  int PID;
 
 #ifdef BH_ACTIVE
   MyDouble Hsml;
