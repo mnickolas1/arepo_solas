@@ -100,7 +100,7 @@ static void particle2in(data_in *in, int i, int firstnode)
   
   if(pass == 1)
     {
-      in->Data.StarParticleID = 0;
+      in->Data.StarParticleID = (MyIDType)-1;
 
       in->Data.StarIndex = -1;
       in->Data.StarTask = -1;
