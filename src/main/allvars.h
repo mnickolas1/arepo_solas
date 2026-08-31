@@ -1374,6 +1374,10 @@ double InitMetallicityinSolar;
   char GrackleDataFile[100];
 #endif
 
+#if GRACKLE_CHEMISTRY > 1
+  int GrackleSpeciesState;
+#endif
+
 /* enable Springel & Hernquist model */
 #ifdef EEOS_SF
   double OverDensThresh;

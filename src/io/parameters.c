@@ -518,6 +518,12 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.GrackleDataFile;
         id[nt++] = STRING;
 #endif 
+
+#if GRACKLE_CHEMISTRY > 1
+        strcpy(tag[nt], "GrackleSpeciesState");
+        addr[nt] = &All.GrackleSpeciesState;
+        id[nt++] = INT;
+#endif 
         
 /* Star Formation */
 #ifdef EEOS_SF

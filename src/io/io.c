@@ -722,7 +722,7 @@ void fill_write_buffer(void *buffer, enum iofields blocknr, int *startindex, int
                   case A_PS:
                     array_pos = PS + pindex;
                     break;
-                    
+
                   default:
                     terminate("ERROR in fill_write_buffer: Array not found!\n");
                     break;
@@ -1018,10 +1018,6 @@ int blockpresent(enum iofields blocknr, int write)
 
   if(!write)
     {
-#if PASSIVE_SCALARS > 0
-      if(RestartFlag == 0 && blocknr == IO_PASS)
-        return 1;
-#endif /* #ifdef PASSIVE_SCALARS */
 #if defined(MHD) && !defined(MHD_SEEDFIELD)
       if(All.ICFormat != 3 && RestartFlag == 0 && (blocknr > IO_U && blocknr != IO_BFLD))
 #else  /* #if defined(MHD) && !defined(MHD_SEEDFIELD) */
@@ -1087,6 +1083,57 @@ int blockpresent(enum iofields blocknr, int write)
     }
 
   return 0; /* default: not present */
+}
+
+void init_fields_read_from_ic(void)
+{
+  int f;
+
+  for(f = 0; f < N_IO_Fields; f++)
+    IO_Fields[f].read_from_ic = blockpresent(IO_Fields[f].field, 0) ? 1 : 0;
+}
+
+void set_field_read_from_ic(enum iofields blocknr, int present)
+{
+  int f;
+
+  for(f = 0; f < N_IO_Fields; f++)
+    {
+      if(IO_Fields[f].field == blocknr)
+        {
+          IO_Fields[f].read_from_ic = present;
+          return;
+        }
+    }
+}
+
+int field_read_from_ic(enum iofields blocknr)
+{
+  int f;
+
+  for(f = 0; f < N_IO_Fields; f++)
+    {
+      if(IO_Fields[f].field == blocknr)
+        return IO_Fields[f].read_from_ic;
+    }
+
+  return 0;
+}
+
+void reduce_fields_read_from_ic(void)
+{
+  int f, flags[IO_LASTENTRY];
+
+  if(N_IO_Fields > IO_LASTENTRY)
+    terminate("reduce_fields_read_from_ic(): N_IO_Fields=%d exceeds IO_LASTENTRY=%d!", N_IO_Fields, (int)IO_LASTENTRY);
+
+  for(f = 0; f < N_IO_Fields; f++)
+    flags[f] = IO_Fields[f].read_from_ic;
+
+  MPI_Allreduce(MPI_IN_PLACE, flags, N_IO_Fields, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+
+  for(f = 0; f < N_IO_Fields; f++)
+    IO_Fields[f].read_from_ic = flags[f];
 }
 
 /*! \brief This function associates a short 4-character block name with each

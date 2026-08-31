@@ -481,8 +481,7 @@ int init(void)
 
 #ifdef METALS
 #ifdef STARS
-  for(i = 0; i < NumStars; i++)
-    SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+  init_star_metallicity();
 #endif
 #endif
 

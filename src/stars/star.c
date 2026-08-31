@@ -68,3 +68,18 @@ void star_init(void)
   init_h2shield();
 #endif
 }
+
+#ifdef METALS
+void init_star_metallicity(void)
+{
+  const int from_file = field_read_from_ic(IO_STAR_METALS);
+
+  if(from_file || RestartFlag != 0)
+    return;
+
+  warn("INIT: no StarMetallicity block in the input file - seeding from the parameter file\n");
+
+  for(int i = 0; i < NumStars; i++)
+    SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY; 
+}
+#endif

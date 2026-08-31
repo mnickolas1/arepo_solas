@@ -139,6 +139,8 @@ void read_ic(const char *fname, int readTypes)
 
   All.TotNumPart = 0;
 
+  init_fields_read_from_ic();
+
   /* we repeat reading the headers of the files two times. In the first iteration, only the
    * particle numbers ending up on each processor are assembled, followed by memory allocation.
    * In the second iteration, the data is actually read in.
@@ -274,6 +276,8 @@ void read_ic(const char *fname, int readTypes)
     }
 
   myfree(CommBuffer);
+
+  reduce_fields_read_from_ic();
 
 #ifdef TILE_ICS
   tile_ics();
@@ -1457,7 +1461,8 @@ void read_file(const char *fname, int filenr, int readTask, int lastTask, int re
                                           // no, pad with zeros
                                           if((ThisTask == readTask) && (task == ThisTask))
                                             mpi_printf("\tDataset %s not present for particle type %d, using zero.\n", buf, type);
-
+                                          
+                                          set_field_read_from_ic(blocknr, 0);
                                           
                                           memset(CommBuffer, 0, dims[0] * dims[1] * my_H5Tget_size(hdf5_datatype));
                                         }
