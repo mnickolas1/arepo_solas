@@ -151,7 +151,7 @@ typedef struct Mechanical_Feedback
 
 typedef struct Mechanical_Feedback_Data
 {
-  int StarID; /* star ID*/
+  MyIDType Star_Particle_ID; /* star particle ID*/
   
   int StarIndex; /* local star index */
   int StarTask; /* task that owns the star */

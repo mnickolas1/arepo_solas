@@ -53,7 +53,7 @@ static MyFloat *StarHostDistance;
 
 struct Data 
 {
-  int StarID;
+  MyIDType StarParticleID;
 
   int StarIndex; 
   int StarTask; 
@@ -100,7 +100,7 @@ static void particle2in(data_in *in, int i, int firstnode)
   
   if(pass == 1)
     {
-      in->Data.StarID = -1;
+      in->Data.StarParticleID = 0;
 
       in->Data.StarIndex = -1;
       in->Data.StarTask = -1;
@@ -109,7 +109,7 @@ static void particle2in(data_in *in, int i, int firstnode)
     }
   if(pass == 2)
     {
-      in->Data.StarID = PPS(i).ID;
+      in->Data.StarParticleID = PPS(i).ID;
 
       in->Data.StarIndex = i;
       in->Data.StarTask = ThisTask;
@@ -487,9 +487,9 @@ static int star_density_evaluate2(int target, int mode, int threadid)
   MyDouble xtmp, ytmp, ztmp;  
   MyDouble h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos;
-
-  int hosthydrobin = 0; 
-  int star_id, star_index, star_task, host_index, host_task;
+ 
+  MyIDType star_particle_id;
+  int star_index, star_task, host_index, host_task, hosthydrobin = 0;
 
   data_in local, *target_data;
   data_out out = {0};
@@ -513,7 +513,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
   h = target_data->Hsml;
   h2 = h * h;
 
-  star_id = target_data->Data.StarID;
+  star_particle_id = target_data->Data.StarParticleID;
   star_index = target_data->Data.StarIndex;
   star_task = target_data->Data.StarTask;
   host_index = target_data->Data.HostIndex;
@@ -572,7 +572,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
 
               Mechanical_Feedback_Data *data = &MechanicalFeedbackEvents.MechanicalFeedbackData[MechanicalFeedbackEvents.NumEvents++];
 
-              data->StarID = star_id;
+              data->StarParticleID = star_particle_id;
               data->StarIndex = star_index;
               data->StarTask = star_task; 
               data->HostIndex = host_index;

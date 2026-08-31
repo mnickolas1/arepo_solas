@@ -174,8 +174,10 @@ void init_passive_scalars(void)
               SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 3) */
             }
+          else 
+            terminate("init_passive_scalars(): unsupported GrackleSpeciesState=%d!", All.GrackleSpeciesState);
 
-#endif /* #if GRACKLE_CHEMISTRY > 1  */
+#endif /* #if GRACKLE_CHEMISTRY >= 1  */
 
 #ifdef JET_TRACER
           SphP[i].JetTracer = 0.0;

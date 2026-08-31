@@ -417,7 +417,7 @@ static void init_rays(RayWorkStack *work)
           {
             RayPacket ray = {0};
 
-            ray.star_id = MechanicalFeedbackData->StarID;
+            ray.star_id = MechanicalFeedbackData->StarParticleID;
 
             ray.cell = host;
 
