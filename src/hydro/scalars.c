@@ -146,7 +146,7 @@ void init_passive_scalars(void)
 #endif /* #if (GRACKLE_CHEMISTRY >= 2) */
 
 #if GRACKLE_CHEMISTRY >= 3
-              SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_DI) = (1.0 - Z0) * HYDROGEN_MASSFRAC * DEUTERIUM_TO_HYDROGEN_RATIO;
               SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
               SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 3) */
@@ -170,7 +170,7 @@ void init_passive_scalars(void)
 
 #if GRACKLE_CHEMISTRY >= 3
               SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
-              SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
+              SphP[i].GrackleSpecies(GRACKLE_DII) = (1.0 - Z0) * HYDROGEN_MASSFRAC * DEUTERIUM_TO_HYDROGEN_RATIO;
               SphP[i].GrackleSpecies(GRACKLE_HDI) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 3) */
             }

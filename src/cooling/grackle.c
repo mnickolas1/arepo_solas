@@ -107,7 +107,7 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   /* non-eq. chemistry values */
 #if (GRACKLE_CHEMISTRY >= 1)
 
-  // Let's get the abundances before we call grackle
+  /* Let's get the abundances before we call grackle */
   double X_H = 0.0, Y_He = 0.0, X_D = 0.0;
 
   /* H and He species */
@@ -221,8 +221,6 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
             {
               terminate("GRACKLE: Error in solve_chemistry.\n");
             }
-
-          gr_float HHemassfrac = 1.0 - Metallicity;
 
           /* if non-eq chemistry assign abundances back */
 #if (GRACKLE_CHEMISTRY >= 1)
@@ -440,10 +438,14 @@ void InitGrackle(void)
 #if GRACKLE_CHEMISTRY >= 1
   my_grackle_data->ExplicitHydrogenFraction = 1;
       
+  /* Only used as fallbacks */
   my_grackle_data->HydrogenFractionByMass = HYDROGEN_MASSFRAC;  
   my_grackle_data->DeuteriumToHydrogenRatio = DEUTERIUM_TO_HYDROGEN_RATIO;
 #else
   my_grackle_data->ExplicitHydrogenFraction = 0;
+  /* Use the default values */
+  my_grackle_data->HydrogenFractionByMass = 0.715768377353088514;;
+  my_grackle_data->DeuteriumToHydrogenRatio = DEUTERIUM_TO_HYDROGEN_RATIO;
 #endif
 
 #ifdef METALS
@@ -482,12 +484,12 @@ void InitGrackle(void)
    * This is implemented by subtracting the value of the cooling rate at TCMB from the total METAL cooling rate. Default: 1.
    * Beware! You could still have Tgas<TCBM because it imposes a temperature floor only for the metal cooling.
    */
-  my_grackle_data->cmb_temperature_floor = 1;
+  my_grackle_data->cmb_temperature_floor = 0;
 
   /* Flag to enable a UV background.
    * If enabled, the cooling table to be used must be specified with the grackle_data_file parameter. Default: 0.
    */
-  my_grackle_data->UVbackground = 1;
+  my_grackle_data->UVbackground = 0;
   /* The following flags are related to the UVB, but they are automatically set to the right values, so do not need to use. These
    * numbers are the correct ones for FG2011 UVB. my_grackle_data->UVbackground_redshift_on       = 10.6;
    * my_grackle_data->UVbackground_redshift_off      = 0;
