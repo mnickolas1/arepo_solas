@@ -471,7 +471,7 @@ typedef unsigned long long peano1D;
 #define GAMMA_PLUS1 (GAMMA + 1.)
 
 #define HYDROGEN_MASSFRAC 0.76 /*!< mass fraction of hydrogen */
-#define HE_ABUND ((1. / HYDROGEN_MASSFRAC - 1.) / 4.)
+#define DEUTERIUM_TO_HYDROGEN_RATIO (2.0 * 3.4e-5)
 
 /* ... often used physical constants (cgs units; NIST 2010) */
 
