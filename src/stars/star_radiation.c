@@ -97,20 +97,20 @@ void update_opac(void)
 
       double Density = (P[i].Mass + SphP[i].StarMassFeed) / SphP[i].Volume;
       
-      SphP[i].OpacityScaling[CH_DUST] = Zsol * Density / Units;
+      SphP[i].OpacityScaling[CH_DUST] = fmax(0.0, Zsol * Density / Units);
 
       Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;
 
       double n_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g);
 
-      SphP[i].OpacityScaling[CH_H2] = n_H2 / Units;
+      SphP[i].OpacityScaling[CH_H2] = fmax(0.0, n_H2 / Units);
 
       double n_Ionizing[3] = {SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
                               SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g), 
                               SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)};
 
       for(int s = 0; s < 3; s++)
-        SphP[i].OpacityScaling[CH_HI + s] = n_Ionizing[s] / Units;
+        SphP[i].OpacityScaling[CH_HI + s] = fmax(0.0, n_Ionizing[s] / Units);
     }
 }
 

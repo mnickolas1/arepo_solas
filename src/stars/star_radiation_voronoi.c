@@ -76,8 +76,8 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
 
   for(int w = 0; w < WAVEBANDS; w++)
     {
-      if(ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy &&
-         ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons)
+      if((ray->Radiated[w].Energy == 0 || ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy) &&
+         (ray->Radiated[w].Photons == 0 || ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons))
         ray->active_bands &= (uint8_t)(~(1u << w));
 
       if(!(ray->active_bands & (1u << w)))
@@ -117,6 +117,9 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
 /* Returns 0 once every band of this ray is exhausted */
 static inline int ray_deposit(RayPacket *ray, int i, double length)
 {
+  if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+    return ray->active_bands != 0;
+
   if(length <= 0.0)
     return ray->active_bands != 0;
 

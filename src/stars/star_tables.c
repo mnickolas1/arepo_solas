@@ -445,16 +445,16 @@ void load_star_tables(const char *filename)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-              hid_t d_energy  = my_H5Dopen(mgrp, "Energy");
+              hid_t d_energy = my_H5Dopen(mgrp, "Energy");
               hid_t d_photons = my_H5Dopen(mgrp, "Photons");
 
-              double (*energy_buf)[WAVEBANDS]  = malloc(N[z][m] * sizeof(*energy_buf));
-              double (*photon_buf)[WAVEBANDS]  = malloc(N[z][m] * sizeof(*photon_buf));
+              double (*energy_buf)[WAVEBANDS] = malloc(N[z][m] * sizeof(*energy_buf));
+              double (*photon_buf)[WAVEBANDS] = malloc(N[z][m] * sizeof(*photon_buf));
 
-              my_H5Dread(d_energy,  H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, energy_buf,  "Energy");
-              my_H5Dread(d_photons, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, photon_buf,  "Photons");
+              my_H5Dread(d_energy, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, energy_buf, "Energy");
+              my_H5Dread(d_photons, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, photon_buf, "Photons");
 
-              my_H5Dclose(d_energy,  "Energy");
+              my_H5Dclose(d_energy, "Energy");
               my_H5Dclose(d_photons, "Photons");
 
               for(int w = 0; w < WAVEBANDS; w++)
@@ -462,7 +462,7 @@ void load_star_tables(const char *filename)
                   Flux[w][z][m] = malloc(N[z][m] * sizeof(WavebandData));
                   for(int i = 0; i < N[z][m]; i++)
                     {
-                      Flux[w][z][m][i].Energy  = energy_buf[i][w];
+                      Flux[w][z][m][i].Energy = energy_buf[i][w];
                       Flux[w][z][m][i].Photons = photon_buf[i][w];
                     }
                 }
