@@ -630,6 +630,7 @@ OBJS += subfind/subfind.o \
 INCL += subfind/subfind.h
 SUBDIRS += subfind
 endif
+endif
 
 ##########################
 #combine compiler options#

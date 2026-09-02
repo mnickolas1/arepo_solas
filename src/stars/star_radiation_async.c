@@ -417,7 +417,6 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
 {
   struct RayCommsAsync *c = comm;
 
-  long long spins = 0;
   int done = 0;
 
   if(work->n > c->work_hwm)
