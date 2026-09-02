@@ -149,7 +149,7 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
   *All.GrackleFieldData.HDI_density = GRACKLE_TINY * *All.GrackleFieldData.density;
 #endif
 
-  double e_density = 0;
+  double e_density = 0.0;
 
   e_density += *All.GrackleFieldData.HII_density;
   e_density += *All.GrackleFieldData.HeII_density / 4.0;
@@ -166,44 +166,55 @@ double CallGrackle(double u_old, double rho, double dt, int target, int mode)
 
   *All.GrackleFieldData.e_density = e_density;
 
-  *All.GrackleFieldData.hydrogen_fraction = (X_H + Y_He > 0) ? (gr_float)(X_H / (X_H + Y_He)) : (gr_float)HYDROGEN_MASSFRAC;
-  *All.GrackleFieldData.deuterium_ratio = (X_H > 0 && X_D > 0) ? (gr_float)(X_D / X_H) : (gr_float)DEUTERIUM_TO_HYDROGEN_RATIO;
+  if(X_H + Y_He <= 0)
+    terminate("CallGrackle(): X_H + Y_He <= 0!");
+
+  double grackle_floor = 1e-6;
+
+  if(X_H / (X_H + Y_He) < grackle_floor)
+    *All.GrackleFieldData.hydrogen_fraction = grackle_floor;
+  else if(X_H / (X_H + Y_He) > 1.0 - grackle_floor)
+    *All.GrackleFieldData.hydrogen_fraction = 1.0 - grackle_floor;
+  else    
+  *All.GrackleFieldData.hydrogen_fraction= (X_H / (X_H + Y_He));
+
+  *All.GrackleFieldData.deuterium_ratio = (X_H > 0 && X_D > 0) ? X_D / X_H : DEUTERIUM_TO_HYDROGEN_RATIO;
 
   /* Radiation */
 #ifdef PHOTOELECTRIC_HEATING
-  *All.GrackleFieldData.volumetric_heating_rate = (gr_float)(SphP[target].PE_VolHeatingRate);
+  *All.GrackleFieldData.volumetric_heating_rate = SphP[target].PE_VolHeatingRate;
   
-  SphP[target].PE_VolHeatingRate = 0;
+  SphP[target].PE_VolHeatingRate = 0.0;
 #else
-  *All.GrackleFieldData.volumetric_heating_rate = 0;
+  *All.GrackleFieldData.volumetric_heating_rate = 0.0;
 #endif
 
 #ifdef DISSOCIATION
-  *All.GrackleFieldData.RT_H2_dissociation_rate = (gr_float)(SphP[target].H2_DissociationRate);
+  *All.GrackleFieldData.RT_H2_dissociation_rate = SphP[target].H2_DissociationRate;
   
-  SphP[target].H2_DissociationRate = 0;
+  SphP[target].H2_DissociationRate = 0.0;
 #else
-  *All.GrackleFieldData.RT_H2_dissociation_rate = 0;
+  *All.GrackleFieldData.RT_H2_dissociation_rate = 0.0;
 #endif
 
 #ifdef PHOTOIONIZATION
-  *All.GrackleFieldData.RT_HI_heating_rate = (gr_float)(SphP[target].IonHeatingRate[0]);
-  *All.GrackleFieldData.RT_HeI_heating_rate = (gr_float)(SphP[target].IonHeatingRate[1]);
-  *All.GrackleFieldData.RT_HeII_heating_rate = (gr_float)(SphP[target].IonHeatingRate[2]);
-  *All.GrackleFieldData.RT_HI_ionization_rate = (gr_float)(SphP[target].IonizationRate[0]);
-  *All.GrackleFieldData.RT_HeI_ionization_rate = (gr_float)(SphP[target].IonizationRate[1]);
-  *All.GrackleFieldData.RT_HeII_ionization_rate = (gr_float)(SphP[target].IonizationRate[2]);
+  *All.GrackleFieldData.RT_HI_heating_rate = SphP[target].IonHeatingRate[0];
+  *All.GrackleFieldData.RT_HeI_heating_rate = SphP[target].IonHeatingRate[1];
+  *All.GrackleFieldData.RT_HeII_heating_rate = SphP[target].IonHeatingRate[2];
+  *All.GrackleFieldData.RT_HI_ionization_rate = SphP[target].IonizationRate[0];
+  *All.GrackleFieldData.RT_HeI_ionization_rate = SphP[target].IonizationRate[1];
+  *All.GrackleFieldData.RT_HeII_ionization_rate = SphP[target].IonizationRate[2];
 
   for(int s = 0; s < 3; s++)
     SphP[target].IonHeatingRate[s] = SphP[target].IonizationRate[s] = 0.0;
 
 #else
-  *All.GrackleFieldData.RT_HI_heating_rate = 0;
-  *All.GrackleFieldData.RT_HeI_heating_rate = 0;
-  *All.GrackleFieldData.RT_HeII_heating_rate = 0;
-  *All.GrackleFieldData.RT_HI_ionization_rate = 0;
-  *All.GrackleFieldData.RT_HeI_ionization_rate = 0;
-  *All.GrackleFieldData.RT_HeII_ionization_rate = 0;
+  *All.GrackleFieldData.RT_HI_heating_rate = 0.0;
+  *All.GrackleFieldData.RT_HeI_heating_rate = 0.0;
+  *All.GrackleFieldData.RT_HeII_heating_rate = 0.0;
+  *All.GrackleFieldData.RT_HI_ionization_rate = 0.0;
+  *All.GrackleFieldData.RT_HeI_ionization_rate = 0.0;
+  *All.GrackleFieldData.RT_HeII_ionization_rate = 0.0;
 #endif
 
   *All.GrackleFieldData.specific_heating_rate = 0.0;
@@ -444,7 +455,7 @@ void InitGrackle(void)
 #else
   my_grackle_data->ExplicitHydrogenFraction = 0;
   /* Use the default values */
-  my_grackle_data->HydrogenFractionByMass = 0.715768377353088514;;
+  my_grackle_data->HydrogenFractionByMass = 0.715768377353088514;
   my_grackle_data->DeuteriumToHydrogenRatio = DEUTERIUM_TO_HYDROGEN_RATIO;
 #endif
 
