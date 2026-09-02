@@ -506,10 +506,14 @@ typedef unsigned long long peano1D;
 #define SEC_PER_YEAR 3.15576e7
 
 /*! All metals (by mass). 
-* present photospheric abundances from Asplund et al. 2009 (Z=0.0134, proto-solar=0.0142)
-* Anders+Grevesse 1989 (Z=0.0201, proto-solar=0.0213)
+* Asplund et al. 2009 (Z = 0.0134, proto-solar=0.0142)
+* Anders+Grevesse 1989 (Z = 0.0201, proto-solar=0.0213)
+* Set to 0.01295 to match the grackle Cloudy cooling tables
 */
-#define SOLAR_METALLICITY 0.0134
+#define SOLAR_METALLICITY 0.01295
+
+/* From Draine */
+#define DUST_TO_GAS_RATIO 0.0060496
 
 #ifdef USE_GRACKLE
 #define GRACKLE_TINY 1e-20

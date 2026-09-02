@@ -97,6 +97,7 @@ void update_opac(void)
 
       double Density = (P[i].Mass + SphP[i].StarMassFeed) / SphP[i].Volume;
       
+      /* With this scaling we are assuming: dust to metals ~ DUST_TO_GAS_RATIO / SOLAR_METALLICITY (0.467) */
       SphP[i].OpacityScaling[CH_DUST] = fmax(0.0, Zsol * Density / Units);
 
       Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;

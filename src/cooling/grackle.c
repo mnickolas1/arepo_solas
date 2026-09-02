@@ -481,6 +481,9 @@ void InitGrackle(void)
   my_grackle_data->photoelectric_heating_rate = 8.5e-26;
 #endif
 
+  my_grackle_data->SolarMetalFractionByMass = SOLAR_METALLICITY;
+  my_grackle_data->local_dust_to_gas_ratio = DUST_TO_GAS_RATIO;
+
   /* Flag to control which three-body H2 formation rate is used.
    *    0: Abel, Bryan & Norman (2002),
    *    1: Palla, Salpeter & Stahler (1983),
