@@ -494,7 +494,7 @@ static void bh_accretion_rate(void)
             {
               denominator_inv = 1. / sqrt(denominator);
               BondiRate = (4.0 * M_PI * All.G * All.G * PPB(i).Mass * PPB(i).Mass * gas_density 
-              * denominator_inv*denominator_inv*denominator_inv * 1.0) / All.cf_hubble_a;
+              * denominator_inv*denominator_inv*denominator_inv) / All.cf_hubble_a;
             }
           else
             terminate("Invalid denominator in Bondi Accretion Rate!");

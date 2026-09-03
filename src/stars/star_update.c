@@ -251,6 +251,7 @@ void star_prep(void)
       /* Convert properties to yr and msun */
       MyDouble star_mass_msun = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
       MyDouble star_timestep_yr = star_timestep * All.cf_UnitTime_in_yr;
+      MyDouble star_age_yr = SP[i].Age; 
 
 #ifdef METALS 
       MyDouble star_metallicity = SP[i].Metallicity;

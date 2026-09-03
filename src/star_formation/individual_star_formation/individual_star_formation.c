@@ -200,7 +200,7 @@ void individual_starbystar_formation(void)
         rate = 0;
 
       /* convert to solar masses per yr */
-      rate *= All.cf_UnitMass_in_Msun / All.cf_UnitTime_in_yr;
+      rate *= (All.UnitMass_in_g / SOLAR_MASS) / (All.UnitTime_in_s / SEC_PER_YEAR);
 
       fprintf(FdSfr, "%14e %14e %14e\n", All.Time, global_stars_mass, rate);
       myflush(FdSfr);
