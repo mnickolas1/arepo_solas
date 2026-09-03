@@ -52,8 +52,8 @@ static int sf_criteria(int i)
 #endif
 
   double number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;
-  double temp = (SphP[i].Utherm * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s) 
-  * mu * PROTONMASS * GAMMA_MINUS1 / BOLTZMANN;
+  double temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
+              * mu * PROTONMASS * GAMMA_MINUS1 / BOLTZMANN;
 
   if(number_dens < All.NumberDensThreshold)
     return 0;
@@ -99,8 +99,8 @@ void cooling_and_starformation(void)
         continue;
       
       /* skip cells that have been swallowed or eliminated */
-      if(P[i].Mass == 0)
-        continue; 
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
        
       /* apply the temperature floor */
       unew = dmax(All.MinEgySpec, SphP[i].Utherm);
@@ -144,7 +144,7 @@ double get_starformation_rate(int i)
     return 0;
     
   /* freefall time in code units */
-  t_freefall = sqrt(3. * M_PI / 32 / All.G / SphP[i].Density); 
+  t_freefall = sqrt(3. * M_PI / 32 / All.G / (SphP[i].Density * All.cf_a3inv)); 
 
   rateOfSF = All.StarFormationEfficiency * P[i].Mass / t_freefall;
 

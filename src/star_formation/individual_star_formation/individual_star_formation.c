@@ -91,7 +91,7 @@ void individual_starbystar_formation(void)
       dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
       dt /= All.cf_hubble_a;
 
-      dtff = sqrt(3.0 * M_PI / 32 / All.G / SphP[i].Density);
+      dtff = sqrt(3.0 * M_PI / 32 / All.G / (SphP[i].Density * All.cf_a3inv));
           
       p = 0;
       prob = 0;
@@ -195,7 +195,7 @@ void individual_starbystar_formation(void)
   if(ThisTask == 0)
     {
       if(All.TimeStep > 0)
-        rate = global_stars_mass / All.TimeStep;
+        rate = global_stars_mass / (All.TimeStep / All.cf_time_hubble_a);
       else
         rate = 0;
 

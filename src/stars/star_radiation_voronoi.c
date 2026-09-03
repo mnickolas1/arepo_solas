@@ -136,7 +136,7 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   /* Reradiation in the IR (boosts momentum) */
   double Dtau_IR = dtau_IR(i, length);
 
-  const double c_code = CLIGHT / All.cf_UnitVelocity_in_cm_per_s;
+  const double c_code = CLIGHT / All.UnitVelocity_in_cm_per_s;
 
   const double mj = P[i].Mass + SphP[i].StarMassFeed;
 

@@ -381,14 +381,16 @@ void InitGrackle(void)
    * IMPORTANT: at the moment the density is already converted into proper frame before calling the cooling routine,
    * so it's better to set this = 0 and only change a_value at every timestep.
    */
+  
+  /* Do not use All.cf_Units in passing quantities to grackle -> peel only a and retain h */
 
   double h = All.HubbleParam;
 
   All.GrackleUnits.comoving_coordinates = 0;  // All.ComovingIntegrationOn; // 1 if cosmological sim, 0 if not
-  All.GrackleUnits.density_units        = All.UnitDensity_in_cgs / h / h;
-  All.GrackleUnits.length_units         = All.UnitLength_in_cm / h;
-  All.GrackleUnits.time_units           = All.UnitTime_in_s / h;
-  All.GrackleUnits.a_units              = 1.0;  // units for the expansion factor; NOTE: Should be 1 always
+  All.GrackleUnits.density_units = All.UnitDensity_in_cgs * h*h;
+  All.GrackleUnits.length_units = All.UnitLength_in_cm / h;
+  All.GrackleUnits.time_units = All.UnitTime_in_s / h;
+  All.GrackleUnits.a_units = 1.0;  // units for the expansion factor; NOTE: Should be 1 always
   set_velocity_units(&All.GrackleUnits);
 
   if(ThisTask == 0)
@@ -472,12 +474,12 @@ void InitGrackle(void)
    * ~3000 K, when it should be entirely self-shielding) Another comment: this heats also all the low-density gas to 10^4 K, so it's
    * better not to use it.
    */
-  my_grackle_data->photoelectric_heating      = 0; /* read above but DO NOT USE */
+  my_grackle_data->photoelectric_heating = 0; /* read above but DO NOT USE */
   my_grackle_data->photoelectric_heating_rate = 8.5e-26;
 #else
-  my_grackle_data->metal_cooling              = 0;
-  my_grackle_data->h2_on_dust                 = 0;
-  my_grackle_data->photoelectric_heating      = 0;
+  my_grackle_data->metal_cooling = 0;
+  my_grackle_data->h2_on_dust = 0;
+  my_grackle_data->photoelectric_heating = 0;
   my_grackle_data->photoelectric_heating_rate = 8.5e-26;
 #endif
 
@@ -544,10 +546,10 @@ void InitGrackle(void)
 
 #ifdef STAR_RADIATION_ACTIVE
   /* flag to include RT */
-  my_grackle_data->use_radiative_transfer      = 1;
+  my_grackle_data->use_radiative_transfer = 1;
   my_grackle_data->use_volumetric_heating_rate = 1;
 #else
-  my_grackle_data->use_radiative_transfer      = 0;
+  my_grackle_data->use_radiative_transfer = 0;
   my_grackle_data->use_volumetric_heating_rate = 0;
 #endif
 

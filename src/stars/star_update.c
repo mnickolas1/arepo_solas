@@ -246,12 +246,11 @@ void star_prep(void)
       
       /* Advance timestep and age */
       MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
-      SP[i].Age = All.Time - SP[i].Birthtime;
+      SP[i].Age = get_time_difference_in_Gyr(SP[i].Birthtime, All.Time) * 1.0e9;
 
       /* Convert properties to yr and msun */
       MyDouble star_mass_msun = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
       MyDouble star_timestep_yr = star_timestep * All.cf_UnitTime_in_yr;
-      MyDouble star_age_yr = SP[i].Age * All.cf_UnitTime_in_yr; 
 
 #ifdef METALS 
       MyDouble star_metallicity = SP[i].Metallicity;

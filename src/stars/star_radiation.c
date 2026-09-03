@@ -634,7 +634,7 @@ static void radiation_feedback(void)
 
       /* AbsorbedH2Line holds pumped photons; F_DISS is the branching ratio */
       if(n_H2 > 0.0)
-        SphP[i].H2_DissociationRate += (F_DISS * SphP[i].AbsorbedH2Line / (dt / All.cf_hubble_a / All.HubbleParam) / V) / n_H2;
+        SphP[i].H2_DissociationRate += F_DISS * SphP[i].AbsorbedH2Line / (dt / All.cf_hubble_a) / V / n_H2;
 #endif
 
 #ifdef PHOTOIONIZATION
@@ -654,12 +654,12 @@ static void radiation_feedback(void)
           const double n_cgs = n / L3;
 
           if(E_exc > 0.0)
-            SphP[i].IonHeatingRate[s] += (E_exc / dt_cgs / V_cgs) / n_cgs;
+            SphP[i].IonHeatingRate[s] += E_exc / dt_cgs / V_cgs / n_cgs;
           else if(N_abs > 0.0)
             warn("STAR_RADIATION: sub-threshold mean photon energy, species %d, cell %d "
                  "(E_abs=%g N_abs=%g) \n", s, i, E_abs, N_abs);
 
-          SphP[i].IonizationRate[s] += (N_abs / (dt / All.cf_hubble_a / All.HubbleParam) / V) / n;
+          SphP[i].IonizationRate[s] += N_abs / (dt / All.cf_hubble_a) / V / n;
         }
 #endif
 

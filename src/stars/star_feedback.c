@@ -145,17 +145,12 @@ static void SN_compute(int ev, int h, double alpha, double beta, double gamma, d
   double E_SN  = MechanicalFeedback->SN_EnergyInject;
   double E51 = E_SN * All.cf_UnitEnergy_in_cgs / SN_ENERGY;
   
-  double n_H = HYDROGEN_MASSFRAC * NgbsDensity * All.cf_UnitDensity_in_cgs / PROTONMASS;
+  double n_H = HYDROGEN_MASSFRAC * (NgbsDensity * All.cf_UnitDensity_in_cgs) / PROTONMASS;
   
   double Zsol = fmax(NgbsMetallicity / 0.0127, 0.01);
 
- 
-  double p_term = 3.0e5 /* Msun km/s */
-                * pow(E51, 16.0 / 17.0)
-                * pow(n_H, -2.0 / 17.0)
-                * pow(Zsol, -0.14);
-  
-  p_term /= (All.cf_UnitMass_in_Msun * All.cf_UnitVelocity_in_cm_per_s / 1.0e5);
+  double p_term = 3.0e5 * pow(E51, 16.0 / 17.0) * pow(n_H, -2.0 / 17.0) * pow(Zsol, -0.14);
+  p_term *= SOLAR_MASS * 1e5 / All.cf_UnitMomentum_in_cgs;
 
   if(p_SN > p_term)
     p_SN = p_term;

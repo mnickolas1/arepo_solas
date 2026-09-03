@@ -480,21 +480,21 @@ static void bh_accretion_rate(void)
       /* Get pressure */
       if(BhP[i].GasDensity > 0)
         {  
-          gas_density = BhP[i].GasDensity;
+          gas_density = BhP[i].GasDensity * All.cf_a3inv;
           gas_pressure = GAMMA_MINUS1 * gas_density * BhP[i].GasInternalEnergy;
 
           /* Get soundspeed */
           gas_sound_speed = sqrt(GAMMA * gas_pressure / gas_density);
       
           gas_velocity_norm = sqrt(BhP[i].GasVelocity[0]*BhP[i].GasVelocity[0] + 
-          BhP[i].GasVelocity[1]*BhP[i].GasVelocity[1] + BhP[i].GasVelocity[2]*BhP[i].GasVelocity[2]); 
+          BhP[i].GasVelocity[1]*BhP[i].GasVelocity[1] + BhP[i].GasVelocity[2]*BhP[i].GasVelocity[2]) / All.cf_atime; 
 
           denominator = (gas_sound_speed*gas_sound_speed + gas_velocity_norm*gas_velocity_norm);
           if(denominator > 0)
             {
               denominator_inv = 1. / sqrt(denominator);
-              BondiRate = 4.0 * M_PI * All.G * All.G * PPB(i).Mass * PPB(i).Mass * gas_density 
-              * denominator_inv*denominator_inv*denominator_inv;
+              BondiRate = (4.0 * M_PI * All.G * All.G * PPB(i).Mass * PPB(i).Mass * gas_density 
+              * denominator_inv*denominator_inv*denominator_inv * 1.0) / All.cf_hubble_a;
             }
           else
             terminate("Invalid denominator in Bondi Accretion Rate!");
@@ -503,8 +503,8 @@ static void bh_accretion_rate(void)
         BondiRate = 0;
   
       /* Limit by Eddington accretion rate */
-      EddingtonRate = 4. * M_PI * GRAVITY * (PPB(i).Mass * All.cf_UnitMass_in_g) * PROTONMASS / (All.Epsilon_r * CLIGHT * THOMPSON);
-      EddingtonRate *= (All.cf_UnitTime_in_s / All.cf_UnitMass_in_g);
+      EddingtonRate = 4. * M_PI * GRAVITY * (PPB(i).Mass * All.cf_UnitMass_in_g) * PROTONMASS / All.Epsilon_r / CLIGHT / THOMPSON;
+      EddingtonRate /= (All.cf_UnitMass_in_g / All.cf_UnitTime_in_s);
       accretion_rate = fmin(BondiRate, EddingtonRate);
       
       /* Store the accretion */

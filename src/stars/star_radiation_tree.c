@@ -252,13 +252,13 @@ void raytrace_treewalk(RayPacket *ray, RayWorkStack *work, RayExportBuffer *expo
               
               /* No IR reradiation */
               if(w == IONIZING_HI || w == IONIZING_HeI || w == IONIZING_HeII)
-                dp = absorbed[w].Energy / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+                dp = (absorbed[w].Energy / (CLIGHT / All.UnitVelocity_in_cm_per_s)) / All.cf_atime;
               /* IR reradiation (dust only) */
               else if(w == LYMAN_WERNER)
-                dp = absorbed[w].Energy * (1.0 + (1.0 - lw_line[0]) * Dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;
+                dp = (absorbed[w].Energy * (1.0 + (1.0 - lw_line[0]) * Dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.UnitVelocity_in_cm_per_s)) / All.cf_atime;
               /* IR reradiation (full) */
               else
-                dp = absorbed[w].Energy * (1.0 + Dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.cf_UnitVelocity_in_cm_per_s) / All.cf_atime;        
+                dp = (absorbed[w].Energy * (1.0 + Dtau_IR * ReradiatedFraction[w]) / (CLIGHT / All.UnitVelocity_in_cm_per_s)) / All.cf_atime;        
             
               double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
 

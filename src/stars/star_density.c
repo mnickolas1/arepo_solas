@@ -546,7 +546,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
               MyDouble time_to_sn = target_data->TimeToSN;
               MyDouble next_sn_energy = target_data->NextSNEnergy;
 
-              MyDouble sn_lead_time = All.SN_LeadTime / All.UnitTime_in_Megayears;
+              MyDouble sn_lead_time = All.SN_LeadTime * 1.0e6 / All.cf_UnitTime_in_yr;
           
               if(time_to_sn < sn_lead_time)
                 {
@@ -556,7 +556,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
                   double f = 1.0 - time_to_sn / sn_lead_time;
                   f = fmin(fmax(f, 0.0), 1.0);
 
-                  double Csn = sqrt(GAMMA * GAMMA_MINUS1 * E_inject_code / P[i].Mass) * f;
+                  double Csn = sqrt(GAMMA * GAMMA_MINUS1 * (E_inject_code / All.cf_atime/All.cf_atime) / P[i].Mass) * f;
           
                   if(Csn > SphP[i].Csn)
                     SphP[i].Csn = Csn;

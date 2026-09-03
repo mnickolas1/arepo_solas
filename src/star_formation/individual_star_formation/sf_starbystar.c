@@ -347,8 +347,8 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
           double mu = compute_mu(i); 
 
           double number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;
-          double temp = (SphP[i].Utherm * All.cf_UnitVelocity_in_cm_per_s * All.cf_UnitVelocity_in_cm_per_s) 
-          * mu * PROTONMASS * GAMMA_MINUS1 / BOLTZMANN;
+          double temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
+                      * mu * PROTONMASS * GAMMA_MINUS1 / BOLTZMANN;
 
           if(number_dens < All.NumberDensThreshold / 10.0 || temp > All.TemperatureThreshold * 10)
             continue;

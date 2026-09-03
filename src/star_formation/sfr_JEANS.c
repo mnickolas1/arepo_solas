@@ -59,7 +59,7 @@ double get_jeans_length(int i)
 
   sound_speed = get_sound_speed(i);
   
-  jeans_length = sqrt(M_PI / All.G / SphP[i].Density) * sound_speed;
+  jeans_length = sqrt(M_PI / All.G / (SphP[i].Density * All.cf_a3inv)) * sound_speed;
 
   return jeans_length;
 }
@@ -76,7 +76,7 @@ double get_jeans_mass(int i)
 
   sound_speed = get_sound_speed(i);
   
-  jeans_mass = pow(M_PI, 2.5) * pow(sound_speed, 3.) / 6. / pow(All.G, 1.5) / sqrt(SphP[i].Density);
+  jeans_mass = pow(M_PI, 2.5) * pow(sound_speed, 3.0) / 6.0 / pow(All.G, 1.5) / sqrt(SphP[i].Density * All.cf_a3inv);
 
   return jeans_mass;
 }
@@ -90,7 +90,7 @@ static int sf_criteria(int i)
     return 1;
 #else
   /* SF if Jeans length is smaller than cell size (unresolved) */
-  if(get_jeans_length(i) < 2.0 * get_cell_radius(i))
+  if(get_jeans_length(i) < 2.0 * (get_cell_radius(i) * All.cf_atime))
     return 1;
 #endif
 
@@ -172,7 +172,7 @@ double get_starformation_rate(int i)
     return 0;
     
   /* freefall time in code units */
-  t_freefall = sqrt(3.0 * M_PI / 32 / All.G / SphP[i].Density); 
+  t_freefall = sqrt(3.0 * M_PI / 32 / All.G / (SphP[i].Density * All.cf_a3inv)); 
 
   rateOfSF = All.StarFormationEfficiency * P[i].Mass / t_freefall;
 
