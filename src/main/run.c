@@ -362,9 +362,9 @@ void do_second_order_source_terms_second_half(void)
 void set_non_standard_physics_for_current_time(void)
 {
 #ifndef NOUVBACKGROUND
-#if defined(COOLING) // TODO: && !defined(USE_GRACKLE)
+#ifdef PRIMORDIAL_COOLING
     IonizeParams(); /* set UV background for the current time */
-#endif            /* #if defined(COOLING) && !defined(USE_GRACKLE) */
+#endif /* #ifdef PRIMORDIAL_COOLING */
 #endif
 }
 

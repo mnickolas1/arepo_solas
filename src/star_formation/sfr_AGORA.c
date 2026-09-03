@@ -45,15 +45,8 @@
 /* Function that checks whether a cell i satisfies star formation criteria*/
 static int sf_criteria(int i)
 {
-#ifdef USE_GRACKLE 
-  double mu = compute_mu(i);
-#else // To be replaced 
-  double mu = 4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC));
-#endif
-
-  double number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;
-  double temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
-              * mu * PROTONMASS * GAMMA_MINUS1 / BOLTZMANN;
+  double number_dens = evaluate_numberdens(i);
+  double temp = evaluate_temp(i);
 
   if(number_dens < All.NumberDensThreshold)
     return 0;

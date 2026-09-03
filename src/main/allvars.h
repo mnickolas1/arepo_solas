@@ -1368,7 +1368,7 @@ extern struct global_data_all_processes
 double InitMetallicityinSolar; 
 #endif 
 
-#ifdef COOLING
+#ifdef PRIMORDIAL_COOLING
   char TreecoolFile[MAXLEN_PATH];
 #endif 
 
@@ -1730,7 +1730,7 @@ extern struct sph_particle_data
 #endif
 
 /* Cooling */
-#ifdef COOLING
+#ifdef PRIMORDIAL_COOLING
   MyFloat Ne; /* electron fraction, expressed as local electron number
                  density normalized to the hydrogen number density. Gives
                  indirectly ionization state and mean molecular weight. */

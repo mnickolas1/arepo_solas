@@ -44,12 +44,9 @@
 
 /* Function that checks whether a cell i satisfies star formation criteria*/
 static int sf_criteria(int i)
-{
-  double mu = compute_mu(i);
-  
-  double number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;
-  double temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
-              * mu * PROTONMASS * GAMMA_MINUS1 / BOLTZMANN;
+{  
+  double number_dens = evaluate_numberdens(i);
+  double temp = evaluate_temp(i);
 
   if(number_dens < All.NumberDensThreshold)
     return 0;

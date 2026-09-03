@@ -340,11 +340,48 @@ SUBDIRS += add_backgroundgrid
 endif
 
 #COOLING
-ifeq (COOLING,$(findstring COOLING,$(CONFIGVARS)))
 OBJS += cooling/cooling.o
-INCL += cooling/cooling_vars.h \
-        cooling/cooling_proto.h
 SUBDIRS += cooling
+
+# Enforce at least one Cooling model at a time
+ifneq (,$(filter COOLING,$(CONFIGVARS)))
+ifeq (,$(filter PRIMORDIAL_COOLING USE_GRACKLE,$(CONFIGVARS)))
+$(error COOLING requires PRIMORDIAL_COOLING or USE_GRACKLE)
+endif
+endif
+
+# Enforce at most one Cooling model at a time
+COOL_MODELS := $(filter PRIMORDIAL_COOLING USE_GRACKLE,$(CONFIGVARS))
+ifneq ($(word 2,$(COOLING_MODELS)),)
+$(error Only one Cooling model may be active at a time. Currently enabled: $(COOL_MODELS))
+endif
+
+ifneq (,$(filter PRIMORDIAL_COOLING USE_GRACKLE,$(CONFIGVARS)))
+ifeq (,$(filter COOLING,$(CONFIGVARS)))
+$(error PRIMORDIAL_COOLING and USE_GRACKLE require COOLING)
+endif
+endif
+
+ifneq (,$(filter LOW_TEMP_COOLING,$(CONFIGVARS)))
+ifeq (,$(filter PRIMORDIAL_COOLING,$(CONFIGVARS)))
+$(error LOW_TEMP_COOLING requires PRIMORDIAL_COOLING)
+endif
+endif
+
+ifneq (,$(filter OUTPUTCOOLRATE,$(CONFIGVARS)))
+ifeq (,$(filter PRIMORDIAL_COOLING,$(CONFIGVARS)))
+$(error OUTPUTCOOLRATE requires PRIMORDIAL_COOLING)
+endif
+endif
+
+ifneq (,$(filter EEOS_SF,$(CONFIGVARS)))
+ifeq (,$(filter PRIMORDIAL_COOLING,$(CONFIGVARS)))
+$(error EEOS_SF requires PRIMORDIAL_COOLING)
+endif
+endif
+
+ifeq (PRIMORDIAL_COOLING,$(findstring PRIMORDIAL_COOLING,$(CONFIGVARS)))
+OBJS += cooling/primordial_cooling.o
 endif
 
 ifneq (,$(filter USE_GRACKLE,$(CONFIGVARS)))

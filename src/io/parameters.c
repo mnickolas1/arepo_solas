@@ -507,7 +507,7 @@ void read_parameter_file(char *fname)
 #endif
 
 /* Cooling */
-#ifdef COOLING
+#ifdef PRIMORDIAL_COOLING
       strcpy(tag[nt], "TreecoolFile");
       addr[nt] = &All.TreecoolFile;
       id[nt++] = STRING;

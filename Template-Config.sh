@@ -113,7 +113,8 @@
 #OPTIMIZE_MESH_MEMORY_FOR_REFINEMENT  # deletes the mesh structures not needed for refinement/derefinemet to lower the peak memory consumption
 
 #---------------------------------------- non-standard phyiscs
-#COOLING                       # Simple primordial cooling
+#COOLING                       # General cooling flag
+#PRIMORDIAL_COOLING            # Simple primordial cooling
 #LOW_TEMP_COOLING              # Maschenko et al. 2008 # Don't use while USE_GRACKLE
 #ENFORCE_JEANS_STABILITY_OF_CELLS  # this imposes an adaptive floor for the temperature
 #USE_SFR                       # Star formation model, turning dense gas into collisionless partices

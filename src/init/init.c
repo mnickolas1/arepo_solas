@@ -77,12 +77,9 @@ int init(void)
           mpi_printf("INIT: Skipping Omega check since we are not doing a dynamical evolution (not all particles may be loaded)\n");
       }
 
-/* IonizeParams initalises the Treecool file and such, 
-* which we don't need when using grackle
-*/
-#if defined(COOLING) && !defined(USE_GRACKLE)
+#ifdef PRIMORDIAL_COOLING
     IonizeParams();
-#endif /* defined(COOLING) && !defined(USE_GRACKLE) */
+#endif /* #ifdef PRIMORDIAL_COOLING */
 
   if(All.ComovingIntegrationOn)
     {
@@ -324,9 +321,9 @@ int init(void)
             SphP[i].Center[j] = P[i].Pos[j];
 
           SphP[i].Hsml = 0;
-#if defined(COOLING)
+#ifdef PRIMORDIAL_COOLING
           SphP[i].Ne = 1.0;
-#endif /* #if defined(COOLING)  */
+#endif /* #ifdef PRIMORDIAL_COOLING */
         }
     }
 

@@ -324,7 +324,7 @@ static void io_func_coolrate(int particle, int components, void *buffer, int mod
   SetOutputGasState(particle, &ne, &nh0, &coolrate);
 
   /* get cooling time */
-  tcool = GetCoolingTime(SphP[particle].Utherm, SphP[particle].Density * All.cf_a3inv, &ne);
+  tcool = GetPrimordialCoolingTime(SphP[particle].Utherm, SphP[particle].Density * All.cf_a3inv, &ne);
 
   /* convert cooling time with current thermal energy to du/dt */
   if(tcool != 0)
@@ -335,7 +335,7 @@ static void io_func_coolrate(int particle, int components, void *buffer, int mod
 #endif /* #ifdef OUTPUTCOOLRATE */
 
 /* -- user defined functions: gas properties -- */
-#ifdef COOLING
+#ifdef PRIMORDIAL_COOLING
 /*! \brief IO function of the electron number density.
  *
  *  \param[in] particle Index of particle/cell.
@@ -367,9 +367,7 @@ static void io_func_ne(int particle, int components, void *buffer, int mode)
       SphP[particle].Ne = ((MyInputFloat *)buffer)[0];
     }
 }
-#endif /* #if defined(COOLING) */
 
-#ifdef COOLING
 /*! \brief Output function for neutral hydrogen fraction.
  *
  *  \param[in] particle Index of particle/cell.
@@ -388,7 +386,7 @@ static void io_func_nh(int particle, int components, void *buffer, int mode)
 
   ((MyOutputFloat *)buffer)[0] = nh0;
 }
-#endif /* #if defined(COOLING) */
+#endif /* #ifdef PRIMORDIAL_COOLING */
 
 #ifdef USE_SFR
 /*! \brief IO function for star formation rate.
