@@ -340,7 +340,9 @@ SUBDIRS += add_backgroundgrid
 endif
 
 #COOLING
-OBJS += cooling/cooling.o
+OBJS += cooling/cooling.o 
+INCL += cooling/cooling_proto.h \
+        cooling/cooling_vars.h
 SUBDIRS += cooling
 
 # Enforce at least one Cooling model at a time
@@ -352,7 +354,7 @@ endif
 
 # Enforce at most one Cooling model at a time
 COOL_MODELS := $(filter PRIMORDIAL_COOLING USE_GRACKLE,$(CONFIGVARS))
-ifneq ($(word 2,$(COOLING_MODELS)),)
+ifneq ($(word 2,$(COOL_MODELS)),)
 $(error Only one Cooling model may be active at a time. Currently enabled: $(COOL_MODELS))
 endif
 

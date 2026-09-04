@@ -78,5 +78,3 @@ typedef struct
 {
   double u_old_input, rho_input, dt_input, ne_guess_input;
 } DoCoolData;
-
-

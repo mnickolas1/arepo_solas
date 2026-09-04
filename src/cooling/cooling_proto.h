@@ -20,8 +20,9 @@
  * \file        src/cooling/cooling_proto.h
  * \date        05/2018
  * \brief       Header for cooling functions.
- * \details
- *
+ * \details     Declares the model-independent gas-state helpers in cooling.c
+ *              and, guarded by the corresponding config flag, the entry points
+ *              of the two cooling models (primordial_cooling.c, grackle.c).
  *
  * \par Major modifications and contributions:
  *
@@ -33,25 +34,42 @@
 #define INLINE_FUNC
 #endif /* #ifndef INLINE_FUNC */
 
+/* --- common gas state; cooling/cooling.c is compiled unconditionally --- */
+
+double evaluate_mu(int i);
+double evaluate_temp(int i);
+double evaluate_numberdens(int i);
+
+#ifdef COOLING
+void InitCool(void);
+
+void cooling_only(void);
+void cool_cell(int i);
+
+double GetCoolingTime(int i);
+#endif /* #ifdef COOLING */
+
+/* --- primordial (Katz/KWH) network; cooling/primordial_cooling.c --- */
+
+#ifdef PRIMORDIAL_COOLING
+double primordial_mu(int i);
+
+void InitPrimordialCooling(void);
+double DoPrimordialCooling(double u_old, double rho, double dt, double *ne_guess);
+double GetPrimordialCoolingTime(double u_old, double rho, double *ne_guess);
 
 void SetOutputGasState(int i, double *ne_guess, double *nH0, double *coolrate);
-
-double primordial_convert_u_to_temp(double u, double rho, double *ne_guess);
-double CoolingRate(double logT, double rho, double *nelec);
-double CoolingRateFromU(double u, double rho, double *ne_guess);
-double DoCooling(double u_old, double rho, double dt, double *ne_guess, int i);
-double GetCoolingTime(double u_old, double rho, double *ne_guess, int i);
-
-void find_abundances_and_rates(double logT, double rho, double *ne_guess);
-void InitCool(void);
-void IonizeParamsUVB(void);
-void IonizeParams(void);
-void ReadIonizeParams(char *fname, int which);
 void SetZeroIonization(void);
+void IonizeParams(void);
+#endif /* #ifdef PRIMORDIAL_COOLING */
+
+/* --- Grackle; cooling/grackle.c --- */
 
 #ifdef USE_GRACKLE
 #include <grackle.h>
 
+double grackle_mu(int i);
+
 void InitGrackle(void);
-double CallGrackle(int i, double dt, int mode);
-#endif // USE_GRACKLE
+double CallGrackle(int i, double u, double rho, double dt, int mode);
+#endif /* #ifdef USE_GRACKLE */

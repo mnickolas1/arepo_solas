@@ -344,7 +344,7 @@ static int sf_starbystar_evaluate(int target, int mode, int threadid)
 
       if(r2 < h2)
         {
-          double number_dens = evaluate_numberdens(i)
+          double number_dens = evaluate_numberdens(i);
           double temp = evaluate_temp(i);
 
           if(number_dens < All.NumberDensThreshold / 10.0 || temp > All.TemperatureThreshold * 10)

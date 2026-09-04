@@ -298,7 +298,7 @@ double CallGrackle(int i, double dt, int mode)
   All.GrackleFieldData.grid_start = malloc(3 * sizeof(int));
   All.GrackleFieldData.grid_end = malloc(3 * sizeof(int));
 
-  for(int i = 0; i < 3; i++)
+  for(int k = 0; k < 3; k++)
     {
       All.GrackleFieldData.grid_dimension[i] = 1;
       All.GrackleFieldData.grid_start[i] = 0;

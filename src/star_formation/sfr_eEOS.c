@@ -277,7 +277,7 @@ void init_clouds(void)
       ne = 1.0;
       SetZeroIonization();
       
-      tcool = GetPrimordialCoolingTime(egyhot, dens, &ne, 0); /* 0 is a dummy for when running the SH03 model */
+      tcool = GetPrimordialCoolingTime(egyhot, dens, &ne);
 
       coolrate = egyhot / tcool / dens;
 
@@ -521,7 +521,7 @@ double calc_egyeff(int i, double gasdens, double *ne, double *x, double *tsfr, d
 
   egyhot = All.EgySpecSN / (1 + *factorEVP) + All.EgySpecCold;
 
-  tcool = GetPrimordialCoolingTime(egyhot, rho, ne, 0); /* 0 is a dummy for when running the SH03 model */
+  tcool = GetPrimordialCoolingTime(egyhot, rho, ne);
 
   y = *tsfr / tcool * egyhot / (All.FactorSN * All.EgySpecSN - (1 - All.FactorSN) * All.EgySpecCold);
 

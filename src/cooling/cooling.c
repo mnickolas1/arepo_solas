@@ -205,6 +205,7 @@ double GetCoolingTime(int i)
   tcool =  LambdaNet / All.UnitTime_in_s;
 #else
 #endif
+  return tcool;
 }
 
 #endif

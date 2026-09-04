@@ -324,7 +324,7 @@ static void io_func_coolrate(int particle, int components, void *buffer, int mod
   SetOutputGasState(particle, &ne, &nh0, &coolrate);
 
   /* get cooling time */
-  tcool = GetPrimordialCoolingTime(SphP[particle].Utherm, SphP[particle].Density * All.cf_a3inv, &ne);
+  tcool = GetCoolingTime(particle);
 
   /* convert cooling time with current thermal energy to du/dt */
   if(tcool != 0)
@@ -573,7 +573,7 @@ void init_io_fields()
   init_units(IO_CSND, 0., 0., 0., 0., 1., All.UnitVelocity_in_cm_per_s);
 #endif /* #ifdef OUTPUT_CSND */
 
-#ifdef COOLING
+#ifdef PRIMORDIAL_COOLING
   init_field(IO_NE, "NE  ", "ElectronAbundance", MEM_NONE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_NONE, 0, io_func_ne,
              GAS_ONLY);                /* electron abundance */
   init_units(IO_NE, 0, 0, 0, 0, 0, 0); /* dimensionless fraction */

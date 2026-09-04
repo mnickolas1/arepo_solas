@@ -50,6 +50,15 @@
  * - 24.05.2018 Prepared file for public release -- Rainer Weinberger
  */
 
+#include <math.h>
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../main/allvars.h"
+#include "../main/proto.h"
+
 
 static double Tmin = 0.0;     /*!< min temperature in log10 */
 static double Tmax = 9.0;     /*!< max temperature in log10 */
@@ -60,69 +69,6 @@ static PhotoTable *PhotoTUVB; /*!< photo-ionization/heating rate table for UV ba
 static PhotoCurrent pc;       /*!< current interpolated photo rates */
 static int NheattabUVB;       /*!< length of UVB photo table */
 static DoCoolData DoCool;     /*!< cooling data */
-
-/*! \brief Compute gas temperature from internal energy per unit mass.
- *
- *   This function determines the electron fraction, and hence the mean
- *   molecular weight. With it arrives at a self-consistent temperature.
- *   Element abundances and the rates for the emission are also computed.
- *
- *  \param[in] u   internal energy per unit mass.
- *  \param[in] rho gas density.
- *  \param[in, out] ne_guess electron number density relative to hydrogen
- *                  number density
- *
- *  \return The gas temperature.
- */
-static double primordial_convert_u_to_temp(double u, double rho, double *ne_guess)
-{
-  double temp, temp_old, temp_new, max = 0, ne_old;
-  double mu;
-  int iter = 0;
-
-  double u_input, rho_input, ne_input;
-
-  u_input   = u;
-  rho_input = rho;
-  ne_input  = *ne_guess;
-
-  mu = (1 + 4 * gs.yhelium) / (1 + gs.yhelium + *ne_guess);
-  temp = GAMMA_MINUS1 / BOLTZMANN * u * PROTONMASS * mu;
-
-  do
-    {
-      ne_old = *ne_guess;
-
-      find_abundances_and_rates(log10(temp), rho, ne_guess);
-      temp_old = temp;
-
-      mu = (1 + 4 * gs.yhelium) / (1 + gs.yhelium + *ne_guess);
-
-      temp_new = GAMMA_MINUS1 / BOLTZMANN * u * PROTONMASS * mu;
-
-      max = dmax(max, temp_new / (1 + gs.yhelium + *ne_guess) * fabs((*ne_guess - ne_old) / (temp_new - temp_old + 1.0)));
-
-      temp = temp_old + (temp_new - temp_old) / (1 + max);
-      iter++;
-
-      if(iter > (MAXITER - 10))
-        printf("-> temp= %g ne=%g\n", temp, *ne_guess);
-    }
-  while(fabs(temp - temp_old) > 1.0e-3 * temp && iter < MAXITER);
-
-  if(iter >= MAXITER)
-    {
-      printf("failed to converge in primordial_convert_u_to_temp()\n");
-      printf("u_input= %g\nrho_input=%g\n ne_input=%g\n", u_input, rho_input, ne_input);
-      printf("DoCool.u_old_input=%g\nDoCool.rho_input= %g\nDoCool.dt_input= %g\nDoCool.ne_guess_input= %g\n", DoCool.u_old_input,
-             DoCool.rho_input, DoCool.dt_input, DoCool.ne_guess_input);
-      terminate("convergence failure");
-    }
-
-  gs.mu = mu;
-
-  return temp;
-}
 
 /*! \brief Computes the actual abundance ratios.
  *
@@ -273,26 +219,67 @@ static void find_abundances_and_rates(double logT, double rho, double *ne_guess)
   *ne_guess = gs.ne;
 }
 
-/*! \brief Get cooling rate from gas internal energy.
+/*! \brief Compute gas temperature from internal energy per unit mass.
  *
- *  This function first computes the self-consistent temperature
- *  and abundance ratios, and then it calculates
- *  (heating rate-cooling rate)/n_h^2 in cgs units.
+ *   This function determines the electron fraction, and hence the mean
+ *   molecular weight. With it arrives at a self-consistent temperature.
+ *   Element abundances and the rates for the emission are also computed.
  *
- *  \param[in] u Gas internal energy per unit mass.
- *  \param[in] rho Gas density.
- *  \param[in, out] ne_guess Electron number density relative to hydrogen
- *                  number density.
+ *  \param[in] u   internal energy per unit mass.
+ *  \param[in] rho gas density.
+ *  \param[in, out] ne_guess electron number density relative to hydrogen
+ *                  number density
  *
- *  \return Cooling rate.
+ *  \return The gas temperature.
  */
-static double CoolingRateFromU(double u, double rho, double *ne_guess)
+static double primordial_convert_u_to_temp(double u, double rho, double *ne_guess)
 {
-  double temp;
+  double temp, temp_old, temp_new, max = 0, ne_old;
+  double mu;
+  int iter = 0;
 
-  temp = primordial_convert_u_to_temp(u, rho, ne_guess);
+  double u_input, rho_input, ne_input;
 
-  return CoolingRate(log10(temp), rho, ne_guess);
+  u_input   = u;
+  rho_input = rho;
+  ne_input  = *ne_guess;
+
+  mu = (1 + 4 * gs.yhelium) / (1 + gs.yhelium + *ne_guess);
+  temp = GAMMA_MINUS1 / BOLTZMANN * u * PROTONMASS * mu;
+
+  do
+    {
+      ne_old = *ne_guess;
+
+      find_abundances_and_rates(log10(temp), rho, ne_guess);
+      temp_old = temp;
+
+      mu = (1 + 4 * gs.yhelium) / (1 + gs.yhelium + *ne_guess);
+
+      temp_new = GAMMA_MINUS1 / BOLTZMANN * u * PROTONMASS * mu;
+
+      max = dmax(max, temp_new / (1 + gs.yhelium + *ne_guess) * fabs((*ne_guess - ne_old) / (temp_new - temp_old + 1.0)));
+
+      temp = temp_old + (temp_new - temp_old) / (1 + max);
+      iter++;
+
+      if(iter > (MAXITER - 10))
+        printf("-> temp= %g ne=%g\n", temp, *ne_guess);
+    }
+  while(fabs(temp - temp_old) > 1.0e-3 * temp && iter < MAXITER);
+
+  if(iter >= MAXITER)
+    {
+      printf("failed to converge in primordial_convert_u_to_temp()\n");
+      printf("u_input= %g\nrho_input=%g\n ne_input=%g\n", u_input, rho_input, ne_input);
+      printf("DoCool.u_old_input=%g\nDoCool.rho_input= %g\nDoCool.dt_input= %g\nDoCool.ne_guess_input= %g\n", DoCool.u_old_input,
+             DoCool.rho_input, DoCool.dt_input, DoCool.ne_guess_input);
+      terminate("convergence failure");
+    }
+
+  gs.mu = mu;
+
+  return temp;
 }
 
 /*! \brief  Calculate (heating rate-cooling rate)/n_h^2 in cgs units.
@@ -398,6 +385,28 @@ static double CoolingRate(double logT, double rho, double *nelec)
     }
 
   return (Heat - Lambda);
+}
+
+/*! \brief Get cooling rate from gas internal energy.
+ *
+ *  This function first computes the self-consistent temperature
+ *  and abundance ratios, and then it calculates
+ *  (heating rate-cooling rate)/n_h^2 in cgs units.
+ *
+ *  \param[in] u Gas internal energy per unit mass.
+ *  \param[in] rho Gas density.
+ *  \param[in, out] ne_guess Electron number density relative to hydrogen
+ *                  number density.
+ *
+ *  \return Cooling rate.
+ */
+static double CoolingRateFromU(double u, double rho, double *ne_guess)
+{
+  double temp;
+
+  temp = primordial_convert_u_to_temp(u, rho, ne_guess);
+
+  return CoolingRate(log10(temp), rho, ne_guess);
 }
 
 /*! \brief Make cooling rates interpolation table.
@@ -748,10 +757,106 @@ void SetOutputGasState(int i, double *ne_guess, double *nH0, double *coolrate)
  *
  *  \return void
  */
-void SetZeroIonization(void) { memset(&pc, 0, sizeof(PhotoCurrent)); }
+void SetZeroIonization(void) 
+{ 
+  memset(&pc, 0, sizeof(PhotoCurrent)); 
+}
+
+/*! \brief Set the ionization parameters for the UV background.
+ *
+ *  \return void
+ */
+static void IonizeParamsUVB(void)
+{
+  int i, ilow;
+  double logz, dzlow, dzhi;
+  double redshift;
+
+  if(All.ComovingIntegrationOn)
+    redshift = 1 / All.Time - 1;
+  else
+    {
+      redshift = 0.0;
+    }
+
+  logz = log10(redshift + 1.0);
+    
+  /* Basic sanity checks: make sure the table exists and has entries */
+  if(PhotoTUVB == NULL || NheattabUVB <= 0)
+  {
+    /* no UVB/photo table: fall back to zero ionization (matches original fallback) */
+    SetZeroIonization();
+    return;
+  }
+    
+  ilow = 0;
+  for(i = 0; i < NheattabUVB; i++)
+    {
+      if(PhotoTUVB[i].variable < logz)
+        ilow = i;
+      else
+        break;
+    }
+
+  /* Need at least two table points for interpolation (ilow and ilow+1). If we are at the last
+     table point (ilow == NheattabUVB-1) we cannot access ilow+1. Treat as out-of-range. */
+  if(NheattabUVB < 2 || ilow >= NheattabUVB - 1)
+  {
+    /* either a single-point table (no interpolation) or logz beyond table range:
+        follow existing code's conservative behaviour */
+    SetZeroIonization();
+    return;
+  }
+    
+  dzlow = logz - PhotoTUVB[ilow].variable;
+  dzhi  = PhotoTUVB[ilow + 1].variable - logz;
+    
+  /* guard against degenerate spacing */
+  if((dzlow + dzhi) == 0.0)
+  {
+    SetZeroIonization();
+    return;
+  }
+
+    /* additional check: if logz is greater than the last table entry, original code
+     set zero ionization — keep that behaviour */
+    if(logz > PhotoTUVB[NheattabUVB - 1].variable)
+    {
+        SetZeroIonization();
+        return;
+    }
+    
+    /* also check for zero rates in table entries (as original code did) */
+    if(PhotoTUVB[ilow].gH0 == 0 || PhotoTUVB[ilow + 1].gH0 == 0)
+    {
+        SetZeroIonization();
+        return;
+    }
+    else
+        pc.J_UV = 1;
+//  if(NheattabUVB == 0 || logz > PhotoTUVB[NheattabUVB - 1].variable || PhotoTUVB[ilow].gH0 == 0 || PhotoTUVB[ilow + 1].gH0 == 0)
+//    {
+//      SetZeroIonization();
+//      return;
+//    }
+//  else
+//    pc.J_UV = 1;
+
+  pc.gJH0   = pow(10., (dzhi * log10(PhotoTUVB[ilow].gH0) + dzlow * log10(PhotoTUVB[ilow + 1].gH0)) / (dzlow + dzhi));
+  pc.gJHe0  = pow(10., (dzhi * log10(PhotoTUVB[ilow].gHe) + dzlow * log10(PhotoTUVB[ilow + 1].gHe)) / (dzlow + dzhi));
+  pc.gJHep  = pow(10., (dzhi * log10(PhotoTUVB[ilow].gHep) + dzlow * log10(PhotoTUVB[ilow + 1].gHep)) / (dzlow + dzhi));
+  pc.epsH0  = pow(10., (dzhi * log10(PhotoTUVB[ilow].eH0) + dzlow * log10(PhotoTUVB[ilow + 1].eH0)) / (dzlow + dzhi));
+  pc.epsHe0 = pow(10., (dzhi * log10(PhotoTUVB[ilow].eHe) + dzlow * log10(PhotoTUVB[ilow + 1].eHe)) / (dzlow + dzhi));
+  pc.epsHep = pow(10., (dzhi * log10(PhotoTUVB[ilow].eHep) + dzlow * log10(PhotoTUVB[ilow + 1].eHep)) / (dzlow + dzhi));
+
+  return;
+}
 
 /*! \brief Wrapper function to set the ionizing background.
  *
  *  \return void
  */
-void IonizeParams(void) { IonizeParamsUVB(); }
+void IonizeParams(void) 
+{ 
+  IonizeParamsUVB(); 
+}
