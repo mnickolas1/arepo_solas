@@ -71,5 +71,5 @@ void IonizeParams(void);
 double grackle_mu(int i);
 
 void InitGrackle(void);
-double CallGrackle(int i, double u, double rho, double dt, int mode);
+double CallGrackle(int i, double dt, int mode);
 #endif /* #ifdef USE_GRACKLE */

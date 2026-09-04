@@ -163,6 +163,7 @@ void cool_cell(int i)
 
 #elif defined(USE_GRACKLE)
   unew = (dtcool > 0) ? CallGrackle(i, dtcool, 0) : dmax(All.MinEgySpec, SphP[i].Utherm);
+
 #else
 #endif
 
@@ -198,13 +199,12 @@ double GetCoolingTime(int i)
 
 #elif defined(USE_GRACKLE)
   double LambdaNet = CallGrackle(i, 0.0, 1);
-    
-  if(LambdaNet >= 0) 
-    LambdaNet = 0.0;
-    
-  tcool =  LambdaNet / All.UnitTime_in_s;
+
+  tcool = (LambdaNet >= 0) ? 0.0 : -LambdaNet;
+  
 #else
 #endif
+
   return tcool;
 }
 

@@ -300,9 +300,9 @@ double CallGrackle(int i, double dt, int mode)
 
   for(int k = 0; k < 3; k++)
     {
-      All.GrackleFieldData.grid_dimension[i] = 1;
-      All.GrackleFieldData.grid_start[i] = 0;
-      All.GrackleFieldData.grid_end[i] = 0;
+      All.GrackleFieldData.grid_dimension[k] = 1;
+      All.GrackleFieldData.grid_start[k] = 0;
+      All.GrackleFieldData.grid_end[k] = 0;
     }
 
   All.GrackleFieldData.grid_dimension[0] = field_size;

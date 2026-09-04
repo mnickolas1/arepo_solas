@@ -318,13 +318,7 @@ static void io_func_accel(int particle, int components, void *out_buffer, int mo
  */
 static void io_func_coolrate(int particle, int components, void *buffer, int mode)
 {
-  double tcool, ne, nh0, coolrate;
-
-  ne = SphP[particle].Ne;
-  SetOutputGasState(particle, &ne, &nh0, &coolrate);
-
-  /* get cooling time */
-  tcool = GetCoolingTime(particle);
+  double tcool = GetCoolingTime(particle);
 
   /* convert cooling time with current thermal energy to du/dt */
   if(tcool != 0)

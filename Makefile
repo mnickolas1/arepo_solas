@@ -370,12 +370,6 @@ $(error LOW_TEMP_COOLING requires PRIMORDIAL_COOLING)
 endif
 endif
 
-ifneq (,$(filter OUTPUTCOOLRATE,$(CONFIGVARS)))
-ifeq (,$(filter PRIMORDIAL_COOLING,$(CONFIGVARS)))
-$(error OUTPUTCOOLRATE requires PRIMORDIAL_COOLING)
-endif
-endif
-
 ifneq (,$(filter EEOS_SF,$(CONFIGVARS)))
 ifeq (,$(filter PRIMORDIAL_COOLING,$(CONFIGVARS)))
 $(error EEOS_SF requires PRIMORDIAL_COOLING)
