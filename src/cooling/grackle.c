@@ -8,6 +8,67 @@
 #include "../main/proto.h"
 
 
+double grackle_mu(int i)
+{
+/* Metals, approximated as 16 m_H */
+#ifdef METALS
+  double Z = SphP[i].GasMetals / P[i].Mass;
+#else
+  double Z = 0; 
+#endif
+
+  /* Level 1: atomic H and He */
+#if GRACKLE_CHEMISTRY >= 1
+  double XHI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / P[i].Mass;
+  double XHII = SphP[i].GrackleSpeciesConserved(GRACKLE_HII) / P[i].Mass;
+  double XHeI = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / P[i].Mass;
+  double XHeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / P[i].Mass;
+  double XHeIII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII) / P[i].Mass;
+#else
+
+  /* Fall back to fully neutral cosmic abundances */
+  double XHI = (1.0 - Z) * HYDROGEN_MASSFRAC;
+  double XHII = 0.0;
+  double XHeI = (1.0 - Z) * (1.0 - HYDROGEN_MASSFRAC);
+  double XHeII = 0.0;
+  double XHeIII = 0.0;
+#endif
+
+  /* Level 2: molecular H and H- */
+#if GRACKLE_CHEMISTRY >= 2
+  double XH2I = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / P[i].Mass;
+  double XH2II = SphP[i].GrackleSpeciesConserved(GRACKLE_H2II) / P[i].Mass;
+  double XHM = SphP[i].GrackleSpeciesConserved(GRACKLE_HM) / P[i].Mass;
+#else
+  double XH2I = 0.0;
+  double XH2II = 0.0;
+  double XHM = 0.0;
+#endif
+
+  /* Level 3: deuterium species */
+#if GRACKLE_CHEMISTRY >= 3
+  double XDI = SphP[i].GrackleSpeciesConserved(GRACKLE_DI) / P[i].Mass;
+  double XDII = SphP[i].GrackleSpeciesConserved(GRACKLE_DII) / P[i].Mass;
+  double XHDI = SphP[i].GrackleSpeciesConserved(GRACKLE_HDI) / P[i].Mass;
+#else
+  double XDI = 0.0;
+  double XDII = 0.0;
+  double XHDI = 0.0;
+#endif
+
+  double Xe = XHII + XHeII / 4.0 + XHeIII / 2.0 + XH2II / 2.0 - XHM + XDII / 2.0;
+
+  /* Assemble grouped mass fractions */
+  double XH = XHI + XHII + XHM; /* m_H */
+  double XH2 = XH2I + XH2II; /* 2 m_H */
+  double XD = XDI + XDII; /* 2 m_H */
+  double XHD = XHDI; /* 3 m_H */
+  double XHe = XHeI + XHeII + XHeIII; /* 4 m_H */
+
+  /* mu = 1 / sum_s (X_s / A_s), where A_s is the atomic mass in units of m_H */
+  return 1.0 / (Xe + XH + XH2 / 2.0 + XD / 2.0 + XHD / 3.0 + XHe / 4.0 + Z / 16.0);
+}
+
 /* Function that initialises Grackle */
 void InitGrackle(void)
 {
@@ -560,77 +621,4 @@ double CallGrackle(int i, double dt, int mode)
 #endif
 
   return returnval;
-}
-
-double GetGrackleCoolingTime(int i)
-{
-  double LambdaNet, coolingtime;
-
-  LambdaNet = CallGrackle(i, 0.0, 1);
-  if(LambdaNet >= 0) 
-      LambdaNet = 0.0;
-    
-  coolingtime =  LambdaNet / All.UnitTime_in_s;
-  return coolingtime;
-}
-
-double grackle_mu(int i)
-{
-/* Metals, approximated as 16 m_H */
-#ifdef METALS
-  double Z = SphP[i].GasMetals / P[i].Mass;
-#else
-  double Z = 0; 
-#endif
-
-  /* Level 1: atomic H and He */
-#if GRACKLE_CHEMISTRY >= 1
-  double XHI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / P[i].Mass;
-  double XHII = SphP[i].GrackleSpeciesConserved(GRACKLE_HII) / P[i].Mass;
-  double XHeI = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / P[i].Mass;
-  double XHeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / P[i].Mass;
-  double XHeIII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII) / P[i].Mass;
-#else
-
-  /* Fall back to fully neutral cosmic abundances */
-  double XHI = (1.0 - Z) * HYDROGEN_MASSFRAC;
-  double XHII = 0.0;
-  double XHeI = (1.0 - Z) * (1.0 - HYDROGEN_MASSFRAC);
-  double XHeII = 0.0;
-  double XHeIII = 0.0;
-#endif
-
-  /* Level 2: molecular H and H- */
-#if GRACKLE_CHEMISTRY >= 2
-  double XH2I = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / P[i].Mass;
-  double XH2II = SphP[i].GrackleSpeciesConserved(GRACKLE_H2II) / P[i].Mass;
-  double XHM = SphP[i].GrackleSpeciesConserved(GRACKLE_HM) / P[i].Mass;
-#else
-  double XH2I = 0.0;
-  double XH2II = 0.0;
-  double XHM = 0.0;
-#endif
-
-  /* Level 3: deuterium species */
-#if GRACKLE_CHEMISTRY >= 3
-  double XDI = SphP[i].GrackleSpeciesConserved(GRACKLE_DI) / P[i].Mass;
-  double XDII = SphP[i].GrackleSpeciesConserved(GRACKLE_DII) / P[i].Mass;
-  double XHDI = SphP[i].GrackleSpeciesConserved(GRACKLE_HDI) / P[i].Mass;
-#else
-  double XDI = 0.0;
-  double XDII = 0.0;
-  double XHDI = 0.0;
-#endif
-
-  double Xe = XHII + XHeII / 4.0 + XHeIII / 2.0 + XH2II / 2.0 - XHM + XDII / 2.0;
-
-  /* Assemble grouped mass fractions */
-  double XH = XHI + XHII + XHM; /* m_H */
-  double XH2 = XH2I + XH2II; /* 2 m_H */
-  double XD = XDI + XDII; /* 2 m_H */
-  double XHD = XHDI; /* 3 m_H */
-  double XHe = XHeI + XHeII + XHeIII; /* 4 m_H */
-
-  /* mu = 1 / sum_s (X_s / A_s), where A_s is the atomic mass in units of m_H */
-  return 1.0 / (Xe + XH + XH2 / 2.0 + XD / 2.0 + XHD / 3.0 + XHe / 4.0 + Z / 16.0);
 }

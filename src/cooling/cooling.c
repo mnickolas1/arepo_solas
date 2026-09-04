@@ -91,8 +91,6 @@ double evaluate_numberdens(int i)
   return number_dens;
 }
 
-double evaluate_egyspec(int i, double temp)
-
 #ifdef COOLING
 
 void InitCool(void)
@@ -199,7 +197,12 @@ double GetCoolingTime(int i)
   tcool = GetPrimordialCoolingTime(u_old, dens * All.cf_a3inv, &ne);
 
 #elif defined(USE_GRACKLE)
-   double LambdaNettcool = CallGrackle(i, 0.0, 1);
+  double LambdaNet = CallGrackle(i, 0.0, 1);
+    
+  if(LambdaNet >= 0) 
+    LambdaNet = 0.0;
+    
+  tcool =  LambdaNet / All.UnitTime_in_s;
 #else
 #endif
 }

@@ -47,6 +47,7 @@
 
 #include "../gravity/forcetree.h"
 
+
 /*! \brief Main driver for star formation and gas cooling.
  *
  *  This function loops over all the active gas cells. If a given cell
@@ -71,10 +72,6 @@ void cooling_and_starformation(void)
   double egyeff, x;
 
   double eos_dens_threshold = All.PhysDensThresh;
-
-  /* note: assuming FULL ionization */
-  double u_to_temp_fac =
-      (4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC))) * PROTONMASS / BOLTZMANN * GAMMA_MINUS1 * All.UnitEnergy_in_cgs / All.UnitMass_in_g;
 
   /* clear the SFR stored in the active timebins */
   for(bin = 0; bin < TIMEBINS; bin++)
@@ -127,9 +124,11 @@ void cooling_and_starformation(void)
 
       flag = 1; /* default is normal cooling */
 
+      double temp = evaluate_temp(i);
+
       /* enable star formation if gas is above SF density threshold */
       if(dens * All.cf_a3inv >= eos_dens_threshold)
-        if(SphP[i].Utherm <= egyeff || u_to_temp_fac * SphP[i].Utherm <= All.TemperatureThresh)
+        if(SphP[i].Utherm <= egyeff || temp <= All.TemperatureThresh)
           flag = 0;
 
       if(All.ComovingIntegrationOn)
@@ -204,11 +203,10 @@ double get_starformation_rate(int i)
   int flag;
   double tsfr;
   double factorEVP, egyeff, ne, x, cloudmass;
-  /* note: assuming FULL ionization */
-  double u_to_temp_fac =
-      (4 / (8 - 5 * (1 - HYDROGEN_MASSFRAC))) * PROTONMASS / BOLTZMANN * GAMMA_MINUS1 * All.UnitEnergy_in_cgs / All.UnitMass_in_g;
 
   double eos_dens_threshold = All.PhysDensThresh;
+
+  double temp = evaluate_temp(i);
 
   flag   = 1; /* default is normal cooling */
   egyeff = 0.0;
@@ -220,7 +218,7 @@ double get_starformation_rate(int i)
     }
 
   if(SphP[i].Density * All.cf_a3inv >= All.PhysDensThresh)
-    if(SphP[i].Utherm <= 1.01 * egyeff || u_to_temp_fac * SphP[i].Utherm <= All.TemperatureThresh)
+    if(SphP[i].Utherm <= 1.01 * egyeff || temp <= All.TemperatureThresh)
       flag = 0;
 
   if(All.ComovingIntegrationOn)
