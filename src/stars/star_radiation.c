@@ -4,12 +4,6 @@
 #include "../extern/chealpix.h"
 
 
-/* Active bands - change at init_rays */
-#define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
-#define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
-#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
-#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
-
 /* Effective attenuation kappa_ext*(1 - a*<g>) [cm^2/g gas, solar Z]
    Band-averaged over Draine 2003 (renorm. WD01) MW R_V=3.1 model,
    kext_albedo_WD_MW_3.1_60_D03.all, energy and photon-weighted 4e4 K BB.
@@ -367,17 +361,33 @@ static void init_rays(RayWorkStack *work)
                 ray.Radiated[w].Energy  = Radiated_Cell[w].Energy / NRays;
                 ray.Radiated[w].Photons = Radiated_Cell[w].Photons / NRays;
 
-                ray.Radiated_Init[w].Energy  = Radiated_Cell[w].Energy / NRays;
+#ifndef RAD_TOTAL_TRUNCATION
+                ray.Radiated_Init[w].Energy = Radiated_Cell[w].Energy / NRays;
                 ray.Radiated_Init[w].Photons = Radiated_Cell[w].Photons / NRays;
+#endif
 
                 if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
                   ray.active_bands &= (uint8_t)(~(1u << w));
               }
 
-            if(ray.active_bands == 0)
-              continue;
+#ifdef RAD_TOTAL_TRUNCATION
+            ray.E_init = ray.N_init = 0.0;
+            for(int w = 0; w < WAVEBANDS; w++)
+              {
+                if(!(ray.active_bands & (1u << w)))
+                  continue;                     
+                    
+                ray.E_init += ray.Radiated[w].Energy;
+
+                if((BandTrackPhotons >> w) & 1u)
+                  ray.N_init += ray.Radiated[w].Photons;
+              }
+#endif
 
             ray.N_H2 = 0.0;
+
+            if(ray.active_bands == 0)
+              continue; 
 
             append_ray(work, &ray);
           }
@@ -442,17 +452,33 @@ static void init_rays(RayWorkStack *work)
                 ray.Radiated[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
                 ray.Radiated[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
 
+#ifndef RAD_TOTAL_TRUNCATION
                 ray.Radiated_Init[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
                 ray.Radiated_Init[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
+#endif
 
                 if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
                   ray.active_bands &= (uint8_t)(~(1u << w));
               }
 
-            if(ray.active_bands == 0)
-              continue;
+#ifdef RAD_TOTAL_TRUNCATION
+            ray.E_init = ray.N_init = 0.0;
+            for(int w = 0; w < WAVEBANDS; w++)
+              {
+                if(!(ray.active_bands & (1u << w)))
+                  continue;                     
+                    
+                ray.E_init += ray.Radiated[w].Energy;
+
+                if((BandTrackPhotons >> w) & 1u)
+                  ray.N_init += ray.Radiated[w].Photons;
+              }
+#endif
 
             ray.N_H2 = 0.0;
+
+            if(ray.active_bands == 0)
+              continue; 
 
             append_ray(work, &ray);
           }
@@ -487,9 +513,16 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
           children[k].Radiated[w].Energy = parent->Radiated[w].Energy * 0.25;
           children[k].Radiated[w].Photons = parent->Radiated[w].Photons * 0.25;
 
+#ifndef RAD_TOTAL_TRUNCATION
           children[k].Radiated_Init[w].Energy = parent->Radiated_Init[w].Energy * 0.25;
           children[k].Radiated_Init[w].Photons = parent->Radiated_Init[w].Photons * 0.25;
+#endif
         }
+
+#ifdef RAD_TOTAL_TRUNCATION
+      children[k].E_init = parent->E_init * 0.25;
+      children[k].N_init = parent->N_init * 0.25;
+#endif
     }
 }
 

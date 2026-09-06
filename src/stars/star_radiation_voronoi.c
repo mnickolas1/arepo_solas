@@ -31,84 +31,165 @@
 #define RAY_CELL_CROSS_SECTION(r) (M_PI * (r) * (r))
 
 static inline double cell_dtau(int i, double length, double N_H2_ray,
-                               ChannelsDtau dtau[WAVEBANDS])
+                               uint8_t active_bands, ChannelsDtau dtau[WAVEBANDS])
 {
-  const double dust_length = SphP[i].OpacityScaling[CH_DUST] * length;
-  
-  const double dN_H2 = SphP[i].OpacityScaling[CH_H2] * length;  
-  const double dtau_line = h2shield_dtau(N_H2_ray, dN_H2);
+  const double dN_H2 = SphP[i].OpacityScaling[CH_H2] * length;
 
-  double ionizing_length[3];
+  /* Find all live channels (for all live bands) */
+  uint8_t live_channels = 0;
+  for(int w = 0; w < WAVEBANDS; w++)
+    {
+      if(active_bands & (1u << w))
+        live_channels |= BandChannels[w];
+    }
+
+  double dust_length = 0.0;
+  if(live_channels & (1u << CH_DUST))
+    dust_length = SphP[i].OpacityScaling[CH_DUST] * length;
+
+  double dtau_line = 0.0;
+  if(live_channels & (1u << CH_H2))
+    dtau_line = h2shield_dtau(N_H2_ray, dN_H2);
+
+  double ionizing_length[3] = {0.0, 0.0, 0.0};  
   for(int s = 0; s < 3; s++)
-    ionizing_length[s] = SphP[i].OpacityScaling[CH_HI + s] * length;
+    {
+      if(live_channels & (1u << (CH_HI + s)))
+        ionizing_length[s] = SphP[i].OpacityScaling[CH_HI + s] * length;
+    }
 
   for(int w = 0; w < WAVEBANDS; w++)
     {
+      if(!(active_bands & (1u << w)))
+        continue;
+
+      const int track_N = (BandTrackPhotons >> w) & 1u;
+      const uint8_t ch = BandChannels[w];
+
       for(int c = 0; c < CHANNELS; c++)
         dtau[w].E[c] = dtau[w].N[c] = 0.0;
-
-      const uint8_t ch = BandChannels[w];
 
       if(ch & (1u << CH_DUST))
         {
           dtau[w].E[CH_DUST] = Kappa_E[w] * dust_length;
-          dtau[w].N[CH_DUST] = Kappa_N[w] * dust_length;
+          if(track_N)
+            dtau[w].N[CH_DUST] = Kappa_N[w] * dust_length;
         }
 
       if(ch & (1u << CH_H2))
-        dtau[w].E[CH_H2] = dtau[w].N[CH_H2] = dtau_line;
+        {
+          dtau[w].E[CH_H2] = dtau_line;
+          if(track_N)
+            dtau[w].N[CH_H2] = dtau_line;
+        }
 
       for(int s = 0; s < 3; s++)
         if(ch & (1u << (CH_HI + s)))
           {
             dtau[w].E[CH_HI + s] = Sigma_E[w - IONIZING_HI][s] * ionizing_length[s];
-            dtau[w].N[CH_HI + s] = Sigma_N[w - IONIZING_HI][s] * ionizing_length[s];
+            if(track_N)
+              dtau[w].N[CH_HI + s] = Sigma_N[w - IONIZING_HI][s] * ionizing_length[s];
           }
     }
 
   return dN_H2;
 }
 
+/* 1 - exp(-tau). Three-term series below RAD_TAU_THIN */
+static inline double absorbed_fraction(double tau)
+{
+  if(tau < RAD_TAU_THIN)
+    return tau * (1.0 - tau * (0.5 - tau * (1.0 / 6.0)));
+  
+  return -expm1(-tau);
+}
+
 static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
                              Absorption *a)
 {
-  memset(a, 0, sizeof(*a));
+  a->mask = ray->active_bands;
 
   for(int w = 0; w < WAVEBANDS; w++)
     {
-      if((ray->Radiated[w].Energy == 0 || ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy) &&
-         (ray->Radiated[w].Photons == 0 || ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons))
-        ray->active_bands &= (uint8_t)(~(1u << w));
-
       if(!(ray->active_bands & (1u << w)))
         continue;
+
+      a->Band[w].Energy = a->Band[w].Photons = 0.0;
+      
+      for(int c = 0; c < CHANNELS; c++)
+        a->Ch[w][c].Energy = a->Ch[w][c].Photons = 0.0;
+    }
+
+#ifdef RAD_TOTAL_TRUNCATION
+  double E_live = 0.0, N_live = 0.0;
+#endif
+
+  for(int w = 0; w < WAVEBANDS; w++)
+    {
+      /* Careful! dtau contains uninitialized entries! */
+      if(!(ray->active_bands & (1u << w)))
+        continue;
+
+      const int track_N = (BandTrackPhotons >> w) & 1u;
+
+#ifdef RAD_TOTAL_TRUNCATION
+      if((ray->E_init <= 0.0 || ray->Radiated[w].Energy < 0.1 * RAD_TRUNC_FRAC * ray->E_init) && 
+        (!track_N || ray->N_init <= 0.0 || ray->Radiated[w].Photons < 0.1 * RAD_TRUNC_FRAC * ray->N_init))
+#else
+      if((ray->Radiated[w].Energy <= 0 || ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy) &&
+         (!track_N || ray->Radiated[w].Photons <= 0 || ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons))
+#endif
+        {
+          ray->active_bands &= (uint8_t)(~(1u << w));
+          continue;
+        }
 
       double tot_E = 0.0, tot_N = 0.0;
       for(int c = 0; c < CHANNELS; c++)
         {
           tot_E += dtau[w].E[c];
-          tot_N += dtau[w].N[c];
+          if(track_N)
+            tot_N += dtau[w].N[c];
         }
 
-      if(tot_E <= 0.0 && tot_N <= 0.0)
-        continue;
-
-      /* expm1, not 1-exp: more accurate for optically thin cells */
-      double dE = ray->Radiated[w].Energy * -expm1(-tot_E);
-      double dN = ray->Radiated[w].Photons * -expm1(-tot_N);
-
-      a->Band[w].Energy = dE;
-      a->Band[w].Photons = dN;
-
-      ray->Radiated[w].Energy -= dE;
-      ray->Radiated[w].Photons -= dN;
-
-      for(int c = 0; c < CHANNELS; c++)
+      if(tot_E > 0.0)
         {
-          if(tot_E > 0.0) a->Ch[w][c].Energy = dE * dtau[w].E[c] / tot_E;
-          if(tot_N > 0.0) a->Ch[w][c].Photons = dN * dtau[w].N[c] / tot_N;
+          const double dE = ray->Radiated[w].Energy * absorbed_fraction(tot_E);
+          const double wE = dE / tot_E;         
+
+          a->Band[w].Energy = dE;
+          ray->Radiated[w].Energy -= dE;
+
+          for(int c = 0; c < CHANNELS; c++)
+            a->Ch[w][c].Energy = wE * dtau[w].E[c];
         }
+
+      if(track_N && tot_N > 0.0)
+        {
+          const double dN = ray->Radiated[w].Photons * absorbed_fraction(tot_N);
+          const double wN = dN / tot_N;
+
+          a->Band[w].Photons = dN;
+          ray->Radiated[w].Photons -= dN;
+
+          for(int c = 0; c < CHANNELS; c++)
+            a->Ch[w][c].Photons = wN * dtau[w].N[c];
+        }
+
+#ifdef RAD_TOTAL_TRUNCATION
+      E_live += ray->Radiated[w].Energy;
+      if(track_N)
+        N_live += ray->Radiated[w].Photons;
+#endif
     }
+
+#ifdef RAD_TOTAL_TRUNCATION
+  /* Never truncate while an ionizing band is live */
+  if(!(ray->active_bands & ONLY_IONIZING_ACTIVE) &&
+     (ray->E_init <= 0.0 || E_live < RAD_TRUNC_FRAC * ray->E_init) &&
+     (ray->N_init <= 0.0 || N_live < RAD_TRUNC_FRAC * ray->N_init))
+    ray->active_bands = 0; 
+#endif
 
   return ray->active_bands != 0;
 }
@@ -124,7 +205,7 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
     return ray->active_bands != 0;
 
   ChannelsDtau dtau[WAVEBANDS];
-  double dN_H2 = cell_dtau(i, length, ray->N_H2, dtau);
+  double dN_H2 = cell_dtau(i, length, ray->N_H2, ray->active_bands, dtau);
 
   /* Process ray */
   Absorption a;
@@ -152,6 +233,10 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
   for(int w = 0; w < WAVEBANDS; w++)
     {
+      /* Careful! a contains uninitialized entries! */
+      if(!(a.mask & (1u << w)))
+        continue;
+
       const double E_w = a.Band[w].Energy;
       if(E_w <= 0.0)
         continue;
@@ -194,12 +279,17 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 #endif
 
 #ifdef PHOTOELECTRIC_HEATING
-  SphP[i].AbsorbedPE += a.Ch[ULTRAVIOLET][CH_DUST].Energy * TrueAbsorbedFraction[ULTRAVIOLET]
-                      + a.Ch[LYMAN_WERNER][CH_DUST].Energy * TrueAbsorbedFraction[LYMAN_WERNER];
+  double E_pe = 0.0;
+  if(a.mask & (1u << ULTRAVIOLET))
+    E_pe += a.Ch[ULTRAVIOLET][CH_DUST].Energy * TrueAbsorbedFraction[ULTRAVIOLET];
+  if(a.mask & (1u << LYMAN_WERNER))
+    E_pe += a.Ch[LYMAN_WERNER][CH_DUST].Energy * TrueAbsorbedFraction[LYMAN_WERNER];
+  SphP[i].AbsorbedPE += E_pe;
 #endif
 
 #ifdef DISSOCIATION
-  SphP[i].AbsorbedH2Line += a.Ch[LYMAN_WERNER][CH_H2].Photons;
+  if(a.mask & (1u << LYMAN_WERNER))
+    SphP[i].AbsorbedH2Line += a.Ch[LYMAN_WERNER][CH_H2].Photons;
 #endif
 
 #ifdef PHOTOIONIZATION
@@ -207,8 +297,11 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
     {
       for(int w = IONIZING_HI; w <= IONIZING_HeII; w++)
         {
-          SphP[i].AbsorbedIonizing[s].Energy += a.Ch[w][CH_HI + s].Energy;
-          SphP[i].AbsorbedIonizing[s].Photons += a.Ch[w][CH_HI + s].Photons;
+          if((a.mask & (1u << w)))
+            {
+              SphP[i].AbsorbedIonizing[s].Energy += a.Ch[w][CH_HI + s].Energy;
+              SphP[i].AbsorbedIonizing[s].Photons += a.Ch[w][CH_HI + s].Photons;
+            }
         }
     }
 #endif

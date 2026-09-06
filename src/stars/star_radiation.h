@@ -11,7 +11,10 @@
  *   PHOTOIONIZATION         HI / HeI / HeII photoionization + photoheating
  */
 
-#define RAD_TRUNC_FRAC 0.01
+#define RAD_TRUNC_FRAC 1.0e-2
+
+/* Below this optical depth -expm1(-tau) is evaluated as a series */
+#define RAD_TAU_THIN 1.0e-3
 
 /* Safety cap on the number of Voronoi cells a single ray may cross in one call to raytrace_voronoi() */ 
 /* Only trips on degenerate geometry */
@@ -89,6 +92,15 @@ static const uint8_t BandChannels[WAVEBANDS] =
   [IONIZING_HeII] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_HeI) | (1u << CH_HeII),
 };
 
+/* Active bands - change at init_rays */
+#define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
+#define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
+#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
+#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
+
+/* Bands carrying photons */
+static const uint8_t BandTrackPhotons = (1u << LYMAN_WERNER) | (1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII);
+
 typedef struct WavebandData
 {
   double Energy;
@@ -103,6 +115,7 @@ typedef struct
 
 typedef struct
 {
+  uint8_t mask;
   WavebandData Band[WAVEBANDS]; /* total removed from the ray */
   WavebandData Ch[WAVEBANDS][CHANNELS]; /* attribution; sums to Band */
 } Absorption;
@@ -151,13 +164,19 @@ typedef struct RayPacket
   uint8_t locate_head; /* Locate flag for split rays */
 
   /* Bitmask: bit w is SET while band w is still alive */
-  /* Cleared when Radiated[w] < RAD_TRUNC_FRAC * Radiated_Init[w] */
   /* When active_bands == 0 the ray is fully absorbed - return immediately */
   uint8_t active_bands;
 
   /* Ray energy and photons */
   WavebandData Radiated[WAVEBANDS];
+
+#ifdef RAD_TOTAL_TRUNCATION
+  /* Sum over bands at birth */
+  double E_init; 
+  double N_init; 
+#else
   WavebandData Radiated_Init[WAVEBANDS];
+#endif
 
   /* Accumulated H2 column since source */
   double N_H2; /* cgs! */
