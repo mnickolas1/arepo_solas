@@ -400,7 +400,6 @@ void star_feedback(void)
   TIMER_START(CPU_STARS_FEEDBACK);
 
   int ev, h, i, k, q, f;
-  double xtmp, ytmp, ztmp;
 
   int n_export = 0;
   int max_export = 20 * MechanicalFeedbackEvents.NumEvents;
@@ -487,6 +486,7 @@ void star_feedback(void)
               geometry_done = 1;
             }
 #else
+          double xtmp, ytmp, ztmp;
           double xstar[3];
 
           xstar[0] = P[i].Pos[0] - NEAREST_X(P[i].Pos[0] - MechanicalFeedback->StarPosition[0]);

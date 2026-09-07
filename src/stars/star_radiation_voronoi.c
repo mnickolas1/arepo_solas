@@ -133,8 +133,8 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
       const int track_N = (BandTrackPhotons >> w) & 1u;
 
 #ifdef RAD_TOTAL_TRUNCATION
-      if((ray->E_init <= 0.0 || ray->Radiated[w].Energy < 0.1 * RAD_TRUNC_FRAC * ray->E_init) && 
-        (!track_N || ray->N_init <= 0.0 || ray->Radiated[w].Photons < 0.1 * RAD_TRUNC_FRAC * ray->N_init))
+      if((ray->Radiated[w].Energy <= 0.0 || ray->Radiated[w].Energy < 0.1 * RAD_TRUNC_FRAC * ray->E_init) && 
+        (!track_N || ray->Radiated[w].Photons <= 0.0 || ray->Radiated[w].Photons < 0.1 * RAD_TRUNC_FRAC * ray->N_init))
 #else
       if((ray->Radiated[w].Energy <= 0 || ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy) &&
          (!track_N || ray->Radiated[w].Photons <= 0 || ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons))
