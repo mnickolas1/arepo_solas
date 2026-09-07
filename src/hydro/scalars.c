@@ -110,7 +110,7 @@ void init_passive_scalars(void)
 
   if(!from_file)
     {
-      warn("INIT: no PassiveScalars block in the input file - seeding from the parameter file\n");
+      mpi_printf("INIT: no PassiveScalars block in the input file - seeding from the parameter file\n");
 
       int i;
 
