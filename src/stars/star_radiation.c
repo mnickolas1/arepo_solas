@@ -6,7 +6,7 @@
 
 /* Effective attenuation kappa_ext*(1 - a*<g>) [cm^2/g gas, solar Z]
    Band-averaged over Draine 2003 (renorm. WD01) MW R_V=3.1 model,
-   kext_albedo_WD_MW_3.1_60_D03.all, energy and photon-weighted 4e4 K BB.
+   kext_albedo_WD_MW_3.1_60_D03.all, energy and photon-weighted 4e4 K BB
    Gas mass per H = 2.311e-24 g (M_dust/H = 1.398e-26, M_gas/M_dust = 165.3) */
 double Kappa_E[WAVEBANDS] =
 {
@@ -31,10 +31,10 @@ double Kappa_N[WAVEBANDS] =
 };
 
 /* Fraction of kappa_eff-attenuated energy that is truly absorbed (heats grains):
-   f_abs = kappa_abs/kappa_eff = (1-a)/(1-a<g>), D03 MW dust, band-averaged.
+   f_abs = kappa_abs/kappa_eff = (1-a)/(1-a<g>), D03 MW dust, band-averaged
    Remainder is non-forward-scattered light: removed from the ray and it does
    deliver momentum (kappa_eff is exactly the momentum-transfer opacity), but
-   it must NOT contribute to heating. */
+   it must NOT contribute to heating */
 double TrueAbsorbedFraction[WAVEBANDS] =
 {
   [INFRARED] = 0.54,
@@ -46,7 +46,7 @@ double TrueAbsorbedFraction[WAVEBANDS] =
   [IONIZING_HeII] = 0.97,
 };
 
-/* f_rerad = f_abs*(1-eps_pe); eps_pe = 0.05 for the two FUV bands only */
+/* f_rerad = f_abs*(1-eps_pe); eps_pe = 0.05 for the two UV bands only */
 double ReradiatedFraction[WAVEBANDS] =
 {
   [INFRARED] = 0.54,
@@ -490,8 +490,9 @@ static void init_rays(RayWorkStack *work)
   }
 }
 
-/* Splits to 4 child rays. Children inherit position, cell and path length,
-   so they simply restart the exit search in the cell the parent entered. */
+/* Splits to 4 child rays 
+   Children inherit position, cell and path length,
+   so they simply restart the exit search in the cell the parent entered */
 void split_ray(const RayPacket *parent, RayPacket children[4])
 {
   int new_nside = parent->nside * 2;
@@ -526,10 +527,7 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
     }
 }
 
-/*
- * Sparse, neighbour-restricted ray exchange
- */
-
+/* Sparse, neighbour-restricted ray exchange */
 #define TAG_RAY_COUNT 30201
 #define TAG_RAY_DATA 30202
 
@@ -725,27 +723,58 @@ static void rt_timestep(void)
       if(i < 0)
         continue;
 
-      /* Normalize ionization rate by total hydrogen (was normalized by neutral for grackle) */
+      /* Hydrogen */
       double m_HI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI);
 
-      double m_H = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) + SphP[i].GrackleSpeciesConserved(GRACKLE_HII);
+      double m_H = SphP[i].GrackleSpeciesConserved(GRACKLE_HI)
+                 + SphP[i].GrackleSpeciesConserved(GRACKLE_HII);
 
 #if GRACKLE_CHEMISTRY >= 2
-      m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) + SphP[i].GrackleSpeciesConserved(GRACKLE_H2II)
+      m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_H2I)
+          + SphP[i].GrackleSpeciesConserved(GRACKLE_H2II)
           + SphP[i].GrackleSpeciesConserved(GRACKLE_HM);
 #endif
 
-#if GRACKLE_CHEMISTRY >= 3
-      m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_DI) + SphP[i].GrackleSpeciesConserved(GRACKLE_DII)
+/* To be consistent with grackle we do not include deuterium */
+/*#if GRACKLE_CHEMISTRY >= 3
+      
+     m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_DI)
+          + SphP[i].GrackleSpeciesConserved(GRACKLE_DII)
           + SphP[i].GrackleSpeciesConserved(GRACKLE_HDI);
-#endif
+#endif*/
 
-      double rate = 0.0;
+      double rate_H = 0.0;
       if(m_H > 0)
         {
           double x_HI = m_HI / m_H;
-          rate = SphP[i].IonizationRate[0] * x_HI;
+          rate_H = SphP[i].IonizationRate[0] * x_HI;
         }
+
+      /* Helium */
+      double m_HeI = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI);
+      double m_HeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII);
+      double m_HeIII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII);
+
+      double m_He = m_HeI + m_HeII + m_HeIII;
+
+      double rate_HeI = 0.0;
+      double rate_HeII = 0.0;
+
+      if(m_He > 0)
+        {
+          double x_HeI = m_HeI / m_He;
+          double x_HeII = m_HeII / m_He;
+
+          rate_HeI = SphP[i].IonizationRate[1] * x_HeI;
+          rate_HeII = SphP[i].IonizationRate[2] * x_HeII;
+        }
+
+      /* Find the most restrictive timestep */
+      double rate = rate_H;
+      if(rate_HeI > rate)
+        rate = rate_HeI;
+      if(rate_HeII > rate)
+        rate = rate_HeII;
 
       SphP[i].RT_Timestep = (rate > 0.0) ? eps_ion / rate : All.MaxSizeTimestep / All.cf_hubble_a;
     }
