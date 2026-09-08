@@ -31,9 +31,8 @@
  *      nonblocking allreduce
  */
 
+ 
 #ifndef RT_COMM_SYNC
-
-#define TAG_RAY_DATA 30202
 
 /* Bail out on a genuine deadlock rather than spinning forever */
 #define RAY_SLOT_SPIN_MAX 100000000LL
@@ -133,6 +132,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
       c->send_req[s] = MPI_REQUEST_NULL;
       c->free_stack[s] = c->nslots - 1 - s; /* pop low indices first */
     }
+  
   c->nfree = c->nslots;
 
   for(int k = 0; k < nn; k++)
@@ -171,9 +171,8 @@ RayComms *ray_comms_init(RayWorkStack *work)
   c->flush_countdown = RAY_FLUSH_INTERVAL;
 
 #ifdef RT_COMM_STATISTICS
-  mpi_printf("STAR_RADIATION: async comm, %d send slots + %d recv slots = %.1f MB/rank, %d packets/msg\n",
-             c->nslots, c->nrecv,
-             (double)(c->nslots + c->nrecv) * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0),
+  mpi_printf("STAR_RADIATION: async comm, %d send slots + %d recv slots = %.1f MB/rank, %d packets/msg\n", 
+             c->nslots, c->nrecv, (double)(c->nslots + c->nrecv) * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0),
              RAY_MSG_MAX);
 #endif
 
@@ -192,8 +191,7 @@ static void post_send(struct RayCommsAsync *c, int k)
   MPI_Isend(SENDSLOT(c, s), c->slot_n[s] * (int)sizeof(RayPacket), MPI_BYTE,
             RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &c->send_req[s]);
 
-  /* Counted at post time, which is what makes the Mattern snapshot correct:
-     a ray on the wire is already in n_sent and not yet in any n_recv */
+  /* Counted at post time */
   c->n_sent += c->slot_n[s];
   c->rays_sent += c->slot_n[s];
   c->msgs_sent++;
@@ -328,8 +326,10 @@ void ray_comms_flush(RayComms *comm)
   struct RayCommsAsync *c = comm;
 
   for(int k = 0; k < RayNgbNTask; k++)
-    if(c->fill[k] >= 0 && c->slot_n[c->fill[k]] > 0)
-      post_send(c, k);
+    {
+      if(c->fill[k] >= 0 && c->slot_n[c->fill[k]] > 0)
+        post_send(c, k);
+    }
 
   c->flush_countdown = RAY_FLUSH_INTERVAL;
 }
@@ -341,9 +341,7 @@ void ray_comms_progress(RayComms *comm)
   reclaim_sends(c);
   drain_recvs(c);
 
-  /* Bound the latency of a partially filled buffer: without this, a single ray
-     headed for a quiet neighbour can sit unsent while this rank grinds through
-     unrelated local work, starving that neighbour */
+  /* Bound the latency of a partially filled buffer */
   if(--c->flush_countdown <= 0)
     ray_comms_flush(comm);
 }
@@ -444,8 +442,7 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
 
       ray_comms_progress(comm);
 
-      /* About to go idle: partial buffers must go out, or comm_idle() will
-         refuse to post a snapshot and termination is never reached */
+      /* About to go idle: partial buffers must go out */
       if(work->n == 0)
         ray_comms_flush(comm);
 

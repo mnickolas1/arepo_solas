@@ -528,9 +528,6 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
 }
 
 /* Sparse, neighbour-restricted ray exchange */
-#define TAG_RAY_COUNT 30201
-#define TAG_RAY_DATA 30202
-
 int RayNgbNTask = 0;
 int *RayNgbTask = NULL;
 int *RayTaskToNgb = NULL;
