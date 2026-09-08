@@ -16,30 +16,39 @@ double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
   return sum * h;
 }
 
-/* Unnormalized Kroupa IMF */
-double imf_kroupa(double m) 
+/* Unnormalized Kroupa (2001) IMF
+   Continuous three-segment power law with breaks at 0.08 and 0.5 Msun */
+double imf_kroupa(double m)
 {
   if(m < MMIN || m > MMAX) return 0.0;
-  
-  if(m < 0.5) return pow(m, -1.3);
-  
-  return pow(m, -2.3);
+
+  if(m < 0.08) return pow(m, -0.3);
+
+  if(m < 0.5) return 0.08 * pow(m, -1.3);
+
+  return 0.04 * pow(m, -2.3);
 }
 
-/* Unnormalized Chabrier IMF */
-double imf_chabrier(double m) 
+/* Unnormalized Chabrier (2003) IMF, single-star disk form
+   Continuous between: Lognormal below 1 Msun - Salpeter slope above */
+double imf_chabrier(double m)
 {
+  const double mc = 0.079;
+  const double logmc = log10(mc);
+  
+  const double sigma = 0.69;
+  
   if(m < MMIN || m > MMAX) return 0.0;
 
-  if(m <= 1.0) 
+  if(m <= 1.0)
     {
-      double mc = 0.08;
-      double sigma = 0.69;
       double logm = log10(m);
-      double logmc = log10(mc);
-      return (1.0 / m) * exp(-pow((logm - logmc), 2) / (2.0 * sigma*sigma));
-    } 
-  else return pow(m, -2.3);
+      double d = logm - logmc;
+      return (1.0 / m) * exp(-d * d / (2.0 * sigma * sigma));
+    }
+                  
+    double A = exp(-logmc * logmc / (2.0 * sigma * sigma));
+    return A * pow(m, -2.3);
 }
 
 /* Unnormalized Salpeter IMF */
