@@ -216,7 +216,8 @@ void InitGrackle(void)
    */
   my_grackle_data->UVbackground = 0;
   /* The following flags are related to the UVB, but they are automatically set to the right values, so do not need to use. These
-   * numbers are the correct ones for FG2011 UVB. my_grackle_data->UVbackground_redshift_on       = 10.6;
+   * numbers are the correct ones for FG2011 UVB. 
+   * my_grackle_data->UVbackground_redshift_on       = 10.6;
    * my_grackle_data->UVbackground_redshift_off      = 0;
    * my_grackle_data->UVbackground_redshift_fullon   = 10.6;
    * my_grackle_data->UVbackground_redshift_drop     = 0;

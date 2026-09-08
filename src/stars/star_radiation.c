@@ -3,13 +3,12 @@
 
 #include "../extern/chealpix.h"
 
-
+/* clang-format off */
 /* Effective attenuation kappa_ext*(1 - a*<g>) [cm^2/g gas, solar Z]
    Band-averaged over Draine 2003 (renorm. WD01) MW R_V=3.1 model,
    kext_albedo_WD_MW_3.1_60_D03.all, energy and photon-weighted 4e4 K BB
    Gas mass per H = 2.311e-24 g (M_dust/H = 1.398e-26, M_gas/M_dust = 165.3) */
-double Kappa_E[WAVEBANDS] =
-{
+double Kappa_E[WAVEBANDS] = {
   [INFRARED] = 34.9,
   [OPTICAL] = 278.3,
   [ULTRAVIOLET] = 417.7,
@@ -19,8 +18,7 @@ double Kappa_E[WAVEBANDS] =
   [IONIZING_HeII] = 256.4,
 };
 
-double Kappa_N[WAVEBANDS] =
-{
+double Kappa_N[WAVEBANDS] = {
   [INFRARED] = 30.0,
   [OPTICAL] = 242.3,
   [ULTRAVIOLET] = 406.9,
@@ -35,8 +33,7 @@ double Kappa_N[WAVEBANDS] =
    Remainder is non-forward-scattered light: removed from the ray and it does
    deliver momentum (kappa_eff is exactly the momentum-transfer opacity), but
    it must NOT contribute to heating */
-double TrueAbsorbedFraction[WAVEBANDS] =
-{
+double TrueAbsorbedFraction[WAVEBANDS] = {
   [INFRARED] = 0.54,
   [OPTICAL] = 0.62,
   [ULTRAVIOLET] = 0.81,
@@ -47,8 +44,7 @@ double TrueAbsorbedFraction[WAVEBANDS] =
 };
 
 /* f_rerad = f_abs*(1-eps_pe); eps_pe = 0.05 for the two UV bands only */
-double ReradiatedFraction[WAVEBANDS] =
-{
+double ReradiatedFraction[WAVEBANDS] = {
   [INFRARED] = 0.54,
   [OPTICAL] = 0.62,
   [ULTRAVIOLET] = 0.77,
@@ -61,16 +57,17 @@ double ReradiatedFraction[WAVEBANDS] =
 double SigmaH2 = SIGMA_DISS / F_DISS;
 
 double Sigma_E[3][3] = {
-  { 3.4457e-18, 0.0000e+00, 0.0000e+00 },
-  { 8.1308e-19, 5.7225e-18, 0.0000e+00 },
-  { 1.0127e-19, 1.4614e-18, 1.3294e-18 },
+  {3.4457e-18, 0.0000e+00, 0.0000e+00},
+  {8.1308e-19, 5.7225e-18, 0.0000e+00},
+  {1.0127e-19, 1.4614e-18, 1.3294e-18},
 };
 
 double Sigma_N[3][3] = {
-  { 3.6742e-18, 0.0000e+00, 0.0000e+00 },
-  { 8.4911e-19, 5.8894e-18, 0.0000e+00 },
-  { 1.0236e-19, 1.4735e-18, 1.3425e-18 },
+  {3.6742e-18, 0.0000e+00, 0.0000e+00},
+  {8.4911e-19, 5.8894e-18, 0.0000e+00},
+  {1.0236e-19, 1.4735e-18, 1.3425e-18},
 };
+/* clang-format on */
 
 void update_opac(void)
 {
