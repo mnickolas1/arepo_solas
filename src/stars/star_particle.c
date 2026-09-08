@@ -16,7 +16,7 @@ double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
   return sum * h;
 }
 
-/* Unnormalized Kroupa (2001) IMF
+/* Unnormalized Kroupa (2001), Maschberger (2013) 
    Continuous three-segment power law with breaks at 0.08 and 0.5 Msun */
 double imf_kroupa(double m)
 {
@@ -29,7 +29,7 @@ double imf_kroupa(double m)
   return 0.04 * pow(m, -2.3);
 }
 
-/* Unnormalized Chabrier (2003) IMF, single-star disk form
+/* Unnormalized Chabrier (2003), Maschberger (2013)
    Continuous between: Lognormal below 1 Msun - Salpeter slope above */
 double imf_chabrier(double m)
 {
@@ -40,15 +40,14 @@ double imf_chabrier(double m)
   
   if(m < MMIN || m > MMAX) return 0.0;
 
-  if(m <= 1.0)
+  if(m < 1.0)
     {
       double logm = log10(m);
       double d = logm - logmc;
-      return (1.0 / m) * exp(-d * d / (2.0 * sigma * sigma));
+      return (0.158 / m) * exp(-d * d / (2.0 * sigma * sigma));
     }
                   
-    double A = exp(-logmc * logmc / (2.0 * sigma * sigma));
-    return A * pow(m, -2.3);
+    return 0.0443 * pow(m, -2.3);
 }
 
 /* Unnormalized Salpeter IMF */
