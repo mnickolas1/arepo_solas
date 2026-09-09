@@ -115,26 +115,25 @@ static double next_SN_time(double tau, double z_val, double m_val, double a)
 }
 #endif
 
-#if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
-/* Linear interpolation in age */
+#if defined(WINDS) || defined(STAR_RADIATION_ACTIVE) 
 static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a) 
 {
   Star_Interpolate Feedback = {0};
   
   const double *age = Age[z_idx][m_idx];
-  const double *radius = Radius[z_idx][m_idx];
-  const double *temperature = Temperature[z_idx][m_idx];
+  const double *logradius = logRadius[z_idx][m_idx];
+  const double *logtemperature = logTemperature[z_idx][m_idx];
   
 #ifdef WINDS
-  const double *masslossrate  = MassLossRate[z_idx][m_idx];
+  const double *logmasslossrate = logMassLossRate[z_idx][m_idx];
 #if GRACKLE_CHEMISTRY >= 1
-  const double *Hlossrate  = HLossRate[z_idx][m_idx];
-  const double *Helossrate  = HeLossRate[z_idx][m_idx];
+  const double *windx = WindX[z_idx][m_idx];
+  const double *windy = WindY[z_idx][m_idx];
 #endif
 #ifdef METALS
-  const double *metalslossrate = MetalsLossRate[z_idx][m_idx];
+  const double *windz = WindZ[z_idx][m_idx];
 #endif
-  const double *windvelocity = WindVelocity[z_idx][m_idx];
+  const double *logwindvelocity = logWindVelocity[z_idx][m_idx];
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -147,19 +146,19 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
 
   if(a <= age[0])
     {
-      Feedback.Radius = radius[0];
-      Feedback.Temperature = temperature[0];
+      Feedback.logRadius = logradius[0];
+      Feedback.logTemperature = logtemperature[0];
 
 #ifdef WINDS
-      Feedback.MassLossRate = masslossrate[0];
+      Feedback.logMassLossRate = logmasslossrate[0];
 #if GRACKLE_CHEMISTRY >= 1
-      Feedback.HLossRate = Hlossrate[0];
-      Feedback.HeLossRate = Helossrate[0];
+      Feedback.WindX = windx[0];
+      Feedback.WindY = windy[0];
 #endif
 #ifdef METALS
-      Feedback.MetalsLossRate = metalslossrate[0];
+      Feedback.WindZ = windz[0];
 #endif
-      Feedback.WindVelocity = windvelocity[0];
+      Feedback.logWindVelocity = logwindvelocity[0];
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -172,19 +171,19 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
     
   if(a >= age[n - 1])  
     {
-      Feedback.Radius = radius[n - 1];
-      Feedback.Temperature = temperature[n - 1];
+      Feedback.logRadius = logradius[n - 1];
+      Feedback.logTemperature = logtemperature[n - 1];
 
 #ifdef WINDS
-      Feedback.MassLossRate = masslossrate[n - 1];
+      Feedback.logMassLossRate = logmasslossrate[n - 1];
 #if GRACKLE_CHEMISTRY >= 1
-      Feedback.HLossRate = Hlossrate[n - 1];
-      Feedback.HeLossRate = Helossrate[n - 1];
+      Feedback.WindX = windx[n - 1];
+      Feedback.WindY = windy[n - 1];
 #endif 
 #ifdef METALS
-      Feedback.MetalsLossRate = metalslossrate[n - 1];
+      Feedback.WindZ = windz[n - 1];
 #endif
-      Feedback.WindVelocity = windvelocity[n - 1];
+      Feedback.logWindVelocity = logwindvelocity[n - 1];
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -199,19 +198,19 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
     {
       if(a >= age[i] && a <= age[i + 1])
         {
-          Feedback.Radius = linear_interpolation(a, age[i], age[i + 1], radius[i], radius[i + 1]);
-          Feedback.Temperature = linear_interpolation(a, age[i], age[i + 1], temperature[i], temperature[i + 1]);
+          Feedback.logRadius = linear_interpolation(a, age[i], age[i + 1], logradius[i], logradius[i + 1]);
+          Feedback.logTemperature = linear_interpolation(a, age[i], age[i + 1], logtemperature[i], logtemperature[i + 1]);
 
 #ifdef WINDS
-          Feedback.MassLossRate = linear_interpolation(a, age[i], age[i + 1], masslossrate[i], masslossrate[i + 1]);
+          Feedback.logMassLossRate = linear_interpolation(a, age[i], age[i + 1], logmasslossrate[i], logmasslossrate[i + 1]);
 #if GRACKLE_CHEMISTRY >= 1
-          Feedback.HLossRate = linear_interpolation(a, age[i], age[i + 1], Hlossrate[i], Hlossrate[i + 1]);
-          Feedback.HeLossRate = linear_interpolation(a, age[i], age[i + 1], Helossrate[i], Helossrate[i + 1]);
+          Feedback.WindX = linear_interpolation(a, age[i], age[i + 1], windx[i], windx[i + 1]);
+          Feedback.WindY = linear_interpolation(a, age[i], age[i + 1], windy[i], windy[i + 1]);
 #endif
 #ifdef METALS
-          Feedback.MetalsLossRate = linear_interpolation(a, age[i], age[i + 1], metalslossrate[i], metalslossrate[i + 1]);
+          Feedback.WindZ = linear_interpolation(a, age[i], age[i + 1], windz[i], windz[i + 1]);
 #endif
-          Feedback.WindVelocity = linear_interpolation(a, age[i], age[i + 1], windvelocity[i], windvelocity[i + 1]);
+          Feedback.logWindVelocity = linear_interpolation(a, age[i], age[i + 1], logwindvelocity[i], logwindvelocity[i + 1]);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -250,19 +249,19 @@ static Star_Interpolate interpolate_mass(int z_idx, double m_val, double a)
           Star_Interpolate Feedback1 = interpolate_age(z_idx, m + 1, a);
           Star_Interpolate Feedback = {0};
 
-          Feedback.Radius = linear_interpolation(lm, lm0, lm1, Feedback0.Radius, Feedback1.Radius);
-          Feedback.Temperature = linear_interpolation(lm, lm0, lm1, Feedback0.Temperature, Feedback1.Temperature);
+          Feedback.logRadius = linear_interpolation(lm, lm0, lm1, Feedback0.logRadius, Feedback1.logRadius);
+          Feedback.logTemperature = linear_interpolation(lm, lm0, lm1, Feedback0.logTemperature, Feedback1.logTemperature);
 
 #ifdef WINDS
-          Feedback.MassLossRate = linear_interpolation(lm, lm0, lm1, Feedback0.MassLossRate, Feedback1.MassLossRate);
+          Feedback.logMassLossRate = linear_interpolation(lm, lm0, lm1, Feedback0.logMassLossRate, Feedback1.logMassLossRate);
 #if GRACKLE_CHEMISTRY >= 1
-          Feedback.HLossRate = linear_interpolation(lm, lm0, lm1, Feedback0.HLossRate, Feedback1.HLossRate);
-          Feedback.HeLossRate = linear_interpolation(lm, lm0, lm1, Feedback0.HeLossRate, Feedback1.HeLossRate);
+          Feedback.WindX = linear_interpolation(lm, lm0, lm1, Feedback0.WindX, Feedback1.WindX);
+          Feedback.WindY = linear_interpolation(lm, lm0, lm1, Feedback0.WindY, Feedback1.WindY);
 #endif
 #ifdef METALS
-          Feedback.MetalsLossRate = linear_interpolation(lm, lm0, lm1, Feedback0.MetalsLossRate, Feedback1.MetalsLossRate);
+          Feedback.WindZ = linear_interpolation(lm, lm0, lm1, Feedback0.WindZ, Feedback1.WindZ);
 #endif
-          Feedback.WindVelocity = linear_interpolation(lm, lm0, lm1, Feedback0.WindVelocity, Feedback1.WindVelocity);
+          Feedback.logWindVelocity = linear_interpolation(lm, lm0, lm1, Feedback0.logWindVelocity, Feedback1.logWindVelocity);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -301,19 +300,19 @@ static Star_Interpolate interpolate_metallicity(double z_val, double m_val, doub
           Star_Interpolate Feedback1 = interpolate_mass(z + 1, m_val, a);
           Star_Interpolate Feedback = {0};
 
-          Feedback.Radius = linear_interpolation(lz, lz0, lz1, Feedback0.Radius, Feedback1.Radius);
-          Feedback.Temperature = linear_interpolation(lz, lz0, lz1, Feedback0.Temperature, Feedback1.Temperature);
+          Feedback.logRadius = linear_interpolation(lz, lz0, lz1, Feedback0.logRadius, Feedback1.logRadius);
+          Feedback.logTemperature = linear_interpolation(lz, lz0, lz1, Feedback0.logTemperature, Feedback1.logTemperature);
 
 #ifdef WINDS
-          Feedback.MassLossRate = linear_interpolation(lz, lz0, lz1, Feedback0.MassLossRate, Feedback1.MassLossRate);
+          Feedback.logMassLossRate = linear_interpolation(lz, lz0, lz1, Feedback0.logMassLossRate, Feedback1.logMassLossRate);
 #if GRACKLE_CHEMISTRY >= 1
-          Feedback.HLossRate = linear_interpolation(lz, lz0, lz1, Feedback0.HLossRate, Feedback1.HLossRate);
-          Feedback.HeLossRate = linear_interpolation(lz, lz0, lz1, Feedback0.HeLossRate, Feedback1.HeLossRate);
+          Feedback.WindX = linear_interpolation(lz, lz0, lz1, Feedback0.WindX, Feedback1.WindX);
+          Feedback.WindY = linear_interpolation(lz, lz0, lz1, Feedback0.WindY, Feedback1.WindY);
 #endif
 #ifdef METALS
-          Feedback.MetalsLossRate = linear_interpolation(lz, lz0, lz1, Feedback0.MetalsLossRate, Feedback1.MetalsLossRate);
+          Feedback.WindZ = linear_interpolation(lz, lz0, lz1, Feedback0.WindZ, Feedback1.WindZ);
 #endif
-          Feedback.WindVelocity = linear_interpolation(lz, lz0, lz1, Feedback0.WindVelocity, Feedback1.WindVelocity);
+          Feedback.logWindVelocity = linear_interpolation(lz, lz0, lz1, Feedback0.logWindVelocity, Feedback1.logWindVelocity);
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
@@ -340,22 +339,22 @@ static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val)
   
   const double *SN_massloss  = SN_MassLoss[z_idx];
 #if GRACKLE_CHEMISTRY >= 1
-  const double *SN_Hloss  = SN_HLoss[z_idx];
-  const double *SN_Heloss  = SN_HeLoss[z_idx];
+  const double *SN_x  = SN_X[z_idx];
+  const double *SN_y  = SN_Y[z_idx];
 #endif
 #ifdef METALS
-  const double *SN_metalsloss = SN_MetalsLoss[z_idx];
+  const double *SN_z = SN_Z[z_idx];
 #endif
 
   if(m_val <= M_VALUES[0])
     {
       SN_Feedback.SN_MassLoss = SN_massloss[0];
 #if GRACKLE_CHEMISTRY >= 1
-      SN_Feedback.SN_HLoss = SN_Hloss[0];
-      SN_Feedback.SN_HeLoss = SN_Heloss[0];
+      SN_Feedback.SN_X = SN_x[0];
+      SN_Feedback.SN_Y = SN_y[0];
 #endif
 #ifdef METALS
-      SN_Feedback.SN_MetalsLoss = SN_metalsloss[0];
+      SN_Feedback.SN_Z = SN_z[0];
 #endif
       SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? SN_ENERGY : 0.0;
       
@@ -366,11 +365,11 @@ static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val)
     {
       SN_Feedback.SN_MassLoss = SN_massloss[M_COUNT - 1];
 #if GRACKLE_CHEMISTRY >= 1
-      SN_Feedback.SN_HLoss = SN_Hloss[M_COUNT - 1];
-      SN_Feedback.SN_HeLoss = SN_Heloss[M_COUNT - 1];
+      SN_Feedback.SN_X = SN_x[M_COUNT - 1];
+      SN_Feedback.SN_Y = SN_y[M_COUNT - 1];
 #endif
 #ifdef METALS
-      SN_Feedback.SN_MetalsLoss = SN_metalsloss[M_COUNT - 1];
+      SN_Feedback.SN_Z = SN_z[M_COUNT - 1];
 #endif
       SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? SN_ENERGY : 0.0;
       
@@ -390,11 +389,11 @@ static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val)
             {
               SN_Feedback.SN_MassLoss = linear_interpolation(lm, lm0, lm1, SN_massloss[m], SN_massloss[m + 1]);
 #if GRACKLE_CHEMISTRY >= 1
-              SN_Feedback.SN_HLoss = linear_interpolation(lm, lm0, lm1, SN_Hloss[m], SN_Hloss[m + 1]);
-              SN_Feedback.SN_HeLoss = linear_interpolation(lm, lm0, lm1, SN_Heloss[m], SN_Heloss[m + 1]);
+              SN_Feedback.SN_X = linear_interpolation(lm, lm0, lm1, SN_x[m], SN_x[m + 1]);
+              SN_Feedback.SN_Y = linear_interpolation(lm, lm0, lm1, SN_y[m], SN_y[m + 1]);
 #endif
 #ifdef METALS
-              SN_Feedback.SN_MetalsLoss = linear_interpolation(lm, lm0, lm1, SN_metalsloss[m], SN_metalsloss[m + 1]);
+              SN_Feedback.SN_Z = linear_interpolation(lm, lm0, lm1, SN_z[m], SN_z[m + 1]);
 #endif
               SN_Feedback.SN_EnergyInject = SN_ENERGY;
             }
@@ -405,11 +404,11 @@ static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val)
                 {
                   SN_Feedback.SN_MassLoss = SN_massloss[m];
 #if GRACKLE_CHEMISTRY >= 1
-                  SN_Feedback.SN_HLoss = SN_Hloss[m];
-                  SN_Feedback.SN_HeLoss = SN_Heloss[m];
+                  SN_Feedback.SN_X = SN_x[m];
+                  SN_Feedback.SN_Y = SN_y[m];
 #endif
 #ifdef METALS
-                  SN_Feedback.SN_MetalsLoss = SN_metalsloss[m];
+                  SN_Feedback.SN_Z = SN_z[m];
 #endif
                   SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? SN_ENERGY : 0.0;
                 }
@@ -417,11 +416,11 @@ static inline Star_Interpolate SN_interpolate_mass(int z_idx, double m_val)
                 {
                   SN_Feedback.SN_MassLoss = SN_massloss[m + 1];
 #if GRACKLE_CHEMISTRY >= 1
-                  SN_Feedback.SN_HLoss = SN_Hloss[m + 1];
-                  SN_Feedback.SN_HeLoss = SN_Heloss[m + 1];
+                  SN_Feedback.SN_X = SN_x[m + 1];
+                  SN_Feedback.SN_Y = SN_y[m + 1];
 #endif
 #ifdef METALS
-                  SN_Feedback.SN_MetalsLoss = SN_metalsloss[m + 1];
+                  SN_Feedback.SN_Z = SN_z[m + 1];
 #endif
                   SN_Feedback.SN_EnergyInject = (SN_Feedback.SN_MassLoss > 0.0) ? SN_ENERGY : 0.0;
                 }
@@ -460,11 +459,11 @@ static Star_Interpolate SN_interpolate_metallicity(double z_val, double m_val)
             {
               SN_Feedback.SN_MassLoss = linear_interpolation(lz, lz0, lz1, SNfeedback0.SN_MassLoss, SNfeedback1.SN_MassLoss);
 #if GRACKLE_CHEMISTRY >= 1
-              SN_Feedback.SN_HLoss = linear_interpolation(lz, lz0, lz1, SNfeedback0.SN_HLoss, SNfeedback1.SN_HLoss);
-              SN_Feedback.SN_HeLoss = linear_interpolation(lz, lz0, lz1, SNfeedback0.SN_HeLoss, SNfeedback1.SN_HeLoss);
+              SN_Feedback.SN_X = linear_interpolation(lz, lz0, lz1, SNfeedback0.SN_X, SNfeedback1.SN_X);
+              SN_Feedback.SN_Y = linear_interpolation(lz, lz0, lz1, SNfeedback0.SN_Y, SNfeedback1.SN_Y);
 #endif
 #ifdef METALS
-              SN_Feedback.SN_MetalsLoss = linear_interpolation(lz, lz0, lz1, SNfeedback0.SN_MetalsLoss, SNfeedback1.SN_MetalsLoss);
+              SN_Feedback.SN_Z = linear_interpolation(lz, lz0, lz1, SNfeedback0.SN_Z, SNfeedback1.SN_Z);
 #endif
               SN_Feedback.SN_EnergyInject = SN_ENERGY;
             }
@@ -523,11 +522,11 @@ Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, doubl
       
       Star.SN_MassLoss = SN_Feedback.SN_MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
-      Star.SN_HLoss = SN_Feedback.SN_HLoss;
-      Star.SN_HeLoss = SN_Feedback.SN_HeLoss;
+      Star.SN_HLoss = Star.SN_MassLoss * SN_Feedback.SN_X;
+      Star.SN_HeLoss = Star.SN_MassLoss * SN_Feedback.SN_Y;
 #endif
 #ifdef METALS
-      Star.SN_MetalsLoss = SN_Feedback.SN_MetalsLoss;
+      Star.SN_MetalsLoss = Star.SN_MassLoss * SN_Feedback.SN_Z;
 #endif
       Star.SN_EnergyInject = SN_Feedback.SN_EnergyInject;
 #endif
@@ -542,25 +541,28 @@ Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, doubl
       Star_Interpolate Feedback = interpolate_metallicity(z_val, m_val, a);
 
 #ifdef WINDS
-      Star.MassLoss = Feedback.MassLossRate * dt;
+      /* Back out of log space; the species losses follow from the mass
+         fractions, so they add up to the total by construction. */
+      Star.MassLoss = pow(10, Feedback.logMassLossRate) * dt;
 #if GRACKLE_CHEMISTRY >= 1
-      Star.HLoss = Feedback.HLossRate * dt;
-      Star.HeLoss = Feedback.HeLossRate * dt;
+      Star.HLoss = Star.MassLoss * Feedback.WindX;
+      Star.HeLoss = Star.MassLoss * Feedback.WindY;
 #endif
 #ifdef METALS
-      Star.MetalsLoss = Feedback.MetalsLossRate * dt;
+      Star.MetalsLoss = Star.MassLoss * Feedback.WindZ;
 #endif
-      Star.WindMomentum = Feedback.MassLossRate * dt * Feedback.WindVelocity;
+      Star.WindMomentum = Star.MassLoss * pow(10, Feedback.logWindVelocity);
 #endif
       
 #ifdef STAR_RADIATION_ACTIVE
       double dt_rad = dt * SEC_PER_YEAR;
-      double flux_to_luminosity = 4 * M_PI * Feedback.Radius * Feedback.Radius;
+      double radius = pow(10, Feedback.logRadius);
+      double flux_to_luminosity = 4 * M_PI * radius * radius;
         
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          Star.Radiated[w].Energy  = Feedback.Flux[w].Energy  * flux_to_luminosity * dt_rad;
-          Star.Radiated[w].Photons = Feedback.Flux[w].Photons * flux_to_luminosity * dt_rad;
+          Star.Radiated[w].Energy  = pow(10, Feedback.Flux[w].Energy)  * flux_to_luminosity * dt_rad;
+          Star.Radiated[w].Photons = pow(10, Feedback.Flux[w].Photons) * flux_to_luminosity * dt_rad;
         }
 #endif
 
