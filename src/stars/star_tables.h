@@ -16,33 +16,34 @@ extern double *logM_VALUES;
 extern int **N;
 
 extern double ***Age;
-extern double ***Radius;
-extern double ***Temperature;
+extern double ***FractionalAge;
+extern double ***logRadius;
+extern double ***logTemperature;
 
 #ifdef WINDS
-extern double ***MassLossRate;
+extern double ***logMassLossRate;
 #if GRACKLE_CHEMISTRY >= 1
-extern double ***HLossRate;
-extern double ***HeLossRate;
+extern double ***WindX;
+extern double ***WindY;
 #endif
 #ifdef METALS
-extern double ***MetalsLossRate;
+extern double ***WindZ;
 #endif
-extern double ***WindVelocity;
+extern double ***logWindVelocity;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-extern WavebandData ***Flux[WAVEBANDS];
+extern WavebandData ***logFlux[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
 extern double **SN_MassLoss; 
 #if GRACKLE_CHEMISTRY >= 1
-extern double **SN_HLoss; 
-extern double **SN_HeLoss; 
+extern double **SN_X; 
+extern double **SN_Y; 
 #endif
 #ifdef METALS
-extern double **SN_MetalsLoss; 
+extern double **SN_Z; 
 #endif 
 #endif
 

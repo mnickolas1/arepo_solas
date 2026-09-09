@@ -31,7 +31,6 @@
  *      nonblocking allreduce
  */
 
- 
 #ifndef RT_COMM_SYNC
 
 /* Bail out on a genuine deadlock rather than spinning forever */
@@ -86,8 +85,6 @@ struct RayCommsAsync
 
 static int drain_recvs(struct RayCommsAsync *c);
 static int reclaim_sends(struct RayCommsAsync *c);
-
-/* --------------------------------------------------------------------- */
 
 static void work_reserve(RayWorkStack *w, long long need)
 {
