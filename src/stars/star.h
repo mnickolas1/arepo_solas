@@ -39,33 +39,33 @@ extern struct TimeBinData TimeBinsStar;
 
 typedef struct Star_Interpolate
 {
-  MyDouble Radius;
-  MyDouble Temperature;
+  MyDouble logRadius;
+  MyDouble logTemperature;
 
 #ifdef WINDS
-  MyDouble MassLossRate;
+  MyDouble logMassLossRate;
 #if GRACKLE_CHEMISTRY >= 1
-  MyDouble HLossRate;
-  MyDouble HeLossRate;
+  MyDouble WindX;
+  MyDouble WindY;
 #endif
 #ifdef METALS
-  MyDouble MetalsLossRate;
+  MyDouble WindZ;
 #endif
-  MyDouble WindVelocity;
+  MyDouble logWindVelocity;
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  WavebandData Flux[WAVEBANDS];
+  WavebandData logFlux[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
   MyDouble SN_MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
-  MyDouble SN_HLoss;
-  MyDouble SN_HeLoss;
+  MyDouble SN_X;
+  MyDouble SN_Y;
 #endif
 #ifdef METALS
-  MyDouble SN_MetalsLoss;
+  MyDouble SN_Z;
 #endif
   MyDouble SN_EnergyInject;
 #endif

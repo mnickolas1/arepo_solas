@@ -137,9 +137,9 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-  const WavebandData *flux[WAVEBANDS];
+  const WavebandData *logflux[WAVEBANDS];
   for(int w = 0; w < WAVEBANDS; w++)
-    flux[w] = Flux[w][z_idx][m_idx];
+    logflux[w] = logFlux[w][z_idx][m_idx];
 #endif
 
   int n = N[z_idx][m_idx];
@@ -163,7 +163,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        Feedback.Flux[w] = flux[w][0];
+        Feedback.logFlux[w] = logflux[w][0];
 #endif
       
       return Feedback;
@@ -188,7 +188,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        Feedback.Flux[w] = flux[w][n - 1];
+        Feedback.logFlux[w] = logflux[w][n - 1];
 #endif
       
       return Feedback;
@@ -216,8 +216,8 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double a)
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              Feedback.Flux[w].Energy  = linear_interpolation(a, age[i], age[i+1], flux[w][i].Energy,  flux[w][i+1].Energy);
-              Feedback.Flux[w].Photons = linear_interpolation(a, age[i], age[i+1], flux[w][i].Photons, flux[w][i+1].Photons);
+              Feedback.logFlux[w].Energy  = linear_interpolation(a, age[i], age[i+1], logflux[w][i].Energy, logflux[w][i+1].Energy);
+              Feedback.logFlux[w].Photons = linear_interpolation(a, age[i], age[i+1], logflux[w][i].Photons, logflux[w][i+1].Photons);
             }
 #endif
 
@@ -267,8 +267,8 @@ static Star_Interpolate interpolate_mass(int z_idx, double m_val, double a)
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              Feedback.Flux[w].Energy = linear_interpolation(lm, lm0, lm1, Feedback0.Flux[w].Energy, Feedback1.Flux[w].Energy);
-              Feedback.Flux[w].Photons = linear_interpolation(lm, lm0, lm1, Feedback0.Flux[w].Photons, Feedback1.Flux[w].Photons);
+              Feedback.logFlux[w].Energy = linear_interpolation(lm, lm0, lm1, Feedback0.logFlux[w].Energy, Feedback1.logFlux[w].Energy);
+              Feedback.logFlux[w].Photons = linear_interpolation(lm, lm0, lm1, Feedback0.logFlux[w].Photons, Feedback1.logFlux[w].Photons);
             }
 #endif
 
@@ -318,8 +318,8 @@ static Star_Interpolate interpolate_metallicity(double z_val, double m_val, doub
 #ifdef STAR_RADIATION_ACTIVE
           for(int w = 0; w < WAVEBANDS; w++)
             {
-              Feedback.Flux[w].Energy = linear_interpolation(lz, lz0, lz1, Feedback0.Flux[w].Energy, Feedback1.Flux[w].Energy);
-              Feedback.Flux[w].Photons = linear_interpolation(lz, lz0, lz1, Feedback0.Flux[w].Photons, Feedback1.Flux[w].Photons);
+              Feedback.logFlux[w].Energy = linear_interpolation(lz, lz0, lz1, Feedback0.logFlux[w].Energy, Feedback1.logFlux[w].Energy);
+              Feedback.logFlux[w].Photons = linear_interpolation(lz, lz0, lz1, Feedback0.logFlux[w].Photons, Feedback1.logFlux[w].Photons);
             }
 #endif
 
@@ -561,8 +561,8 @@ Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, doubl
         
       for(int w = 0; w < WAVEBANDS; w++)
         {
-          Star.Radiated[w].Energy  = pow(10, Feedback.Flux[w].Energy)  * flux_to_luminosity * dt_rad;
-          Star.Radiated[w].Photons = pow(10, Feedback.Flux[w].Photons) * flux_to_luminosity * dt_rad;
+          Star.Radiated[w].Energy  = pow(10, Feedback.logFlux[w].Energy)  * flux_to_luminosity * dt_rad;
+          Star.Radiated[w].Photons = pow(10, Feedback.logFlux[w].Photons) * flux_to_luminosity * dt_rad;
         }
 #endif
 
