@@ -213,9 +213,6 @@ extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
  
 typedef RayExportBuffer RayComms;
  
-/* No-op: the synchronous path only communicates between rounds */
-void ray_comms_progress(RayComms *comm) { (void)comm; }
- 
 #else
  
 /* Packets per message */

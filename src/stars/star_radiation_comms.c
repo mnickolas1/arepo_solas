@@ -35,6 +35,9 @@ static double TraceLocalTotal = 0.0, TraceMaxSum = 0.0;
 static long long MsgsSent = 0, RaysSent = 0;
 #endif
 
+/* No-op: the synchronous path only communicates between rounds */
+void ray_comms_progress(RayComms *comm) { (void)comm; }
+
 RayComms *ray_comms_init(RayWorkStack *work)
 {
   (void)work; /* the synchronous path receives into the work stack directly */
