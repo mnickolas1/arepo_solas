@@ -140,6 +140,10 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
          (!track_N || ray->Radiated[w].Photons <= 0 || ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons))
 #endif
         {
+
+#ifdef RT_STATISTICS
+          rt_statistics_drop(ray, w);
+#endif
           ray->active_bands &= (uint8_t)(~(1u << w));
           continue;
         }
@@ -160,6 +164,10 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
           a->Band[w].Energy = dE;
           ray->Radiated[w].Energy -= dE;
 
+#ifdef RT_STATISTICS
+          RTStatisticsLocal.absorbed_E[w] += dE;
+#endif
+
           for(int c = 0; c < CHANNELS; c++)
             a->Ch[w][c].Energy = wE * dtau[w].E[c];
         }
@@ -172,6 +180,10 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
           a->Band[w].Photons = dN;
           ray->Radiated[w].Photons -= dN;
 
+#ifdef RT_STATISTICS
+          RTStatisticsLocal.absorbed_N[w] += dN;
+#endif
+
           for(int c = 0; c < CHANNELS; c++)
             a->Ch[w][c].Photons = wN * dtau[w].N[c];
         }
@@ -183,12 +195,29 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
 #endif
     }
 
+#ifdef RT_STATISTICS
+  int ended = 0;
+#endif
+
 #ifdef RAD_TOTAL_TRUNCATION
   /* Never truncate while an ionizing band is live */
   if(!(ray->active_bands & ONLY_IONIZING_ACTIVE) &&
      (ray->E_init <= 0.0 || E_live < RAD_TRUNC_FRAC * ray->E_init) &&
      (ray->N_init <= 0.0 || N_live < RAD_TRUNC_FRAC * ray->N_init))
-    ray->active_bands = 0; 
+    {
+
+#ifdef RT_STATISTICS
+      rt_statistics_abandon(ray, RAY_END_TRUNCATE);
+      ended = 1;
+#endif
+
+      ray->active_bands = 0;
+    }
+#endif
+
+#ifdef RT_STATISTICS
+  if(!ended && ray->active_bands == 0)
+    rt_statistics_abandon(ray, RAY_END_TRUNCATE);
 #endif
 
   return ray->active_bands != 0;
@@ -199,10 +228,24 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
 static inline int ray_deposit(RayPacket *ray, int i, double length)
 {
   if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
-    return ray->active_bands != 0;
+    {
+
+#ifdef RT_STATISTICS
+      RTStatisticsLocal.n_skipped++;
+#endif
+
+      return ray->active_bands != 0;
+    }
 
   if(length <= 0.0)
-    return ray->active_bands != 0;
+    {
+
+#ifdef RT_STATISTICS
+      RTStatisticsLocal.n_skipped++;
+#endif
+
+      return ray->active_bands != 0;
+    }
 
   ChannelsDtau dtau[WAVEBANDS];
   double dN_H2 = cell_dtau(i, length, ray->N_H2, ray->active_bands, dtau);
@@ -410,7 +453,14 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
 
       /* Head is outside the box: the child has already escaped */
       if(dc_is_boundary(q_best))
-        return 1;
+        {
+
+#ifdef RT_STATISTICS
+          rt_statistics_abandon(ray, RAY_END_RELOCATE);
+#endif
+
+          return 1;
+        }
 
       ray->pos[0] -= d_best[0];
       ray->pos[1] -= d_best[1];
@@ -599,6 +649,11 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
           truncated = 1;
         }
 
+#ifdef RT_STATISTICS
+      RTStatisticsLocal.n_crossing++;
+      ray->diag_cells++;
+#endif
+
       /* Absorption, heating, radiation pressure */
       int still_alive = ray_deposit(ray, i, t_step);
 
@@ -606,12 +661,29 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       ray->t += t_step;
 
-      if(!still_alive || truncated)
+      if(!still_alive)
         return;
+
+      if(truncated)
+        {
+
+#ifdef RT_STATISTICS
+          rt_statistics_abandon(ray, RAY_END_TMAX);
+#endif
+
+          return;
+        }
 
       /* Outflow boundary */
       if(dc_is_boundary(q))
-        return;
+        {
+
+#ifdef RT_STATISTICS
+          rt_statistics_abandon(ray, RAY_END_ESCAPE);
+#endif
+
+          return;
+        }
 
       /* Re-anchor on the neighbour's generator */
       ray->pos[0] -= d[0];
@@ -635,6 +707,11 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       if(++steps > RAY_MAX_CELL_STEPS)
         {       
+
+#ifdef RT_STATISTICS
+          rt_statistics_abandon(ray, RAY_END_STEPCAP);
+#endif
+
           warn("raytrace_voronoi(): ray exceeded %d cell steps on task %d?\n", RAY_MAX_CELL_STEPS, ThisTask);          
           return;
         }

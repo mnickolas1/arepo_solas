@@ -494,6 +494,7 @@ CONFIGVARS += STAR_RADIATION_ACTIVE
 $(shell $(call add_define,STAR_RADIATION_ACTIVE))
 endif
 
+#Errors
 ifneq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 ifeq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
 $(error STAR_FEEDBACK_ACTIVE requires STAR_PARTICLES)
@@ -530,6 +531,19 @@ $(error RT_TIMESTEP requires PHOTOIONIZATION)
 endif
 endif
 
+ifneq (,$(filter RT_STATISTICS,$(CONFIGVARS)))
+ifeq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
+$(error RT_STATISTICS requires STAR_RADIATION_ACTIVE)
+endif
+endif
+
+#Warnings
+ifneq (,$(filter SUPERNOVAE,$(CONFIGVARS)))
+ifeq (,$(filter TREE_BASED_TIMESTEPS,$(CONFIGVARS)))
+$(warning SUPERNOVAE without TREE_BASED_TIMESTEPS does not limit timesteps)
+endif
+endif
+
 ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
 OBJS += stars/star_particle.o
 INCL += stars/star_particle.h  
@@ -560,10 +574,8 @@ INCL += extern/chealpix.h \
 SUBDIRS += extern
 endif
 
-ifneq (,$(filter SUPERNOVAE,$(CONFIGVARS)))
-ifeq (,$(filter TREE_BASED_TIMESTEPS,$(CONFIGVARS)))
-$(warning SUPERNOVAE without TREE_BASED_TIMESTEPS does not limit timesteps)
-endif
+ifneq (,$(filter RT_STATISTICS,$(CONFIGVARS)))
+OBJS += stars/star_radiation_statistics.o 
 endif
 
 #BLACKHOLES

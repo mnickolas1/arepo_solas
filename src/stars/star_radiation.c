@@ -3,6 +3,7 @@
 
 #include "../extern/chealpix.h"
 
+
 /* clang-format off */
 /* Effective attenuation kappa_ext*(1 - a*<g>) [cm^2/g gas, solar Z]
    Band-averaged over Draine 2003 (renorm. WD01) MW R_V=3.1 model,
@@ -388,6 +389,10 @@ static void init_rays(RayWorkStack *work)
             if(ray.active_bands == 0)
               continue; 
 
+#ifdef RT_STATISTICS
+            rt_statistics_init(&ray);
+#endif
+
             append_ray(work, &ray);
           }
       }
@@ -479,6 +484,10 @@ static void init_rays(RayWorkStack *work)
             if(ray.active_bands == 0)
               continue; 
 
+#ifdef RT_STATISTICS
+            rt_statistics_init(&ray);
+#endif
+
             append_ray(work, &ray);
           }
       }
@@ -524,6 +533,10 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
       children[k].N_init = parent->N_init * 0.25;
 #endif
     }
+
+#ifdef RT_STATISTICS
+  RTStatisticsLocal.n_split++;
+#endif
 }
 
 /* Sparse, neighbour-restricted ray exchange */
@@ -828,6 +841,10 @@ void star_radiation(void)
   RayWorkStack *work = init_work_stack(work_capacity);
   RayComms *comm = ray_comms_init(work);
 
+#ifdef RT_STATISTICS
+  rt_statistics_reset();
+#endif
+
   init_rays(work);
 
   t0 = second();
@@ -836,6 +853,10 @@ void star_radiation(void)
 
   t1 = second();
   mpi_printf("STAR_RADIATION: walk complete (%g sec)\n", timediff(t0, t1));
+
+#ifdef RT_STATISTICS
+  rt_statistics_report(timediff(t0, t1));
+#endif
 
   ray_comms_free(comm);
   free_work_stack(work);

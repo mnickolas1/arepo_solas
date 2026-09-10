@@ -180,6 +180,11 @@ typedef struct RayPacket
 
   /* Accumulated H2 column since source */
   double N_H2; /* cgs! */
+
+#ifdef RT_STATISTICS
+  /* Cells crossed since the source */
+  int diag_cells;
+#endif
 } RayPacket;
 
 typedef struct RayWorkStack
@@ -232,6 +237,61 @@ typedef RayExportBuffer RayComms;
 #define RAY_FLUSH_INTERVAL 8
  
 typedef struct RayCommsAsync RayComms;
+#endif
+
+#ifdef RT_STATISTICS
+/* ---------------------------------------------------------------------------
+ * Ray statistics
+ *
+ * Aggregate, rank-reduced accounting of where the emitted luminosity ends up
+ *
+ * Per band, emitted energy leaves a ray through exactly one of
+ *
+ *   absorbed -> deposited into a cell
+ *   dropped -> residual discarded when a band fell below threshold
+ *   abandoned -> still live when the ray terminated, split by cause
+ *
+ * so  emitted - absorbed - dropped - sum_cause(abandoned)  is a closure check
+ * and should come back at round-off; `dropped` plus `abandoned` is the error
+ * the truncation scheme introduces
+ * ------------------------------------------------------------------------ */
+
+/* Every ray leaves the walk through exactly one of these */
+enum
+{
+  RAY_END_TRUNCATE = 0, /* active_bands reached zero inside ray_absorb */
+  RAY_END_ESCAPE, /* stepped across an outflow boundary */
+  RAY_END_RELOCATE, /* locate walk put the head outside the box */
+  RAY_END_STEPCAP, /* hit RAY_MAX_CELL_STEPS */
+  RAY_END_TMAX, /* reached t_maximum */
+  RAY_END_CAUSES
+};
+
+typedef struct RTStatistics
+{
+  double emitted_E[WAVEBANDS], emitted_N[WAVEBANDS];
+  double absorbed_E[WAVEBANDS], absorbed_N[WAVEBANDS];
+  double dropped_E[WAVEBANDS], dropped_N[WAVEBANDS];
+  double abandoned_E[WAVEBANDS][RAY_END_CAUSES];
+  double abandoned_N[WAVEBANDS][RAY_END_CAUSES];
+
+  double drop_cells[WAVEBANDS]; /* summed cells-since-source at band drop */
+  double n_drop[WAVEBANDS];
+
+  double end_cells[RAY_END_CAUSES];
+  double end_t[RAY_END_CAUSES];
+
+  long long n_end[RAY_END_CAUSES];
+  long long n_born;
+  long long n_split;
+  long long n_crossing;
+  long long n_skipped; 
+} RTStatistics;
+
+extern RTStatistics RTStatisticsLocal;
+extern const char *RayEndNames[RAY_END_CAUSES];
+
+extern const char *WavebandNames[WAVEBANDS];
 #endif
 
 #endif
