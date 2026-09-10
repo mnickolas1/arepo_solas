@@ -101,9 +101,9 @@ static void rt_statistics_reduce_ll(long long *buf, int n)
   free(tmp);
 }
 
-#define BUDGET_LINE_MAX 512
+#define STATISTICS_LINE_MAX 512
 
-static char *budget_cat(char *p, char *end, const char *fmt, ...)
+static char *statistics_cat(char *p, char *end, const char *fmt, ...)
 {
   if(p >= end - 1)
     return p;
@@ -148,7 +148,7 @@ void rt_statistics_report(double walltime)
   if(ThisTask != 0)
     return;
 
-  char line[BUDGET_LINE_MAX], *p, *end;
+  char line[STATISTICS_LINE_MAX], *p, *end;
 
   double em_tot = 0.0, ab_tot = 0.0, dr_tot = 0.0, lost_tot = 0.0;
   double aban_tot[RAY_END_CAUSES];
@@ -179,12 +179,12 @@ void rt_statistics_report(double walltime)
 
   /* Per-band energy table, each row normalised by that band's own emission */
   p = line;
-  end = line + BUDGET_LINE_MAX;
-  p = budget_cat(p, end, "  %-5s %11s %8s %8s", "band", "emitted", "absorb", "drop");
+  end = line + STATISTICS_LINE_MAX;
+  p = statistics_cat(p, end, "  %-5s %11s %8s %8s", "band", "emitted", "absorb", "drop");
   for(int c = 0; c < RAY_END_CAUSES; c++)
-    p = budget_cat(p, end, " %8s", RayEndNames[c]);
-  budget_cat(p, end, " %9s", "closure");
-  mpi_printf("STAR_RADIATION: energy, as a fraction of each band's emitted budget\n");
+    p = statistics_cat(p, end, " %8s", RayEndNames[c]);
+  statistics_cat(p, end, " %9s", "closure");
+  mpi_printf("STAR_RADIATION: energy, as a fraction of each band's emitted statistics\n");
   mpi_printf("%s\n", line);
 
   for(int w = 0; w < WAVEBANDS; w++)
@@ -192,27 +192,27 @@ void rt_statistics_report(double walltime)
       const double em = b->emitted_E[w];
 
       p = line;
-      end = line + BUDGET_LINE_MAX;
-      p = budget_cat(p, end, "  %-5s %11.4e", WavebandNames[w], em);
+      end = line + STATISTICS_LINE_MAX;
+      p = statistics_cat(p, end, "  %-5s %11.4e", WavebandNames[w], em);
 
       if(em <= 0.0)
         {
-          budget_cat(p, end, "        -        -");
+          statistics_cat(p, end, "        -        -");
           mpi_printf("%s\n", line);
           continue;
         }
 
       double acc = b->absorbed_E[w] + b->dropped_E[w];
 
-      p = budget_cat(p, end, " %8.5f %8.5f", b->absorbed_E[w] / em, b->dropped_E[w] / em);
+      p = statistics_cat(p, end, " %8.5f %8.5f", b->absorbed_E[w] / em, b->dropped_E[w] / em);
 
       for(int c = 0; c < RAY_END_CAUSES; c++)
         {
           acc += b->abandoned_E[w][c];
-          p = budget_cat(p, end, " %8.5f", b->abandoned_E[w][c] / em);
+          p = statistics_cat(p, end, " %8.5f", b->abandoned_E[w][c] / em);
         }
 
-      budget_cat(p, end, " %9.1e", (em - acc) / em);
+      statistics_cat(p, end, " %9.1e", (em - acc) / em);
       mpi_printf("%s\n", line);
     }
 
@@ -227,30 +227,30 @@ void rt_statistics_report(double walltime)
       double acc = b->absorbed_N[w] + b->dropped_N[w];
 
       p = line;
-      end = line + BUDGET_LINE_MAX;
-      p = budget_cat(p, end, "  %-5s %11.4e %8.5f %8.5f", WavebandNames[w], em,
+      end = line + STATISTICS_LINE_MAX;
+      p = statistics_cat(p, end, "  %-5s %11.4e %8.5f %8.5f", WavebandNames[w], em,
                     b->absorbed_N[w] / em, b->dropped_N[w] / em);
 
       for(int c = 0; c < RAY_END_CAUSES; c++)
         {
           acc += b->abandoned_N[w][c];
-          p = budget_cat(p, end, " %8.5f", b->abandoned_N[w][c] / em);
+          p = statistics_cat(p, end, " %8.5f", b->abandoned_N[w][c] / em);
         }
 
-      budget_cat(p, end, " %9.1e", (em - acc) / em);
+      statistics_cat(p, end, " %9.1e", (em - acc) / em);
       mpi_printf("%s\n", line);
     }
 
   /* Where each band gives up, in cells since the source */
   p = line;
-  end = line + BUDGET_LINE_MAX;
-  p = budget_cat(p, end, "  mean cells to band drop:");
+  end = line + STATISTICS_LINE_MAX;
+  p = statistics_cat(p, end, "  mean cells to band drop:");
   for(int w = 0; w < WAVEBANDS; w++)
     {
       if(b->n_drop[w] > 0.0)
-        p = budget_cat(p, end, " %s %.1f", WavebandNames[w], b->drop_cells[w] / b->n_drop[w]);
+        p = statistics_cat(p, end, " %s %.1f", WavebandNames[w], b->drop_cells[w] / b->n_drop[w]);
       else
-        p = budget_cat(p, end, " %s -", WavebandNames[w]);
+        p = statistics_cat(p, end, " %s -", WavebandNames[w]);
     }
   mpi_printf("%s\n", line);
 
