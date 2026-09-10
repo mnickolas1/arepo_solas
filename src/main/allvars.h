@@ -1439,11 +1439,14 @@ double InitMetallicityinSolar;
 #ifdef STAR_RADIATION_ACTIVE
   double RaySplitFactor;
   double RayMaxDistance;
-  double IRDtauMomentumBoostCoeff;
 #endif
 
 #ifdef RT_TIMESTEP
   double RTIonizationTimestepFraction;
+#endif
+
+#ifdef IR_MOMENTUM_BOOST
+  double IRDtauMomentumBoostCoeff;
 #endif
 
 #ifdef RAD_OPENING_ANGLE

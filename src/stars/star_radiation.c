@@ -106,6 +106,7 @@ void update_opac(void)
     }
 }
 
+#ifdef IR_MOMENTUM_BOOST
 double dtau_IR(int i, double length)
 {
   double kappa_rerad = 1.0;
@@ -114,6 +115,7 @@ double dtau_IR(int i, double length)
 
   return Dtau_IR;
 }
+#endif
 
 static double H2Tab_A[H2TAB_N]; /* A at table nodes */
 static double H2Tab_dlogN; /* log10 spacing */

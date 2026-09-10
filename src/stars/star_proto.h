@@ -84,7 +84,10 @@ void star_density(void);
 
 /* Opacities and per-cell optical depths */
 void update_opac(void);
+
+#ifdef IR_MOMENTUM_BOOST
 double dtau_IR(int i, double length);
+#endif
 
 /* H2 self-shielding table */
 void init_h2shield(void);

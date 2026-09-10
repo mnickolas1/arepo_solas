@@ -631,10 +631,6 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "RayMaxDistance");
       addr[nt] = &All.RayMaxDistance;
       id[nt++] = REAL;
-
-      strcpy(tag[nt], "IRDtauMomentumBoostCoeff");
-      addr[nt] = &All.IRDtauMomentumBoostCoeff;
-      id[nt++] = REAL;
 #endif  
 
 #ifdef RT_TIMESTEP
@@ -642,6 +638,12 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.RTIonizationTimestepFraction;
       id[nt++] = REAL;
 #endif  
+
+#ifdef IR_MOMENTUM_BOOST
+      strcpy(tag[nt], "IRDtauMomentumBoostCoeff");
+      addr[nt] = &All.IRDtauMomentumBoostCoeff;
+      id[nt++] = REAL;
+#endif
 
 #ifdef RAD_OPENING_ANGLE
       strcpy(tag[nt], "RadOpeningAngle");

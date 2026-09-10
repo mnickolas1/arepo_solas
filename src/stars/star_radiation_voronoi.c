@@ -214,8 +214,10 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   /* Accumulate H2 column */
   ray->N_H2 += dN_H2;
 
+#ifdef IR_MOMENTUM_BOOST
   /* Reradiation in the IR (boosts momentum) */
   double Dtau_IR = dtau_IR(i, length);
+#endif
 
   const double c_code = CLIGHT / All.UnitVelocity_in_cm_per_s;
 
@@ -241,10 +243,14 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
       if(E_w <= 0.0)
         continue;
 
+#ifdef IR_MOMENTUM_BOOST
       /* Only the dust channel reradiates in the IR */
       const double f_dust = a.Ch[w][CH_DUST].Energy / E_w;
 
       double dp = E_w * (1.0 + f_dust * Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
+#else
+      double dp = E_w / c_code / All.cf_atime;
+#endif
 
       double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
 
