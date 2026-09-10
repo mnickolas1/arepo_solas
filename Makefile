@@ -524,6 +524,12 @@ $(error STAR_RADIATION_ACTIVE requires GRACKLE_CHEMISTRY >= 2)
 endif
 endif
 
+ifneq (,$(filter RT_TIMESTEP,$(CONFIGVARS)))
+ifeq (,$(filter PHOTOIONIZATION,$(CONFIGVARS)))
+$(error RT_TIMESTEP requires PHOTOIONIZATION)
+endif
+endif
+
 ifneq (,$(filter STAR_PARTICLES,$(CONFIGVARS)))
 OBJS += stars/star_particle.o
 INCL += stars/star_particle.h  

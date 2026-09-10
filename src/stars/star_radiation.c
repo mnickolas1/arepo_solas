@@ -705,7 +705,7 @@ static void radiation_feedback(void)
     }
 }
 
-#ifdef PHOTOIONIZATION
+#ifdef RT_TIMESTEP
 static void rt_timestep(void)
 {
   int idx, i;
@@ -840,7 +840,7 @@ void star_radiation(void)
 
   radiation_feedback();
 
-#ifdef PHOTOIONIZATION
+#ifdef RT_TIMESTEP
   rt_timestep();
 #endif
 

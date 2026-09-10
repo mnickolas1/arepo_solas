@@ -633,6 +633,12 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif  
 
+#ifdef RT_TIMESTEP
+      strcpy(tag[nt], "RTIonizationTimestepFraction");
+      addr[nt] = &All.RTIonizationTimestepFraction;
+      id[nt++] = REAL;
+#endif  
+
 #ifdef RAD_OPENING_ANGLE
       strcpy(tag[nt], "RadOpeningAngle");
       addr[nt] = &All.RadOpeningAngle;
@@ -640,12 +646,6 @@ void read_parameter_file(char *fname)
 
       strcpy(tag[nt], "NodeAspectRatio");
       addr[nt] = &All.NodeAspectRatio;
-      id[nt++] = REAL;
-#endif  
-
-#ifdef PHOTOIONIZATION
-      strcpy(tag[nt], "RTIonizationTimestepFraction");
-      addr[nt] = &All.RTIonizationTimestepFraction;
       id[nt++] = REAL;
 #endif  
 

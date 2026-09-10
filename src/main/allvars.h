@@ -1441,13 +1441,13 @@ double InitMetallicityinSolar;
   double IRDtauMomentumBoostCoeff;
 #endif
 
+#ifdef RT_TIMESTEP
+  double RTIonizationTimestepFraction;
+#endif
+
 #ifdef RAD_OPENING_ANGLE
   double RadOpeningAngle;
   double NodeAspectRatio;
-#endif
-
-#ifdef PHOTOIONIZATION
-  double RTIonizationTimestepFraction;
 #endif
 
 #if defined (BH_ACCRETION_ACTIVE) || defined(BH_FEEDBACK_ACTIVE)
@@ -1788,9 +1788,11 @@ extern struct sph_particle_data
   WavebandData AbsorbedIonizing[3]; 
   MyDouble IonHeatingRate[3];
   MyDouble IonizationRate[3];
+#endif
 
+#ifdef RT_TIMESTEP
   MyDouble RT_Timestep;
-#endif 
+#endif
 
 /* Blackholes */    
 #ifdef BH_ACCRETION_ACTIVE
