@@ -16,6 +16,21 @@ double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
   return sum * h;
 }
 
+/* Trapezoid in ln m: f(m) dm = f(m) m d(ln m) */
+double LogIntegralTrapezoidal(double a, double b, int N, double (*f)(double))
+{
+  double la = log(a), h = (log(b) - la) / N;
+  double sum = 0.5 * (f(a) * a + f(b) * b);
+
+  for(int i = 1; i < N; i++)
+    {
+      double m = exp(la + i * h);
+      sum += f(m) * m;
+    }
+
+  return sum * h;
+}
+
 /* Unnormalized Kroupa (2001), Maschberger (2013) 
    Continuous three-segment power law with breaks at 0.08 and 0.5 Msun */
 double imf_kroupa(double m)
@@ -47,7 +62,7 @@ double imf_chabrier(double m)
       return (0.158 / m) * exp(-d * d / (2.0 * sigma * sigma));
     }
                   
-    return 0.0443 * pow(m, -2.3);
+    return 0.0441 * pow(m, -2.3);
 }
 
 /* Unnormalized Salpeter IMF */
@@ -67,7 +82,7 @@ double imf(double m)
     case 1: return imf_chabrier(m);
     case 2: return imf_salpeter(m);
         
-    // fallback
+    /* Fallback */
     default: return imf_kroupa(m); 
   }
 }
@@ -79,41 +94,34 @@ double m_times_imf(double m)
 }
 
 /* --- CDF table (built once, reused for all draws) --- */
-double cdf_masses[N_CDF_BINS + 1];   /* mass values at each node */
-double cdf_values[N_CDF_BINS + 1];   /* cumulative probability at each node */
+double cdf_masses[N_CDF_BINS + 1]; /* mass values at each node */
+double cdf_values[N_CDF_BINS + 1]; /* cumulative probability at each node */
 
 /* Build a numerical CDF table by integrating the IMF over log-spaced masses */
 void build_imf_cdf(void)
 {
-    double log_mmin = log(MMIN);
-    double log_mmax = log(MMAX);
-    double dlog = (log_mmax - log_mmin) / N_CDF_BINS;
+  const double log_mmin = log(MMIN), log_mmax = log(MMAX);
+  const double dlog = (log_mmax - log_mmin) / N_CDF_BINS;
 
-    /* First pass: fill mass nodes and compute unnormalized cumulative sum.
-       We integrate ξ(m) dm = ξ(m) * m * d(ln m), so the integrand in log space
-       is imf(m) * m. */
-    cdf_masses[0] = MMIN;
-    cdf_values[0] = 0.0;
+  cdf_masses[0] = MMIN;
+  cdf_values[0] = 0.0;
 
-    for(int i = 1; i <= N_CDF_BINS; i++)
-      {
-        double log_m = log_mmin + i * dlog;
-        double m = exp(log_m);
-        double log_m_prev = log_mmin + (i-1) * dlog;
-        double m_prev = exp(log_m_prev);
+  double f_prev = m_times_imf(MMIN);
 
-        cdf_masses[i] = m;
+  for(int i = 1; i <= N_CDF_BINS; i++)
+    {
+      double m = (i == N_CDF_BINS) ? MMAX : exp(log_mmin + i * dlog);
+      double f = m_times_imf(m);
 
-        /* Trapezoid step in log space: integrand is imf(m)*m */
-        double f_left = m_times_imf(m_prev);
-        double f_right = m_times_imf(m);
-        cdf_values[i] = cdf_values[i-1] + 0.5 * (f_left + f_right) * dlog;
-      }
+      cdf_masses[i] = m;
+      cdf_values[i] = cdf_values[i - 1] + 0.5 * (f_prev + f) * dlog;
 
-    /* Second pass: normalize so CDF runs from 0 to 1 */
-    double total = cdf_values[N_CDF_BINS];
-    for(int i = 0; i <= N_CDF_BINS; i++)
-        cdf_values[i] /= total;
+      f_prev = f;
+    }
+
+  double total = cdf_values[N_CDF_BINS];
+  for(int i = 0; i <= N_CDF_BINS; i++)
+    cdf_values[i] /= total;
 }
 
 /* Invert the CDF at a given u in [0,1] using binary search + linear interpolation */
@@ -125,9 +133,9 @@ double sample_imf(double u)
       {
         int mid = (lo + hi) / 2;
         if(cdf_values[mid] <= u)
-            lo = mid;
+          lo = mid;
         else
-            hi = mid;
+          hi = mid;
       }
 
     /* Linear interpolation within the interval */
@@ -135,10 +143,10 @@ double sample_imf(double u)
     double cdf_hi = cdf_values[hi];
     double t = (cdf_hi > cdf_lo) ? (u - cdf_lo) / (cdf_hi - cdf_lo) : 0.0;
 
-    return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));;
+    return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));
 }
 
-#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
+#if STAR_PARTICLES < 2
 double StarMassBins[NBINS + 1] = 
 {
   /* Region A */
@@ -190,8 +198,8 @@ void setup_mass_bins(void)
       m1 = StarMassBins[i];
       m2 = StarMassBins[i+1];
 
-      numerator = IntegralTrapezoidal(m1, m2, 100, m_times_imf);
-      denominator = IntegralTrapezoidal(m1, m2, 100, imf);
+      numerator = LogIntegralTrapezoidal(m1, m2, 100, m_times_imf);
+      denominator = LogIntegralTrapezoidal(m1, m2, 100, imf);
 
       StarMeanMassInBins[i] = numerator / denominator;
     }
@@ -210,13 +218,13 @@ double bin_imf[NBINS];
 
 void setup_imf_integrals(void)
 {
-    norm = IntegralTrapezoidal(MMIN, MMAX, 1000, m_times_imf);
+    norm = LogIntegralTrapezoidal(MMIN, MMAX, 1000, m_times_imf);
 
     for(int i = 0; i < NBINS; i++)
       {
         double m1 = StarMassBins[i];
         double m2 = StarMassBins[i + 1];
-        bin_imf[i] = IntegralTrapezoidal(m1, m2, 100, imf);
+        bin_imf[i] = LogIntegralTrapezoidal(m1, m2, 100, imf);
       }
 }
 
@@ -256,8 +264,8 @@ void sample_star_particle(double m, int *bins)
             {
               /* Accept: adding the star is closer to m */
               int bin = 0;
-              while(bin < NBINS - 1 && StarMassBins[bin + 1] < mstar) bin++;
-              bins[bin]++;
+              while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar) bin++;
+                bins[bin]++;
             }
           break;
         }
