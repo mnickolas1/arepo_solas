@@ -1438,6 +1438,7 @@ double InitMetallicityinSolar;
 
 #ifdef STAR_RADIATION_ACTIVE
   double RaySplitFactor;
+  double RayMaxDistance;
   double IRDtauMomentumBoostCoeff;
 #endif
 

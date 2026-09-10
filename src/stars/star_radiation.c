@@ -346,7 +346,7 @@ static void init_rays(RayWorkStack *work)
             healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
 
             ray.t = 0.0;
-            ray.t_maximum = SQRT3 * All.BoxSize;
+            ray.t_maximum = All.RayMaxDistance > 0 ? All.RayMaxDistance : SQRT3 * All.BoxSize;
 
             ray.nside = NSIDE_MIN;
             ray.healpix_pixel = iray;

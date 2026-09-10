@@ -628,6 +628,10 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.RaySplitFactor;
       id[nt++] = REAL;
 
+      strcpy(tag[nt], "RayMaxDistance");
+      addr[nt] = &All.RayMaxDistance;
+      id[nt++] = REAL;
+
       strcpy(tag[nt], "IRDtauMomentumBoostCoeff");
       addr[nt] = &All.IRDtauMomentumBoostCoeff;
       id[nt++] = REAL;
