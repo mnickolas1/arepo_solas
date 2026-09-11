@@ -265,7 +265,7 @@ void sample_star_particle(double m, int *bins)
               /* Accept: adding the star is closer to m */
               int bin = 0;
               while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar) bin++;
-                bins[bin]++;
+              bins[bin]++;
             }
           break;
         }
@@ -274,7 +274,7 @@ void sample_star_particle(double m, int *bins)
 
         /* Find bin with linear search from bottom */
         int bin = 0;
-        while(bin < NBINS - 1 && StarMassBins[bin + 1] < mstar) bin++;
+        while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar) bin++;
         bins[bin]++;
       }
 }
