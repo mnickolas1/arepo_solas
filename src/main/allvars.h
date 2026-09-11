@@ -512,7 +512,10 @@ typedef unsigned long long peano1D;
 */
 #define SOLAR_METALLICITY 0.01295
 
-/* From Draine */
+/* Dust to gas ratio at solar metallicity implied by the Draine (2003) MW R_V=3.1 opacity normalisation
+ * used in star_radiation.c (M_gas/M_dust = 165.3). Documentation only: the RT opacities are tabulated per
+ * gram of gas and never read this, and Grackle's dust rates are normalised to their own reference ratio.
+ */
 #define DUST_TO_GAS_RATIO 0.0060496
 
 #ifdef USE_GRACKLE

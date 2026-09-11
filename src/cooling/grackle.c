@@ -175,8 +175,22 @@ void InitGrackle(void)
    * grackle_data_file parameter. Default: 0. */
   my_grackle_data->metal_cooling = 1;
   /* Flag to enable H2 formation on dust grains, dust cooling, and dust-gas heat transfer follow Omukai (2000). This assumes that the
-   * dust to gas ratio scales with the metallicity. Default: 0. */
+   * dust to gas ratio scales with the metallicity. Default: 0.
+   * This is the dominant H2 formation channel in enriched gas; with it off the network is left with only the
+   * H- and H2+ gas-phase routes. It is set here rather than via dust_chemistry, which would additionally pull
+   * in grain photo-electric heating (we get that from the RT instead) and grain recombination cooling.
+   * Setting this flag makes Grackle's `anydust` branch active, which brings along, unavoidably:
+   *    - a dust temperature, solved from the (uniform) interstellar_radiation_field and the CMB,
+   *    - the Omukai (2000) H2 formation rate on grains, scaled by the dust to gas ratio,
+   *    - H2 formation heating on grains, 0.2 + 4.2 n/(n + n_crit) eV per molecule,
+   *    - gas/grain heat transfer, which only matters above n_H ~ 1e4 cm^-3.
+   * It does NOT switch on dust_recombination_cooling: that stays unset (-1) unless dust_chemistry is used.
+   */
+#if GRACKLE_CHEMISTRY >= 2
+  my_grackle_data->h2_on_dust = 1;
+#else
   my_grackle_data->h2_on_dust = 0;
+#endif
   /* Flag to enable a spatially uniform heating term approximating photo-electric heating from dust from Tasker & Bryan (2008).
    * Default: 0. If photoelectric_heating enabled, photoelectric_heating_rate is the heating rate in units of erg cm-3 s-1.
    * Default: 8.5e-26. This is not adjusted to local background. (Caution: this tends to heat gas even at extremely high densities to
@@ -193,7 +207,19 @@ void InitGrackle(void)
 #endif
 
   my_grackle_data->SolarMetalFractionByMass = SOLAR_METALLICITY;
-  my_grackle_data->local_dust_to_gas_ratio = DUST_TO_GAS_RATIO;
+  /* Dust to gas ratio at solar metallicity; Grackle forms its per-cell value as
+   * local_dust_to_gas_ratio * Z / SolarMetalFractionByMass.
+   * Keep this at Grackle's own reference value (Pollack et al. 1994, 0.009387) rather than at
+   * DUST_TO_GAS_RATIO, the value implied by the Draine (2003) opacity normalisation in star_radiation.c.
+   * Reason: every dust rate in Grackle is internally normalised to 0.009387 and then re-multiplied by the
+   * per-cell dust to gas ratio, so h2dust_rate() and gasGrain_rate() reduce exactly to their published
+   * Milky Way values, scaled linearly with metallicity, only when the two agree. Passing DUST_TO_GAS_RATIO
+   * here does not make the dust more consistent with the RT (the RT opacities never read this parameter);
+   * it just rescales the H2 formation and gas/grain rates by 0.644, while gamma_isrf_rate() keeps using
+   * 0.009387 regardless. The Omukai coefficient is the empirical Milky Way rate, so that rescaling would be
+   * an error rather than a correction.
+   */
+  my_grackle_data->local_dust_to_gas_ratio = 0.009387;
 
   /* Flag to control which three-body H2 formation rate is used.
    *    0: Abel, Bryan & Norman (2002),
