@@ -181,11 +181,27 @@ void InitGrackle(void)
   /* Flag to enable H2 formation on dust grains, dust cooling, and dust-gas heat transfer follow Omukai (2000). This assumes that the
    * dust to gas ratio scales with the metallicity. Default: 0. */
   my_grackle_data->h2_on_dust = 1;
+
+  /* Keep the bundled dust package OFF: we want only the grain H2 formation channel above.
+   * This must stay explicit. dust_chemistry > 0 silently promotes photoelectric_heating from "unset" to 2,
+   * which would add Grackle's own uniform grain photo-electric heating on top of the rate our RT already
+   * supplies through volumetric_heating_rate, and it would switch on dust_recombination_cooling scaled by
+   * the uniform interstellar_radiation_field. Default: 0.
+   */
+  my_grackle_data->dust_chemistry = 0;
 #else
   my_grackle_data->metal_cooling = 0;
   
   my_grackle_data->h2_on_dust = 0;
+  my_grackle_data->dust_chemistry = 0;
 #endif
+
+  /* Grain photo-electric heating. Default is -1, meaning "unset", which Grackle resolves to 0 only because
+   * dust_chemistry is 0 above; leaving it unset would therefore couple this to an unrelated flag. Our RT
+   * computes the local FUV grain heating in radiation_feedback() and passes it as volumetric_heating_rate,
+   * so Grackle's spatially uniform version must stay off to avoid double counting.
+   */
+  my_grackle_data->photoelectric_heating = 0;
 
   my_grackle_data->SolarMetalFractionByMass = SOLAR_METALLICITY;
   //my_grackle_data->local_dust_to_gas_ratio = DUST_TO_GAS_RATIO;
@@ -211,13 +227,29 @@ void InitGrackle(void)
    */
   my_grackle_data->UVbackground = 1;
   
-  /* The following flags are related to the UVB, but they are automatically set to the right values, so do not need to use. These
-   * numbers are the correct ones for FG2011 UVB. 
-   * my_grackle_data->UVbackground_redshift_on       = 10.6;
+  /* The following flags are related to the UVB, but they are automatically set from the redshift range of the
+   * table itself, so we do not need to touch them. These are the values HM2012 ends up with.
+   * my_grackle_data->UVbackground_redshift_on       = 15.13;
    * my_grackle_data->UVbackground_redshift_off      = 0;
-   * my_grackle_data->UVbackground_redshift_fullon   = 10.6;
+   * my_grackle_data->UVbackground_redshift_fullon   = 15.13;
    * my_grackle_data->UVbackground_redshift_drop     = 0;
+   *
+   * The UVB is evaluated at the redshift implied by GrackleUnits.a_value, which CallGrackle() sets from
+   * All.cf_atime, so a non-cosmological run always sees the z = 0 background.
    */
+
+  /* Compton heating from an X-ray background, Madau & Efstathiou (1999). Default: 0.
+   * Keep it explicit: it causes runaway ionisation and heating once the UVB is on and electrons appear.
+   */
+  my_grackle_data->Compton_xray_heating = 0;
+
+  /* Intensity of an EXTRA uniform Lyman-Werner field, in units of 1e-21 erg s-1 cm-2 Hz-1 sr-1. Default: 0.
+   * Keep it explicit and zero: any positive value OVERWRITES the k31 that HM2012 supplies from its own table
+   * rather than adding to it, so the LW component of the UV background would be silently replaced.
+   * Stellar Lyman-Werner reaches Grackle separately, pre-shielded, via RT_H2_dissociation_rate.
+   */
+  my_grackle_data->LWbackground_intensity = 0;
+  my_grackle_data->LWbackground_sawtooth_suppression = 0;
 
   /* Flag for self-shielding from UV bkgd. Default: 0. */
   my_grackle_data->self_shielding_method = 3;
