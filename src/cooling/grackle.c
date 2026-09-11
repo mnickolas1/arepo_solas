@@ -213,14 +213,24 @@ void InitGrackle(void)
 
   /* Flag to enable a UV background.
    * If enabled, the cooling table to be used must be specified with the grackle_data_file parameter. Default: 0.
+   * We run with the Haardt & Madau (2012) background, so GrackleDataFile must point at one of the
+   * CloudyData_UVB=HM2012*.h5 tables. Pointing it at CloudyData_noUVB.h5 with this flag on will fail at
+   * initialisation, since that file carries no /UVBRates group.
+   * NOTE: this flag also controls whether the metal PHOTO-HEATING table is read at all (it is passed
+   * straight through to the solver as iClHeat), while the metal cooling table is interpolated either way.
+   * Switching it off therefore leaves you with photoionised metal cooling rates and no matching heating,
+   * unless you also swap grackle_data_file for CloudyData_noUVB.h5.
    */
-  my_grackle_data->UVbackground = 0;
-  /* The following flags are related to the UVB, but they are automatically set to the right values, so do not need to use. These
-   * numbers are the correct ones for FG2011 UVB. 
-   * my_grackle_data->UVbackground_redshift_on       = 10.6;
+  my_grackle_data->UVbackground = 1;
+  /* The following flags are related to the UVB, but they are automatically set from the table's own redshift
+   * range, so we do not need to touch them. These are the values HM2012 ends up with.
+   * my_grackle_data->UVbackground_redshift_on       = 15.13;
    * my_grackle_data->UVbackground_redshift_off      = 0;
-   * my_grackle_data->UVbackground_redshift_fullon   = 10.6;
+   * my_grackle_data->UVbackground_redshift_fullon   = 15.13;
    * my_grackle_data->UVbackground_redshift_drop     = 0;
+   *
+   * The UVB is evaluated at the redshift implied by GrackleUnits.a_value, which CallGrackle() sets from
+   * All.cf_atime. A non-cosmological run therefore always sees the z=0 background.
    */
 
   /* Flag to enable Compton heating from an X-ray background following Madau & Efstathiou (1999). Default: 0.
@@ -251,8 +261,16 @@ void InitGrackle(void)
    */
   my_grackle_data->H2_self_shielding = 3;
 
-  /* Flag for self-shielding from UV bkgd. Default: 0. */
-  my_grackle_data->self_shielding_method = 0;
+  /* Flag for self-shielding from UV bkgd, using Eq. 13 and 14 of Rahmati et al. (2013). Default: 0.
+   *     1: HI only; HeI and HeII left optically thin (not recommended)
+   *     2: HI and HeI; HeII left optically thin
+   *     3: HI and HeI, with HeII ionisation and heating from the UVB dropped entirely
+   * Option 3 is the one Grackle recommends. It requires the "_shielded" tables, which are the only ones
+   * carrying the spectrum-averaged cross sections under /UVBRates/CrossSections.
+   * Rates coming in from our own RT are already attenuated by the ray tracing and are added after these
+   * factors are applied, so they are not shielded twice.
+   */
+  my_grackle_data->self_shielding_method = 3;
 
 #ifdef STAR_RADIATION_ACTIVE
   /* flag to include RT */
