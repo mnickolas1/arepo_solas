@@ -48,6 +48,7 @@ NODEREFINE_BACKGROUND_GRID    # Do not de-refine low-res gas cells in zoom simul
 #--------------------------------------- non-standard phyiscs
 COOLING                       # Simple primordial cooling
 USE_SFR                       # Star formation model, turning dense gas into collisionless partices
+ENFORCE_JEANS_STABILITY_OF_CELLS
 
 #--------------------------------------- Gravity treatment; default: no gravity
 SELFGRAVITY                   # gravitational intraction between simulation particles/cells
