@@ -15,15 +15,24 @@ STARS                  # General stars framework flag
 
 STAR_PARTICLES=1       # Star particles model flag: set to 0, 1 for massive star particles, set to 2 for resolved individual stars
 
-#STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
 WINDS                  # Only winds
-#RADIATION              # Full radiation
 SUPERNOVAE             # Only supernovae
+
+RADIATION              # Full radiation
+RAD_TOTAL_TRUNCATION
+
+RT_STATISTICS
+RT_COMM_STATISTICS
+
+DOMAIN_MEASURED_WEIGHTS
 
 #STAR_HOST_REFINEMENT
 
 
 #--------------------------------------- Arepo public
+
+CREATE_FULL_MESH
+#ENLARGE_DYNAMIC_RANGE_IN_TIME
 
 #--------------------------------------- Mesh motion and regularization; default: moving mesh
 REGULARIZE_MESH_CM_DRIFT      # Mesh regularization; Move mesh generating point towards center of mass to make cells rounder.
