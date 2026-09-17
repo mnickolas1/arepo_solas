@@ -145,6 +145,7 @@ void init_passive_scalars(void)
               SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 2) */
 
+              /* To be consistent with grackle we do not include deuterium in the normalization */
 #if GRACKLE_CHEMISTRY >= 3
               SphP[i].GrackleSpecies(GRACKLE_DI) = (1.0 - Z0) * HYDROGEN_MASSFRAC * DEUTERIUM_TO_HYDROGEN_RATIO;
               SphP[i].GrackleSpecies(GRACKLE_DII) = GRACKLE_TINY;
@@ -168,6 +169,7 @@ void init_passive_scalars(void)
               SphP[i].GrackleSpecies(GRACKLE_HM) = GRACKLE_TINY;
 #endif /* #if (GRACKLE_CHEMISTRY >= 2) */
 
+              /* To be consistent with grackle we do not include deuterium in the normalization */
 #if GRACKLE_CHEMISTRY >= 3
               SphP[i].GrackleSpecies(GRACKLE_DI) = GRACKLE_TINY;
               SphP[i].GrackleSpecies(GRACKLE_DII) = (1.0 - Z0) * HYDROGEN_MASSFRAC * DEUTERIUM_TO_HYDROGEN_RATIO;

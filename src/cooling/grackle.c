@@ -47,8 +47,9 @@ double grackle_mu(int i)
   double XHM = 0.0;
 #endif
 
+  /* To be consistent with grackle we do not include deuterium */
   /* Level 3: deuterium species */
-#if GRACKLE_CHEMISTRY >= 3
+/*#if GRACKLE_CHEMISTRY >= 3
   double XDI = SphP[i].GrackleSpeciesConserved(GRACKLE_DI) / P[i].Mass;
   double XDII = SphP[i].GrackleSpeciesConserved(GRACKLE_DII) / P[i].Mass;
   double XHDI = SphP[i].GrackleSpeciesConserved(GRACKLE_HDI) / P[i].Mass;
@@ -56,19 +57,19 @@ double grackle_mu(int i)
   double XDI = 0.0;
   double XDII = 0.0;
   double XHDI = 0.0;
-#endif
+#endif*/
 
-  double Xe = XHII + XHeII / 4.0 + XHeIII / 2.0 + XH2II / 2.0 - XHM + XDII / 2.0;
+  double Xe = XHII + XHeII / 4.0 + XHeIII / 2.0 + XH2II / 2.0 - XHM;
 
   /* Assemble grouped mass fractions */
   double XH = XHI + XHII + XHM; /* m_H */
   double XH2 = XH2I + XH2II; /* 2 m_H */
-  double XD = XDI + XDII; /* 2 m_H */
-  double XHD = XHDI; /* 3 m_H */
+  //double XD = XDI + XDII; /* 2 m_H */
+  //double XHD = XHDI; /* 3 m_H */
   double XHe = XHeI + XHeII + XHeIII; /* 4 m_H */
 
   /* mu = 1 / sum_s (X_s / A_s), where A_s is the atomic mass in units of m_H */
-  return 1.0 / (Xe + XH + XH2 / 2.0 + XD / 2.0 + XHD / 3.0 + XHe / 4.0 + Z / 16.0);
+  return 1.0 / (Xe + XH + XH2 / 2.0 + XHe / 4.0 + Z / 16.0);
 }
 
 /* Function that initialises Grackle */
@@ -367,7 +368,7 @@ double CallGrackle(int i, double dt, int mode)
 
   Y_He += SphP[i].GrackleSpecies(GRACKLE_HeI) + SphP[i].GrackleSpecies(GRACKLE_HeII) + SphP[i].GrackleSpecies(GRACKLE_HeIII);
 
-  /* molecular H species */
+  /* Molecular H species */
 #if (GRACKLE_CHEMISTRY >= 2)
   *All.GrackleFieldData.H2I_density = SphP[i].GrackleSpecies(GRACKLE_H2I) * *All.GrackleFieldData.density;
   *All.GrackleFieldData.H2II_density = SphP[i].GrackleSpecies(GRACKLE_H2II) * *All.GrackleFieldData.density;
@@ -381,7 +382,7 @@ double CallGrackle(int i, double dt, int mode)
   *All.GrackleFieldData.HM_density = GRACKLE_TINY * *All.GrackleFieldData.density;
 #endif
 
-  /* deuterium species */
+  /* Deuterium species */
 #if (GRACKLE_CHEMISTRY >= 3)
   *All.GrackleFieldData.DI_density = SphP[i].GrackleSpecies(GRACKLE_DI) * *All.GrackleFieldData.density;
   *All.GrackleFieldData.DII_density = SphP[i].GrackleSpecies(GRACKLE_DII) * *All.GrackleFieldData.density;
@@ -407,7 +408,7 @@ double CallGrackle(int i, double dt, int mode)
 #endif
 
 #if (GRACKLE_CHEMISTRY >= 3)
-  e_density += *All.GrackleFieldData.DII_density / 2.0;
+  //e_density += *All.GrackleFieldData.DII_density / 2.0;
 #endif
 
   *All.GrackleFieldData.e_density = e_density;
