@@ -31,7 +31,7 @@ double grackle_mu(int i)
   /* Fall back to fully neutral cosmic abundances */
   double XHI = (1.0 - Z) * GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC;
   double XHII = 0.0;
-  double XHeI = (1.0 - Z) * GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC;
+  double XHeI = (1.0 - Z) * (1.0 - GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC);
   double XHeII = 0.0;
   double XHeIII = 0.0;
 #endif
