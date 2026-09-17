@@ -423,9 +423,6 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
 
               double d2 = dx*dx + dy*dy + dz*dz;
 
-              /* v = 1/2 (|x-s_i|^2 - |x-s_j|^2); 
-                 v/|d| is the signed distance to the bisector plane 
-                 so that v > 0 means s_j is the closer generator */
               double v = (px*dx + py*dy + pz*dz) - 0.5 * d2;
 
               if(v > v_best && v > eps * sqrt(d2))
@@ -454,11 +451,9 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
       /* Head is outside the box: the child has already escaped */
       if(dc_is_boundary(q_best))
         {
-
 #ifdef RT_STATISTICS
           rt_statistics_abandon(ray, RAY_END_RELOCATE);
 #endif
-
           return 1;
         }
 
@@ -526,11 +521,12 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double eps, dou
 
       double ndotd = nx * dx + ny * dy + nz * dz;
 
-      /* Backward-facing bisector: non-binding, includes the entry face */
+      /* Forward-facing bisector*/
       if(ndotd > 0.0)
         {
-          /* (m - x0) . d with m = d/2 in this frame */
-          double num = 0.5 * (dx*dx + dy*dy + dz*dz) - (px * dx + py * dy + pz * dz);
+          double d2 = dx*dx + dy*dy + dz*dz;
+
+          double num = 0.5 * d2 - (px * dx + py * dy + pz * dz);
 
           double t = num / ndotd;
 
@@ -666,22 +662,18 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       if(truncated)
         {
-
 #ifdef RT_STATISTICS
           rt_statistics_abandon(ray, RAY_END_TMAX);
 #endif
-
           return;
         }
 
       /* Outflow boundary */
       if(dc_is_boundary(q))
         {
-
 #ifdef RT_STATISTICS
           rt_statistics_abandon(ray, RAY_END_ESCAPE);
 #endif
-
           return;
         }
 
@@ -707,11 +699,9 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
 
       if(++steps > RAY_MAX_CELL_STEPS)
         {       
-
 #ifdef RT_STATISTICS
           rt_statistics_abandon(ray, RAY_END_STEPCAP);
 #endif
-
           warn("raytrace_voronoi(): ray exceeded %d cell steps on task %d?\n", RAY_MAX_CELL_STEPS, ThisTask);          
           return;
         }
