@@ -42,7 +42,50 @@
 
 #include "../gravity/forcetree.h"
 
-/* Function that checks whether a cell i satisfies star formation criteria*/
+#ifdef AGORA_SF_VIRIAL
+/*! \brief Return the virial parameter of the gas cell i.
+ *
+ *  Local estimate following Hopkins, Narayanan & Murray (2013),
+ *
+ *  alpha = ( |grad v|^2 + c_s^2 / h^2 ) / ( 8 pi G rho )
+ *
+ *  with |grad v| the Frobenius norm of the velocity gradient tensor, 
+ *  h the cell radius and rho the density, all in physical units.
+ *  The cell is bound against its own turbulent and thermal support for alpha below order unity.
+ *
+ *  Note that Grad.dvel is slope limited, which biases alpha low at sharp
+ *  features, and that the norm retains ordered shear, which biases it high in a
+ *  rotating disc; All.VirialThreshold (to be added) absorbs the normalisation.
+ *
+ *  \param[in] i the index of the gas cell.
+ *
+ *  \return the dimensionless virial parameter.
+ */
+double get_virial_parameter(int i)
+{
+  double rho = SphP[i].Density * All.cf_a3inv;
+  double h = get_cell_radius(i) * All.cf_atime;
+
+  if(rho <= 0 || h <= 0)
+    return MAX_REAL_NUMBER;
+
+  double gradnorm2 = 0;
+  for(int k = 0; k < 3; k++)
+    {
+      for(int l = 0; l < 3; l++)
+        {
+          double dv = SphP[i].Grad.dvel[k][l] / All.cf_atime;
+          gradnorm2 += dv * dv;
+        }
+    }
+
+  double sound_speed = get_sound_speed(i);
+
+  return (gradnorm2 + sound_speed * sound_speed / (h * h)) / (8.0 * M_PI * All.G * rho);
+}
+#endif
+
+/* Function that checks whether a cell i satisfies star formation criteria */
 static int sf_criteria(int i)
 {
   double number_dens = evaluate_numberdens(i);
@@ -56,6 +99,11 @@ static int sf_criteria(int i)
 
 #ifdef DIVVEL
   if(SphP[i].DivVel >= 0)
+    return 0;
+#endif
+
+#ifdef AGORA_SF_VIRIAL
+  if(get_virial_parameter(i) > 1.0)
     return 0;
 #endif
 
