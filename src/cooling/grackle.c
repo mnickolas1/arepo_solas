@@ -27,11 +27,10 @@ double grackle_mu(int i)
   double XHeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / P[i].Mass;
   double XHeIII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII) / P[i].Mass;
 #else
-
   /* Fall back to fully neutral cosmic abundances */
   double XHI = (1.0 - Z) * GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC;
   double XHII = 0.0;
-  double XHeI = (1.0 - Z) * GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC;
+  double XHeI = (1.0 - Z) * (1 - GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC);
   double XHeII = 0.0;
   double XHeIII = 0.0;
 #endif
