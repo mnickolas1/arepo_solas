@@ -8,6 +8,8 @@
 #include "../main/proto.h"
 
 
+#define GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC 0.715768377353088514
+
 double grackle_mu(int i)
 {
 /* Metals, approximated as 16 m_H */
@@ -27,9 +29,9 @@ double grackle_mu(int i)
 #else
 
   /* Fall back to fully neutral cosmic abundances */
-  double XHI = (1.0 - Z) * HYDROGEN_MASSFRAC;
+  double XHI = (1.0 - Z) * GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC;
   double XHII = 0.0;
-  double XHeI = (1.0 - Z) * (1.0 - HYDROGEN_MASSFRAC);
+  double XHeI = (1.0 - Z) * GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC;
   double XHeII = 0.0;
   double XHeIII = 0.0;
 #endif
@@ -169,7 +171,7 @@ void InitGrackle(void)
   my_grackle_data->ExplicitHydrogenFraction = 0;
   
   /* Use the default values */
-  my_grackle_data->HydrogenFractionByMass = 0.715768377353088514;
+  my_grackle_data->HydrogenFractionByMass = GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC;
   my_grackle_data->DeuteriumToHydrogenRatio = DEUTERIUM_TO_HYDROGEN_RATIO;
 #endif
 
