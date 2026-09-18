@@ -362,14 +362,15 @@ extern hwloc_cpuset_t cpuset_thread[NUM_THREADS];
 #endif
 
 #ifdef USE_GRACKLE
-#if GRACKLE_CHEMISTRY == 1
+#if GRACKLE_CHEMISTRY == 0
+#elif GRACKLE_CHEMISTRY == 1
 #define GRACKLE_SPECIES_NUMBER 5
 #elif GRACKLE_CHEMISTRY == 2
 #define GRACKLE_SPECIES_NUMBER 8
 #elif GRACKLE_CHEMISTRY == 3
 #define GRACKLE_SPECIES_NUMBER 11
 #else
-  #error "Invalid GRACKLE_CHEMISTRY value!"
+#error "Invalid GRACKLE_CHEMISTRY value!"
 #endif
 #endif
 

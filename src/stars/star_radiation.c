@@ -131,8 +131,7 @@ static inline double f_selfshield_H2(double N_H2)
        + 0.035 / sq * exp(-8.5e-4 * sq);
 }
 
-/* Build A(N) once at startup (trapezoid, log-spaced with linear-N areas,
-   16 sub-steps per interval so table error << fit error) */
+/* Build A(N) once at startup */
 void init_h2shield(void)
 {
   H2Tab_dlogN = (H2TAB_LOGNMAX - H2TAB_LOGNMIN) / (H2TAB_N - 1);
