@@ -621,10 +621,8 @@ void ray_neighbours_init(void)
   MPI_Allreduce(&RayNgbNTask, &ngb_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
   MPI_Allreduce(&RayNgbNTask, &ngb_sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-#ifdef RT_COMM_STATISTICS
   mpi_printf("STAR_RADIATION: RayPacket = %d B, comm neighbours: mean %d, max %d (of %d ranks)\n",
              (int)sizeof(RayPacket), ngb_sum / NTask, ngb_max, NTask);
-#endif
 }
 
 void ray_neighbours_free(void)
@@ -854,7 +852,7 @@ void star_radiation(void)
   mpi_printf("STAR_RADIATION: walk complete (%g sec)\n", timediff(t0, t1));
 
 #ifdef RT_STATISTICS
-  rt_statistics_report(timediff(t0, t1));
+  rt_statistics_report();
 #endif
 
   ray_comms_free(comm);

@@ -75,7 +75,7 @@ struct RayCommsAsync
   long long msgs_sent;
   long long rays_sent;
   long long rays_traced;
-  long long work_hwm;
+  long long work_highwm;
   long long slot_stalls;
   double trace_time;
 };
@@ -167,12 +167,6 @@ RayComms *ray_comms_init(RayWorkStack *work)
 
   c->flush_countdown = RAY_FLUSH_INTERVAL;
 
-#ifdef RT_COMM_STATISTICS
-  mpi_printf("STAR_RADIATION: async comm, %d send slots + %d recv slots = %.1f MB/rank, %d packets/msg\n", 
-             c->nslots, c->nrecv, (double)(c->nslots + c->nrecv) * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0),
-             RAY_MSG_MAX);
-#endif
-
   return c;
 }
 
@@ -251,8 +245,8 @@ static int drain_recvs(struct RayCommsAsync *c)
           c->n_recv += cnt;
           got += cnt;
 
-          if(c->work->n > c->work_hwm)
-            c->work_hwm = c->work->n;
+          if(c->work->n > c->work_highwm)
+            c->work_highwm = c->work->n;
         }
 
       MPI_Irecv(RECVSLOT(c, r), RAY_MSG_MAX * (int)sizeof(RayPacket), MPI_BYTE,
@@ -414,8 +408,8 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
 
   int done = 0;
 
-  if(work->n > c->work_hwm)
-    c->work_hwm = work->n;
+  if(work->n > c->work_highwm)
+    c->work_highwm = work->n;
 
   while(!done)
     {
@@ -482,7 +476,7 @@ void ray_comms_free(RayComms *comm)
     long long gsum[5];
     MPI_Reduce(lsum, gsum, 5, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    long long lmax[2] = {c->work_hwm, c->rays_traced};
+    long long lmax[2] = {c->work_highwm, c->rays_traced};
     long long gmax[2];
     MPI_Reduce(lmax, gmax, 2, MPI_LONG_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 
@@ -491,7 +485,7 @@ void ray_comms_free(RayComms *comm)
     MPI_Reduce(&c->trace_time, &tsum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
     mpi_printf("STAR_RADIATION: async done | %lld msgs, %lld rays exported (%.1f/msg) | "
-               "%lld rays traced, max/rank %lld | queue hwm %lld | %lld slot stalls | %lld snapshots\n",
+               "%lld rays traced, max/rank %lld | queue high water mark %lld | %lld slot stalls | %lld snapshots\n",
                gsum[0], gsum[1], gsum[0] ? (double)gsum[1] / gsum[0] : 0.0,
                gsum[2], gmax[1], gmax[0], gsum[3], gsum[4]);
 

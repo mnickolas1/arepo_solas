@@ -124,7 +124,7 @@ static char *statistics_cat(char *p, char *end, const char *fmt, ...)
   return p;
 }
 
-void rt_statistics_report(double walltime)
+void rt_statistics_report(void)
 {
   RTStatistics *b = &RTStatisticsLocal;
 
@@ -171,8 +171,8 @@ void rt_statistics_report(double walltime)
   lost_tot += dr_tot;
 
   mpi_printf("\nSTAR_RADIATION: ===== ray statistics =====\n");
-  mpi_printf("STAR_RADIATION: %lld rays born, %lld splits, %lld crossings, %lld deposits skipped, walk %g s\n",
-             scal[0], scal[1], scal[2], scal[3], walltime);
+  mpi_printf("STAR_RADIATION: %lld rays born, %lld splits, %lld crossings, %lld deposits skipped\n",
+             scal[0], scal[1], scal[2], scal[3]);
   mpi_printf("STAR_RADIATION: emitted %.6e (code), deposited %.4f, discarded %.4f\n",
              em_tot, (em_tot > 0.0) ? ab_tot / em_tot : 0.0,
              (em_tot > 0.0) ? lost_tot / em_tot : 0.0);

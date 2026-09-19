@@ -117,7 +117,8 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm);
 #ifdef RT_STATISTICS
 void rt_statistics_init(const RayPacket *ray);
 void rt_statistics_reset(void);
-void rt_statistics_report(double walltime);
+void rt_statistics_report(void);
+
 void rt_statistics_drop(const RayPacket *ray, int w);
 void rt_statistics_abandon(const RayPacket *ray, int cause);
 #endif
