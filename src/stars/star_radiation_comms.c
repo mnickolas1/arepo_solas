@@ -10,7 +10,6 @@
 /*
  * Synchronous back end
  */
-#ifdef RT_COMM_SYNC
 
 static MPI_Datatype MPI_RAYPACKET = MPI_DATATYPE_NULL;
 
@@ -335,5 +334,3 @@ void ray_comms_free(RayComms *comm)
 
   ray_neighbours_free();
 }
-
-#endif /* RT_COMM_SYNC */

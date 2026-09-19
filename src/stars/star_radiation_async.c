@@ -31,7 +31,6 @@
  *      nonblocking allreduce
  */
 
-#ifndef RT_COMM_SYNC
 
 /* Bail out on a genuine deadlock rather than spinning forever */
 #define RAY_SLOT_SPIN_MAX 100000000LL
@@ -507,5 +506,3 @@ void ray_comms_free(RayComms *comm)
 
   ray_neighbours_free();
 }
-
-#endif /* !RT_COMM_SYNC */
