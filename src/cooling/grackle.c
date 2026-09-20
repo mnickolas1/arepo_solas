@@ -352,12 +352,14 @@ double CallGrackle(int i, double dt, int mode)
 
 #ifdef METALS 
   double Metallicity = SphP[i].GasMetallicity;
+  double Dust = fmax(GRACKLE_TINY, dust_to_gas_ratio(Metallicity / SOLAR_METALLICITY));
 #else
   double Metallicity = GRACKLE_TINY;
+  double Dust = GRACKLE_TINY;
 #endif
 
   *All.GrackleFieldData.metal_density = Metallicity * *All.GrackleFieldData.density;
-  *All.GrackleFieldData.dust_density = fmax(GRACKLE_TINY, dust_to_gas_ratio(Metallicity / SOLAR_METALLICITY)) * *All.GrackleFieldData.density;
+  *All.GrackleFieldData.dust_density = Dust * *All.GrackleFieldData.density;
 
   /* non-eq. chemistry values */
 #if (GRACKLE_CHEMISTRY >= 1)

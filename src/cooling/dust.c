@@ -58,7 +58,7 @@ double dust_to_gas_ratio(double Zsol)
   if(Zsol >= ZSOL_BREAK)
     GtoD = 162.0 * pow(Zsol, -1.0);
   else
-    GtoD = 9.12 * pow(Zsol, -0.3);
+    GtoD = 9.12 * pow(Zsol, -3.1);
 
   DtoG = 1.0 / GtoD;
 
