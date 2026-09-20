@@ -525,6 +525,16 @@ static void ReadIonizeParams(char *fname, int which)
     }
 }
 
+double primordial_mu(int i)
+{
+  return (1 + 4*gs.yhelium) / (1 + gs.yhelium + SphP[i].Ne);
+}
+
+double primordial_gamma(int i)
+{
+  return GAMMA;
+}
+
 /*! \brief Initialize the cooling module.
  *
  *  This function initializes the cooling module. In particular,
@@ -554,11 +564,6 @@ void InitPrimordialCooling(void)
   set_cosmo_factors_for_current_time();
 
   IonizeParams();
-}
-
-double primordial_mu(int i)
-{
-  return (1 + 4*gs.yhelium) / (1 + gs.yhelium + SphP[i].Ne);
 }
 
 /*! \brief Computes the new internal energy per unit mass.

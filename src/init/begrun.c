@@ -164,11 +164,11 @@ void begrun1(void)
   timebins_init(&TimeBinsBh, "Bh", &All.MaxPartBhs);
 #endif 
 
-#if defined(COOLING)
+#ifdef COOLING
   All.Time = All.TimeBegin;
   set_cosmo_factors_for_current_time();
   InitCool();
-#endif /* #if defined(COOLING) */
+#endif 
 
 #if !defined(PMGRID) && defined(SELFGRAVITY) && !defined(GRAVITY_NOT_PERIODIC) && !defined(ONEDIMS_SPHERICAL)
   ewald_init();

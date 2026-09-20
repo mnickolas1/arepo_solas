@@ -340,10 +340,12 @@ SUBDIRS += add_backgroundgrid
 endif
 
 #COOLING
+ifneq (,$(filter COOLING,$(CONFIGVARS)))
 OBJS += cooling/cooling.o 
 INCL += cooling/cooling_proto.h \
         cooling/cooling_vars.h
 SUBDIRS += cooling
+endif
 
 # Enforce at least one Cooling model at a time
 ifneq (,$(filter COOLING,$(CONFIGVARS)))
@@ -376,7 +378,7 @@ $(error EEOS_SF requires PRIMORDIAL_COOLING)
 endif
 endif
 
-ifeq (PRIMORDIAL_COOLING,$(findstring PRIMORDIAL_COOLING,$(CONFIGVARS)))
+ifneq (,$(filter PRIMORDIAL_COOLING,$(CONFIGVARS)))
 OBJS += cooling/primordial_cooling.o
 endif
 
@@ -392,8 +394,18 @@ $(error GRACKLE_CHEMISTRY requires USE_GRACKLE)
 endif
 endif
 
-ifeq (USE_GRACKLE,$(findstring USE_GRACKLE,$(CONFIGVARS)))
+ifneq (,$(filter USE_GRACKLE,$(CONFIGVARS)))
 OBJS += cooling/grackle.o
+endif
+
+ifneq (,$(filter METALS,$(CONFIGVARS)))
+OBJS += cooling/dust.o
+endif
+
+ifneq (,$(filter USE_SFR,$(CONFIGVARS)))
+ifeq (,$(filter COOLING,$(CONFIGVARS)))
+$(error USE_SFR requires COOLING)
+endif
 endif
 
 # Enforce at least one SF model at a time
@@ -438,6 +450,7 @@ ifneq (,$(filter INDIVIDUAL_STAR_BY_STAR_FORMATION,$(CONFIGVARS)))
 ifeq (,$(filter USE_SFR,$(CONFIGVARS)))
     $(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires USE_SFR)
 endif
+
 ifeq (,$(filter STAR_PARTICLES 2,$(CONFIGVARS)))
     $(error INDIVIDUAL_STAR_BY_STAR_FORMATION requires STAR_PARTICLES=2)
 endif

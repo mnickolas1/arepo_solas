@@ -71,6 +71,11 @@ double grackle_mu(int i)
   return 1.0 / (Xe + XH + XH2 / 2.0 + XHe / 4.0 + Z / 16.0);
 }
 
+double grackle_gamma(int i)
+{
+  return GAMMA;
+}
+
 /* Function that initialises Grackle */
 void InitGrackle(void)
 {
@@ -183,10 +188,12 @@ void InitGrackle(void)
   /* Flag to enable H2 formation on dust grains, dust cooling, and dust-gas heat transfer follow Omukai (2000). This assumes that the
    * dust to gas ratio scales with the metallicity. Default: 0. */
   my_grackle_data->h2_on_dust = 1;
+  my_grackle_data->use_dust_density_field = 1;
 #else
   my_grackle_data->metal_cooling = 0;
   
   my_grackle_data->h2_on_dust = 0;
+  my_grackle_data->use_dust_density_field = 0;
 #endif
 
   my_grackle_data->SolarMetalFractionByMass = SOLAR_METALLICITY;
@@ -296,6 +303,7 @@ double CallGrackle(int i, double dt, int mode)
   All.GrackleFieldData.density = malloc(sizeof(gr_float));
   All.GrackleFieldData.internal_energy = malloc(sizeof(gr_float));
   All.GrackleFieldData.metal_density = malloc(sizeof(gr_float));
+  All.GrackleFieldData.dust_density = malloc(sizeof(gr_float));
 
 #if (GRACKLE_CHEMISTRY >= 1)
   All.GrackleFieldData.e_density = malloc(sizeof(gr_float));
@@ -349,6 +357,7 @@ double CallGrackle(int i, double dt, int mode)
 #endif
 
   *All.GrackleFieldData.metal_density = Metallicity * *All.GrackleFieldData.density;
+  *All.GrackleFieldData.dust_density = fmax(GRACKLE_TINY, dust_to_gas_ratio(Metallicity / SOLAR_METALLICITY)) * *All.GrackleFieldData.density;
 
   /* non-eq. chemistry values */
 #if (GRACKLE_CHEMISTRY >= 1)
@@ -573,6 +582,7 @@ double CallGrackle(int i, double dt, int mode)
   free(All.GrackleFieldData.density);
   free(All.GrackleFieldData.internal_energy);
   free(All.GrackleFieldData.metal_density);
+  free(All.GrackleFieldData.dust_density);
 
 #if (GRACKLE_CHEMISTRY >= 1)
   free(All.GrackleFieldData.e_density);

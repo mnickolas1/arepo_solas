@@ -30,29 +30,32 @@
  * - 27.05.2018 Prepared file for public release -- Rainer Weinberger
  */
 
+
 #ifndef INLINE_FUNC
 #define INLINE_FUNC
 #endif /* #ifndef INLINE_FUNC */
 
-/* --- common gas state; cooling/cooling.c is compiled unconditionally --- */
-
 double evaluate_mu(int i);
+double evaluate_gamma(int i);
 double evaluate_temp(int i);
 double evaluate_numberdens(int i);
 
-#ifdef COOLING
 void InitCool(void);
 
 void cooling_only(void);
 void cool_cell(int i);
 
 double GetCoolingTime(int i);
-#endif /* #ifdef COOLING */
 
-/* --- primordial (Katz/KWH) network; cooling/primordial_cooling.c --- */
+#ifdef METALS
+double dust_to_gas_ratio(double Zsol);
+#endif
+
+/* --- Primordial (Katz/KWH) network; cooling/primordial_cooling.c --- */
 
 #ifdef PRIMORDIAL_COOLING
 double primordial_mu(int i);
+double primordial_gamma(int i);
 
 void InitPrimordialCooling(void);
 double DoPrimordialCooling(double u_old, double rho, double dt, double *ne_guess);
@@ -69,6 +72,7 @@ void IonizeParams(void);
 #include <grackle.h>
 
 double grackle_mu(int i);
+double grackle_gamma(int i);
 
 void InitGrackle(void);
 double CallGrackle(int i, double dt, int mode);

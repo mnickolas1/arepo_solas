@@ -44,103 +44,23 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#ifdef METALS
 
-/*! \brief Metallicity in solar units at the break of the broken power law.
- *
- *  Z_t/Z_sun = 10^(x_t - x_sun) with x = 12 + log(O/H).  Cached by
- *  init_dust_to_gas() so that the pow() is not repeated for every cell.
- */
-static double ZsolBreak;
+#define ZSOL_BREAK 0.2570395783
 
-/*! \brief The dust-to-gas factor at the break, ZsolBreak^DustToGasSlopeHigh. */
-static double FactorBreak;
-
-/*! \brief Precompute the break of the dust-to-gas relation and report it.
- *
- *  Must be called after the parameter file has been read and before the first
- *  call to dust_to_gas_factor().
- *
- *  \return void
- */
-void init_dust_to_gas(void)
-{
-  ZsolBreak = pow(10.0, All.DustToGasBreakOH - All.DustToGasSolarOH);
-  FactorBreak = pow(ZsolBreak, All.DustToGasSlopeHigh);
-
-  /* Report the relation, and the round trip through the inverse, so that a mis-read parameter file is
-   * obvious in the log.  The round trip is exact except where MinDustToGasFactor clips the result */
-
-  const double Ztable[] = {1.0, 0.5, ZsolBreak, 0.1, 0.01};
-
-  for(int k = 0; k < (int)(sizeof(Ztable) / sizeof(Ztable[0])); k++)
-    {
-      double factor = dust_to_gas_factor(Ztable[k]);
-    }
-}
-
-/*! \brief Dust-to-gas mass ratio relative to its value at solar metallicity.
- *
- *  Remy-Ruyer et al. 2014 (A&A 563, A31) fit the gas-to-dust mass ratio of local galaxies as
- *  log10(G/D) = a + alpha * (x_sun - x) with x = 12 + log(O/H), and find that a single slope cannot
- *  describe the full 2 dex range: below x_t the dust content falls far faster than linearly in
- *  metallicity.  AREPO carries only a total metal mass fraction, so O/H is taken proportional to Z and
- *  x_sun - x = -log10(Z/Z_sun).  Normalising out the solar anchor a, which then cancels entirely,
- *
- *      f(Z) = (Z/Z_sun)^alpha_high                              for Z >= Z_t
- *           = (Z_t/Z_sun)^alpha_high * (Z/Z_t)^alpha_low        for Z <  Z_t
- *
- *  so f(Z_sun) = 1 by construction, and alpha_high = alpha_low = 1 recovers the constant
- *  dust-to-metals ratio that the code assumed previously.
- *
- *  Because the relation is normalised to solar, each caller divides by whatever dust-to-gas ratio its
- *  own rates or opacities were calibrated at: DUST_TO_GAS_RATIO for the Draine Kappa_E/Kappa_N tables,
- *  grackle's local_dust_to_gas_ratio for its H2-on-dust and gas-grain rates.
- *
- *  \param[in] Zsol Metallicity in solar units, Z/Z_sun.  Values <= 0, which advection undershoot does
- *             produce, return the floor rather than reaching pow() with a negative base and a
- *             fractional exponent, which would be NaN.
- *
- *  \return Dust-to-gas mass ratio divided by its value at solar metallicity.
- */
-double dust_to_gas_factor(double Zsol)
+/* Gas to dust ratio; broken power law from Remy-Ruyer (2014) */
+double dust_to_gas_ratio(double Zsol)
 {
   if(Zsol <= 0.0)
-    return All.MinDustToGasFactor;
-
-  double factor;
-
-  if(Zsol >= ZsolBreak)
-    factor = pow(Zsol, All.DustToGasSlopeHigh);
-  else
-    factor = FactorBreak * pow(Zsol / ZsolBreak, All.DustToGasSlopeLow);
-
-  return fmax(All.MinDustToGasFactor, factor);
-}
-
-/*! \brief Metallicity implied by a dust-to-gas ratio; the inverse of dust_to_gas_factor().
- *
- *  The broken power law is monotonic in Z, so this inverts it exactly.  It cannot undo the
- *  MinDustToGasFactor floor: every metallicity below the floor maps to the same factor, so a factor at
- *  the floor has no unique inverse.
- *
- *  Nothing in the code calls this yet.  It is the dust -> metallicity direction, used by the
- *  verification round trip, and needed if a dust abundance is ever advected in its own right or if an
- *  effective metallicity is wanted from an observed dust-to-gas ratio.
- *
- *  \param[in] factor Dust-to-gas mass ratio relative to its value at solar metallicity.
- *
- *  \return Metallicity in solar units, Z/Z_sun.
- */
-double Zsol_from_dust_to_gas_factor(double factor)
-{
-  if(factor <= 0.0)
     return 0.0;
 
-  if(factor >= FactorBreak)
-    return pow(factor, 1.0 / All.DustToGasSlopeHigh);
+  double GtoD, DtoG;
 
-  return ZsolBreak * pow(factor / FactorBreak, 1.0 / All.DustToGasSlopeLow);
+  if(Zsol >= ZSOL_BREAK)
+    GtoD = 162.0 * pow(Zsol, -1.0);
+  else
+    GtoD = 9.12 * pow(Zsol, -0.3);
+
+  DtoG = 1.0 / GtoD;
+
+  return fmax(0.0, DtoG);
 }
-
-#endif /* #ifdef METALS */

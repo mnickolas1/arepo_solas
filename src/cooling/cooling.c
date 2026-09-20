@@ -74,6 +74,20 @@ double evaluate_mu(int i)
 #endif
 }
 
+double evaluate_gamma(int i)
+{
+#if defined(PRIMORDIAL_COOLING)
+  return primordial_gamma(i);
+
+#elif defined(USE_GRACKLE)
+  return grackle_gamma(i);
+
+#else
+  /* Fallback */
+  return GAMMA;
+#endif
+}
+
 double evaluate_temp(int i)
 {
   double mu = evaluate_mu(i);
@@ -90,8 +104,6 @@ double evaluate_numberdens(int i)
 
   return number_dens;
 }
-
-#ifdef COOLING
 
 void InitCool(void)
 {
@@ -207,5 +219,3 @@ double GetCoolingTime(int i)
 
   return tcool;
 }
-
-#endif
