@@ -535,8 +535,10 @@ void compute_interface_fluxes(tessellation *T);
 double evaluate_mu(int i);
 double evaluate_gamma(int i);
 void update_mu_gamma(void);
+
 double evaluate_temp(int i);
 double evaluate_numberdens(int i);
+double evaluate_pressure(int i);
 
 void update_primitive_variables(void);
 

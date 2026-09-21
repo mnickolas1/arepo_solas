@@ -383,12 +383,6 @@ ifneq (,$(filter PRIMORDIAL_COOLING,$(CONFIGVARS)))
 OBJS += cooling/primordial_cooling.o
 endif
 
-ifneq (,$(filter USE_GRACKLE,$(CONFIGVARS)))
-ifeq (,$(filter COOLING,$(CONFIGVARS)))
-$(error USE_GRACKLE requires COOLING)
-endif
-endif
-
 ifneq (,$(filter GRACKLE_CHEMISTRY,$(CONFIGVARS)))
 ifeq (,$(filter USE_GRACKLE,$(CONFIGVARS)))
 $(error GRACKLE_CHEMISTRY requires USE_GRACKLE)
@@ -536,6 +530,12 @@ endif
 ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
 ifeq ($(strip $(findstring GRACKLE_CHEMISTRY 2,$(CONFIGVARS))$(findstring GRACKLE_CHEMISTRY 3,$(CONFIGVARS))),)
 $(error STAR_RADIATION_ACTIVE requires GRACKLE_CHEMISTRY >= 2)
+endif
+endif
+
+ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
+ifeq (,$(filter CREATE_FULL_MESH,$(CONFIGVARS)))
+$(error STAR_RADIATION_ACTIVE requires CREATE_FULL_MESH)
 endif
 endif
 

@@ -81,15 +81,14 @@ void update_opac(void)
 
       Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
 
-#ifdef METALS
-      double Zsol = ((SphP[i].GasMetals + SphP[i].StarMetalsFeed) / (P[i].Mass + SphP[i].StarMassFeed)) / SOLAR_METALLICITY;
-#else
-      double Zsol = 0;
-#endif
-
       double Density = (P[i].Mass + SphP[i].StarMassFeed) / SphP[i].Volume;
-      
+  
+#ifdef METALS
+      double Zsol = ((SphP[i].GasMetals + SphP[i].StarMetalsFeed) / (P[i].Mass + SphP[i].StarMassFeed)) / SOLAR_METALLICITY;    
       SphP[i].OpacityScaling[CH_DUST] = dust_to_gas_ratio(Zsol) / DUST_TO_GAS_RATIO * Density / Units;
+#else
+      SphP[i].OpacityScaling[CH_DUST] = 0;
+#endif
 
       Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;
 
