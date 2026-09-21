@@ -98,8 +98,10 @@ double godunov_flux_3d(struct state *st_L, struct state *st_R, struct state_face
         /* vacuum state */
         st_face->velx  = 0;
         st_face->rho   = 0;
-        st_face->gamma = 0;
+
+        st_face->gamma = (st_L->gamma + st_R->gamma) / 2.0;
         st_face->press = 0;
+        
         st_face->vely  = 0;
         st_face->velz  = 0;
 #ifdef MAXSCALARS
@@ -298,8 +300,8 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
 {
   double Csnd;
 
-  double Sl = st_L->velx + 2 * st_L->csnd / (st_L - 1.0);
-  double Sr = st_R->velx - 2 * st_R->csnd / (st_R - 1.0);
+  double Sl = st_L->velx + 2 * st_L->csnd / (st_L->gamma - 1.0);
+  double Sr = st_R->velx - 2 * st_R->csnd / (st_R->gamma - 1.0);
 
   if(S <= Sl)
     {
@@ -365,6 +367,7 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
       /* vacuum in between */
       st_face->velx  = S;
       st_face->rho   = 0;
+      st_face->gamma = (st_L->gamma + st_R->gamma) / 2.0;
       st_face->press = 0;
 
       st_face->vely = st_L->vely + (st_R->vely - st_L->vely) * (S - Sl) / (Sr - Sl);
@@ -454,7 +457,7 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
 
               if(S > stl) /* middle left state */
                 {
-                  st_face->rho   = st_L->rho(st_L) * pow(Press / st_L->press, GAMMA_G8(st_L));
+                  st_face->rho   = st_L->rho * pow(Press / st_L->press, GAMMA_G8(st_L));
                   st_face->velx  = Vel;
                   st_face->press = Press;
                 }
@@ -733,10 +736,11 @@ double guess_for_pressure(struct state *st_L, struct state *st_R)
         {
           if(pv < pmin) /* use two-rarefaction solution */
             {
-              double pnu = (st_L->csnd + st_R->csnd) - GAMMA_G7(st_R) * st_R->velx - GAMMA_G7(st_L) * st_L->velx;
+              double pnu = (st_L->csnd + st_R->csnd) - GAMMA_G7(st_R) * st_R->velx + GAMMA_G7(st_L) * st_L->velx;
               double pde = st_L->csnd / pow(st_L->press, GAMMA_G1(st_L)) + st_R->csnd / pow(st_R->press, GAMMA_G1(st_R));
 
-              return pow(pnu / pde, GAMMA_G3);
+              double gamma_avg = 0.5 * (st_L->gamma + st_R->gamma);
+              return pow(pnu / pde, (2.0 * gamma_avg / (gamma_avg - 1.0)));
             }
           else /* two-shock approximation  */
             {

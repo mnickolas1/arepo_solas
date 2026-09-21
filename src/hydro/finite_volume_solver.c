@@ -1453,7 +1453,7 @@ void solve_advection(struct state *st_L, struct state *st_R, struct state_face *
       st_face->velx  = st_L->velx;
       st_face->vely  = st_L->vely;
       st_face->velz  = st_L->velz;
-      st_face->gamma = st_L->gamma
+      st_face->gamma = st_L->gamma;
       st_face->press = st_L->press;
     }
   else
@@ -1462,7 +1462,7 @@ void solve_advection(struct state *st_L, struct state *st_R, struct state_face *
       st_face->velx  = st_R->velx;
       st_face->vely  = st_R->vely;
       st_face->velz  = st_R->velz;
-      st_face->gamma = st_R->gamma
+      st_face->gamma = st_R->gamma;
       st_face->press = st_R->press;
     }
 }
