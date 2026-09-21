@@ -69,7 +69,7 @@ Only one Riemann solver can be chosen among the above options.If none of them is
   flux->momentum[1] = st->rho * st->velx * st->vely;
   flux->momentum[2] = st->rho * st->velx * st->velz;
 
-  st->Energy   = st->press / GAMMA_MINUS1 + 0.5 * st->rho * (st->velx * st->velx + st->vely * st->vely + st->velz * st->velz);
+  st->Energy   = st->press / (st->gamma - 1.0) + 0.5 * st->rho * (st->velx * st->velx + st->vely * st->vely + st->velz * st->velz);
   flux->energy = (st->Energy + st->press) * st->velx;
 }
 
@@ -126,8 +126,8 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
     {
       struct fluxes flux_L, flux_R;
 
-      st_L->csnd = sqrt(GAMMA * st_L->press / st_L->rho);
-      st_R->csnd = sqrt(GAMMA * st_R->press / st_R->rho);
+      st_L->csnd = sqrt(st_L->gamma * st_L->press / st_L->rho);
+      st_R->csnd = sqrt(st_R->gamma * st_R->press / st_R->rho);
 
       /* first estimate wave speeds */
       S_L = dmin(st_L->velx - st_L->csnd, st_R->velx - st_R->csnd);
@@ -156,6 +156,7 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = st_L->velx;
           st_face->vely  = st_L->vely;
           st_face->velz  = st_L->velz;
+          st_face->gamma = st_L->gamma;
           st_face->press = st_L->press;
         }
       else if(S_R <= 0.0) /* F_hllc = F_R */
@@ -172,6 +173,7 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = st_R->velx;
           st_face->vely  = st_R->vely;
           st_face->velz  = st_R->velz;
+          st_face->gamma = st_R->gamma;
           st_face->press = st_R->press;
         }
       else if(S_L <= 0.0 && S_star >= 0.0) /* F_hllc = F*_L */
@@ -184,6 +186,7 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = S_star;
           st_face->vely  = st_L->vely;
           st_face->velz  = st_L->velz;
+          st_face->gamma = st_L->gamma;
           st_face->press = Press_star;
         }
       else /* F_hllc = F*_R */
@@ -196,6 +199,7 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = S_star;
           st_face->vely  = st_R->vely;
           st_face->velz  = st_R->velz;
+          st_face->gamma = st_R->gamma;
           st_face->press = Press_star;
         }
     }

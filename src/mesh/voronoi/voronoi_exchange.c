@@ -246,9 +246,9 @@ void exchange_primitive_variables(void)
               off   = Mesh_Send_offset[task] + Mesh_Send_count[task]++;
 
               tmpPrimExch[off].Volume = SphP[place].Volume;
-
               tmpPrimExch[off].Density = SphP[place].Density;
-
+              
+              tmpPrimExch[off].Gamma = SphP[place].Gamma;
               tmpPrimExch[off].Pressure = SphP[place].Pressure;
 
 #ifdef MHD
@@ -367,8 +367,10 @@ void exchange_primitive_variables_and_gradients(void)
               place = ListExports[listp].index;
               off   = Mesh_Send_offset[task] + Mesh_Send_count[task]++;
 
-              tmpPrimExch[off].Volume   = SphP[place].Volume;
-              tmpPrimExch[off].Density  = SphP[place].Density;
+              tmpPrimExch[off].Volume = SphP[place].Volume;
+              tmpPrimExch[off].Density = SphP[place].Density;
+              
+              tmpPrimExch[off].Gamma = SphP[place].Gamma;
               tmpPrimExch[off].Pressure = SphP[place].Pressure;
 
 #ifdef MHD

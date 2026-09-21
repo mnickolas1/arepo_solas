@@ -837,6 +837,7 @@ int face_get_state(tessellation *T, int p, int i, struct state *st)
 
       st->rho = SphP[particle].Density;
 
+      st->gamma = SphP[particle].Gamma;
       st->press = SphP[particle].Pressure;
 
       st->grad = &SphP[particle].Grad;
@@ -879,6 +880,7 @@ int face_get_state(tessellation *T, int p, int i, struct state *st)
 
       st->rho = PrimExch[particle].Density;
 
+      st->gamma = PrimExch[particle].Gamma;
       st->press = PrimExch[particle].Pressure;
 
       st->grad = &GradExch[particle];
@@ -1185,7 +1187,7 @@ void face_do_time_extrapolation(struct state *delta, struct state *st, double at
   delta->velz = -dt_half * (1.0 / st->rho * grad->dpress[2] + st->velx * grad->dvel[2][0] + st->vely * grad->dvel[2][1] +
                             st->velz * grad->dvel[2][2]);
 
-  delta->press = -dt_half * (GAMMA * st->press * (grad->dvel[0][0] + grad->dvel[1][1] + grad->dvel[2][2]) +
+  delta->press = -dt_half * (st->gamma * st->press * (grad->dvel[0][0] + grad->dvel[1][1] + grad->dvel[2][2]) +
                              st->velx * grad->dpress[0] + st->vely * grad->dpress[1] + st->velz * grad->dpress[2]);
 
 #ifdef ONEDIMS_SPHERICAL
@@ -1451,6 +1453,7 @@ void solve_advection(struct state *st_L, struct state *st_R, struct state_face *
       st_face->velx  = st_L->velx;
       st_face->vely  = st_L->vely;
       st_face->velz  = st_L->velz;
+      st_face->gamma = st_L->gamma
       st_face->press = st_L->press;
     }
   else
@@ -1459,6 +1462,7 @@ void solve_advection(struct state *st_L, struct state *st_R, struct state_face *
       st_face->velx  = st_R->velx;
       st_face->vely  = st_R->vely;
       st_face->velz  = st_R->velz;
+      st_face->gamma = st_R->gamma
       st_face->press = st_R->press;
     }
 }
@@ -1623,9 +1627,8 @@ void face_get_fluxes(struct state *st_L, struct state *st_R, struct state_face *
 #ifndef ISOTHERM_EQS
   flux->energy =
       (0.5 * st_face->rho * (st_face->velx * st_face->velx + st_face->vely * st_face->vely + st_face->velz * st_face->velz) +
-       st_face->press / GAMMA_MINUS1) *
-          fac +
-      st_face->press * (st_face->velx * geom->nx + st_face->vely * geom->ny + st_face->velz * geom->nz);
+       st_face->press / (st_face->gamma - 1.0)) * fac +
+       st_face->press * (st_face->velx * geom->nx + st_face->vely * geom->ny + st_face->velz * geom->nz);
 #endif /* #ifndef ISOTHERM_EQS */
 }
 
@@ -1734,7 +1737,7 @@ void face_add_fluxes_advection(struct state_face *st_face, struct fluxes *flux, 
 
   flux->energy +=
       0.5 * st_face->rho * fac * (st_face->velx * st_face->velx + st_face->vely * st_face->vely + st_face->velz * st_face->velz) +
-      st_face->press / GAMMA_MINUS1 * fac;
+      st_face->press / (st_face->gamma - 1.0) * fac;
 }
 
 /*! \brief Compares tasks of flux list data.
@@ -1885,7 +1888,7 @@ void apply_spherical_source_terms()
       double dt_Extrapolation = All.Time - SphP[i].TimeLastPrimUpdate;
       struct grad_data *grad  = &SphP[i].Grad;
 
-      Pressure += -dt_Extrapolation * (GAMMA * Pressure * (grad->dvel[0][0] + grad->dvel[1][1] + grad->dvel[2][2]) +
+      Pressure += -dt_Extrapolation * (SphP[i].Gamma * Pressure * (grad->dvel[0][0] + grad->dvel[1][1] + grad->dvel[2][2]) +
                                        P[i].Vel[0] * grad->dpress[0] + P[i].Vel[1] * grad->dpress[1] + P[i].Vel[2] * grad->dpress[2]);
 
       double dt = 0.5 * (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;

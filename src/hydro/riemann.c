@@ -67,15 +67,15 @@
 
 #if !(defined(RIEMANN_HLLC) || defined(RIEMANN_HLLD))
 
-#define GAMMA_G1 ((GAMMA - 1.0) / (2.0 * GAMMA))
-#define GAMMA_G2 ((GAMMA + 1.0) / (2.0 * GAMMA))
-#define GAMMA_G3 ((2.0 * GAMMA / (GAMMA - 1.0)))
-#define GAMMA_G4 (2.0 / (GAMMA - 1.0))
-#define GAMMA_G5 (2.0 / (GAMMA + 1.0))
-#define GAMMA_G6 ((GAMMA - 1.0) / (GAMMA + 1.0))
-#define GAMMA_G7 (0.5 * (GAMMA - 1.0))
-#define GAMMA_G8 (1.0 / GAMMA)
-#define GAMMA_G9 (GAMMA - 1.0)
+#define GAMMA_G1(st) (((st)->gamma - 1.0) / (2.0 * (st)->gamma))
+#define GAMMA_G2(st) (((st)->gamma + 1.0) / (2.0 * (st)->gamma))
+#define GAMMA_G3(st) ((2.0 * (st)->gamma / ((st)->gamma - 1.0)))
+#define GAMMA_G4(st) (2.0 / ((st)->gamma - 1.0))
+#define GAMMA_G5(st) (2.0 / ((st)->gamma + 1.0))
+#define GAMMA_G6(st) (((st)->gamma - 1.0) / ((st)->gamma + 1.0))
+#define GAMMA_G7(st) (0.5 * ((st)->gamma - 1.0))
+#define GAMMA_G8(st) (1.0 / (st)->gamma)
+#define GAMMA_G9(st) ((st)->gamma - 1.0)
 
 #define TOL 1.0e-8
 
@@ -98,6 +98,7 @@ double godunov_flux_3d(struct state *st_L, struct state *st_R, struct state_face
         /* vacuum state */
         st_face->velx  = 0;
         st_face->rho   = 0;
+        st_face->gamma = 0;
         st_face->press = 0;
         st_face->vely  = 0;
         st_face->velz  = 0;
@@ -109,8 +110,8 @@ double godunov_flux_3d(struct state *st_L, struct state *st_R, struct state_face
 
     if(st_L->rho > 0 && st_R->rho > 0)
       {
-        st_L->csnd = sqrt(GAMMA * st_L->press / st_L->rho);
-        st_R->csnd = sqrt(GAMMA * st_R->press / st_R->rho);
+        st_L->csnd = sqrt(st_L->gamma * st_L->press / st_L->rho);
+        st_R->csnd = sqrt(st_R->gamma * st_R->press / st_R->rho);
 
         double Press;
 
@@ -191,13 +192,15 @@ void sample_solution_vacuum_left_3d(double S, struct state *st_R, struct state_f
 {
   double Csnd;
 
-  double Sr = st_R->velx - 2 * st_R->csnd / GAMMA_MINUS1;
+  double Sr = st_R->velx - 2 * st_R->csnd / (st_R->gamma - 1.0);
 
   st_face->vely = st_R->vely;
   st_face->velz = st_R->velz;
 #ifdef MAXSCALARS
   st_face->scalars = st_R->scalars;
 #endif /* #ifdef MAXSCALARS */
+  
+  st_face->gamma = st_R->gamma;
 
   if(S >= Sr)
     {
@@ -214,10 +217,10 @@ void sample_solution_vacuum_left_3d(double S, struct state *st_R, struct state_f
       else
         {
           /* rarefaction fan right state */
-          st_face->velx  = GAMMA_G5 * (-st_R->csnd + GAMMA_G7 * st_R->velx + S);
-          Csnd           = GAMMA_G5 * (st_R->csnd - GAMMA_G7 * (st_R->velx - S));
-          st_face->rho   = st_R->rho * pow(Csnd / st_R->csnd, GAMMA_G4);
-          st_face->press = st_R->press * pow(Csnd / st_R->csnd, GAMMA_G3);
+          st_face->velx  = GAMMA_G5(st_R) * (-st_R->csnd + GAMMA_G7(st_R) * st_R->velx + S);
+          Csnd           = GAMMA_G5(st_R) * (st_R->csnd - GAMMA_G7(st_R) * (st_R->velx - S));
+          st_face->rho   = st_R->rho * pow(Csnd / st_R->csnd, GAMMA_G4(st_R));
+          st_face->press = st_R->press * pow(Csnd / st_R->csnd, GAMMA_G3(st_R));
         }
     }
   else
@@ -241,13 +244,15 @@ void sample_solution_vacuum_right_3d(double S, struct state *st_L, struct state_
 {
   double Csnd;
 
-  double Sl = st_L->velx + 2 * st_L->csnd / GAMMA_MINUS1;
+  double Sl = st_L->velx + 2 * st_L->csnd / (st_L->gamma - 1.0);
 
   st_face->vely = st_L->vely;
   st_face->velz = st_L->velz;
 #ifdef MAXSCALARS
   st_face->scalars = st_L->scalars;
 #endif /* #ifdef MAXSCALARS */
+
+  st_face->gamma = st_L->gamma;
 
   if(S <= Sl)
     {
@@ -265,10 +270,10 @@ void sample_solution_vacuum_right_3d(double S, struct state *st_L, struct state_
       else
         {
           /* rarefaction fan left state */
-          st_face->velx  = GAMMA_G5 * (st_L->csnd + GAMMA_G7 * st_L->velx + S);
-          Csnd           = GAMMA_G5 * (st_L->csnd + GAMMA_G7 * (st_L->velx - S));
-          st_face->rho   = st_L->rho * pow(Csnd / st_L->csnd, GAMMA_G4);
-          st_face->press = st_L->press * pow(Csnd / st_L->csnd, GAMMA_G3);
+          st_face->velx  = GAMMA_G5(st_L) * (st_L->csnd + GAMMA_G7(st_L) * st_L->velx + S);
+          Csnd           = GAMMA_G5(st_L) * (st_L->csnd + GAMMA_G7(st_L) * (st_L->velx - S));
+          st_face->rho   = st_L->rho * pow(Csnd / st_L->csnd, GAMMA_G4(st_L));
+          st_face->press = st_L->press * pow(Csnd / st_L->csnd, GAMMA_G3(st_L));
         }
     }
   else
@@ -293,8 +298,8 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
 {
   double Csnd;
 
-  double Sl = st_L->velx + 2 * st_L->csnd / GAMMA_MINUS1;
-  double Sr = st_R->velx - 2 * st_R->csnd / GAMMA_MINUS1;
+  double Sl = st_L->velx + 2 * st_L->csnd / (st_L - 1.0);
+  double Sr = st_R->velx - 2 * st_R->csnd / (st_R - 1.0);
 
   if(S <= Sl)
     {
@@ -305,6 +310,8 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
 #ifdef MAXSCALARS
       st_face->scalars = st_L->scalars;
 #endif /* #ifdef MAXSCALARS */
+
+      st_face->gamma = st_L->gamma;
 
       double shl = st_L->velx - st_L->csnd;
 
@@ -318,10 +325,10 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
       else
         {
           /* rarefaction fan left state */
-          st_face->velx  = GAMMA_G5 * (st_L->csnd + GAMMA_G7 * st_L->velx + S);
-          Csnd           = GAMMA_G5 * (st_L->csnd + GAMMA_G7 * (st_L->velx - S));
-          st_face->rho   = st_L->rho * pow(Csnd / st_L->csnd, GAMMA_G4);
-          st_face->press = st_L->press * pow(Csnd / st_L->csnd, GAMMA_G3);
+          st_face->velx  = GAMMA_G5(st_L) * (st_L->csnd + GAMMA_G7(st_L) * st_L->velx + S);
+          Csnd           = GAMMA_G5(st_L) * (st_L->csnd + GAMMA_G7(st_L) * (st_L->velx - S));
+          st_face->rho   = st_L->rho * pow(Csnd / st_L->csnd, GAMMA_G4(st_L));
+          st_face->press = st_L->press * pow(Csnd / st_L->csnd, GAMMA_G3(st_L));
         }
     }
   else if(S >= Sr)
@@ -336,6 +343,8 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
       st_face->scalars = st_R->scalars;
 #endif /* #ifdef MAXSCALARS */
 
+      st_face->gamma = st_R->gamma;
+
       if(S >= shr) /* right data state */
         {
           st_face->rho   = st_R->rho;
@@ -345,10 +354,10 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
       else
         {
           /* rarefaction fan right state */
-          st_face->velx  = GAMMA_G5 * (-st_R->csnd + GAMMA_G7 * st_R->velx + S);
-          Csnd           = GAMMA_G5 * (st_R->csnd - GAMMA_G7 * (st_R->velx - S));
-          st_face->rho   = st_R->rho * pow(Csnd / st_R->csnd, GAMMA_G4);
-          st_face->press = st_R->press * pow(Csnd / st_R->csnd, GAMMA_G3);
+          st_face->velx  = GAMMA_G5(st_R) * (-st_R->csnd + GAMMA_G7(st_R) * st_R->velx + S);
+          Csnd           = GAMMA_G5(st_R) * (st_R->csnd - GAMMA_G7(st_R) * (st_R->velx - S));
+          st_face->rho   = st_R->rho * pow(Csnd / st_R->csnd, GAMMA_G4(st_R));
+          st_face->press = st_R->press * pow(Csnd / st_R->csnd, GAMMA_G3(st_R));
         }
     }
   else
@@ -388,13 +397,13 @@ void get_mach_numbers(struct state *st_L, struct state *st_R, double Press)
   else /* left shock */
     {
       double pml = Press / st_L->press;
-      st_L->mach = sqrt(GAMMA_G2 * pml + GAMMA_G1);
+      st_L->mach = sqrt(GAMMA_G2(st_L) * pml + GAMMA_G1(st_L));
     }
 
   if(Press > st_R->press) /* right shock */
     {
       double pmr = Press / st_R->press;
-      st_R->mach = sqrt(GAMMA_G2 * pmr + GAMMA_G1);
+      st_R->mach = sqrt(GAMMA_G2(st_R) * pmr + GAMMA_G1(st_R));
     }
   else
     {
@@ -425,6 +434,8 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
 #ifdef MAXSCALARS
       st_face->scalars = st_L->scalars;
 #endif /* #ifdef MAXSCALARS */
+      
+      st_face->gamma = st_L->gamma;
 
       if(Press <= st_L->press) /* left fan */
         {
@@ -438,21 +449,21 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
             }
           else
             {
-              double cml = st_L->csnd * pow(Press / st_L->press, GAMMA_G1);
+              double cml = st_L->csnd * pow(Press / st_L->press, GAMMA_G1(st_L));
               double stl = Vel - cml;
 
               if(S > stl) /* middle left state */
                 {
-                  st_face->rho   = st_L->rho * pow(Press / st_L->press, GAMMA_G8);
+                  st_face->rho   = st_L->rho(st_L) * pow(Press / st_L->press, GAMMA_G8(st_L));
                   st_face->velx  = Vel;
                   st_face->press = Press;
                 }
               else /* left state inside fan */
                 {
-                  st_face->velx  = GAMMA_G5 * (st_L->csnd + GAMMA_G7 * st_L->velx + S);
-                  Csnd           = GAMMA_G5 * (st_L->csnd + GAMMA_G7 * (st_L->velx - S));
-                  st_face->rho   = st_L->rho * pow(Csnd / st_L->csnd, GAMMA_G4);
-                  st_face->press = st_L->press * pow(Csnd / st_L->csnd, GAMMA_G3);
+                  st_face->velx  = GAMMA_G5(st_L) * (st_L->csnd + GAMMA_G7(st_L) * st_L->velx + S);
+                  Csnd           = GAMMA_G5(st_L) * (st_L->csnd + GAMMA_G7(st_L) * (st_L->velx - S));
+                  st_face->rho   = st_L->rho * pow(Csnd / st_L->csnd, GAMMA_G4(st_L));
+                  st_face->press = st_L->press * pow(Csnd / st_L->csnd, GAMMA_G3(st_L));
                 }
             }
         }
@@ -461,7 +472,7 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
           if(st_L->press > 0)
             {
               double pml = Press / st_L->press;
-              double sl  = st_L->velx - st_L->csnd * sqrt(GAMMA_G2 * pml + GAMMA_G1);
+              double sl  = st_L->velx - st_L->csnd * sqrt(GAMMA_G2(st_L) * pml + GAMMA_G1(st_L));
 
               if(S <= sl) /* left data state */
                 {
@@ -471,14 +482,14 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
                 }
               else /* middle left state behind shock */
                 {
-                  st_face->rho   = st_L->rho * (pml + GAMMA_G6) / (pml * GAMMA_G6 + 1.0);
+                  st_face->rho   = st_L->rho * (pml + GAMMA_G6(st_L)) / (pml * GAMMA_G6(st_L) + 1.0);
                   st_face->velx  = Vel;
                   st_face->press = Press;
                 }
             }
           else
             {
-              st_face->rho   = st_L->rho / GAMMA_G6;
+              st_face->rho   = st_L->rho / GAMMA_G6(st_L);
               st_face->velx  = Vel;
               st_face->press = Press;
             }
@@ -492,12 +503,14 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
       st_face->scalars = st_R->scalars;
 #endif /* #ifdef MAXSCALARS */
 
+      st_face->gamma = st_R->gamma;
+
       if(Press > st_R->press) /* right shock */
         {
           if(st_R->press > 0)
             {
               double pmr = Press / st_R->press;
-              double sr  = st_R->velx + st_R->csnd * sqrt(GAMMA_G2 * pmr + GAMMA_G1);
+              double sr  = st_R->velx + st_R->csnd * sqrt(GAMMA_G2(st_R) * pmr + GAMMA_G1(st_R));
 
               if(S >= sr) /* right data state */
                 {
@@ -507,14 +520,14 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
                 }
               else /* middle right state behind shock */
                 {
-                  st_face->rho   = st_R->rho * (pmr + GAMMA_G6) / (pmr * GAMMA_G6 + 1.0);
+                  st_face->rho   = st_R->rho * (pmr + GAMMA_G6(st_R)) / (pmr * GAMMA_G6(st_R) + 1.0);
                   st_face->velx  = Vel;
                   st_face->press = Press;
                 }
             }
           else
             {
-              st_face->rho   = st_R->rho / GAMMA_G6;
+              st_face->rho   = st_R->rho / GAMMA_G6(st_R);
               st_face->velx  = Vel;
               st_face->press = Press;
             }
@@ -531,21 +544,21 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
             }
           else
             {
-              double cmr = st_R->csnd * pow(Press / st_R->press, GAMMA_G1);
+              double cmr = st_R->csnd * pow(Press / st_R->press, GAMMA_G1(st_R));
               double str = Vel + cmr;
 
               if(S <= str) /* middle right state */
                 {
-                  st_face->rho   = st_R->rho * pow(Press / st_R->press, GAMMA_G8);
+                  st_face->rho   = st_R->rho * pow(Press / st_R->press, GAMMA_G8(st_R));
                   st_face->velx  = Vel;
                   st_face->press = Press;
                 }
               else /* fan right state */
                 {
-                  st_face->velx  = GAMMA_G5 * (-st_R->csnd + GAMMA_G7 * st_R->velx + S);
-                  Csnd           = GAMMA_G5 * (st_R->csnd - GAMMA_G7 * (st_R->velx - S));
-                  st_face->rho   = st_R->rho * pow(Csnd / st_R->csnd, GAMMA_G4);
-                  st_face->press = st_R->press * pow(Csnd / st_R->csnd, GAMMA_G3);
+                  st_face->velx  = GAMMA_G5(st_R) * (-st_R->csnd + GAMMA_G7(st_R) * st_R->velx + S);
+                  Csnd           = GAMMA_G5(st_R) * (st_R->csnd - GAMMA_G7(st_R) * (st_R->velx - S));
+                  st_face->rho   = st_R->rho * pow(Csnd / st_R->csnd, GAMMA_G4(st_R));
+                  st_face->press = st_R->press * pow(Csnd / st_R->csnd, GAMMA_G3(st_R));
                 }
             }
         }
@@ -570,7 +583,7 @@ int riemann(struct state *st_L, struct state *st_R, double *Press, double *Vel)
 
   double dVel = st_R->velx - st_L->velx;
 
-  double critVel = GAMMA_G4 * (st_L->csnd + st_R->csnd) - dVel;
+  double critVel = GAMMA_G4(st_L) * st_L->csnd + GAMMA_G4(st_R) * st_R->csnd - dVel;
 
   if(critVel < 0)
     {
@@ -659,13 +672,13 @@ void pressure_function(double P, struct state *st, double *F, double *FD)
     {
       double prat = P / st->press;
 
-      *F  = GAMMA_G4 * st->csnd * (pow(prat, GAMMA_G1) - 1.0);
-      *FD = (1.0 / (st->rho * st->csnd)) * pow(prat, -GAMMA_G2);
+      *F  = GAMMA_G4(st) * st->csnd * (pow(prat, GAMMA_G1(st)) - 1.0);
+      *FD = (1.0 / (st->rho * st->csnd)) * pow(prat, -GAMMA_G2(st));
     }
   else /* shock wave */
     {
-      double ak  = GAMMA_G5 / st->rho;
-      double bk  = GAMMA_G6 * st->press;
+      double ak  = GAMMA_G5(st) / st->rho;
+      double bk  = GAMMA_G6(st) * st->press;
       double qrt = sqrt(ak / (bk + P));
 
       *F  = (P - st->press) * qrt;
@@ -720,15 +733,15 @@ double guess_for_pressure(struct state *st_L, struct state *st_R)
         {
           if(pv < pmin) /* use two-rarefaction solution */
             {
-              double pnu = (st_L->csnd + st_R->csnd) - GAMMA_G7 * (st_R->velx - st_L->velx);
-              double pde = st_L->csnd / pow(st_L->press, GAMMA_G1) + st_R->csnd / pow(st_R->press, GAMMA_G1);
+              double pnu = (st_L->csnd + st_R->csnd) - GAMMA_G7(st_R) * st_R->velx - GAMMA_G7(st_L) * st_L->velx;
+              double pde = st_L->csnd / pow(st_L->press, GAMMA_G1(st_L)) + st_R->csnd / pow(st_R->press, GAMMA_G1(st_R));
 
               return pow(pnu / pde, GAMMA_G3);
             }
           else /* two-shock approximation  */
             {
-              double gel = sqrt((GAMMA_G5 / st_L->rho) / (GAMMA_G6 * st_L->press + pv));
-              double ger = sqrt((GAMMA_G5 / st_R->rho) / (GAMMA_G6 * st_R->press + pv));
+              double gel = sqrt((GAMMA_G5(st_L) / st_L->rho) / (GAMMA_G6(st_L) * st_L->press + pv));
+              double ger = sqrt((GAMMA_G5(st_R) / st_R->rho) / (GAMMA_G6(st_R) * st_R->press + pv));
               double x   = (gel * st_L->press + ger * st_R->press - (st_R->velx - st_L->velx)) / (gel + ger);
 
               if(x < pmin || x > pmax)

@@ -120,6 +120,8 @@ extern struct primexch
 
   MyFloat CurlB[3];
 #endif /* #ifdef MHD */
+  
+  double Gamma;
   MyFloat Pressure;
 
 #ifdef MAXSCALARS
@@ -193,7 +195,10 @@ struct state
 
   double rho;
   double velx, vely, velz;
+
+  double gamma;
   double press;
+  
   double oldmass;
   double surfacearea;
   double activearea;
@@ -220,6 +225,7 @@ struct state
 #ifdef MAXSCALARS
   double scalars[MAXSCALARS];
 #endif /* #ifdef MAXSCALARS */
+  
   MyIDType ID;
 
 #ifdef ONEDIMS_SPHERICAL
@@ -234,7 +240,10 @@ extern struct state_face
 {
   double rho;
   double velx, vely, velz;
+
+  double gamma;
   double press;
+
 #ifdef MHD
   double Bx, By, Bz;
 #endif /* #ifdef MHD */

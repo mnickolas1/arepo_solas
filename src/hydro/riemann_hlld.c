@@ -261,7 +261,7 @@ double godunov_flux_3d_hlld(struct state *st_L, struct state *st_R, double *vel_
  */
 static double hlld_get_fast_wave(struct state *st)
 {
-  double gamma  = GAMMA;
+  double gamma = st->gamma;
   double gPress = gamma * st->press;
   double Bsqr   = st->Bx * st->Bx + st->By * st->By + st->Bz * st->Bz;
   double gpb2   = gPress + Bsqr;
@@ -281,8 +281,8 @@ static double hlld_get_fast_wave(struct state *st)
  */
 static void hlld_get_fluxes_from_state(struct state *st, struct fluxes *flux, double *st_ptot)
 {
-  double gamma        = GAMMA;
-  double gamma_minus1 = gamma - 1.;
+  double gamma = st->gamma;
+  double gamma_minus1 = gamma - 1.0;
 
   double cr_press = 0.;
 
@@ -476,7 +476,7 @@ static void hlld_get_fluxes_starstar(struct state *st_A, struct state *st_A_star
 static void hll_get_star(struct state *st_star, struct fluxes *flux_L, struct fluxes *flux_R, struct state *st_L, struct state *st_R,
                          double S_L, double S_R)
 {
-  double gamma        = GAMMA;
+  double gamma = (st_L->gamma + st_R->gamma) / 2.0;
   double gamma_minus1 = gamma - 1.;
 
   double fac = 1.0 / (S_R - S_L);
