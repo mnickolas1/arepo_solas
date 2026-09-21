@@ -453,7 +453,7 @@ int init(void)
       SphP[i].Momentum[1] = P[i].Mass * P[i].Vel[1];
       SphP[i].Momentum[2] = P[i].Mass * P[i].Vel[2];
 
-        /* utherm has been loaded from IC file */
+      /* Utherm has been loaded from IC file */
 #ifdef MESHRELAX
       SphP[i].Energy = P[i].Mass * SphP[i].Utherm;
 #else  /* #ifdef MESHRELAX */
@@ -465,6 +465,8 @@ int init(void)
       SphP[i].Energy += 0.5 * (SphP[i].B[0] * SphP[i].B[0] + SphP[i].B[1] * SphP[i].B[1] + SphP[i].B[2] * SphP[i].B[2]) *
                         SphP[i].Volume * All.cf_atime;
 #endif /* #ifdef MHD */
+
+      SphP[i].Gamma = GAMMA;
 
       for(j = 0; j < 3; j++)
         SphP[i].VelVertex[j] = P[i].Vel[j];

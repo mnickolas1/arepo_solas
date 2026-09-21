@@ -178,7 +178,7 @@ static int jeans_derefinement_criteria(int i)
 
 #ifdef JEANS_REFINEMENT
   double jeans_number, jeans_length, sound_speed, dx;
-  sound_speed  = sqrt(GAMMA * SphP[i].Pressure / SphP[i].Density);
+  sound_speed  = sqrt(SphP[i].Gamma * SphP[i].Pressure / SphP[i].Density);
   jeans_length = sqrt(M_PI / All.G / SphP[i].Density) * sound_speed;
   dx           = 2.0 * get_cell_radius(i);
   jeans_number = jeans_length / dx;

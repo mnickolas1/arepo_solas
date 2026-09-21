@@ -88,21 +88,39 @@ double evaluate_gamma(int i)
 #endif
 }
 
+void update_mu_gamma(void)
+{ 
+  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+    {
+      i = TimeBinsHydro.ActiveParticleList[idx];
+      if(i < 0)
+        continue;
+
+      SphP[i].Mu = evaluate_mu(i);
+      SphP[i].Gamma = evaluate_gamma(i);
+    }
+}
+
 double evaluate_temp(int i)
 {
-  double mu = evaluate_mu(i);
   double temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
-              * mu * PROTONMASS * GAMMA_MINUS1 / BOLTZMANN;
+              * SphP[i].Mu * PROTONMASS * (SphP[i].Gamma - 1.0) / BOLTZMANN;
   
   return temp;
 }
 
 double evaluate_numberdens(int i)
 {
-  double mu = evaluate_mu(i);
-  double number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / mu / PROTONMASS;
+  double number_dens = (SphP[i].Density * All.cf_UnitDensity_in_cgs) / SphP[i].Mu / PROTONMASS;
 
   return number_dens;
+}
+
+double evaluate_pressure(int i) 
+{
+  double pressure = (SphP[i].Gamma - 1.0) * SphP[i].Density * SphP[i].Utherm; 
+  
+  return pressure;
 }
 
 void InitCool(void)

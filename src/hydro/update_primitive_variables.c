@@ -124,24 +124,24 @@ void set_pressure_of_cell_internal(struct particle_data *localP, struct sph_part
 #else  /* #ifdef ISOTHERM_EQS */
 
   if(localSphP[i].Utherm >= 0)
-    localSphP[i].Pressure = GAMMA_MINUS1 * localSphP[i].Density * localSphP[i].Utherm;
+    localSphP[i].Pressure = evaluate_pressure(i);
   else
     localSphP[i].Pressure = 0;
 #endif /* #ifdef ISOTHERM_EQS */
 
 #ifdef ENFORCE_JEANS_STABILITY_OF_CELLS
-#ifdef USE_SFR
+#if defined(USE_SFR) && defined(EEOS_SF)
   if(get_starformation_rate(i) == 0)
 #endif /* #ifdef USE_SFR */
     {
 #ifdef ADAPTIVE_HYDRO_SOFTENING
       double cell_soft = All.ForceSoftening[localP[i].SofteningType];
 #else  /* #ifdef ADAPTIVE_HYDRO_SOFTENING */
-    double cell_soft = All.GasSoftFactor * get_cell_radius(i);
+      double cell_soft = All.GasSoftFactor * get_cell_radius(i);
 #endif /* #ifdef ADAPTIVE_HYDRO_SOFTENING #else */
 
       localSphP[i].Pressure =
-          dmax(localSphP[i].Pressure, GAMMA_MINUS1 * localSphP[i].Density * 2 * All.G * localP[i].Mass / (All.cf_atime * cell_soft));
+          dmax(localSphP[i].Pressure, (localSphP[i].Gamma - 1.0) * localSphP[i].Density * 2 * All.G * localP[i].Mass / (All.cf_atime * cell_soft));
     }
 #endif /* #ifdef ENFORCE_JEANS_STABILITY_OF_CELLS */
 }
@@ -320,8 +320,7 @@ double get_sound_speed(int p)
   csnd = All.IsoSoundSpeed;
 #else  /* #ifdef ISOTHERM_EQS */
 
-  double gamma;
-  gamma = GAMMA;
+  gamma = SphP[p].Gamma;
 
   if(SphP[p].Density > 0)
     csnd = sqrt(gamma * SphP[p].Pressure / SphP[p].Density);

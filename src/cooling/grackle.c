@@ -10,6 +10,25 @@
 
 #define GRACKLE_TABULATED_MODE_HYDROGEN_MASSFRAC 0.715768377353088514
 
+/*! \brief Inverse heat capacity 1/(gamma_H2 - 1) of molecular hydrogen.
+ *
+ *  \param[in] temp Gas temperature in K.
+ *
+ *  \return 1 / (gamma_H2 - 1)
+ */
+static inline double grackle_gammaH2_inverse(double temp)
+{
+  if(temp <= 0)
+    return 0.5 * 5.0;
+
+  double x = 6100.0 / temp;
+
+  if(x >= 10.0)
+    return 0.5 * 5.0;
+
+  return 0.5 * (5.0 + 2.0 * x * x * exp(x) / ((exp(x) - 1.0) * (exp(x) - 1.0)));
+}
+
 double grackle_mu(int i)
 {
 /* Metals, approximated as 16 m_H */
@@ -71,9 +90,78 @@ double grackle_mu(int i)
   return 1.0 / (Xe + XH + XH2 / 2.0 + XHe / 4.0 + Z / 16.0);
 }
 
+/*! \brief Effective adiabatic index of a cell, consistent with the Grackle
+ *         chemistry.
+ *
+ *  The specific heats of the molecular and the non-molecular component are
+ *  added, which is what mixing an ideal gas requires:
+ *
+ *    1/(gamma - 1) = [ n_H2/(gamma_H2 - 1) + n_oth/(GAMMA - 1) ] / n_tot
+ *
+ *  gamma_H2 depends on the temperature, which depends on gamma. Grackle breaks
+ *  the circle with two passes and no iteration -- the temperature that enters
+ *  gamma_H2 is first estimated with the ideal-gas GAMMA (inside its
+ *  calculate_pressure), then recomputed with that first-pass index (inside its
+ *  calculate_temperature) -- and we mirror that here.
+ *
+ *  \param[in] i Index of the gas cell in P and SphP.
+ *
+ *  \return Ratio of specific heats; GAMMA if the network has no molecules.
+ */
 double grackle_gamma(int i)
 {
+#if GRACKLE_CHEMISTRY >= 2
+  double XHI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / P[i].Mass;
+  double XHII = SphP[i].GrackleSpeciesConserved(GRACKLE_HII) / P[i].Mass;
+  double XHeI = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / P[i].Mass;
+  double XHeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / P[i].Mass;
+  double XHeIII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII) / P[i].Mass;
+  double XH2I = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / P[i].Mass;
+  double XH2II = SphP[i].GrackleSpeciesConserved(GRACKLE_H2II) / P[i].Mass;
+  double XHM = SphP[i].GrackleSpeciesConserved(GRACKLE_HM) / P[i].Mass;
+
+  double Xe = XHII + XHeII / 4.0 + XHeIII / 2.0 + XH2II / 2.0 - XHM;
+
+  double n_H2  = 0.5 * (XH2I + XH2II);
+  double n_oth = 0.25 * (XHeI + XHeII + XHeIII) + XHI + XHII + XHM + Xe;
+
+  if(n_oth < GRACKLE_TINY)
+    n_oth = GRACKLE_TINY; 
+
+  double gamma_inverse = 1.0 / GAMMA_MINUS1;
+  double gammaH2_inverse = 0.5 * 5.0;
+
+  double mu, gamma, temp;
+
+  if(n_H2 / n_oth > 1e-3)
+    {
+      /* Pass 1: temperature from the ideal-gas index 
+       * 1/(n_H2 + n_oth) is the mean molecular weight grackle uses at this stage; 
+       * unlike grackle_mu() it carries no metal term */
+      mu = 1.0 / (n_H2 + n_oth);
+      gamma = GAMMA;
+  
+      temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
+                  * mu * PROTONMASS * (gamma - 1.0) / BOLTZMANN;
+
+      double gamma1 = 1.0 + (n_H2 + n_oth) / (n_H2 * grackle_gammaH2_inverse(temp) + n_oth * gamma_inverse);
+
+      /* Pass 2: temperature from the first-pass index, now including metals */
+      mu = grackle_mu(i);
+      gamma = gamma1;
+  
+      temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
+                  * mu * PROTONMASS * (gamma - 1.0) / BOLTZMANN;
+
+      gammaH2_inverse = grackle_gammaH2_inverse(temp);
+    }
+
+  return 1.0 + (n_H2 + n_oth) / (n_H2 * gammaH2_inverse + n_oth * gamma_inverse);
+
+#else  /* #if GRACKLE_CHEMISTRY >= 2 */
+  /* No molecular species in the network: grackle uses my_chemistry->Gamma */
   return GAMMA;
+#endif /* #if GRACKLE_CHEMISTRY >= 2 #else */
 }
 
 /* Function that initialises Grackle */

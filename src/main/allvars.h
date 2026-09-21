@@ -1627,6 +1627,7 @@ extern struct sph_particle_data
   /* Conserved variables */ 
   MyFloat Energy;
   MyFloat Momentum[3];
+  
   MyFloat Volume;
   MyFloat OldMass;
 
@@ -1634,6 +1635,9 @@ extern struct sph_particle_data
   MyFloat Density;
   MyFloat Pressure; 
   MySingle Utherm;
+
+  double Mu;
+  double Gamma;
 
 #ifdef HIERARCHICAL_GRAVITY
   MySingle FullGravAccel[3];

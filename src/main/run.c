@@ -453,6 +453,8 @@ void calculate_non_standard_physics_end_of_step(void)
 
 #ifdef STAR_FEEDBACK_ACTIVE
       star_perform_end_of_step_physics();
+
+      star_exit();
 #endif
 
 #ifdef BH_ACTIVE
@@ -465,11 +467,8 @@ void calculate_non_standard_physics_end_of_step(void)
 #else  /* #ifdef USE_SFR */
       cooling_only();
 #endif /* #ifdef USE_SFR #else */
+      update_mu_gamma();
 #endif /* #ifdef COOLING */
-
-#ifdef STAR_FEEDBACK_ACTIVE
-      star_exit();
-#endif
     }
 }
 

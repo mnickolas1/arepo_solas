@@ -37,6 +37,7 @@
 
 double evaluate_mu(int i);
 double evaluate_gamma(int i);
+void update_mu_gamma(void);
 double evaluate_temp(int i);
 double evaluate_numberdens(int i);
 
