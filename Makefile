@@ -250,6 +250,7 @@ OBJS = debug_md5/calc_checksum.o \
        hydro/riemann_hllc.o \
        hydro/riemann_hlld.o \
        hydro/scalars.o \
+       hydro/update_primitive_functions.o \
        hydro/update_primitive_variables.o \
        init/begrun.o \
        init/density.o \

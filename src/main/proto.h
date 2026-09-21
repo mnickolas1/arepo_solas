@@ -531,6 +531,13 @@ void apply_flux_list(void);
 int flux_list_data_compare(const void *a, const void *b);
 void set_vertex_velocities(void);
 void compute_interface_fluxes(tessellation *T);
+
+double evaluate_mu(int i);
+double evaluate_gamma(int i);
+void update_mu_gamma(void);
+double evaluate_temp(int i);
+double evaluate_numberdens(int i);
+
 void update_primitive_variables(void);
 
 void set_pressure_of_cell_internal(struct particle_data *P, struct sph_particle_data *SphP, int i);

@@ -466,8 +466,6 @@ int init(void)
                         SphP[i].Volume * All.cf_atime;
 #endif /* #ifdef MHD */
 
-      SphP[i].Gamma = GAMMA;
-
       for(j = 0; j < 3; j++)
         SphP[i].VelVertex[j] = P[i].Vel[j];
 
@@ -477,6 +475,9 @@ int init(void)
 #if PASSIVE_SCALARS > 0
   init_passive_scalars();
 #endif
+
+  /* Need to run this after the gas state is set */
+  update_mu_gamma();
 
 #ifdef METALS
 #ifdef STARS

@@ -23,15 +23,12 @@
  * \details     Implements the broken power law of Remy-Ruyer et al. 2014
  *              (A&A 563, A31) relating the gas-to-dust mass ratio to
  *              metallicity, expressed as a factor normalised to unity at
- *              solar metallicity.  Shared by the radiative transfer dust
+ *              solar metallicity.  
+ *              Shared by the radiative transfer dust
  *              opacities (stars/star_radiation.c) and by the dust density
  *              handed to grackle (cooling/grackle.c), so that the two cannot
  *              disagree about how much dust a cell holds.
  *
- *              contains functions:
- *                void init_dust_to_gas(void)
- *                double dust_to_gas_factor(double Zsol)
- *                double Zsol_from_dust_to_gas_factor(double factor)
  *
  * \par Major modifications and contributions:
  *
