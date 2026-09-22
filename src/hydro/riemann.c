@@ -98,15 +98,17 @@ double godunov_flux_3d(struct state *st_L, struct state *st_R, struct state_face
         /* vacuum state */
         st_face->velx  = 0;
         st_face->rho   = 0;
-
-        st_face->gamma = (st_L->gamma + st_R->gamma) / 2.0;
         st_face->press = 0;
         
         st_face->vely  = 0;
         st_face->velz  = 0;
+
 #ifdef MAXSCALARS
         st_face->scalars = NULL;
 #endif /* #ifdef MAXSCALARS */
+        
+        st_face->gamma = 0;
+
         return 0;
       }
 
@@ -152,11 +154,15 @@ double godunov_flux_3d(struct state *st_L, struct state *st_R, struct state_face
             st_face->velx  = 0;
             st_face->rho   = 0;
             st_face->press = 0;
+            
             st_face->vely  = 0;
             st_face->velz  = 0;
+
 #ifdef MAXSCALARS
             st_face->scalars = NULL;
 #endif /* #ifdef MAXSCALARS */
+             
+            st_face->gamma = 0;
           }
         else
           {
@@ -198,6 +204,7 @@ void sample_solution_vacuum_left_3d(double S, struct state *st_R, struct state_f
 
   st_face->vely = st_R->vely;
   st_face->velz = st_R->velz;
+
 #ifdef MAXSCALARS
   st_face->scalars = st_R->scalars;
 #endif /* #ifdef MAXSCALARS */
@@ -250,6 +257,7 @@ void sample_solution_vacuum_right_3d(double S, struct state *st_L, struct state_
 
   st_face->vely = st_L->vely;
   st_face->velz = st_L->velz;
+
 #ifdef MAXSCALARS
   st_face->scalars = st_L->scalars;
 #endif /* #ifdef MAXSCALARS */
@@ -309,6 +317,7 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
 
       st_face->vely = st_L->vely;
       st_face->velz = st_L->velz;
+
 #ifdef MAXSCALARS
       st_face->scalars = st_L->scalars;
 #endif /* #ifdef MAXSCALARS */
@@ -341,6 +350,7 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
 
       st_face->vely = st_R->vely;
       st_face->velz = st_R->velz;
+
 #ifdef MAXSCALARS
       st_face->scalars = st_R->scalars;
 #endif /* #ifdef MAXSCALARS */
@@ -367,7 +377,6 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
       /* vacuum in between */
       st_face->velx  = S;
       st_face->rho   = 0;
-      st_face->gamma = (st_L->gamma + st_R->gamma) / 2.0;
       st_face->press = 0;
 
       st_face->vely = st_L->vely + (st_R->vely - st_L->vely) * (S - Sl) / (Sr - Sl);
@@ -376,6 +385,8 @@ void sample_solution_vacuum_generate_3d(double S, struct state *st_L, struct sta
 #ifdef MAXSCALARS
       st_face->scalars = NULL;
 #endif /* #ifdef MAXSCALARS */
+
+      st_face->gamma = 0;
     }
 }
 
@@ -434,6 +445,7 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
     {
       st_face->vely = st_L->vely;
       st_face->velz = st_L->velz;
+
 #ifdef MAXSCALARS
       st_face->scalars = st_L->scalars;
 #endif /* #ifdef MAXSCALARS */
@@ -502,6 +514,7 @@ void sample_solution_3d(double S, struct state *st_L, struct state *st_R, double
     {
       st_face->vely = st_R->vely;
       st_face->velz = st_R->velz;
+
 #ifdef MAXSCALARS
       st_face->scalars = st_R->scalars;
 #endif /* #ifdef MAXSCALARS */
@@ -873,6 +886,7 @@ void sample_solution_isothermal3d(double S, struct state *st_L, struct state *st
     {
       st_face->vely = st_L->vely;
       st_face->velz = st_L->velz;
+
 #ifdef MAXSCALARS
       st_face->scalars = st_L->scalars;
 #endif /* #ifdef MAXSCALARS */
@@ -922,6 +936,7 @@ void sample_solution_isothermal3d(double S, struct state *st_L, struct state *st
     {
       st_face->vely = st_R->vely;
       st_face->velz = st_R->velz;
+
 #ifdef MAXSCALARS
       st_face->scalars = st_R->scalars;
 #endif /* #ifdef MAXSCALARS */

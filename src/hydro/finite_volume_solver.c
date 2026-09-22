@@ -836,8 +836,6 @@ int face_get_state(tessellation *T, int p, int i, struct state *st)
       st->velVertex[2] = SphP[particle].VelVertex[2];
 
       st->rho = SphP[particle].Density;
-
-      st->gamma = SphP[particle].Gamma;
       st->press = SphP[particle].Pressure;
 
       st->grad = &SphP[particle].Grad;
@@ -860,6 +858,8 @@ int face_get_state(tessellation *T, int p, int i, struct state *st)
         st->scalars[j] = *(MyFloat *)(((char *)(&SphP[particle])) + scalar_elements[j].offset);
 #endif /* #ifdef MAXSCALARS */
 
+      st->gamma = SphP[particle].Gamma;
+
       aBegin = SphP[particle].TimeLastPrimUpdate;
 
       st->oldmass     = SphP[particle].OldMass;
@@ -879,8 +879,6 @@ int face_get_state(tessellation *T, int p, int i, struct state *st)
       st->velVertex[2] = PrimExch[particle].VelVertex[2];
 
       st->rho = PrimExch[particle].Density;
-
-      st->gamma = PrimExch[particle].Gamma;
       st->press = PrimExch[particle].Pressure;
 
       st->grad = &GradExch[particle];
@@ -902,6 +900,8 @@ int face_get_state(tessellation *T, int p, int i, struct state *st)
       for(j = 0; j < N_Scalar; j++)
         st->scalars[j] = PrimExch[particle].Scalars[j];
 #endif /* #ifdef MAXSCALARS */
+      
+      st->gamma = PrimExch[particle].Gamma;
 
       aBegin = PrimExch[particle].TimeLastPrimUpdate;
 
@@ -1453,8 +1453,8 @@ void solve_advection(struct state *st_L, struct state *st_R, struct state_face *
       st_face->velx  = st_L->velx;
       st_face->vely  = st_L->vely;
       st_face->velz  = st_L->velz;
-      st_face->gamma = st_L->gamma;
       st_face->press = st_L->press;
+      st_face->gamma = st_L->gamma;
     }
   else
     {
@@ -1462,8 +1462,8 @@ void solve_advection(struct state *st_L, struct state *st_R, struct state_face *
       st_face->velx  = st_R->velx;
       st_face->vely  = st_R->vely;
       st_face->velz  = st_R->velz;
-      st_face->gamma = st_R->gamma;
       st_face->press = st_R->press;
+      st_face->gamma = st_R->gamma;
     }
 }
 

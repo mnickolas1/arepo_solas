@@ -121,12 +121,13 @@ extern struct primexch
   MyFloat CurlB[3];
 #endif /* #ifdef MHD */
   
-  double Gamma;
   MyFloat Pressure;
 
 #ifdef MAXSCALARS
   MyFloat Scalars[MAXSCALARS];
 #endif /* #ifdef MAXSCALARS */
+
+  double Gamma;
 
   double TimeLastPrimUpdate;
 
@@ -196,7 +197,6 @@ struct state
   double rho;
   double velx, vely, velz;
 
-  double gamma;
   double press;
   
   double oldmass;
@@ -225,6 +225,8 @@ struct state
 #ifdef MAXSCALARS
   double scalars[MAXSCALARS];
 #endif /* #ifdef MAXSCALARS */
+
+  double gamma;
   
   MyIDType ID;
 
@@ -241,7 +243,6 @@ extern struct state_face
   double rho;
   double velx, vely, velz;
 
-  double gamma;
   double press;
 
 #ifdef MHD
@@ -251,6 +252,8 @@ extern struct state_face
 #ifdef MAXSCALARS
   double *scalars;
 #endif /* #ifdef MAXSCALARS */
+
+  double gamma;
 } state_face;
 
 /*! flux through a face */

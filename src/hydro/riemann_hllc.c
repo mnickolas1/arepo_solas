@@ -156,8 +156,8 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = st_L->velx;
           st_face->vely  = st_L->vely;
           st_face->velz  = st_L->velz;
-          st_face->gamma = st_L->gamma;
           st_face->press = st_L->press;
+          st_face->gamma = st_L->gamma;
         }
       else if(S_R <= 0.0) /* F_hllc = F_R */
         {
@@ -173,8 +173,8 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = st_R->velx;
           st_face->vely  = st_R->vely;
           st_face->velz  = st_R->velz;
-          st_face->gamma = st_R->gamma;
           st_face->press = st_R->press;
+          st_face->gamma = st_R->gamma;
         }
       else if(S_L <= 0.0 && S_star >= 0.0) /* F_hllc = F*_L */
         {
@@ -186,8 +186,8 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = S_star;
           st_face->vely  = st_L->vely;
           st_face->velz  = st_L->velz;
-          st_face->gamma = st_L->gamma;
           st_face->press = Press_star;
+          st_face->gamma = st_L->gamma;
         }
       else /* F_hllc = F*_R */
         {
@@ -199,8 +199,8 @@ double godunov_flux_3d_hllc(struct state *st_L, struct state *st_R, struct state
           st_face->velx  = S_star;
           st_face->vely  = st_R->vely;
           st_face->velz  = st_R->velz;
-          st_face->gamma = st_R->gamma;
           st_face->press = Press_star;
+          st_face->gamma = st_R->gamma;
         }
     }
   else

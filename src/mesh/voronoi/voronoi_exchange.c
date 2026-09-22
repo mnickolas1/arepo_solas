@@ -247,8 +247,6 @@ void exchange_primitive_variables(void)
 
               tmpPrimExch[off].Volume = SphP[place].Volume;
               tmpPrimExch[off].Density = SphP[place].Density;
-              
-              tmpPrimExch[off].Gamma = SphP[place].Gamma;
               tmpPrimExch[off].Pressure = SphP[place].Pressure;
 
 #ifdef MHD
@@ -269,6 +267,8 @@ void exchange_primitive_variables(void)
               for(j = 0; j < N_Scalar; j++)
                 tmpPrimExch[off].Scalars[j] = *(MyFloat *)(((char *)(&SphP[place])) + scalar_elements[j].offset);
 #endif /* #ifdef MAXSCALARS */
+             
+              tmpPrimExch[off].Gamma = SphP[place].Gamma;
 
               tmpPrimExch[off].TimeLastPrimUpdate = SphP[place].TimeLastPrimUpdate;
 
@@ -369,8 +369,6 @@ void exchange_primitive_variables_and_gradients(void)
 
               tmpPrimExch[off].Volume = SphP[place].Volume;
               tmpPrimExch[off].Density = SphP[place].Density;
-              
-              tmpPrimExch[off].Gamma = SphP[place].Gamma;
               tmpPrimExch[off].Pressure = SphP[place].Pressure;
 
 #ifdef MHD
@@ -392,6 +390,8 @@ void exchange_primitive_variables_and_gradients(void)
               for(j = 0; j < N_Scalar; j++)
                 tmpPrimExch[off].Scalars[j] = *(MyFloat *)(((char *)(&SphP[place])) + scalar_elements[j].offset);
 #endif /* #ifdef MAXSCALARS */
+
+              tmpPrimExch[off].Gamma = SphP[place].Gamma;
 
               tmpPrimExch[off].TimeLastPrimUpdate = SphP[place].TimeLastPrimUpdate;
 
