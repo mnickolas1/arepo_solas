@@ -814,13 +814,17 @@ void star_feedback(void)
                     Kick.DeltaP[k] = MechanicalFeedback->MassLoss * sqrtsq_wbar * MechanicalFeedback->StarVelocity[k] + MechanicalFeedback->WindMomentum * wbar[k];
           
                   double sq_vstar = MechanicalFeedback->StarVelocity[0]*MechanicalFeedback->StarVelocity[0] 
-                  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1] 
-                  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
+                                  + MechanicalFeedback->StarVelocity[1]*MechanicalFeedback->StarVelocity[1] 
+                                  + MechanicalFeedback->StarVelocity[2]*MechanicalFeedback->StarVelocity[2];
 
                   double sq_vwind = MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss
-                  * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss; 
+                                  * MechanicalFeedback->WindMomentum / MechanicalFeedback->MassLoss;
+                  
+                  double cross = MechanicalFeedback->StarVelocity[0] * wbar[0] 
+                               + MechanicalFeedback->StarVelocity[1] * wbar[1] 
+                               + MechanicalFeedback->StarVelocity[2] * wbar[2];
 
-                  Kick.DeltaE = 0.5 * MechanicalFeedback->MassLoss * (sq_vstar + sq_vwind) * sqrtsq_wbar;
+                  Kick.DeltaE = 0.5 * MechanicalFeedback->MassLoss * (sq_vstar + sq_vwind) * sqrtsq_wbar + MechanicalFeedback->WindMomentum * cross;
                 }   
 #endif
  
