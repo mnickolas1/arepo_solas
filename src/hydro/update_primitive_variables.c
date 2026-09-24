@@ -133,18 +133,17 @@ void set_pressure_of_cell_internal(struct particle_data *localP, struct sph_part
 #endif /* #ifdef ISOTHERM_EQS */
 
 #ifdef ENFORCE_JEANS_STABILITY_OF_CELLS
-#if defined(USE_SFR) && defined(EEOS_SF)
+/* EEOS doesnt need floor */
+#ifdef EEOS_SF
   if(get_starformation_rate(i) == 0)
-#endif /* #ifdef USE_SFR */
+#endif 
     {
-#ifdef ADAPTIVE_HYDRO_SOFTENING
-      double cell_soft = All.ForceSoftening[localP[i].SofteningType];
-#else  /* #ifdef ADAPTIVE_HYDRO_SOFTENING */
-      double cell_soft = All.GasSoftFactor * get_cell_radius(i);
-#endif /* #ifdef ADAPTIVE_HYDRO_SOFTENING #else */
+      double cell_radius = get_cell_radius(i);
 
-      localSphP[i].Pressure =
-          dmax(localSphP[i].Pressure, (localSphP[i].Gamma - 1.0) * localSphP[i].Density * 2 * All.G * localP[i].Mass / (All.cf_atime * cell_soft));
+      double pressure_floor = All.Njeans * All.Njeans * cell_radius * cell_radius * All.G * localSphP[i].Density * localSphP[i].Density
+                            / localSphP[i].Gamma / M_PI ; 
+
+      localSphP[i].Pressure = dmax(localSphP[i].Pressure, pressure_floor);
     }
 #endif /* #ifdef ENFORCE_JEANS_STABILITY_OF_CELLS */
 }

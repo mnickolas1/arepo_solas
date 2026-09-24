@@ -524,6 +524,12 @@ void read_parameter_file(char *fname)
         addr[nt] = &All.GrackleSpeciesState;
         id[nt++] = INT;
 #endif 
+
+#ifdef ENFORCE_JEANS_STABILITY_OF_CELLS
+        strcpy(tag[nt], "Njeans");
+        addr[nt] = &All.Njeans;
+        id[nt++] = REAL;
+#endif
         
 /* Star Formation */
 #ifdef EEOS_SF

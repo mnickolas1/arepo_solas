@@ -1383,7 +1383,11 @@ double InitMetallicityinSolar;
   int GrackleSpeciesState;
 #endif
 
-/* enable Springel & Hernquist model */
+#ifdef ENFORCE_JEANS_STABILITY_OF_CELLS
+  double Njeans;
+#endif
+
+/* Enable Springel & Hernquist model */
 #ifdef EEOS_SF
   double OverDensThresh;
   double CritOverDensity;
