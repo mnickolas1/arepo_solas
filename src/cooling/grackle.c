@@ -26,7 +26,7 @@ static inline double grackle_gammaH2_inverse(double temp)
   if(x >= 10.0)
     return 0.5 * 5.0;
 
-  return 0.5 * (5.0 + 2.0 * x * x * exp(x) / ((exp(x) - 1.0) * (exp(x) - 1.0)));
+  return 0.5 * (5.0 + 2.0 * x * x * exp(x) / (expm1(x) * expm1(x)));
 }
 
 double grackle_mu(int i)
@@ -122,8 +122,11 @@ double grackle_gamma(int i)
 
   double Xe = XHII + XHeII / 4.0 + XHeIII / 2.0 + XH2II / 2.0 - XHM;
 
-  double n_H2  = 0.5 * (XH2I + XH2II);
+  double n_H2 = 0.5 * (XH2I + XH2II);
   double n_oth = 0.25 * (XHeI + XHeII + XHeIII) + XHI + XHII + XHM + Xe;
+
+  if(n_H2 < GRACKLE_TINY)
+    n_H2 = GRACKLE_TINY; 
 
   if(n_oth < GRACKLE_TINY)
     n_oth = GRACKLE_TINY; 
@@ -135,14 +138,15 @@ double grackle_gamma(int i)
 
   if(n_H2 / n_oth > 1e-3)
     {
-      /* Pass 1: temperature from the ideal-gas index 
+      /* 
+       * Pass 1: temperature from the ideal-gas index 
        * 1/(n_H2 + n_oth) is the mean molecular weight grackle uses at this stage; 
-       * unlike grackle_mu() it carries no metal term */
+       */
       mu = 1.0 / (n_H2 + n_oth);
       gamma = GAMMA;
   
       temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
-                  * mu * PROTONMASS * (gamma - 1.0) / BOLTZMANN;
+           * mu * PROTONMASS * (gamma - 1.0) / BOLTZMANN;
 
       double gamma1 = 1.0 + (n_H2 + n_oth) / (n_H2 * grackle_gammaH2_inverse(temp) + n_oth * gamma_inverse);
 
@@ -151,7 +155,7 @@ double grackle_gamma(int i)
       gamma = gamma1;
   
       temp = (SphP[i].Utherm * All.UnitVelocity_in_cm_per_s*All.UnitVelocity_in_cm_per_s) 
-                  * mu * PROTONMASS * (gamma - 1.0) / BOLTZMANN;
+           * mu * PROTONMASS * (gamma - 1.0) / BOLTZMANN;
 
       gammaH2_inverse = grackle_gammaH2_inverse(temp);
     }
