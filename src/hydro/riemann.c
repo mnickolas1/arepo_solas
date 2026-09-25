@@ -749,11 +749,12 @@ double guess_for_pressure(struct state *st_L, struct state *st_R)
         {
           if(pv < pmin) /* use two-rarefaction solution */
             {
-              double pnu = (st_L->csnd + st_R->csnd) - GAMMA_G7(st_R) * st_R->velx + GAMMA_G7(st_L) * st_L->velx;
-              double pde = st_L->csnd / pow(st_L->press, GAMMA_G1(st_L)) + st_R->csnd / pow(st_R->press, GAMMA_G1(st_R));
+              double z   = 0.5 * (GAMMA_G1(st_L) + GAMMA_G1(st_R));
 
-              double gamma_avg = 0.5 * (st_L->gamma + st_R->gamma);
-              return pow(pnu / pde, (2.0 * gamma_avg / (gamma_avg - 1.0)));
+              double pnu = GAMMA_G4(st_L) * st_L->csnd + GAMMA_G4(st_R) * st_R->csnd - (st_R->velx - st_L->velx); 
+              double pde = GAMMA_G4(st_L) * st_L->csnd / pow(st_L->press, z) + GAMMA_G4(st_R) * st_R->csnd / pow(st_R->press, z);
+
+              return pow(pnu / pde, 1.0 / z);
             }
           else /* two-shock approximation  */
             {
