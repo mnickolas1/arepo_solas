@@ -20,6 +20,10 @@
 /* Maximum tolerated |sum_f w[k]| / wtot */
 #define FB_WEIGHT_RESIDUAL 1.0e-8
 
+/* Maximum star offset from the host generator used for the face weights, as a
+ * fraction of the way to the nearest face plane (0 = STAR_IN_CELL) */
+#define FB_MAX_SOURCE_OFFSET 0.5
+
 /* Percent thermal energy in the energy conserving phase (Sedov-Taylor) of an SN */
 #define SN_F_THERMAL 0.72 
 
@@ -470,6 +474,69 @@ static int compute_face_weights(int i, const double xsrc[3],
   return mode;
 }
 
+#ifndef STAR_IN_CELL
+/*
+ * Source position for the face weights of a star at xstar in host cell i
+ *
+ * s = max_f 2 n_f.(xstar - x_host) / |n_f|^2 , n_f = x_f - x_host
+ *
+ * is 0 at the host generator and 1 on the cell boundary (> 1 outside it)
+ * As s -> 1 the faces through the star are seen edge-on and get no solid
+ * angle, starving the cells next to the star. Stars with s > FB_MAX_SOURCE_OFFSET
+ * are pulled towards the generator onto s = FB_MAX_SOURCE_OFFSET
+ * Returns s of the unshifted star
+ */
+static double feedback_source_position(int i, const double xstar[3], double xsrc[3])
+{
+  double dx[3], smax = 0.0;
+  int k;
+
+  for(k = 0; k < 3; k++)
+    dx[k] = xstar[k] - P[i].Pos[k];
+
+  int q = SphP[i].first_connection;
+  while(q >= 0)
+    {
+      if(q >= MaxNvc)
+        terminate("Strange connectivity q=%d Nvc=%d", q, MaxNvc);
+
+      int dp = DC[q].dp_index;
+
+      /* Skip removed cells */
+      if(Mesh.DP[dp].index >= 0)
+        {
+          double n[3], nn2;
+
+          n[0] = Mesh.DP[dp].x - P[i].Pos[0];
+          n[1] = Mesh.DP[dp].y - P[i].Pos[1];
+          n[2] = Mesh.DP[dp].z - P[i].Pos[2];
+
+          nn2 = n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
+
+          if(nn2 > 0.0)
+            {
+              double s = 2.0 * (n[0]*dx[0] + n[1]*dx[1] + n[2]*dx[2]) / nn2;
+
+              if(s > smax)
+                smax = s;
+            }
+        }
+
+      if(q == SphP[i].last_connection)
+        break;
+
+      q = DC[q].next;
+    }
+
+  double scale = (smax > FB_MAX_SOURCE_OFFSET) ? FB_MAX_SOURCE_OFFSET / smax : 1.0;
+
+  for(k = 0; k < 3; k++)
+    xsrc[k] = P[i].Pos[k] + scale * dx[k];
+
+  return smax;
+}
+#endif
+
 /* star_feedback() -> main entry point */
 void star_feedback(void)
 {
@@ -486,6 +553,9 @@ void star_feedback(void)
 
 #ifdef FB_STATISTICS
   int lo_FeedbackHostGeom = 0; 
+#endif
+#if defined(FB_STATISTICS) && !defined(STAR_IN_CELL)
+  int lo_FeedbackOutsideHost = 0;
 #endif
 
   /* Act on host cells */
@@ -568,13 +638,25 @@ void star_feedback(void)
           
 #else
           double xtmp, ytmp, ztmp;
-          double xstar[3];
+          double xstar[3], xsrc[3];
 
           xstar[0] = P[i].Pos[0] - NEAREST_X(P[i].Pos[0] - MechanicalFeedback->StarPosition[0]);
           xstar[1] = P[i].Pos[1] - NEAREST_Y(P[i].Pos[1] - MechanicalFeedback->StarPosition[1]);
           xstar[2] = P[i].Pos[2] - NEAREST_Z(P[i].Pos[2] - MechanicalFeedback->StarPosition[2]);
 
-          geometry_mode = compute_face_weights(i, xstar, dc_list, &n_faces, weights, &wtot);
+          /* Keep the source clear of the host faces */
+#ifdef FB_STATISTICS
+          if(feedback_source_position(i, xstar, xsrc) > 1.0)
+            lo_FeedbackOutsideHost++;
+#else
+          feedback_source_position(i, xstar, xsrc);
+#endif
+
+          geometry_mode = compute_face_weights(i, xsrc, dc_list, &n_faces, weights, &wtot);
+
+          /* Retry from the host generator before falling back to the host */
+          if(geometry_mode != MESH)
+            geometry_mode = compute_face_weights(i, P[i].Pos, dc_list, &n_faces, weights, &wtot);
 #endif
 
           /* Degenerate geometry fallback */
@@ -987,6 +1069,12 @@ void star_feedback(void)
   All.FeedbackHostGeom += gl_FeedbackHostGeom;
   
   mpi_printf("STAR_FEEDBACK: Degenerate geometry cases: %d \n", All.FeedbackHostGeom);
+#endif
+#if defined(FB_STATISTICS) && !defined(STAR_IN_CELL)
+  int gl_FeedbackOutsideHost;
+  MPI_Allreduce(&lo_FeedbackOutsideHost, &gl_FeedbackOutsideHost, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  mpi_printf("STAR_FEEDBACK: Stars outside their host cell: %d \n", gl_FeedbackOutsideHost);
 #endif
  
   /* Cleanup in reverse allocation order */
