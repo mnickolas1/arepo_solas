@@ -601,7 +601,7 @@ int riemann(struct state *st_L, struct state *st_R, double *Press, double *Vel)
 
   double critVel = GAMMA_G4(st_L) * st_L->csnd + GAMMA_G4(st_R) * st_R->csnd - dVel;
 
-  if(critVel < 0)
+  if(critVel <= 0)
     {
       /*
          printf("ICs lead to vacuum. stopping. Csnd_L=%g Csnd_R=%g dVel=%g\n", Csnd_L, Csnd_R, dVel);
