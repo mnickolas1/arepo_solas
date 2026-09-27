@@ -354,7 +354,7 @@ void compute_interface_fluxes(tessellation *T)
 #endif /* #ifdef RIEMANN_HLLD #else */
 #endif /* #ifdef RIEMANN_HLLC #else */
 
-      if(press < 0)
+      if(!(press >= 0))
         terminate("press < 0: ID_L: %d, ID_R: %d", VF[i].p1, VF[i].p2);
 
 #ifdef GODUNOV_STATS
