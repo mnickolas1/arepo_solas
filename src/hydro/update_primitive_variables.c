@@ -138,10 +138,10 @@ void set_pressure_of_cell_internal(struct particle_data *localP, struct sph_part
   if(get_starformation_rate(i) == 0)
 #endif 
     {
-      double cell_radius = get_cell_radius(i);
+      double dx = 2.0 * get_cell_radius(i);
 
-      double pressure_floor = All.Njeans * All.Njeans * cell_radius * cell_radius * All.G * localSphP[i].Density * localSphP[i].Density
-                            / localSphP[i].Gamma / M_PI ; 
+      double pressure_floor = All.Njeans * All.Njeans * dx * dx * All.G * localSphP[i].Density * localSphP[i].Density
+                            / localSphP[i].Gamma / M_PI; 
 
       localSphP[i].Pressure = dmax(localSphP[i].Pressure, pressure_floor);
     }
