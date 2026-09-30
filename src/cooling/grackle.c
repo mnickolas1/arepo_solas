@@ -273,55 +273,37 @@ void InitGrackle(void)
 #endif
 
 #ifdef METALS
-  /* Flag to enable metal cooling using the Cloudy tables. If enabled, the cooling table to be used must be specified with the
-   * grackle_data_file parameter. Default: 0. */
   my_grackle_data->metal_cooling = 1;
-
-  /* Flag to enable H2 formation on dust grains, dust cooling, and dust-gas heat transfer follow Omukai (2000). This assumes that the
-   * dust to gas ratio scales with the metallicity. Default: 0. */
+#if GRACKLE_CHEMISTRY >= 2
   my_grackle_data->h2_on_dust = 1;
+#else
+  my_grackle_data->h2_on_dust = 0
+#endif
   my_grackle_data->use_dust_density_field = 1;
 #else
   my_grackle_data->metal_cooling = 0;
-  
   my_grackle_data->h2_on_dust = 0;
   my_grackle_data->use_dust_density_field = 0;
 #endif
 
-  my_grackle_data->SolarMetalFractionByMass = SOLAR_METALLICITY;
-  //my_grackle_data->local_dust_to_gas_ratio = DUST_TO_GAS_RATIO;
-
-  /* Flag to control which three-body H2 formation rate is used.
-   *    0: Abel, Bryan & Norman (2002),
-   *    1: Palla, Salpeter & Stahler (1983),
-   *    2: Cohen & Westberg (1983),
-   *    3: Flower & Harris (2007),
-   *    4: Glover (2008).
-   *    These are discussed in Turk et. al. (2011). Default: 0.
-   */
-  my_grackle_data->three_body_rate = 0;
-
-  /* Flag to enable an effective CMB temperature floor.
-   * This is implemented by subtracting the value of the cooling rate at TCMB from the total METAL cooling rate. Default: 1.
-   * Beware! You could still have Tgas<TCBM because it imposes a temperature floor only for the metal cooling.
-   */
-  my_grackle_data->cmb_temperature_floor = 1;
-
-  /* Flag to enable a UV background.
-   * If enabled, the cooling table to be used must be specified with the grackle_data_file parameter. Default: 0.
-   */
+#ifdef UV_BACKGROUND
+  /* Flags to include a UVB */
   my_grackle_data->UVbackground = 1;
-  
-  /* The following flags are related to the UVB, but they are automatically set to the right values, so do not need to use. These
-   * numbers are the correct ones for FG2011 UVB. 
-   * my_grackle_data->UVbackground_redshift_on       = 10.6;
-   * my_grackle_data->UVbackground_redshift_off      = 0;
-   * my_grackle_data->UVbackground_redshift_fullon   = 10.6;
-   * my_grackle_data->UVbackground_redshift_drop     = 0;
-   */
-
-  /* Flag for self-shielding from UV bkgd. Default: 0. */
-  my_grackle_data->self_shielding_method = 3;
+#if GRACKLE_CHEMISTRY >= 1
+  my_grackle_data->self_shielding_method = 2;
+#else
+  my_grackle_data->self_shielding_method = 0;
+#endif
+#if GRACKLE_CHEMISTRY >= 2
+  my_grackle_data->H2_self_shielding = 3;
+#else
+  my_grackle_data->H2_self_shielding = 0;
+#endif
+#else
+  my_grackle_data->UVbackground = 0;
+  my_grackle_data->self_shielding_method = 0;
+  my_grackle_data->H2_self_shielding = 0;
+#endif
 
 #ifdef STAR_RADIATION_ACTIVE
   /* Flags to include RT */
@@ -334,13 +316,11 @@ void InitGrackle(void)
   my_grackle_data->CaseBRecombination = 0;
 #endif
 
-  /* For both UV bkgd and RT; options for length scale:
-   *     1: Sobolev-like (from WG11)
-   *     2: array of lengths
-   *     3: local Jeans length
-   * Default: 0.
-   */
-  my_grackle_data->H2_self_shielding = 3;
+  my_grackle_data->SolarMetalFractionByMass = SOLAR_METALLICITY;
+
+  my_grackle_data->three_body_rate = 0;
+  
+  my_grackle_data->cmb_temperature_floor = 1;
 
   /* Finally, initialize the chemistry object. This has to be the last step of the initialisation. */
   if(initialize_chemistry_data(&All.GrackleUnits) == 0)
