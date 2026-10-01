@@ -147,10 +147,13 @@ void update_opac(void)
       SphP[i].H2ShieldAlpha = h2shield_alpha(temp, number_dens);
       SphP[i].H2ShieldB5 = h2shield_b5(temp);
 
-      double n_Ionizing[4] = {SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
-                              SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g),
-                              SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g), 
-                              SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)};
+      double n_Ionizing[4] = 
+      {
+        SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
+        SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g),
+        SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g), 
+        SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)
+      };
 
       for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].OpacityScaling[CH_HI + s] = fmax(0.0, n_Ionizing[s] / Units);
