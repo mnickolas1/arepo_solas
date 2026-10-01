@@ -264,7 +264,7 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
   /* Accumulate H2 column and the band fraction its lines have absorbed */
   ray->N_H2 += dH2[0];
-  ray->A_H2 = fmin(1.0, ray->H2[1] + dH2[1]);
+  ray->A_H2 = fmin(1.0, ray->A_H2 + dH2[1]);
 
 #ifdef IR_MOMENTUM_BOOST
   /* Reradiation in the IR (boosts momentum) */
