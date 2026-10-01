@@ -1789,6 +1789,8 @@ extern struct sph_particle_data
 #ifdef STAR_RADIATION_ACTIVE
   MyDouble RTCost; 
   MyDouble OpacityScaling[CHANNELS];
+  MyFloat H2ShieldAlpha; /* WG19 exponent alpha(T, n) */
+  MyFloat H2ShieldB5; /* H2 thermal Doppler b / (km/s) */
 #endif
 
 #ifdef PHOTOELECTRIC_HEATING

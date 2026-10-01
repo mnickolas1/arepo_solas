@@ -30,10 +30,11 @@
    minimum number of rays required to sample each cell */
 #define RAY_CELL_CROSS_SECTION(r) (M_PI * (r) * (r))
 
-static inline double cell_dtau(int i, double length, double N_H2_ray,
-                               uint8_t active_bands, ChannelsDtau dtau[WAVEBANDS])
+static inline void cell_dtau(int i, double length, double H2_ray[2],
+                             uint8_t active_bands, ChannelsDtau dtau[WAVEBANDS], double dH2[2])
 {
-  const double dN_H2 = SphP[i].OpacityScaling[CH_H2] * length;
+  dH2[0] = SphP[i].OpacityScaling[CH_H2] * length;
+  dH2[1] = 0.0;
 
   /* Find all live channels (for all live bands) */
   uint8_t live_channels = 0;
@@ -48,8 +49,11 @@ static inline double cell_dtau(int i, double length, double N_H2_ray,
     dust_length = SphP[i].OpacityScaling[CH_DUST] * length;
 
   double dtau_line = 0.0;
-  if(live_channels & (1u << CH_H2))
-    dtau_line = h2shield_dtau(N_H2_ray, dN_H2);
+  if((live_channels & (1u << CH_H2)) && dH2[0] > 0.0)
+    {
+      dH2[1] = h2shield_dA(H2_ray[0], dH2[0], SphP[i].H2ShieldAlpha, SphP[i].H2ShieldB5);
+      dtau_line = h2shield_dtau(H2_ray[1], dH2[1]);
+    }
 
   double ionizing_length[3] = {0.0, 0.0, 0.0};  
   for(int s = 0; s < 3; s++)
@@ -248,14 +252,17 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
     }
 
   ChannelsDtau dtau[WAVEBANDS];
-  double dN_H2 = cell_dtau(i, length, ray->N_H2, ray->active_bands, dtau);
+  double dH2[2]; /* {dN_H2, dA_H2} */
+
+  cell_dtau(i, length, ray->H2, ray->active_bands, dtau, dH2);
 
   /* Process ray */
   Absorption a;
   int still_alive = ray_absorb(ray, dtau, &a);
 
-  /* Accumulate H2 column */
-  ray->N_H2 += dN_H2;
+  /* Accumulate H2 column and the band fraction its lines have absorbed */
+  ray->H2[0] += dH2[0];
+  ray->H2[1] = fmin(1.0, ray->H2[1] + dH2[1]);
 
 #ifdef IR_MOMENTUM_BOOST
   /* Reradiation in the IR (boosts momentum) */

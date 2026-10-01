@@ -63,10 +63,6 @@ void star_init(void)
         SP[i].WithFeedback = 1;
     }
 #endif
-
-#ifdef STAR_RADIATION_ACTIVE
-  init_h2shield();
-#endif
 }
 
 #ifdef METALS

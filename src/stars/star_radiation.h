@@ -32,16 +32,24 @@
 #define NRays (12 * NSIDE_MIN * NSIDE_MIN)
 
 /* Dissociation of H2 */
-#define SIGMA_DISS 2.47e-18 /* cm^2, dissociation-weighted eff. cross-section (DB96, Baczynski+15) */
+#define SIGMA_DISS 2.47e-18 /* cm^2, band-averaged: zeta_0 = SIGMA_DISS * F_LW (DB96, Baczynski+15) */
 
-#define F_DISS 0.15 /* dissociation branching per absorption */
+#define F_DISS 0.15 /* dissociation probability per LW pump (DB96) */
 
-#define H2_SHIELD_B5 3.0 /* Doppler b / (km/s); fixed */
+/* H2 self-shielding: Wolcott-Green & Haiman (2019) 
+   f = 0.965 / (1 + x/b5)^alpha(T,n) + 0.035 / sqrt(1 + x) * exp(-8.5e-4 * sqrt(1 + x)),  x = N_H2 / 5e14
+   alpha = 2 and fixed b5 recover DB96 */
+#define H2_SHIELD_N0 5.0e14 /* cm^-2 */
+#define H2_SHIELD_A 8.5e-4
 
-/* Shielding log table parameters */
-#define H2TAB_N 1024
-#define H2TAB_LOGNMIN 11.0 /* log10 N_H2 [cm^-2]: f_sh = 1 below */
-#define H2TAB_LOGNMAX 24.0 /* f_sh negligible above */
+/* Fit range of alpha(T, n); NMIN only guards log10(0) */
+#define H2_SHIELD_TMIN 1.0e2 /* K */
+#define H2_SHIELD_TMAX 8.0e3 /* K */
+#define H2_SHIELD_NMIN 1.0e-6 /* cm^-3 */
+#define H2_SHIELD_NMAX 1.0e7 /* cm^-3 */
+
+/* Line optical depth once H2 has absorbed the whole LW band */
+#define RAD_TAU_SAT 50.0
 
 /*
  * INFRARED: inf A - 12398.4 A (0 eV - 1 eV)
@@ -178,8 +186,11 @@ typedef struct RayPacket
   WavebandData Radiated_Init[WAVEBANDS];
 #endif
 
-  /* Accumulated H2 column since source */
-  double N_H2; /* cgs! */
+  /* Accumulated H2 column since source */ /* cgs! */
+  double N_H2; 
+
+  /* Fraction of the LW band absorbed in H2 lines since source (0-1) */
+  double A_H2;
 
 #ifdef RT_STATISTICS
   /* Cells crossed since the source */

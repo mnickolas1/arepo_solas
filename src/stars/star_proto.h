@@ -89,9 +89,9 @@ void update_opac(void);
 double dtau_IR(int i, double length);
 #endif
 
-/* H2 self-shielding table */
-void init_h2shield(void);
-double h2shield_dtau(double N_H2, double dN_H2);
+/* H2 self-shielding (WG19) */
+double h2shield_dA(double N_H2, double dN_H2, double alpha, double b5);
+double h2shield_dtau(double A_H2, double dA);
 
 /* Ray bookkeeping */
 void append_ray(RayWorkStack *w, const RayPacket *ray);

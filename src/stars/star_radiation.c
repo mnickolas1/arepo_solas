@@ -96,6 +96,13 @@ void update_opac(void)
 
       SphP[i].OpacityScaling[CH_H2] = fmax(0.0, n_H2 / Units);
 
+      /* Shielding parameters for the local gas */
+      double temp = evaluate_temp(i);
+      double number_dens = evaluate_numberdens(i);
+
+      SphP[i].H2ShieldAlpha = h2shield_alpha(temp, number_dens);
+      SphP[i].H2ShieldB5 = h2shield_b5(temp);
+
       double n_Ionizing[3] = {SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
                               SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g), 
                               SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)};
@@ -116,75 +123,65 @@ double dtau_IR(int i, double length)
 }
 #endif
 
-static double H2Tab_A[H2TAB_N]; /* A at table nodes */
-static double H2Tab_dlogN; /* log10 spacing */
-static double H2Tab_A_thinmin; /* A(NMIN) = SigmaH2 * NMIN */
-
-/* Wolcott-Green et al. (2011) self-shielding function */
-static inline double f_selfshield_H2(double N_H2)
+/* WG19 self-shielding exponent, inside the fit range */
+static inline double h2shield_alpha(double temp, double n)
 {
-  double x = N_H2 / 5.0e14;
-  double sq = sqrt(1.0 + x);
-  return 0.965 / pow(1.0 + x / H2_SHIELD_B5, 1.1)
-       + 0.035 / sq * exp(-8.5e-4 * sq);
+  const double lT = log10(fmin(fmax(temp, H2_SHIELD_TMIN), H2_SHIELD_TMAX));
+  const double ln = log10(fmin(fmax(n, H2_SHIELD_NMIN), H2_SHIELD_NMAX));
+
+  const double alpha = (0.8711 * lT - 1.928) * exp(-0.2856 * ln) + (-0.9639 * lT + 3.892);
+
+  return fmax(alpha, 0.0);
 }
 
-/* Build A(N) once at startup */
-void init_h2shield(void)
+/* H2 thermal Doppler parameter in km/s, b = sqrt(2 k T / m_H2); T floored to keep b > 0 */
+static inline double h2shield_b5(double temp)
 {
-  H2Tab_dlogN = (H2TAB_LOGNMAX - H2TAB_LOGNMIN) / (H2TAB_N - 1);
-  H2Tab_A_thinmin = SigmaH2 * pow(10.0, H2TAB_LOGNMIN);
-
-  /* Thin part below NMIN: f_sh=1 */
-  double A = H2Tab_A_thinmin;
-  H2Tab_A[0] = A;
-
-  for(int i = 1; i < H2TAB_N; i++)
-    {
-      double N0 = pow(10.0, H2TAB_LOGNMIN + (i - 1) * H2Tab_dlogN);
-      double N1 = pow(10.0, H2TAB_LOGNMIN + i * H2Tab_dlogN);
-
-      const int nsub = 16;
-      double dN = (N1 - N0) / nsub;
-      for(int k = 0; k < nsub; k++)
-        {
-          double Na = N0 + k * dN;
-          A += 0.5 * (f_selfshield_H2(Na) + f_selfshield_H2(Na + dN)) * dN * SigmaH2;
-        }
-
-      H2Tab_A[i] = A;
-    }
+  return 1.0e-5 * sqrt(BOLTZMANN * fmax(temp, 1.0) / PROTONMASS);
 }
 
-/* A(N): thin analytic below NMIN, clamp above NMAX, linear-in-logN inside */
-static inline double h2shield_A(double N_H2)
+/* (exp(s*y) - 1) / s, continuous through s = 0 */
+static inline double expm1_over(double s, double y)
 {
-  if(N_H2 <= 0.0)
+  const double sy = s * y;
+  return fabs(sy) < 1.0e-12 ? y : expm1(sy) / s;
+}
+
+/* Fraction of the LW band absorbed in H2 lines between N_H2 and N_H2 + dN_H2,
+   dA = SigmaH2 * int f_sh(N'; alpha, b5) dN', in closed form
+   Written in differences so dN << N does not cancel */
+double h2shield_dA(double N_H2, double dN_H2, double alpha, double b5)
+{
+  if(dN_H2 <= 0.0)
     return 0.0;
 
-  double logN = log10(N_H2);
+  const double x1 = N_H2 / H2_SHIELD_N0;
+  const double dx = dN_H2 / H2_SHIELD_N0;
 
-  /* f_sh = 1 exactly */
-  if(logN <= H2TAB_LOGNMIN)
-    return SigmaH2 * N_H2;
+  /* 0.965 / (1 + x/b5)^alpha */
+  const double s = 1.0 - alpha;
+  const double t1 = 0.965 * b5 * exp(s * log1p(x1 / b5)) * expm1_over(s, log1p(dx / (b5 + x1)));
 
-  /* Lines exhausted */
-  if(logN >= H2TAB_LOGNMAX)
-    return H2Tab_A[H2TAB_N - 1];
+  /* 0.035 / sqrt(1 + x) * exp(-a sqrt(1 + x)) */
+  const double u1 = sqrt(1.0 + x1);
+  const double u2 = sqrt(1.0 + x1 + dx);
+  const double t2 = -(0.07 / H2_SHIELD_A) * exp(-H2_SHIELD_A * u1) * expm1(-H2_SHIELD_A * dx / (u1 + u2));
 
-  double u = (logN - H2TAB_LOGNMIN) / H2Tab_dlogN;
-  int j = (int)u;
-  double f = u - j;
-
-  return H2Tab_A[j] * (1.0 - f) + H2Tab_A[j + 1] * f;
+  return SigmaH2 * H2_SHIELD_N0 * (t1 + t2);
 }
 
-/* Exact per-cell line optical depth for a cell adding dN_H2 to a ray
-   that has already accumulated N_H2 */
-double h2shield_dtau(double N_H2, double dN_H2)
+/* Effective optical depth of a cell for H2 lines: exp(-dtau) = (1 - A_H2 - dA) / (1 - A_H2) */
+double h2shield_dtau(double A_H2, double dA)
 {
-  double dtau = h2shield_A(N_H2 + dN_H2) - h2shield_A(N_H2);
-  return dtau > 0.0 ? dtau : 0.0;
+  const double T = 1.0 - A_H2;
+
+  if(dA <= 0.0)
+    return 0.0;
+
+  if(dA >= T)
+    return RAD_TAU_SAT;
+
+  return fmin(-log1p(-dA / T), RAD_TAU_SAT);
 }
 
 /* Helpers for rotation */
@@ -382,6 +379,7 @@ static void init_rays(RayWorkStack *work)
 #endif
 
             ray.N_H2 = 0.0;
+            ray.A_H2 = 0.0;
 
             if(ray.active_bands == 0)
               continue; 
@@ -477,6 +475,7 @@ static void init_rays(RayWorkStack *work)
 #endif
 
             ray.N_H2 = 0.0;
+            ray.A_H2 = 0.0;
 
             if(ray.active_bands == 0)
               continue; 
