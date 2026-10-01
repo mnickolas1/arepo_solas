@@ -22,6 +22,7 @@ const char *WavebandNames[WAVEBANDS] =
   [ULTRAVIOLET] = "UV",
   [LYMAN_WERNER] = "LW", 
   [IONIZING_HI] = "HI",
+  [IONIZING_H2] = "H2",
   [IONIZING_HeI] = "HeI", 
   [IONIZING_HeII] = "HeII",
 };

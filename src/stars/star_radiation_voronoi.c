@@ -91,9 +91,9 @@ static inline void cell_dtau(int i, double length, double H2_ray[2],
         {
           if(ch & (1u << (CH_HI + s)))
             {
-              dtau[w].E[CH_HI + s] = Sigma_E[IONIZING_HI][s] * ionizing_length[s];
+              dtau[w].E[CH_HI + s] = Sigma_E[w][s] * ionizing_length[s];
               if(track_N)
-                dtau[w].N[CH_HI + s] = Sigma_N[IONIZING_HI][s] * ionizing_length[s];
+                dtau[w].N[CH_HI + s] = Sigma_N[w][s] * ionizing_length[s];
             }
         }
     }

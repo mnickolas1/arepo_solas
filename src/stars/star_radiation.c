@@ -14,9 +14,9 @@ double Kappa_E[WAVEBANDS] = {
   [OPTICAL] = 278.3,
   [ULTRAVIOLET] = 417.7,
   [LYMAN_WERNER] = 736.6, 
-  [IONIZING_HI] =  898.8,
-  [IONIZING_H2] =  925.8,
-  [IONIZING_HeI] = 469.2,
+  [IONIZING_HI] = 899.5,
+  [IONIZING_H2] = 903.5,
+  [IONIZING_HeI] = 460.0,
   [IONIZING_HeII] = 256.4,
 };
 
@@ -25,9 +25,9 @@ double Kappa_N[WAVEBANDS] = {
   [OPTICAL] = 242.3,
   [ULTRAVIOLET] = 406.9,
   [LYMAN_WERNER] = 731.4, 
-  [IONIZING_HI] = 899.5,
-  [IONIZING_H2] = 903.5,
-  [IONIZING_HeI] = 460.0,
+  [IONIZING_HI] = 898.8,
+  [IONIZING_H2] = 925.8,
+  [IONIZING_HeI] = 469.2,
   [IONIZING_HeII] = 257.4,
 };
 
@@ -74,17 +74,6 @@ double ReradiatedFraction[WAVEBANDS] = {
 
 double SigmaH2 = SIGMA_DISS / F_DISS;
 
-double Sigma_N[WAVEBANDS][N_ION_SPECIES] = {
-  [INFRARED] = {0.0, 0.0, 0.0, 0.0},
-  [OPTICAL] = {0.0, 0.0, 0.0, 0.0},
-  [ULTRAVIOLET] = {0.0, 0.0, 0.0, 0.0},
-  [LYMAN_WERNER] = {0.0, 0.0, 0.0, 0.0},
-  [IONIZING_HI] = {5.4042e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00},
-  [IONIZING_H2] = {2.8600e-18, 6.2862e-18, 0.0000e+00, 0.0000e+00},
-  [IONIZING_HeI] = {8.4911e-19, 3.1108e-18, 5.8894e-18, 0.0000e+00},
-  [IONIZING_HeII] = {1.0236e-19, 2.7276e-19, 1.4735e-18, 1.3425e-18},
-};
-
 double Sigma_E[WAVEBANDS][N_ION_SPECIES] = {
   [INFRARED] = {0.0, 0.0, 0.0, 0.0},
   [OPTICAL] = {0.0, 0.0, 0.0, 0.0},
@@ -94,6 +83,17 @@ double Sigma_E[WAVEBANDS][N_ION_SPECIES] = {
   [IONIZING_H2] = {2.7415e-18, 6.3725e-18, 0.0000e+00, 0.0000e+00},
   [IONIZING_HeI] = {8.1308e-19, 2.9751e-18, 5.7225e-18, 0.0000e+00},
   [IONIZING_HeII] = {1.0127e-19, 2.6967e-19, 1.4614e-18, 1.3294e-18},
+};
+
+double Sigma_N[WAVEBANDS][N_ION_SPECIES] = {
+  [INFRARED] = {0.0, 0.0, 0.0, 0.0},
+  [OPTICAL] = {0.0, 0.0, 0.0, 0.0},
+  [ULTRAVIOLET] = {0.0, 0.0, 0.0, 0.0},
+  [LYMAN_WERNER] = {0.0, 0.0, 0.0, 0.0},
+  [IONIZING_HI] = {5.4042e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00},
+  [IONIZING_H2] = {2.8600e-18, 6.2862e-18, 0.0000e+00, 0.0000e+00},
+  [IONIZING_HeI] = {8.4911e-19, 3.1108e-18, 5.8894e-18, 0.0000e+00},
+  [IONIZING_HeII] = {1.0236e-19, 2.7276e-19, 1.4735e-18, 1.3425e-18},
 };
 /* clang-format on */
 
