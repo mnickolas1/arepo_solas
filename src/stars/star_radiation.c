@@ -44,7 +44,7 @@ double AbsorbedFraction[WAVEBANDS] = {
 };
 
 /* Correction to kappa_eff-attenuated energy to express the true momentum transfer 
-   kappa_ext*(1 - a*<g>) is computed with <g> = min(0, <g>) to get the correct opacity
+   kappa_ext*(1 - a*<g>) is computed with <g> = max(0, <g>) to get the correct opacity
    so undestimates backward scattered momentum tranfer 
    Not needed for this dust model */
 double MomentumFraction[WAVEBANDS] = {
