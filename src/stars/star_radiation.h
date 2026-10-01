@@ -132,7 +132,8 @@ typedef struct
 extern double Kappa_E[WAVEBANDS];
 extern double Kappa_N[WAVEBANDS];
 
-extern double TrueAbsorbedFraction[WAVEBANDS];
+extern double AbsorbedFraction[WAVEBANDS];
+extern double MomentumFraction[WAVEBANDS];
 extern double ReradiatedFraction[WAVEBANDS];
 
 /* H2 lines */

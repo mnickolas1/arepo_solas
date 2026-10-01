@@ -31,10 +31,9 @@ double Kappa_N[WAVEBANDS] = {
 
 /* Fraction of kappa_eff-attenuated energy that is truly absorbed (heats grains):
    f_abs = kappa_abs/kappa_eff = (1-a)/(1-a<g>), D03 MW dust, band-averaged
-   Remainder is non-forward-scattered light: removed from the ray and it does
-   deliver momentum (kappa_eff is exactly the momentum-transfer opacity), but
-   it must NOT contribute to heating */
-double TrueAbsorbedFraction[WAVEBANDS] = {
+   Remainder is non-forward-scattered light, is removed from the ray and 
+   delivers momentum but does not contribute to heating */
+double AbsorbedFraction[WAVEBANDS] = {
   [INFRARED] = 0.54,
   [OPTICAL] = 0.62,
   [ULTRAVIOLET] = 0.81,
@@ -42,6 +41,20 @@ double TrueAbsorbedFraction[WAVEBANDS] = {
   [IONIZING_HI] = 0.92,
   [IONIZING_HeI] = 0.94,
   [IONIZING_HeII] = 0.97,
+};
+
+/* Correction to kappa_eff-attenuated energy to express the true momentum transfer 
+   kappa_ext*(1 - a*<g>) is computed with <g> = min(0, <g>) to get the correct opacity
+   so undestimates backward scattered momentum tranfer 
+   Not needed for this dust model */
+double MomentumFraction[WAVEBANDS] = {
+  [INFRARED] = 1.00,
+  [OPTICAL] = 1.00,
+  [ULTRAVIOLET] = 1.00,
+  [LYMAN_WERNER] = 1.00,
+  [IONIZING_HI] = 1.00,
+  [IONIZING_HeI] = 1.00,
+  [IONIZING_HeII] = 1.00,
 };
 
 /* f_rerad = f_abs*(1-eps_pe); eps_pe = 0.05 for the two UV bands only */
@@ -655,7 +668,6 @@ static void radiation_feedback(void)
       const double dt_cgs = dt * All.cf_UnitTime_in_s;
 
 #ifdef PHOTOELECTRIC_HEATING
-      /* TrueAbsorbedFraction already applied in ray_deposit */
       const double epsilon_pe = 0.05;
       const double E_pe = SphP[i].AbsorbedPE * epsilon_pe * All.cf_UnitEnergy_in_cgs;
 

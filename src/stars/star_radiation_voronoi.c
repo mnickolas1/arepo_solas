@@ -299,9 +299,9 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
       /* Only the dust channel reradiates in the IR */
       const double f_dust = a.Ch[w][CH_DUST].Energy / E_w;
 
-      double dp = E_w * (1.0 + f_dust * Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
+      double dp = E_w * (MomentumFraction[w] + f_dust * Dtau_IR * ReradiatedFraction[w]) / c_code / All.cf_atime;
 #else
-      double dp = E_w / c_code / All.cf_atime;
+      double dp = E_w * MomentumFraction[w] / c_code / All.cf_atime;
 #endif
 
       double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
@@ -339,9 +339,9 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 #ifdef PHOTOELECTRIC_HEATING
   double E_pe = 0.0;
   if(a.mask & (1u << ULTRAVIOLET))
-    E_pe += a.Ch[ULTRAVIOLET][CH_DUST].Energy * TrueAbsorbedFraction[ULTRAVIOLET];
+    E_pe += a.Ch[ULTRAVIOLET][CH_DUST].Energy * AbsorbedFraction[ULTRAVIOLET];
   if(a.mask & (1u << LYMAN_WERNER))
-    E_pe += a.Ch[LYMAN_WERNER][CH_DUST].Energy * TrueAbsorbedFraction[LYMAN_WERNER];
+    E_pe += a.Ch[LYMAN_WERNER][CH_DUST].Energy * AbsorbedFraction[LYMAN_WERNER];
   SphP[i].AbsorbedPE += E_pe;
 #endif
 
