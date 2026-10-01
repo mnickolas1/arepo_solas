@@ -88,15 +88,15 @@ static inline void cell_dtau(int i, double length, double H2_ray[2],
         }
 
       for(int s = 0; s < 3; s++)
-        if(ch & (1u << (CH_HI + s)))
-          {
-            dtau[w].E[CH_HI + s] = Sigma_E[w - IONIZING_HI][s] * ionizing_length[s];
-            if(track_N)
-              dtau[w].N[CH_HI + s] = Sigma_N[w - IONIZING_HI][s] * ionizing_length[s];
-          }
+        {
+          if(ch & (1u << (CH_HI + s)))
+            {
+              dtau[w].E[CH_HI + s] = Sigma_E[w - IONIZING_HI][s] * ionizing_length[s];
+              if(track_N)
+                dtau[w].N[CH_HI + s] = Sigma_N[w - IONIZING_HI][s] * ionizing_length[s];
+            }
+        }
     }
-
-  return dN_H2;
 }
 
 /* 1 - exp(-tau). Three-term series below RAD_TAU_THIN */
@@ -252,17 +252,19 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
     }
 
   ChannelsDtau dtau[WAVEBANDS];
-  double dH2[2]; /* {dN_H2, dA_H2} */
+  
+  double H2[2] = {ray->N_H2, ray->A_H2};          
+  double dH2[2]; 
 
-  cell_dtau(i, length, ray->H2, ray->active_bands, dtau, dH2);
+  cell_dtau(i, length, H2, ray->active_bands, dtau, dH2);
 
   /* Process ray */
   Absorption a;
   int still_alive = ray_absorb(ray, dtau, &a);
 
   /* Accumulate H2 column and the band fraction its lines have absorbed */
-  ray->H2[0] += dH2[0];
-  ray->H2[1] = fmin(1.0, ray->H2[1] + dH2[1]);
+  ray->N_H2 += dH2[0];
+  ray->A_H2 = fmin(1.0, ray->H2[1] + dH2[1]);
 
 #ifdef IR_MOMENTUM_BOOST
   /* Reradiation in the IR (boosts momentum) */

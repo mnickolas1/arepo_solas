@@ -70,6 +70,23 @@ double Sigma_N[3][3] = {
 };
 /* clang-format on */
 
+/* WG19 self-shielding exponent, inside the fit range */
+static inline double h2shield_alpha(double temp, double n)
+{
+  const double lT = log10(fmin(fmax(temp, H2_SHIELD_TMIN), H2_SHIELD_TMAX));
+  const double ln = log10(fmin(fmax(n, H2_SHIELD_NMIN), H2_SHIELD_NMAX));
+
+  const double alpha = (0.8711 * lT - 1.928) * exp(-0.2856 * ln) + (-0.9639 * lT + 3.892);
+
+  return fmax(alpha, 0.0);
+}
+
+/* H2 thermal Doppler parameter in km/s, b = sqrt(2 k T / m_H2); T floored to keep b > 0 */
+static inline double h2shield_b5(double temp)
+{
+  return 1.0e-5 * sqrt(BOLTZMANN * fmax(temp, 1.0) / PROTONMASS);
+}
+
 void update_opac(void)
 {
   for(int i = 0; i < NumGas; i++)
@@ -123,28 +140,11 @@ double dtau_IR(int i, double length)
 }
 #endif
 
-/* WG19 self-shielding exponent, inside the fit range */
-static inline double h2shield_alpha(double temp, double n)
-{
-  const double lT = log10(fmin(fmax(temp, H2_SHIELD_TMIN), H2_SHIELD_TMAX));
-  const double ln = log10(fmin(fmax(n, H2_SHIELD_NMIN), H2_SHIELD_NMAX));
-
-  const double alpha = (0.8711 * lT - 1.928) * exp(-0.2856 * ln) + (-0.9639 * lT + 3.892);
-
-  return fmax(alpha, 0.0);
-}
-
-/* H2 thermal Doppler parameter in km/s, b = sqrt(2 k T / m_H2); T floored to keep b > 0 */
-static inline double h2shield_b5(double temp)
-{
-  return 1.0e-5 * sqrt(BOLTZMANN * fmax(temp, 1.0) / PROTONMASS);
-}
-
 /* (exp(s*y) - 1) / s, continuous through s = 0 */
 static inline double expm1_over(double s, double y)
 {
   const double sy = s * y;
-  return fabs(sy) < 1.0e-12 ? y : expm1(sy) / s;
+  return fabs(sy) == 0 ? y : expm1(sy) / s;
 }
 
 /* Fraction of the LW band absorbed in H2 lines between N_H2 and N_H2 + dN_H2,
