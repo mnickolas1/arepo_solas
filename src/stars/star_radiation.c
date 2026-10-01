@@ -14,8 +14,9 @@ double Kappa_E[WAVEBANDS] = {
   [OPTICAL] = 278.3,
   [ULTRAVIOLET] = 417.7,
   [LYMAN_WERNER] = 736.6, 
-  [IONIZING_HI] = 902.4,
-  [IONIZING_HeI] = 460.0,
+  [IONIZING_HI] =  898.8,
+  [IONIZING_H2] =  925.8,
+  [IONIZING_HeI] = 469.2,
   [IONIZING_HeII] = 256.4,
 };
 
@@ -24,8 +25,9 @@ double Kappa_N[WAVEBANDS] = {
   [OPTICAL] = 242.3,
   [ULTRAVIOLET] = 406.9,
   [LYMAN_WERNER] = 731.4, 
-  [IONIZING_HI] = 917.2,
-  [IONIZING_HeI] = 469.2,
+  [IONIZING_HI] = 899.5,
+  [IONIZING_H2] = 903.5,
+  [IONIZING_HeI] = 460.0,
   [IONIZING_HeII] = 257.4,
 };
 
@@ -38,7 +40,8 @@ double AbsorbedFraction[WAVEBANDS] = {
   [OPTICAL] = 0.62,
   [ULTRAVIOLET] = 0.81,
   [LYMAN_WERNER] = 0.88,
-  [IONIZING_HI] = 0.92,
+  [IONIZING_HI] = 0.91,
+  [IONIZING_H2] = 0.93,
   [IONIZING_HeI] = 0.94,
   [IONIZING_HeII] = 0.97,
 };
@@ -63,23 +66,34 @@ double ReradiatedFraction[WAVEBANDS] = {
   [OPTICAL] = 0.62,
   [ULTRAVIOLET] = 0.77,
   [LYMAN_WERNER] = 0.84,
-  [IONIZING_HI] = 0.92,
+  [IONIZING_HI] = 0.91,
+  [IONIZING_H2] = 0.93,
   [IONIZING_HeI] = 0.94,
   [IONIZING_HeII] = 0.97,
 };
 
 double SigmaH2 = SIGMA_DISS / F_DISS;
 
-double Sigma_E[3][3] = {
-  {3.4457e-18, 0.0000e+00, 0.0000e+00},
-  {8.1308e-19, 5.7225e-18, 0.0000e+00},
-  {1.0127e-19, 1.4614e-18, 1.3294e-18},
+double Sigma_N[WAVEBANDS][N_ION_SPECIES] = {
+  [INFRARED] = {0.0, 0.0, 0.0, 0.0},
+  [OPTICAL] = {0.0, 0.0, 0.0, 0.0},
+  [ULTRAVIOLET] = {0.0, 0.0, 0.0, 0.0},
+  [LYMAN_WERNER] = {0.0, 0.0, 0.0, 0.0},
+  [IONIZING_HI] = {5.4042e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00},
+  [IONIZING_H2] = {2.8600e-18, 6.2862e-18, 0.0000e+00, 0.0000e+00},
+  [IONIZING_HeI] = {8.4911e-19, 3.1108e-18, 5.8894e-18, 0.0000e+00},
+  [IONIZING_HeII] = {1.0236e-19, 2.7276e-19, 1.4735e-18, 1.3425e-18},
 };
 
-double Sigma_N[3][3] = {
-  {3.6742e-18, 0.0000e+00, 0.0000e+00},
-  {8.4911e-19, 5.8894e-18, 0.0000e+00},
-  {1.0236e-19, 1.4735e-18, 1.3425e-18},
+double Sigma_E[WAVEBANDS][N_ION_SPECIES] = {
+  [INFRARED] = {0.0, 0.0, 0.0, 0.0},
+  [OPTICAL] = {0.0, 0.0, 0.0, 0.0},
+  [ULTRAVIOLET] = {0.0, 0.0, 0.0, 0.0},
+  [LYMAN_WERNER] = {0.0, 0.0, 0.0, 0.0},
+  [IONIZING_HI] = {5.3851e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00},
+  [IONIZING_H2] = {2.7415e-18, 6.3725e-18, 0.0000e+00, 0.0000e+00},
+  [IONIZING_HeI] = {8.1308e-19, 2.9751e-18, 5.7225e-18, 0.0000e+00},
+  [IONIZING_HeII] = {1.0127e-19, 2.6967e-19, 1.4614e-18, 1.3294e-18},
 };
 /* clang-format on */
 
@@ -124,7 +138,7 @@ void update_opac(void)
 
       double n_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g);
 
-      SphP[i].OpacityScaling[CH_H2] = fmax(0.0, n_H2 / Units);
+      SphP[i].OpacityScaling[CH_LWH2] = fmax(0.0, n_H2 / Units);
 
       /* Shielding parameters for the local gas */
       double temp = evaluate_temp(i);
@@ -133,11 +147,12 @@ void update_opac(void)
       SphP[i].H2ShieldAlpha = h2shield_alpha(temp, number_dens);
       SphP[i].H2ShieldB5 = h2shield_b5(temp);
 
-      double n_Ionizing[3] = {SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
+      double n_Ionizing[4] = {SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
+                              SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g),
                               SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g), 
                               SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)};
 
-      for(int s = 0; s < 3; s++)
+      for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].OpacityScaling[CH_HI + s] = fmax(0.0, n_Ionizing[s] / Units);
     }
 }
@@ -646,10 +661,10 @@ void ray_neighbours_free(void)
 
 static void radiation_feedback(void)
 {
-  /* Indexed by ionizing species a = 0,1,2 (HI, HeI, HeII) */
-  static const double IonThreshold_eV[3] = {13.6, 24.6, 54.4};
-  static const int IonGrackle[3] = {GRACKLE_HI, GRACKLE_HeI, GRACKLE_HeII};
-  static const double IonAtomicMass[3] = {1.0, 4.0, 4.0};
+  /* Indexed by ionizing species a = 0,1,2,3 (HI, H2, HeI, HeII) */
+  static const double IonThreshold_eV[N_ION_SPECIES] = {13.6, 15.4, 24.6, 54.4};
+  static const int IonGrackle[N_ION_SPECIES] = {GRACKLE_HI, GRACKLE_H2I, GRACKLE_HeI, GRACKLE_HeII};
+  static const double IonAtomicMass[N_ION_SPECIES] = {1.0, 2.0, 4.0, 4.0};
 
   const double L3 = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;
 
@@ -684,7 +699,7 @@ static void radiation_feedback(void)
 #endif
 
 #ifdef PHOTOIONIZATION
-      for(int s = 0; s < 3; s++)
+      for(int s = 0; s < N_ION_SPECIES; s++)
         {
           const double n = SphP[i].GrackleSpeciesConserved(IonGrackle[s]) / V
                            / (IonAtomicMass[s] * PROTONMASS / All.cf_UnitMass_in_g);
@@ -702,7 +717,7 @@ static void radiation_feedback(void)
           if(E_exc > 0.0)
             SphP[i].IonHeatingRate[s] += E_exc / dt_cgs / V_cgs / n_cgs;
           else if(N_abs > 0.0)
-            warn("STAR_RADIATION: sub-threshold mean photon energy, species %d, cell %d "
+            warn("STAR_RADIATION: sub-threshold mean photon energy, species %d, cell %d " 
                  "(E_abs=%g N_abs=%g) \n", s, i, E_abs, N_abs);
 
           SphP[i].IonizationRate[s] += N_abs / (dt / All.cf_hubble_a) / V / n;
@@ -720,7 +735,7 @@ static void radiation_feedback(void)
 #endif
 
 #ifdef PHOTOIONIZATION
-      for(int s = 0; s < 3; s++)
+      for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
 #endif
     }
@@ -816,7 +831,7 @@ void star_radiation(void)
 #endif
 
 #ifdef PHOTOIONIZATION
-      for(int s = 0; s < 3; s++)
+      for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
 #endif
     }

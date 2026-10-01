@@ -540,8 +540,8 @@ endif
 endif
 
 ifneq (,$(filter RT_TIMESTEP,$(CONFIGVARS)))
-ifeq (,$(filter PHOTOIONIZATION,$(CONFIGVARS)))
-$(error RT_TIMESTEP requires PHOTOIONIZATION)
+ifeq (,$(filter DISSOCIATION PHOTOIONIZATION,$(CONFIGVARS)))
+$(error RT_TIMESTEP requires DISSOCIATION or PHOTOIONIZATION)
 endif
 endif
 

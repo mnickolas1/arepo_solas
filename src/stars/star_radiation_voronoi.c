@@ -33,7 +33,7 @@
 static inline void cell_dtau(int i, double length, double H2_ray[2],
                              uint8_t active_bands, ChannelsDtau dtau[WAVEBANDS], double dH2[2])
 {
-  dH2[0] = SphP[i].OpacityScaling[CH_H2] * length;
+  dH2[0] = SphP[i].OpacityScaling[CH_LWH2] * length;
   dH2[1] = 0.0;
 
   /* Find all live channels (for all live bands) */
@@ -49,14 +49,14 @@ static inline void cell_dtau(int i, double length, double H2_ray[2],
     dust_length = SphP[i].OpacityScaling[CH_DUST] * length;
 
   double dtau_line = 0.0;
-  if((live_channels & (1u << CH_H2)) && dH2[0] > 0.0)
+  if((live_channels & (1u << CH_LWH2)) && dH2[0] > 0.0)
     {
       dH2[1] = h2shield_dA(H2_ray[0], dH2[0], SphP[i].H2ShieldAlpha, SphP[i].H2ShieldB5);
       dtau_line = h2shield_dtau(H2_ray[1], dH2[1]);
     }
 
-  double ionizing_length[3] = {0.0, 0.0, 0.0};  
-  for(int s = 0; s < 3; s++)
+  double ionizing_length[4] = {0.0, 0.0, 0.0, 0.0};  
+  for(int s = 0; s < N_ION_SPECIES; s++)
     {
       if(live_channels & (1u << (CH_HI + s)))
         ionizing_length[s] = SphP[i].OpacityScaling[CH_HI + s] * length;
@@ -80,20 +80,20 @@ static inline void cell_dtau(int i, double length, double H2_ray[2],
             dtau[w].N[CH_DUST] = Kappa_N[w] * dust_length;
         }
 
-      if(ch & (1u << CH_H2))
+      if(ch & (1u << CH_LWH2))
         {
-          dtau[w].E[CH_H2] = dtau_line;
+          dtau[w].E[CH_LWH2] = dtau_line;
           if(track_N)
-            dtau[w].N[CH_H2] = dtau_line;
+            dtau[w].N[CH_LWH2] = dtau_line;
         }
 
-      for(int s = 0; s < 3; s++)
+      for(int s = 0; s < N_ION_SPECIES; s++)
         {
           if(ch & (1u << (CH_HI + s)))
             {
-              dtau[w].E[CH_HI + s] = Sigma_E[w - IONIZING_HI][s] * ionizing_length[s];
+              dtau[w].E[CH_HI + s] = Sigma_E[IONIZING_HI][s] * ionizing_length[s];
               if(track_N)
-                dtau[w].N[CH_HI + s] = Sigma_N[w - IONIZING_HI][s] * ionizing_length[s];
+                dtau[w].N[CH_HI + s] = Sigma_N[IONIZING_HI][s] * ionizing_length[s];
             }
         }
     }
@@ -347,11 +347,11 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
 #ifdef DISSOCIATION
   if(a.mask & (1u << LYMAN_WERNER))
-    SphP[i].AbsorbedH2Line += a.Ch[LYMAN_WERNER][CH_H2].Photons;
+    SphP[i].AbsorbedH2Line += a.Ch[LYMAN_WERNER][CH_LWH2].Photons;
 #endif
 
 #ifdef PHOTOIONIZATION
-  for(int s = 0; s < 3; s++)
+  for(int s = 0; s < N_ION_SPECIES; s++)
     {
       for(int w = IONIZING_HI; w <= IONIZING_HeII; w++)
         {

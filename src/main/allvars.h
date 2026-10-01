@@ -1804,9 +1804,9 @@ extern struct sph_particle_data
 #endif
 
 #ifdef PHOTOIONIZATION
-  WavebandData AbsorbedIonizing[3]; 
-  MyDouble IonHeatingRate[3];
-  MyDouble IonizationRate[3];
+  WavebandData AbsorbedIonizing[N_ION_SPECIES]; 
+  MyDouble IonHeatingRate[N_ION_SPECIES];
+  MyDouble IonizationRate[N_ION_SPECIES];
 #endif
 
 #ifdef RT_TIMESTEP

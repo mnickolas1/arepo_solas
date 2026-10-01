@@ -72,21 +72,35 @@ typedef enum
   OPTICAL,
   ULTRAVIOLET,
   LYMAN_WERNER,
-  IONIZING_HI,
-  IONIZING_HeI,
-  IONIZING_HeII,
+  IONIZING_HI, 
+  IONIZING_H2,        
+  IONIZING_HeI,      
+  IONIZING_HeII,     
   WAVEBANDS
 } Waveband;
 
 enum
 {
   CH_DUST = 0,
-  CH_H2,
+  CH_LWH2,
   CH_HI,
+  CH_H2,
   CH_HeI,
   CH_HeII,
   CHANNELS
 };
+
+enum 
+{ 
+  SP_HI, 
+  SP_H2, 
+  SP_HeI, 
+  SP_HeII, 
+  N_ION_SPECIES 
+};
+
+_Static_assert(WAVEBANDS <= 8, "band mask is uint8_t");
+_Static_assert(CHANNELS <= 8, "channel mask is uint8_t");
 
 /* Which channels can absorb in each band */
 static const uint8_t BandChannels[WAVEBANDS] =
@@ -94,20 +108,21 @@ static const uint8_t BandChannels[WAVEBANDS] =
   [INFRARED] = (1u << CH_DUST),
   [OPTICAL] = (1u << CH_DUST),
   [ULTRAVIOLET] = (1u << CH_DUST),
-  [LYMAN_WERNER] = (1u << CH_DUST) | (1u << CH_H2),
+  [LYMAN_WERNER] = (1u << CH_DUST) | (1u << CH_LWH2),
   [IONIZING_HI] = (1u << CH_DUST) | (1u << CH_HI),
-  [IONIZING_HeI] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_HeI),
-  [IONIZING_HeII] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_HeI) | (1u << CH_HeII),
+  [IONIZING_H2] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2),
+  [IONIZING_HeI] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2) | (1u << CH_HeI),
+  [IONIZING_HeII] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2) | (1u << CH_HeI) | (1u << CH_HeII),
 };
 
 /* Active bands - change at init_rays */
 #define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
 #define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
-#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
-#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
+#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_H2) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
+#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_H2) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
 
 /* Bands carrying photons */
-static const uint8_t BandTrackPhotons = (1u << LYMAN_WERNER) | (1u << IONIZING_HI) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII);
+static const uint8_t BandTrackPhotons = (1u << LYMAN_WERNER) | (1u << IONIZING_HI) | (1u << IONIZING_H2) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII);
 
 typedef struct WavebandData
 {
@@ -140,8 +155,8 @@ extern double ReradiatedFraction[WAVEBANDS];
 extern double SigmaH2;
 
 /* Ionizing */
-extern double Sigma_E[3][3];
-extern double Sigma_N[3][3];
+extern double Sigma_E[WAVEBANDS][N_ION_SPECIES];
+extern double Sigma_N[WAVEBANDS][N_ION_SPECIES];
 
 /*
  * RayPacket

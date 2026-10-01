@@ -534,7 +534,7 @@ double CallGrackle(int i, double dt, int mode)
   *All.GrackleFieldData.RT_HeI_ionization_rate = SphP[i].IonizationRate[1];
   *All.GrackleFieldData.RT_HeII_ionization_rate = SphP[i].IonizationRate[2];
 
-  for(int s = 0; s < 3; s++)
+  for(int s = 0; s < N_ION_SPECIES; s++)
     SphP[i].IonHeatingRate[s] = SphP[i].IonizationRate[s] = 0.0;
 
 #else
