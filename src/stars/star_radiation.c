@@ -55,6 +55,7 @@ double MomentumFraction[WAVEBANDS] = {
   [ULTRAVIOLET] = 1.00,
   [LYMAN_WERNER] = 1.00,
   [IONIZING_HI] = 1.00,
+  [IONIZING_H2] = 1.00,
   [IONIZING_HeI] = 1.00,
   [IONIZING_HeII] = 1.00,
 };
