@@ -745,65 +745,59 @@ static void radiation_feedback(void)
 #ifdef RT_TIMESTEP
 static void rt_timestep(void)
 {
-  int idx, i;
-  double eps_ion = All.RTIonizationTimestepFraction;
+  const double eps_ion = All.RTIonizationTimestepFraction;
 
-  for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+  for(int idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
-      i = TimeBinsHydro.ActiveParticleList[idx];
+      int i = TimeBinsHydro.ActiveParticleList[idx];
       if(i < 0)
         continue;
 
-      /* Hydrogen */
-      double m_HI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI);
+      /* Total hydrogen */
+      double m_H = SphP[i].GrackleSpeciesConserved(GRACKLE_HI)
+                 + SphP[i].GrackleSpeciesConserved(GRACKLE_HII)
+                 + SphP[i].GrackleSpeciesConserved(GRACKLE_H2I)
+                 + SphP[i].GrackleSpeciesConserved(GRACKLE_H2II)
+                 + SphP[i].GrackleSpeciesConserved(GRACKLE_HM);
 
-      double m_H = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) + SphP[i].GrackleSpeciesConserved(GRACKLE_HII);
+      /* Total helium */
+      double m_He = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) 
+                  + SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) 
+                  + SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII);
 
-#if GRACKLE_CHEMISTRY >= 2
-      m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) + SphP[i].GrackleSpeciesConserved(GRACKLE_H2II) +
-             SphP[i].GrackleSpeciesConserved(GRACKLE_HM);
-#endif
+      double rate = 0.0;
 
-      /* To be consistent with grackle we do not include deuterium */
-      /*#if GRACKLE_CHEMISTRY >= 3
-
-           m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_DI)
-                + SphP[i].GrackleSpeciesConserved(GRACKLE_DII)
-                + SphP[i].GrackleSpeciesConserved(GRACKLE_HDI);
-      #endif*/
-
-      double rate_H = 0.0;
       if(m_H > 0)
         {
-          double x_HI = m_HI / m_H;
-          rate_H = SphP[i].IonizationRate[0] * x_HI;
+#ifdef PHOTOIONIZATION
+          double x_HI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / m_H;
+          rate = fmax(rate, SphP[i].IonizationRate[SP_HI] * x_HI);
+#endif
+
+          double rate_H2 = 0.0;
+
+#ifdef DISSOCIATION
+          rate_H2 += SphP[i].H2_DissociationRate;
+#endif
+
+#ifdef PHOTOIONIZATION
+          rate_H2 += SphP[i].IonizationRate[SP_H2];
+#endif
+          double x_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / m_H;
+          rate = fmax(rate, rate_H2 * x_H2);
         }
-
-      /* Helium */
-      double m_HeI = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI);
-      double m_HeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII);
-      double m_HeIII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeIII);
-
-      double m_He = m_HeI + m_HeII + m_HeIII;
-
-      double rate_HeI = 0.0;
-      double rate_HeII = 0.0;
 
       if(m_He > 0)
         {
-          double x_HeI = m_HeI / m_He;
-          double x_HeII = m_HeII / m_He;
-
-          rate_HeI = SphP[i].IonizationRate[1] * x_HeI;
-          rate_HeII = SphP[i].IonizationRate[2] * x_HeII;
+#ifdef PHOTOIONIZATION
+          double x_HeI = SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / m_He;
+          double x_HeII = SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / m_He;
+ 
+          rate = fmax(rate, SphP[i].IonizationRate[SP_HeI] * x_HeI);
+          rate = fmax(rate, SphP[i].IonizationRate[SP_HeII] * x_HeII);
+#endif
         }
 
-      /* Find the most restrictive timestep */
-      double rate = rate_H;
-      if(rate_HeI > rate)
-        rate = rate_HeI;
-      if(rate_HeII > rate)
-        rate = rate_HeII;
 
       SphP[i].RT_Timestep = (rate > 0.0) ? eps_ion / rate : All.MaxSizeTimestep / All.cf_hubble_a;
     }
