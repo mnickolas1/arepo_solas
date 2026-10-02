@@ -38,7 +38,7 @@ Star_Feedback star_particle_feedback(int index, double dt, double z, double a);
 #endif
 #endif
 
-#if STAR_PARTICLES == 0
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 0
 void setup_imf_integrals(void);
 #endif
 

@@ -154,11 +154,11 @@ double sample_imf(double u)
   return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));
 }
 
-#if STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 
 double StarMassBins[NBINS + 1] =
 {
-  /* below LOWEST_MASS_FEEDBACK: a single bin */
+  /* Below LOWEST_MASS_FEEDBACK: a single bin */
   MMIN, 2.0,
 
   /* 2-8 Msun: no SNe (winds/radiation, AGB) */
@@ -223,7 +223,7 @@ void setup_mass_bins(void)
 }
 #endif
 
-#if STAR_PARTICLES == 0
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 0
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
