@@ -48,13 +48,16 @@ double AbsorbedFraction[WAVEBANDS] = {
 /* Correction to kappa_eff-attenuated energy to express the true momentum transfer 
    kappa_ext*(1 - a*<g>) is computed with <g> = max(0, <g>) to get the correct opacity
    so undestimates backward scattered momentum tranfer 
-   Not needed for this dust model */
+   Comes out 1.00 everywhere for this dust model, but EVERY band still needs an
+   entry: an omitted one is 0.00, not 1.00, and silently deletes that band's
+   radiation pressure in radiation_feedback() */
 double MomentumFraction[WAVEBANDS] = {
   [INFRARED] = 1.00,
   [OPTICAL] = 1.00,
   [ULTRAVIOLET] = 1.00,
   [LYMAN_WERNER] = 1.00,
   [IONIZING_HI] = 1.00,
+  [IONIZING_H2] = 1.00,
   [IONIZING_HeI] = 1.00,
   [IONIZING_HeII] = 1.00,
 };
