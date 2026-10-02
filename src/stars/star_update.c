@@ -5,7 +5,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-
 static int int_compare(const void *a, const void *b)
 {
   if(*((int *)a) < *((int *)b))
@@ -19,7 +18,7 @@ static int int_compare(const void *a, const void *b)
 
 double gaussian_weight(double r, double h)
 {
-  double sigma = h / 2.0; 
+  double sigma = h / 2.0;
   double x = r / sigma;
   return exp(-0.5 * x * x);
 }
@@ -32,21 +31,21 @@ double gaussian_weight(double r, double h)
   if(u < 0.5)
     {
       *dwk = u * (18.0 * u - 12.0);
-      
+
       *wk = (1.0 + 6.0 * (u - 1.0) * u * u);
     }
   else
     {
       double t1 = (1.0 - u);
       double t2 = t1 * t1;
-      
+
       *dwk = -6.0 * t2;
-      
+
       *wk = 2.0 * t2 * t1;
     }
 
   *dwk *= K_norm * hinv4;
-  
+
   *wk  *= K_norm * hinv3;
 }*/
 
@@ -90,15 +89,15 @@ void feedback_free(struct Mechanical_Feedback_Events *MFEvents)
 }
 
 integertime star_timestep(int i)
-{ 
+{
   /* Host hydro bin */
   double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
-  
+
   double dt;
-  
+
   if(dt_host != 0)
     dt = dt_host;
-  else 
+  else
     dt = TIMEBASE * All.Timebase_interval;
 
   /* Set a maximum star timestep at 0.01 Myr */
@@ -110,9 +109,9 @@ integertime star_timestep(int i)
   /* Park dead or low mass stars */
   if(SP[i].Active < 0)
     dt = TIMEBASE * All.Timebase_interval;
-    
+
   integertime ti_step = (integertime)(dt / All.Timebase_interval);
-  
+
   return ti_step;
 }
 
@@ -131,7 +130,7 @@ void star_update_timesteps(void)
           continue;
         }
 
-#if defined(SELFGRAVITY) ||  defined(EXTERNALGRAVITY) || defined(EXACT_GRAVITY_FOR_PARTICLE_TYPE)
+#if defined(SELFGRAVITY) || defined(EXTERNALGRAVITY) || defined(EXACT_GRAVITY_FOR_PARTICLE_TYPE)
       SP[i].TimeBinStar = PPS(i).TimeBinGrav;
 #else
       int bin;
@@ -139,7 +138,7 @@ void star_update_timesteps(void)
       SP[i].TimeBinStar = bin;
 #endif
     }
-    
+
   star_reconstruct_timebins();
   star_update_list_of_active_particles();
 }
@@ -155,10 +154,9 @@ void star_reconstruct_timebins(void)
       TimeBinsStar.FirstInTimeBin[bin] = -1;
       TimeBinsStar.LastInTimeBin[bin] = -1;
     }
-  
+
   for(i = 0; i < NumStars; i++)
     {
-      
       bin = SP[i].TimeBinStar;
       if(bin >= TIMEBINS)
         continue;
@@ -187,12 +185,12 @@ void star_update_list_of_active_particles(void)
 
   for(n = 0; n < TIMEBINS; n++)
     {
-      if(TimeBinSynchronized[n]) 
+      if(TimeBinSynchronized[n])
         {
           for(i = TimeBinsStar.FirstInTimeBin[n]; i >= 0; i = TimeBinsStar.NextInTimeBin[i])
             {
               TimeBinsStar.ActiveParticleList[TimeBinsStar.NActiveParticles] = i;
-              TimeBinsStar.NActiveParticles++;  
+              TimeBinsStar.NActiveParticles++;
             }
         }
     }
@@ -208,10 +206,10 @@ static inline void deactivate_star(int i)
   SP[i].TimeToSN = MAX_REAL_NUMBER;
   SP[i].NextSNEnergy = 0.0;
 #endif
-  
-  SP[i].Active = STAR_INACTIVE; 
-  SP[i].WithFeedback = 0; 
-  
+
+  SP[i].Active = STAR_INACTIVE;
+  SP[i].WithFeedback = 0;
+
   SP[i].Hsml = 0.0;
   SP[i].DensityFlag = -1;
   SP[i].NgbsMass = 0.0;
@@ -226,7 +224,7 @@ void star_prep(void)
   TIMER_START(CPU_STARS_PREP);
 
   int idx, i;
-  
+
   for(idx = 0; idx < TimeBinsStar.NActiveParticles; idx++)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
@@ -236,14 +234,14 @@ void star_prep(void)
         {
           SP[i].MassOfStar = PPS(i).Mass;
           SP[i].Active = STAR_ACTIVE;
-          
+
           SP[i].Age = 0.0;
           SP[i].Birthtime = All.Time;
         }
 
       /* Clean up */
       memset(&SP[i].MechanicalFeedback, 0, sizeof(Mechanical_Feedback));
-      
+
       /* Advance timestep and age */
       MyDouble star_timestep = (SP[i].TimeBinStar ? (((integertime)1) << SP[i].TimeBinStar) : 0) * All.Timebase_interval;
       SP[i].Age = get_time_difference_in_Gyr(SP[i].Birthtime, All.Time) * 1.0e9;
@@ -251,11 +249,11 @@ void star_prep(void)
       /* Convert properties to yr and msun */
       MyDouble star_mass_msun = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
       MyDouble star_timestep_yr = star_timestep * All.cf_UnitTime_in_yr;
-      MyDouble star_age_yr = SP[i].Age; 
+      MyDouble star_age_yr = SP[i].Age;
 
-#ifdef METALS 
+#ifdef METALS
       MyDouble star_metallicity = SP[i].Metallicity;
-#else 
+#else
       MyDouble star_metallicity = 0;
 #endif
 
@@ -264,7 +262,7 @@ void star_prep(void)
       /* Call the interpolation functions */
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
       StarFeedback = units_for_feedback(star_particle_feedback(i, star_timestep_yr, star_metallicity, star_age_yr));
-#elif STAR_PARTICLES == 2     
+#elif STAR_PARTICLES == 2
       StarFeedback = units_for_feedback(star_feedback_compute(star_timestep_yr, star_metallicity, star_mass_msun, star_age_yr));
 #endif
 
@@ -275,7 +273,7 @@ void star_prep(void)
           continue;
         }
 
-      /* Assign stellar feedback variables */  
+        /* Assign stellar feedback variables */
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
       SP[i].TimeToSN = StarFeedback.TimeToSN;
       SP[i].NextSNEnergy = StarFeedback.NextSNEnergy;
@@ -285,7 +283,7 @@ void star_prep(void)
         {
           SP[i].MechanicalFeedback.StarPosition[k] = PPS(i).Pos[k];
           SP[i].MechanicalFeedback.StarVelocity[k] = PPS(i).Vel[k];
-        } 
+        }
 
 #ifdef WINDS
       SP[i].MechanicalFeedback.MassLoss = StarFeedback.MassLoss;
@@ -299,7 +297,7 @@ void star_prep(void)
       SP[i].MechanicalFeedback.WindMomentum = StarFeedback.WindMomentum;
 #endif
 
-#ifdef STAR_RADIATION_ACTIVE      
+#ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
         {
           SP[i].MechanicalFeedback.Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
@@ -323,7 +321,7 @@ void star_prep(void)
       /* If with_feedback == 0 the star is skipped in the feedback functions */
       int with_feedback = 0;
 
-#ifdef WINDS 
+#ifdef WINDS
       if(SP[i].MechanicalFeedback.MassLoss > 0)
         with_feedback++;
 #endif
@@ -332,10 +330,10 @@ void star_prep(void)
       for(int w = 0; w < WAVEBANDS; w++)
         {
           if(SP[i].MechanicalFeedback.Radiated[w].Photons > 0 || SP[i].MechanicalFeedback.Radiated[w].Energy > 0)
-            { 
-              with_feedback++; 
+            {
+              with_feedback++;
             }
-        }  
+        }
 #endif
 
 #ifdef SUPERNOVAE
@@ -377,7 +375,7 @@ void star_perform_end_of_step_physics(void)
 #endif
     }
 
-  /* Dump star injected mass, momentum, and energy into gas */  
+  /* Dump star injected mass, momentum, and energy into gas */
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
       i = TimeBinsHydro.ActiveParticleList[idx];
@@ -385,16 +383,16 @@ void star_perform_end_of_step_physics(void)
         continue;
 
 #if defined(WINDS) || defined(SUPERNOVAE)
-      /* Add mass */ 
+      /* Add mass */
       P[i].Mass += SphP[i].StarMassFeed;
       All.StarFeedbackLocal[3] += SphP[i].StarMassFeed;
-      
+
       SphP[i].StarMassFeed = 0;
 #if GRACKLE_CHEMISTRY >= 1
       for(int s = 0; s < GRACKLE_SPECIES_NUMBER; s++)
-        {    
+        {
           SphP[i].GrackleSpeciesConserved(GRACKLE_SPECIES_INDEX + s) += SphP[i].StarChemFeed[s];
-          
+
           sync_primitive_from_conserved(i, GRACKLE_SPECIES_INDEX + s);
 
           SphP[i].StarChemFeed[s] = 0;
@@ -404,22 +402,22 @@ void star_perform_end_of_step_physics(void)
       /* Add metals */
       SphP[i].GasMetals += SphP[i].StarMetalsFeed;
       All.StarFeedbackLocal[4] += SphP[i].StarMetalsFeed;
-      
+
       sync_primitive_from_conserved(i, METALS_INDEX);
 
       SphP[i].StarMetalsFeed = 0;
 #endif
 #endif
-            
-#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE) 
-      /* Update momentum */ 
+
+#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
+      /* Update momentum */
       SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0];
       SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1];
       SphP[i].Momentum[2] += SphP[i].StarMomentumFeed[2];
-      
-      /* Update velocities */ 
+
+      /* Update velocities */
       update_primitive_variables_single(P, SphP, i, &pvd);
-      
+
       /* Set feed flags to zero */
       SphP[i].StarMomentumFeed[0] = SphP[i].StarMomentumFeed[1] = SphP[i].StarMomentumFeed[2] = 0;
 #endif
@@ -427,24 +425,24 @@ void star_perform_end_of_step_physics(void)
       /* Update total energy */
       SphP[i].Energy += SphP[i].StarEnergyFeed;
       All.StarFeedbackLocal[5] += SphP[i].StarEnergyFeed;
-      
-      /* Update internal energy */ 
+
+      /* Update internal energy */
       update_internal_energy(P, SphP, i, &pvd);
       /* Update pressure */
       set_pressure_of_cell_internal(P, SphP, i);
 
       /* Set feed flags to zero */
       SphP[i].StarEnergyFeed = 0;
-    } // for(idx...
+    }  // for(idx...
 
-    MPI_Allreduce(All.StarFeedbackLocal, All.StarFeedbackGlobal, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(All.StarFeedbackLocal, All.StarFeedbackGlobal, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-    mpi_printf("STARS: Number of stars = %lld, active stars = %lld, feedback events = %lld \n", 
-    All.TotNumStars, TimeBinsStar.GlobalNActiveParticles, MechanicalFeedbackEvents.TotEvents);
-    mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n",
-    All.StarFeedbackGlobal[0], All.StarFeedbackGlobal[3]);
-    mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n",
-    All.StarFeedbackGlobal[1], All.StarFeedbackGlobal[4]);
-    mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n",
-    All.StarFeedbackGlobal[2], All.StarFeedbackGlobal[5]);
-} 
+  mpi_printf("STARS: Number of stars = %lld, active stars = %lld, feedback events = %lld \n", All.TotNumStars,
+             TimeBinsStar.GlobalNActiveParticles, MechanicalFeedbackEvents.TotEvents);
+  mpi_printf("STARS: Mass given by StarParts = %e, Mass taken up by gas particles = %e \n", All.StarFeedbackGlobal[0],
+             All.StarFeedbackGlobal[3]);
+  mpi_printf("STARS: Metals given by StarParts = %e, Metals taken up by gas particles = %e \n", All.StarFeedbackGlobal[1],
+             All.StarFeedbackGlobal[4]);
+  mpi_printf("STARS: Energy given by StarParts = %e, Energy taken up by gas particles = %e \n", All.StarFeedbackGlobal[2],
+             All.StarFeedbackGlobal[5]);
+}

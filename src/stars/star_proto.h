@@ -1,7 +1,6 @@
 #ifndef STAR_PROTO_H
 #define STAR_PROTO_H
 
-
 /* Star functions */
 
 /* Memory allocation */
@@ -19,12 +18,12 @@ void init_star_metallicity(void);
 /* IMF */
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
 
-double imf_kroupa(double m); 
-double imf_chabrier(double m); 
+double imf_kroupa(double m);
+double imf_chabrier(double m);
 double imf_salpeter(double m);
 
-double imf(double m); 
-double m_times_imf(double m); 
+double imf(double m);
+double m_times_imf(double m);
 
 void build_imf_cdf(void);
 double sample_imf(double u);
@@ -39,7 +38,7 @@ Star_Feedback star_particle_feedback(int index, double dt, double z, double a);
 #endif
 #endif
 
-#if STAR_PARTICLES == 0 
+#if STAR_PARTICLES == 0
 void setup_imf_integrals(void);
 #endif
 

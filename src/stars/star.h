@@ -15,13 +15,12 @@
 #include "../stars/star_tables.h"
 #endif
 
-
 #define ALLOC_STAR_ROOM 64
 extern int NumStars;
 
 #ifdef STAR_FEEDBACK_ACTIVE
 /* Lowest stellar mass (in Msolar) which contributes to feedback */
-#define LOWEST_MASS_FEEDBACK 2 
+#define LOWEST_MASS_FEEDBACK 2
 /* Lowest stellar mass (in Msolar) which explodes as an SN */
 #define LOWEST_MASS_SN 8
 
@@ -31,7 +30,7 @@ extern int NumStars;
 
 #define STAR_UNBORN 0
 #define STAR_ACTIVE 1
-#define STAR_INACTIVE (-1)  
+#define STAR_INACTIVE (-1)
 
 #define SN_ENERGY 1.0e51
 
@@ -78,10 +77,10 @@ typedef struct Star_Feedback
   MyDouble NextSNEnergy;
 #endif
 
-  /* 
+  /*
     STAR_MS: Main sequence, STAR_SN: Supernova (if any), STAR_POST_SN: After main sequence/Supernova
-  */  
-  int Stage; 
+  */
+  int Stage;
 
   /* 1: Active, -1: Inactive */
   int State;
@@ -120,7 +119,7 @@ typedef struct Mechanical_Feedback
   MyDouble StarPosition[3];
   MyDouble StarVelocity[3];
 
-#ifdef WINDS 
+#ifdef WINDS
   MyDouble MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
   MyDouble HLoss;
@@ -152,7 +151,7 @@ typedef struct Mechanical_Feedback
 typedef struct Mechanical_Feedback_Data
 {
   MyIDType StarParticleID; /* star particle ID*/
-  
+
   int StarIndex; /* local star index */
   int StarTask; /* task that owns the star */
   int HostIndex; /* local gas-cell index */
@@ -200,24 +199,24 @@ typedef struct Star_Particle_Data
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  /* 
+  /*
     Permanent flag
     STAR_UNBORN: before activation, STAR_ACTIVE: post activation, STAR_INACTIVE: inactive
-  */  
-  int Active; 
+  */
+  int Active;
   /* Per timestep-> 0: no feedback, 1: feedback (of any type) */
-  int WithFeedback; 
-  
+  int WithFeedback;
+
   MyDouble Hsml;
   int DensityFlag;
   MyDouble NgbsMass;
   MyDouble NgbsVolume;
   int HostHydroBin;
   signed char TimeBinStar;
-  
+
   MyDouble Age;
   MyDouble Birthtime;
-  
+
   Mechanical_Feedback MechanicalFeedback;
 #endif
 } Star_Particle_Data;

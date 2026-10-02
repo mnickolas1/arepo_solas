@@ -6,7 +6,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-
 /*
  * Synchronous back end
  */
@@ -35,7 +34,10 @@ static long long MsgsSent = 0, RaysSent = 0;
 #endif
 
 /* No-op: the synchronous path only communicates between rounds */
-void ray_comms_progress(RayComms *comm) { (void)comm; }
+void ray_comms_progress(RayComms *comm)
+{
+  (void)comm;
+}
 
 RayComms *ray_comms_init(RayWorkStack *work)
 {
@@ -202,14 +204,13 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
 
   for(int k = 0; k < nn; k++)
     if(RecvCount[k] > 0)
-      MPI_Irecv(work->rays + work->n + RecvOffset[k], RecvCount[k], MPI_RAYPACKET,
-                RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
+      MPI_Irecv(work->rays + work->n + RecvOffset[k], RecvCount[k], MPI_RAYPACKET, RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
+                &Req[nreq++]);
 
   for(int k = 0; k < nn; k++)
     if(SendCount[k] > 0)
       {
-        MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET,
-                  RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
+        MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET, RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
 
 #ifdef RT_COMM_STATISTICS
         MsgsSent++;
@@ -271,8 +272,8 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
       iter++;
 
       if(n_global > 0)
-        mpi_printf("STAR_RADIATION: Rad iteration %3d: need to repeat for %12lld rays. (took %g sec)\n",
-                   iter, n_global, timediff(t0, second()));
+        mpi_printf("STAR_RADIATION: Rad iteration %3d: need to repeat for %12lld rays. (took %g sec)\n", iter, n_global,
+                   timediff(t0, second()));
 
       if(iter > 4 * MAXITER)
         terminate("ray_comms_walk(): %lld rays still in flight after %d iterations!\n", n_global, iter);
@@ -297,13 +298,13 @@ void ray_comms_free(RayComms *comm)
     double worst_rank;
     MPI_Reduce(&TraceLocalTotal, &worst_rank, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-    mpi_printf("STAR_RADIATION: sync done | %d rounds | comm max/rank: counts %g s, payload %g s, term %g s "
-               "| %lld msgs, %lld rays (%.1f/msg)\n",
-               NRounds, mx[0], mx[1], mx[2], smsg[0], smsg[1],
-               smsg[0] ? (double)smsg[1] / smsg[0] : 0.0);
+    mpi_printf(
+        "STAR_RADIATION: sync done | %d rounds | comm max/rank: counts %g s, payload %g s, term %g s "
+        "| %lld msgs, %lld rays (%.1f/msg)\n",
+        NRounds, mx[0], mx[1], mx[2], smsg[0], smsg[1], smsg[0] ? (double)smsg[1] / smsg[0] : 0.0);
 
-    mpi_printf("STAR_RADIATION: imbalance | Smax = %g s, maxS = %g s, S_max = %.2f\n",
-               TraceMaxSum, worst_rank, worst_rank > 0.0 ? TraceMaxSum / worst_rank : 1.0);
+    mpi_printf("STAR_RADIATION: imbalance | Smax = %g s, maxS = %g s, S_max = %.2f\n", TraceMaxSum, worst_rank,
+               worst_rank > 0.0 ? TraceMaxSum / worst_rank : 1.0);
   }
 #endif
 

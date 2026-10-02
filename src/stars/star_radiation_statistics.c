@@ -3,28 +3,16 @@
 
 #include <stdarg.h>
 
-
 RTStatistics RTStatisticsLocal;
 
-const char *RayEndNames[RAY_END_CAUSES] =
-{
-  [RAY_END_TRUNCATE] = "truncate",
-  [RAY_END_ESCAPE] = "escape",
-  [RAY_END_RELOCATE] = "relocate",
-  [RAY_END_STEPCAP] = "stepcap",
-  [RAY_END_TMAX] = "tmax",
+const char *RayEndNames[RAY_END_CAUSES] = {
+    [RAY_END_TRUNCATE] = "truncate", [RAY_END_ESCAPE] = "escape", [RAY_END_RELOCATE] = "relocate",
+    [RAY_END_STEPCAP] = "stepcap",   [RAY_END_TMAX] = "tmax",
 };
 
-const char *WavebandNames[WAVEBANDS] =
-{
-  [INFRARED] = "IR", 
-  [OPTICAL] = "OP", 
-  [ULTRAVIOLET] = "UV",
-  [LYMAN_WERNER] = "LW", 
-  [IONIZING_HI] = "HI",
-  [IONIZING_H2] = "H2",
-  [IONIZING_HeI] = "HeI", 
-  [IONIZING_HeII] = "HeII",
+const char *WavebandNames[WAVEBANDS] = {
+    [INFRARED] = "IR",    [OPTICAL] = "OP",     [ULTRAVIOLET] = "UV",   [LYMAN_WERNER] = "LW",
+    [IONIZING_HI] = "HI", [IONIZING_H2] = "H2", [IONIZING_HeI] = "HeI", [IONIZING_HeII] = "HeII",
 };
 
 /* Photon columns are only meaningful for BandTrackPhotons */
@@ -172,10 +160,9 @@ void rt_statistics_report(void)
   lost_tot += dr_tot;
 
   mpi_printf("\nSTAR_RADIATION: ===== ray statistics =====\n");
-  mpi_printf("STAR_RADIATION: %lld rays born, %lld splits, %lld crossings, %lld deposits skipped\n",
-             scal[0], scal[1], scal[2], scal[3]);
-  mpi_printf("STAR_RADIATION: emitted %.6e (code), deposited %.4f, discarded %.4f\n",
-             em_tot, (em_tot > 0.0) ? ab_tot / em_tot : 0.0,
+  mpi_printf("STAR_RADIATION: %lld rays born, %lld splits, %lld crossings, %lld deposits skipped\n", scal[0], scal[1], scal[2],
+             scal[3]);
+  mpi_printf("STAR_RADIATION: emitted %.6e (code), deposited %.4f, discarded %.4f\n", em_tot, (em_tot > 0.0) ? ab_tot / em_tot : 0.0,
              (em_tot > 0.0) ? lost_tot / em_tot : 0.0);
 
   /* Per-band energy table, each row normalised by that band's own emission */
@@ -229,8 +216,7 @@ void rt_statistics_report(void)
 
       p = line;
       end = line + STATISTICS_LINE_MAX;
-      p = statistics_cat(p, end, "  %-5s %11.4e %8.5f %8.5f", WavebandNames[w], em,
-                    b->absorbed_N[w] / em, b->dropped_N[w] / em);
+      p = statistics_cat(p, end, "  %-5s %11.4e %8.5f %8.5f", WavebandNames[w], em, b->absorbed_N[w] / em, b->dropped_N[w] / em);
 
       for(int c = 0; c < RAY_END_CAUSES; c++)
         {
@@ -261,10 +247,8 @@ void rt_statistics_report(void)
       if(b->n_end[c] == 0)
         continue;
 
-      mpi_printf("  end %-8s %10lld rays, mean %7.1f cells, mean t %10.4e, %7.4f of emitted E\n",
-                 RayEndNames[c], b->n_end[c],
-                 b->end_cells[c] / (double)b->n_end[c],
-                 b->end_t[c] / (double)b->n_end[c],
+      mpi_printf("  end %-8s %10lld rays, mean %7.1f cells, mean t %10.4e, %7.4f of emitted E\n", RayEndNames[c], b->n_end[c],
+                 b->end_cells[c] / (double)b->n_end[c], b->end_t[c] / (double)b->n_end[c],
                  (em_tot > 0.0) ? aban_tot[c] / em_tot : 0.0);
     }
 }

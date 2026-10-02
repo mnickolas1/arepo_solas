@@ -1,7 +1,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-
 int NumStars;
 
 #ifdef STAR_FEEDBACK_ACTIVE
@@ -29,7 +28,7 @@ void star_init(void)
       setup_imf_integrals();
 #endif
     }
-  
+
   MPI_Bcast(cdf_masses, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Bcast(cdf_values, N_CDF_BINS + 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
@@ -51,7 +50,7 @@ void star_init(void)
 #endif
 #endif
 
-#ifdef STAR_FEEDBACK_ACTIVE  
+#ifdef STAR_FEEDBACK_ACTIVE
   mpi_printf("Loading star evolution tables\n");
   load_star_tables(All.StarTablesFile);
 
@@ -76,6 +75,6 @@ void init_star_metallicity(void)
 
       for(int i = 0; i < NumStars; i++)
         SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
-    } 
+    }
 }
 #endif

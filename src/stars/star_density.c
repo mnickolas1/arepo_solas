@@ -1,13 +1,12 @@
-#include <stdlib.h>       
+#include <stdlib.h>
 #include <math.h>
-#include <gsl/gsl_math.h>              
-#include <mpi.h>            
-  
+#include <gsl/gsl_math.h>
+#include <mpi.h>
+
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
 #include "../domain/domain.h"
-
 
 /* Pass counter: 1 = find host cell, 2 = gather feedback properties */
 static int pass;
@@ -34,14 +33,20 @@ static int feedback_compare(const void *a, const void *b)
   const Mechanical_Feedback_Data *da = a;
   const Mechanical_Feedback_Data *db = b;
 
-  if(da->HostIndex < db->HostIndex) return -1;
-  if(da->HostIndex > db->HostIndex) return 1;
+  if(da->HostIndex < db->HostIndex)
+    return -1;
+  if(da->HostIndex > db->HostIndex)
+    return 1;
 
-  if(da->StarTask < db->StarTask) return -1;
-  if(da->StarTask > db->StarTask) return 1;
+  if(da->StarTask < db->StarTask)
+    return -1;
+  if(da->StarTask > db->StarTask)
+    return 1;
 
-  if(da->StarIndex < db->StarIndex) return -1;
-  if(da->StarIndex > db->StarIndex) return 1;
+  if(da->StarIndex < db->StarIndex)
+    return -1;
+  if(da->StarIndex > db->StarIndex)
+    return 1;
 
   return 0;
 }
@@ -51,14 +56,14 @@ static int *StarHostIndex;
 static int *StarHostTask;
 static MyFloat *StarHostDistance;
 
-struct Data 
+struct Data
 {
   MyIDType StarParticleID;
 
-  int StarIndex; 
-  int StarTask; 
-  int HostIndex; 
-  int HostTask; 
+  int StarIndex;
+  int StarTask;
+  int HostIndex;
+  int HostTask;
 };
 
 /*! \brief Local data structure for collecting particle/cell data that is sent
@@ -68,13 +73,13 @@ struct Data
 typedef struct
 {
   MyDouble Pos[3];
-  
+
   struct Data Data;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   MyDouble TimeToSN;
   MyDouble NextSNEnergy;
-#endif  
+#endif
 
   Mechanical_Feedback MechanicalFeedback;
 
@@ -97,7 +102,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPS(i).Pos[j];
-  
+
   if(pass == 1)
     {
       in->Data.StarParticleID = (MyIDType)-1;
@@ -120,20 +125,20 @@ static void particle2in(data_in *in, int i, int firstnode)
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   in->TimeToSN = SP[i].TimeToSN;
   in->NextSNEnergy = SP[i].NextSNEnergy;
-#endif  
+#endif
 
   in->MechanicalFeedback = SP[i].MechanicalFeedback;
 
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
-}  
+}
 
 /*! \brief Local data structure that holds results acquired on remote
  *         processors. Type called data_out and static pointers DataResult and
  *         DataOut needed by generic_comm_helpers2.
  */
 typedef struct
-{ 
+{
   /* Pass 1 outputs */
   int Ngbs;
   int HostIndex;
@@ -160,7 +165,7 @@ static data_out *DataResult, *DataOut;
 static void out2particle(data_out *out, int i, int mode)
 {
   /* Initial store */
-  if(mode == MODE_LOCAL_PARTICLES) 
+  if(mode == MODE_LOCAL_PARTICLES)
     {
       /* Pass 1 outputs */
       if(pass == 1)
@@ -178,7 +183,7 @@ static void out2particle(data_out *out, int i, int mode)
         }
     }
   /* Combine */
-  else 
+  else
     {
       /* Pass 1 outputs */
       if(pass == 1)
@@ -200,7 +205,6 @@ static void out2particle(data_out *out, int i, int mode)
         }
     }
 }
-
 
 #include "../utils/generic_comm_helpers2.h"
 
@@ -233,7 +237,7 @@ static void kernel_local(void)
 
       if(SP[i].WithFeedback == 0)
         continue;
-      
+
       if(star_density_isactive(i))
         star_density_evaluate(i, MODE_LOCAL_PARTICLES, threadid);
     }
@@ -278,7 +282,7 @@ static void kernel_imported(void)
 void star_density(void)
 {
   TIMER_START(CPU_STARS_DENSITY);
-  
+
   int idx, i, npleft, iter = 0;
   long long ntot;
   double t0, t1;
@@ -303,22 +307,22 @@ void star_density(void)
         continue;
 
       SP[i].DensityFlag = 1;
-      
+
       if(SP[i].Hsml <= 0)
-        SP[i].Hsml = All.SofteningTable[PPS(i).SofteningType]; 
+        SP[i].Hsml = All.SofteningTable[PPS(i).SofteningType];
     }
-  
+
   /* Zero all hosts first */
   for(i = 0; i < NumGas; i++)
     SphP[i].Host = 0;
 
   generic_set_MaxNexport();
-  
+
   /* Pass 1 - Expand Hsml until we enclose at least one gas cell, then record the closest cell as the host */
 
   pass++;
 
-  do 
+  do
     {
       t0 = second();
 
@@ -334,14 +338,14 @@ void star_density(void)
           if(StarNgbs[i] < 1)
             {
               npleft++;
-              
+
               SP[i].Hsml *= 2;
             }
           else
             /* Mark as inactive */
-            SP[i].DensityFlag = -1; 
+            SP[i].DensityFlag = -1;
         }
-     
+
       sumup_large_ints(1, &npleft, &ntot);
 
       t1 = second();
@@ -376,18 +380,18 @@ void star_density(void)
   generic_comm_pattern(TimeBinsStar.NActiveParticles, kernel_local, kernel_imported);
 
   /* Sort the hosts list */
-  mysort(MechanicalFeedbackEvents.MechanicalFeedbackData, MechanicalFeedbackEvents.NumEvents, 
-  sizeof(Mechanical_Feedback_Data), feedback_compare);
+  mysort(MechanicalFeedbackEvents.MechanicalFeedbackData, MechanicalFeedbackEvents.NumEvents, sizeof(Mechanical_Feedback_Data),
+         feedback_compare);
 
   /* Find the total number of events */
   sumup_large_ints(1, &MechanicalFeedbackEvents.NumEvents, &MechanicalFeedbackEvents.TotEvents);
 
   /* Free arrays */
-  myfree(StarHostDistance); 
-  myfree(StarHostTask); 
-  myfree(StarHostIndex); 
+  myfree(StarHostDistance);
+  myfree(StarHostTask);
+  myfree(StarHostIndex);
   myfree(StarNgbs);
-  
+
   /* Collect timing information */
   TIMER_STOP(CPU_STARS_DENSITY);
 }
@@ -407,13 +411,13 @@ void star_density(void)
 static int star_density_evaluate1(int target, int mode, int threadid)
 {
   int i, n, numnodes, *firstnode;
-  MyDouble xtmp, ytmp, ztmp;  
+  MyDouble xtmp, ytmp, ztmp;
   MyDouble h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos;
 
   int ngbs = 0, host_index = -1, host_task = -1;
   MyFloat host_distance = MAX_REAL_NUMBER;
-  
+
   data_in local, *target_data;
   data_out out = {0};
 
@@ -422,7 +426,7 @@ static int star_density_evaluate1(int target, int mode, int threadid)
       particle2in(&local, target, 0);
       target_data = &local;
 
-      numnodes  = 1;
+      numnodes = 1;
       firstnode = NULL;
     }
   else
@@ -457,7 +461,7 @@ static int star_density_evaluate1(int target, int mode, int threadid)
           ngbs++;
 
           r = sqrt(r2);
-              
+
           if(r < host_distance)
             {
               host_distance = r;
@@ -483,11 +487,11 @@ static int star_density_evaluate1(int target, int mode, int threadid)
 
 static int star_density_evaluate2(int target, int mode, int threadid)
 {
-  int i, n, numnodes, *firstnode; 
-  MyDouble xtmp, ytmp, ztmp;  
+  int i, n, numnodes, *firstnode;
+  MyDouble xtmp, ytmp, ztmp;
   MyDouble h, h2, dx, dy, dz, r, r2, wk;
   MyDouble *pos;
- 
+
   MyIDType star_particle_id;
   int star_index, star_task, host_index, host_task, hosthydrobin = 0;
 
@@ -499,7 +503,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
       particle2in(&local, target, 0);
       target_data = &local;
 
-      numnodes  = 1;
+      numnodes = 1;
       firstnode = NULL;
     }
   else
@@ -538,7 +542,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
       if(r2 < h2)
         {
           if(i == host_index && ThisTask == host_task)
-            {                
+            {
               hosthydrobin = P[i].TimeBinHydro;
 
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
@@ -547,17 +551,18 @@ static int star_density_evaluate2(int target, int mode, int threadid)
               MyDouble next_sn_energy = target_data->NextSNEnergy;
 
               MyDouble sn_lead_time = All.SN_LeadTime * 1.0e6 / All.cf_UnitTime_in_yr;
-          
+
               if(time_to_sn < sn_lead_time)
                 {
                   /* Boost signal speed leading up to an event */
                   double E_inject_code = next_sn_energy;
-                 
+
                   double f = 1.0 - time_to_sn / sn_lead_time;
                   f = fmin(fmax(f, 0.0), 1.0);
 
-                  double Csn = sqrt(SphP[i].Gamma * (SphP[i].Gamma - 1.0) * (E_inject_code / All.cf_atime/All.cf_atime) / P[i].Mass) * f;
-          
+                  double Csn =
+                      sqrt(SphP[i].Gamma * (SphP[i].Gamma - 1.0) * (E_inject_code / All.cf_atime / All.cf_atime) / P[i].Mass) * f;
+
                   if(Csn > SphP[i].Csn)
                     SphP[i].Csn = Csn;
                 }
@@ -574,7 +579,7 @@ static int star_density_evaluate2(int target, int mode, int threadid)
 
               data->StarParticleID = star_particle_id;
               data->StarIndex = star_index;
-              data->StarTask = star_task; 
+              data->StarTask = star_task;
               data->HostIndex = host_index;
               data->HostTask = host_task;
               data->MechanicalFeedback = target_data->MechanicalFeedback;

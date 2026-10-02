@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-
 /*
  *   RADIATION_PRESSURE      direct + IR-reradiated momentum coupling
  *   PHOTOELECTRIC_HEATING   grain photoelectric heating (FUV: UV + LW dust)
@@ -16,7 +15,7 @@
 /* Below this optical depth -expm1(-tau) is evaluated as a series */
 #define RAD_TAU_THIN 1.0e-3
 
-/* Safety cap on the number of Voronoi cells a single ray may cross in one call to raytrace_voronoi() */ 
+/* Safety cap on the number of Voronoi cells a single ray may cross in one call to raytrace_voronoi() */
 /* Only trips on degenerate geometry */
 #define RAY_MAX_CELL_STEPS (1 << 22)
 
@@ -36,7 +35,7 @@
 
 #define F_DISS 0.15 /* dissociation probability per LW pump (DB96) */
 
-/* H2 self-shielding: Wolcott-Green & Haiman (2019) 
+/* H2 self-shielding: Wolcott-Green & Haiman (2019)
    f = 0.965 / (1 + x/b5)^alpha(T,n) + 0.035 / sqrt(1 + x) * exp(-8.5e-4 * sqrt(1 + x)),  x = N_H2 / 5e14
    alpha = 2 and fixed b5 recover DB96 */
 #define H2_SHIELD_N0 5.0e14 /* cm^-2 */
@@ -67,15 +66,15 @@
  * IONIZING_HeII: 227.9 A - 0 A (54.4 eV - inf eV)
  */
 typedef enum
-{ 
+{
   INFRARED = 0,
   OPTICAL,
   ULTRAVIOLET,
   LYMAN_WERNER,
-  IONIZING_HI, 
-  IONIZING_H2,        
-  IONIZING_HeI,      
-  IONIZING_HeII,     
+  IONIZING_HI,
+  IONIZING_H2,
+  IONIZING_HeI,
+  IONIZING_HeII,
   WAVEBANDS
 } Waveband;
 
@@ -90,39 +89,41 @@ enum
   CHANNELS
 };
 
-enum 
-{ 
-  SP_HI, 
-  SP_H2, 
-  SP_HeI, 
-  SP_HeII, 
-  N_ION_SPECIES 
+enum
+{
+  SP_HI,
+  SP_H2,
+  SP_HeI,
+  SP_HeII,
+  N_ION_SPECIES
 };
 
 _Static_assert(WAVEBANDS <= 8, "band mask is uint8_t");
 _Static_assert(CHANNELS <= 8, "channel mask is uint8_t");
 
 /* Which channels can absorb in each band */
-static const uint8_t BandChannels[WAVEBANDS] =
-{
-  [INFRARED] = (1u << CH_DUST),
-  [OPTICAL] = (1u << CH_DUST),
-  [ULTRAVIOLET] = (1u << CH_DUST),
-  [LYMAN_WERNER] = (1u << CH_DUST) | (1u << CH_LWH2),
-  [IONIZING_HI] = (1u << CH_DUST) | (1u << CH_HI),
-  [IONIZING_H2] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2),
-  [IONIZING_HeI] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2) | (1u << CH_HeI),
-  [IONIZING_HeII] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2) | (1u << CH_HeI) | (1u << CH_HeII),
+static const uint8_t BandChannels[WAVEBANDS] = {
+    [INFRARED] = (1u << CH_DUST),
+    [OPTICAL] = (1u << CH_DUST),
+    [ULTRAVIOLET] = (1u << CH_DUST),
+    [LYMAN_WERNER] = (1u << CH_DUST) | (1u << CH_LWH2),
+    [IONIZING_HI] = (1u << CH_DUST) | (1u << CH_HI),
+    [IONIZING_H2] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2),
+    [IONIZING_HeI] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2) | (1u << CH_HeI),
+    [IONIZING_HeII] = (1u << CH_DUST) | (1u << CH_HI) | (1u << CH_H2) | (1u << CH_HeI) | (1u << CH_HeII),
 };
 
 /* Active bands - change at init_rays */
 #define ALL_BANDS_ACTIVE ((uint8_t)((1u << WAVEBANDS) - 1u))
 #define NO_IR_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << INFRARED)))
-#define NO_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_H2) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
-#define ONLY_IONIZING_ACTIVE ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_H2) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
+#define NO_IONIZING_ACTIVE \
+  ((uint8_t)(ALL_BANDS_ACTIVE & ~(1u << IONIZING_HI) & ~(1u << IONIZING_H2) & ~(1u << IONIZING_HeI) & ~(1u << IONIZING_HeII)))
+#define ONLY_IONIZING_ACTIVE \
+  ((uint8_t)(ALL_BANDS_ACTIVE & ((1u << IONIZING_HI) | (1u << IONIZING_H2) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII))))
 
 /* Bands carrying photons */
-static const uint8_t BandTrackPhotons = (1u << LYMAN_WERNER) | (1u << IONIZING_HI) | (1u << IONIZING_H2) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII);
+static const uint8_t BandTrackPhotons =
+    (1u << LYMAN_WERNER) | (1u << IONIZING_HI) | (1u << IONIZING_H2) | (1u << IONIZING_HeI) | (1u << IONIZING_HeII);
 
 typedef struct WavebandData
 {
@@ -173,7 +174,7 @@ extern double Sigma_N[WAVEBANDS][N_ION_SPECIES];
 typedef struct RayPacket
 {
   MyIDType star_id;
-    
+
   /* Cell currently occupied: local SphP index on the owning task */
   int cell;
 
@@ -196,14 +197,14 @@ typedef struct RayPacket
 
 #ifdef RAD_TOTAL_TRUNCATION
   /* Sum over bands at birth */
-  double E_init; 
-  double N_init; 
+  double E_init;
+  double N_init;
 #else
   WavebandData Radiated_Init[WAVEBANDS];
 #endif
 
   /* Accumulated H2 column since source */ /* cgs! */
-  double N_H2; 
+  double N_H2;
 
   /* Fraction of the LW band absorbed in H2 lines since source (0-1) */
   double A_H2;
@@ -242,27 +243,27 @@ extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
 #ifdef RT_COMM_SYNC
 
 #define TAG_RAY_COUNT 30202
- 
+
 typedef RayExportBuffer RayComms;
- 
+
 #else
- 
+
 /* Packets per message */
 #define RAY_MSG_MAX 256
- 
+
 /* Send slots beyond the one-per-neighbour minimum */
 #define RAY_SEND_SPARE 32
- 
+
 /* Pre-posted receives: 2 per neighbour */
 #define RAY_RECV_SLOTS_MIN 8
 #define RAY_RECV_SLOTS_MAX 64
- 
+
 /* Rays traced between calls into the comm layer */
 #define RAY_PROGRESS_CHUNK 64
- 
+
 /* Progress calls between forced flushes of partially filled send buffers */
 #define RAY_FLUSH_INTERVAL 8
- 
+
 typedef struct RayCommsAsync RayComms;
 #endif
 
@@ -312,7 +313,7 @@ typedef struct RTStatistics
   long long n_born;
   long long n_split;
   long long n_crossing;
-  long long n_skipped; 
+  long long n_skipped;
 } RTStatistics;
 
 extern RTStatistics RTStatisticsLocal;

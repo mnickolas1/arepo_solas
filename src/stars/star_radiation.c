@@ -3,7 +3,6 @@
 
 #include "../extern/chealpix.h"
 
-
 /* clang-format off */
 /* Effective attenuation kappa_ext*(1 - a*<g>) [cm^2/g gas, solar Z]
    Band-averaged over Draine 2003 (renorm. WD01) MW R_V=3.1 model,
@@ -120,15 +119,15 @@ void update_opac(void)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
-      
+
       double Units;
 
       Units = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm / All.cf_UnitMass_in_g;
 
       double Density = (P[i].Mass + SphP[i].StarMassFeed) / SphP[i].Volume;
-  
+
 #ifdef METALS
-      double Zsol = ((SphP[i].GasMetals + SphP[i].StarMetalsFeed) / (P[i].Mass + SphP[i].StarMassFeed)) / SOLAR_METALLICITY;    
+      double Zsol = ((SphP[i].GasMetals + SphP[i].StarMetalsFeed) / (P[i].Mass + SphP[i].StarMassFeed)) / SOLAR_METALLICITY;
       SphP[i].OpacityScaling[CH_DUST] = dust_to_gas_ratio(Zsol) / DUST_TO_GAS_RATIO * Density / Units;
 #else
       SphP[i].OpacityScaling[CH_DUST] = 0;
@@ -147,13 +146,11 @@ void update_opac(void)
       SphP[i].H2ShieldAlpha = h2shield_alpha(temp, number_dens);
       SphP[i].H2ShieldB5 = h2shield_b5(temp);
 
-      double n_Ionizing[4] = 
-      {
-        SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g), 
-        SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g),
-        SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g), 
-        SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)
-      };
+      double n_Ionizing[4] = {
+          SphP[i].GrackleSpeciesConserved(GRACKLE_HI) / SphP[i].Volume / (PROTONMASS / All.cf_UnitMass_in_g),
+          SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / SphP[i].Volume / (2 * PROTONMASS / All.cf_UnitMass_in_g),
+          SphP[i].GrackleSpeciesConserved(GRACKLE_HeI) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g),
+          SphP[i].GrackleSpeciesConserved(GRACKLE_HeII) / SphP[i].Volume / (4 * PROTONMASS / All.cf_UnitMass_in_g)};
 
       for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].OpacityScaling[CH_HI + s] = fmax(0.0, n_Ionizing[s] / Units);
@@ -244,17 +241,17 @@ static void get_ray_rotation(unsigned long long seed, double R[3][3])
   double x = r1 * sin(t1), y = r1 * cos(t1);
   double z = r2 * sin(t2), w = r2 * cos(t2);
 
-  R[0][0] = 1.0 - 2.0 * (y*y + z*z);
-  R[0][1] = 2.0 * (x*y - z*w);
-  R[0][2] = 2.0 * (x*z + y*w);
+  R[0][0] = 1.0 - 2.0 * (y * y + z * z);
+  R[0][1] = 2.0 * (x * y - z * w);
+  R[0][2] = 2.0 * (x * z + y * w);
 
-  R[1][0] = 2.0 * (x*y + z*w);
-  R[1][1] = 1.0 - 2.0 * (x*x + z*z);
-  R[1][2] = 2.0 * (y*z - x*w);
+  R[1][0] = 2.0 * (x * y + z * w);
+  R[1][1] = 1.0 - 2.0 * (x * x + z * z);
+  R[1][2] = 2.0 * (y * z - x * w);
 
-  R[2][0] = 2.0 * (x*z - y*w);
-  R[2][1] = 2.0 * (y*z + x*w);
-  R[2][2] = 1.0 - 2.0 * (x*x + y*y);
+  R[2][0] = 2.0 * (x * z - y * w);
+  R[2][1] = 2.0 * (y * z + x * w);
+  R[2][2] = 1.0 - 2.0 * (x * x + y * y);
 }
 
 /* Seed from the star's global ID: stable under domain decomposition and
@@ -277,7 +274,7 @@ static inline void healpix_dir(unsigned long long seed, int nside, int ipix, dou
   if(!cached_valid || seed != cached_seed)
     {
       get_ray_rotation(seed, R);
-      cached_seed  = seed;
+      cached_seed = seed;
       cached_valid = 1;
     }
 
@@ -310,7 +307,8 @@ void append_ray(RayWorkStack *w, const RayPacket *ray)
 
 static void free_work_stack(RayWorkStack *w)
 {
-  free(w->rays); free(w);
+  free(w->rays);
+  free(w);
 }
 
 /*
@@ -322,210 +320,210 @@ static void init_rays(RayWorkStack *work)
   double SQRT3 = sqrt(3.0);
 
   for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
-  {
-    int host = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
+    {
+      int host = MechanicalFeedbackEvents.MechanicalFeedbackData[ev].HostIndex;
 
 #ifdef STAR_IN_CELL
 
-    /* Superpose every star in this cell into one source on the host generator */
-    WavebandData Radiated_Cell[WAVEBANDS];
+      /* Superpose every star in this cell into one source on the host generator */
+      WavebandData Radiated_Cell[WAVEBANDS];
 
-    for(int w = 0; w < WAVEBANDS; w++)
-      Radiated_Cell[w].Energy = Radiated_Cell[w].Photons = 0.0;
+      for(int w = 0; w < WAVEBANDS; w++)
+        Radiated_Cell[w].Energy = Radiated_Cell[w].Photons = 0.0;
 
-    for(int h = 0; h < SphP[host].Host; h++)
-      {
-        Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h].MechanicalFeedback;
+      for(int h = 0; h < SphP[host].Host; h++)
+        {
+          Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h].MechanicalFeedback;
 
-        for(int w = 0; w < WAVEBANDS; w++)
-          {
-            Radiated_Cell[w].Energy  += MechanicalFeedback->Radiated[w].Energy;
-            Radiated_Cell[w].Photons += MechanicalFeedback->Radiated[w].Photons;
-          }
-      }
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              Radiated_Cell[w].Energy += MechanicalFeedback->Radiated[w].Energy;
+              Radiated_Cell[w].Photons += MechanicalFeedback->Radiated[w].Photons;
+            }
+        }
 
-    /* Skip dark stars entirely rather than pushing dead rays */
-    int flag_luminosity = 0;
-    for(int w = 0; w < WAVEBANDS; w++)
-      {
-        if(Radiated_Cell[w].Energy > 0.0 || Radiated_Cell[w].Photons > 0.0)
-          {
-            flag_luminosity = 1;
-            break;
-          }
-      }
+      /* Skip dark stars entirely rather than pushing dead rays */
+      int flag_luminosity = 0;
+      for(int w = 0; w < WAVEBANDS; w++)
+        {
+          if(Radiated_Cell[w].Energy > 0.0 || Radiated_Cell[w].Photons > 0.0)
+            {
+              flag_luminosity = 1;
+              break;
+            }
+        }
 
-    if(flag_luminosity)
-      {
-        /* Loop over rays for this host */
-        for(int iray = 0; iray < NRays; iray++)
-          {
-            RayPacket ray = {0};
+      if(flag_luminosity)
+        {
+          /* Loop over rays for this host */
+          for(int iray = 0; iray < NRays; iray++)
+            {
+              RayPacket ray = {0};
 
-            ray.star_id = P[host].ID; 
+              ray.star_id = P[host].ID;
 
-            ray.cell = host;
+              ray.cell = host;
 
-            ray.pos[0] = 0.0;
-            ray.pos[1] = 0.0;
-            ray.pos[2] = 0.0;
+              ray.pos[0] = 0.0;
+              ray.pos[1] = 0.0;
+              ray.pos[2] = 0.0;
 
-            unsigned long long rotation_seed = seed_rotation(ray.star_id);
-            healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
+              unsigned long long rotation_seed = seed_rotation(ray.star_id);
+              healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
 
-            ray.t = 0.0;
-            ray.t_maximum = All.RayMaxDistance > 0 ? All.RayMaxDistance : SQRT3 * All.BoxSize;
+              ray.t = 0.0;
+              ray.t_maximum = All.RayMaxDistance > 0 ? All.RayMaxDistance : SQRT3 * All.BoxSize;
 
-            ray.nside = NSIDE_MIN;
-            ray.healpix_pixel = iray;
+              ray.nside = NSIDE_MIN;
+              ray.healpix_pixel = iray;
 
-            ray.active_bands = NO_IR_ACTIVE;
+              ray.active_bands = NO_IR_ACTIVE;
 
-            for(int w = 0; w < WAVEBANDS; w++)
-              {
-                ray.Radiated[w].Energy  = Radiated_Cell[w].Energy / NRays;
-                ray.Radiated[w].Photons = Radiated_Cell[w].Photons / NRays;
+              for(int w = 0; w < WAVEBANDS; w++)
+                {
+                  ray.Radiated[w].Energy = Radiated_Cell[w].Energy / NRays;
+                  ray.Radiated[w].Photons = Radiated_Cell[w].Photons / NRays;
 
 #ifndef RAD_TOTAL_TRUNCATION
-                ray.Radiated_Init[w].Energy = Radiated_Cell[w].Energy / NRays;
-                ray.Radiated_Init[w].Photons = Radiated_Cell[w].Photons / NRays;
+                  ray.Radiated_Init[w].Energy = Radiated_Cell[w].Energy / NRays;
+                  ray.Radiated_Init[w].Photons = Radiated_Cell[w].Photons / NRays;
 #endif
 
-                if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
-                  ray.active_bands &= (uint8_t)(~(1u << w));
-              }
+                  if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
+                    ray.active_bands &= (uint8_t)(~(1u << w));
+                }
 
 #ifdef RAD_TOTAL_TRUNCATION
-            ray.E_init = ray.N_init = 0.0;
-            for(int w = 0; w < WAVEBANDS; w++)
-              {
-                if(!(ray.active_bands & (1u << w)))
-                  continue;                     
-                    
-                ray.E_init += ray.Radiated[w].Energy;
+              ray.E_init = ray.N_init = 0.0;
+              for(int w = 0; w < WAVEBANDS; w++)
+                {
+                  if(!(ray.active_bands & (1u << w)))
+                    continue;
 
-                if((BandTrackPhotons >> w) & 1u)
-                  ray.N_init += ray.Radiated[w].Photons;
-              }
+                  ray.E_init += ray.Radiated[w].Energy;
+
+                  if((BandTrackPhotons >> w) & 1u)
+                    ray.N_init += ray.Radiated[w].Photons;
+                }
 #endif
 
-            ray.N_H2 = 0.0;
-            ray.A_H2 = 0.0;
+              ray.N_H2 = 0.0;
+              ray.A_H2 = 0.0;
 
-            if(ray.active_bands == 0)
-              continue; 
+              if(ray.active_bands == 0)
+                continue;
 
 #ifdef RT_STATISTICS
-            rt_statistics_init(&ray);
+              rt_statistics_init(&ray);
 #endif
 
-            append_ray(work, &ray);
-          }
-      }
+              append_ray(work, &ray);
+            }
+        }
 
 #else
-    
-    double xtmp, ytmp, ztmp;
 
-    for(int h = 0; h < SphP[host].Host; h++)
-      {
-        Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
-        Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
+      double xtmp, ytmp, ztmp;
 
-        /* Skip dark stars entirely rather than pushing dead rays */
-        int flag_luminosity = 0;
-        for(int w = 0; w < WAVEBANDS; w++)
-          {
-            if(MechanicalFeedback->Radiated[w].Energy > 0.0 || MechanicalFeedback->Radiated[w].Photons > 0.0)
-              {
-                flag_luminosity = 1;
-                break;
-              }
-          }
+      for(int h = 0; h < SphP[host].Host; h++)
+        {
+          Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
+          Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
 
-        if(!flag_luminosity)
-          continue;
+          /* Skip dark stars entirely rather than pushing dead rays */
+          int flag_luminosity = 0;
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              if(MechanicalFeedback->Radiated[w].Energy > 0.0 || MechanicalFeedback->Radiated[w].Photons > 0.0)
+                {
+                  flag_luminosity = 1;
+                  break;
+                }
+            }
 
-        /* Star position relative to the host generator, minimum image */
-        double xrel[3];
+          if(!flag_luminosity)
+            continue;
 
-        xrel[0] = NEAREST_X(MechanicalFeedback->StarPosition[0] - P[host].Pos[0]);
-        xrel[1] = NEAREST_Y(MechanicalFeedback->StarPosition[1] - P[host].Pos[1]);
-        xrel[2] = NEAREST_Z(MechanicalFeedback->StarPosition[2] - P[host].Pos[2]);
+          /* Star position relative to the host generator, minimum image */
+          double xrel[3];
 
-        /* Loop over rays for this star */
-        for(int iray = 0; iray < NRays; iray++)
-          {
-            RayPacket ray = {0};
+          xrel[0] = NEAREST_X(MechanicalFeedback->StarPosition[0] - P[host].Pos[0]);
+          xrel[1] = NEAREST_Y(MechanicalFeedback->StarPosition[1] - P[host].Pos[1]);
+          xrel[2] = NEAREST_Z(MechanicalFeedback->StarPosition[2] - P[host].Pos[2]);
 
-            ray.star_id = MechanicalFeedbackData->StarParticleID;
+          /* Loop over rays for this star */
+          for(int iray = 0; iray < NRays; iray++)
+            {
+              RayPacket ray = {0};
 
-            ray.cell = host;
+              ray.star_id = MechanicalFeedbackData->StarParticleID;
 
-            ray.pos[0] = xrel[0];
-            ray.pos[1] = xrel[1];
-            ray.pos[2] = xrel[2];
+              ray.cell = host;
 
-            unsigned long long rotation_seed = seed_rotation(ray.star_id);
-            healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
+              ray.pos[0] = xrel[0];
+              ray.pos[1] = xrel[1];
+              ray.pos[2] = xrel[2];
 
-            ray.t = 0.0;
-            ray.t_maximum = All.RayMaxDistance > 0 ? All.RayMaxDistance : SQRT3 * All.BoxSize;
+              unsigned long long rotation_seed = seed_rotation(ray.star_id);
+              healpix_dir(rotation_seed, NSIDE_MIN, iray, ray.dir);
 
-            ray.nside = NSIDE_MIN;
-            ray.healpix_pixel = iray;
+              ray.t = 0.0;
+              ray.t_maximum = All.RayMaxDistance > 0 ? All.RayMaxDistance : SQRT3 * All.BoxSize;
 
-            ray.active_bands = NO_IR_ACTIVE;
+              ray.nside = NSIDE_MIN;
+              ray.healpix_pixel = iray;
 
-            for(int w = 0; w < WAVEBANDS; w++)
-              {
-                ray.Radiated[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
-                ray.Radiated[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
+              ray.active_bands = NO_IR_ACTIVE;
+
+              for(int w = 0; w < WAVEBANDS; w++)
+                {
+                  ray.Radiated[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
+                  ray.Radiated[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
 
 #ifndef RAD_TOTAL_TRUNCATION
-                ray.Radiated_Init[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
-                ray.Radiated_Init[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
+                  ray.Radiated_Init[w].Energy = MechanicalFeedback->Radiated[w].Energy / NRays;
+                  ray.Radiated_Init[w].Photons = MechanicalFeedback->Radiated[w].Photons / NRays;
 #endif
 
-                if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
-                  ray.active_bands &= (uint8_t)(~(1u << w));
-              }
+                  if(ray.Radiated[w].Energy <= 0.0 && ray.Radiated[w].Photons <= 0.0)
+                    ray.active_bands &= (uint8_t)(~(1u << w));
+                }
 
 #ifdef RAD_TOTAL_TRUNCATION
-            ray.E_init = ray.N_init = 0.0;
-            for(int w = 0; w < WAVEBANDS; w++)
-              {
-                if(!(ray.active_bands & (1u << w)))
-                  continue;                     
-                    
-                ray.E_init += ray.Radiated[w].Energy;
+              ray.E_init = ray.N_init = 0.0;
+              for(int w = 0; w < WAVEBANDS; w++)
+                {
+                  if(!(ray.active_bands & (1u << w)))
+                    continue;
 
-                if((BandTrackPhotons >> w) & 1u)
-                  ray.N_init += ray.Radiated[w].Photons;
-              }
+                  ray.E_init += ray.Radiated[w].Energy;
+
+                  if((BandTrackPhotons >> w) & 1u)
+                    ray.N_init += ray.Radiated[w].Photons;
+                }
 #endif
 
-            ray.N_H2 = 0.0;
-            ray.A_H2 = 0.0;
+              ray.N_H2 = 0.0;
+              ray.A_H2 = 0.0;
 
-            if(ray.active_bands == 0)
-              continue; 
+              if(ray.active_bands == 0)
+                continue;
 
 #ifdef RT_STATISTICS
-            rt_statistics_init(&ray);
+              rt_statistics_init(&ray);
 #endif
 
-            append_ray(work, &ray);
-          }
-      }
+              append_ray(work, &ray);
+            }
+        }
 
 #endif
-    
-    ev += SphP[host].Host;
-  }
+
+      ev += SphP[host].Host;
+    }
 }
 
-/* Splits to 4 child rays 
+/* Splits to 4 child rays
    Children inherit position, cell and path length,
    so they simply restart the exit search in the cell the parent entered */
 void split_ray(const RayPacket *parent, RayPacket children[4])
@@ -574,7 +572,7 @@ int *RayTaskToNgb = NULL;
 /*
  * Mesh-neighbour graph - shared by both back ends
  *
- * Walk every local cell's Delaunay connection list 
+ * Walk every local cell's Delaunay connection list
  * and flag the ranks that own a face-defining neighbour
  */
 void ray_neighbours_init(void)
@@ -614,7 +612,7 @@ void ray_neighbours_init(void)
     }
 
   /*
-   * Symmetrise: this rank must be able to RECEIVE from anyone who can send to it 
+   * Symmetrise: this rank must be able to RECEIVE from anyone who can send to it
    * (AREPO's face connectivity should already be symmetric so sflag == rflag)
    */
   MPI_Alltoall(sflag, 1, MPI_CHAR, rflag, 1, MPI_CHAR, MPI_COMM_WORLD);
@@ -649,8 +647,8 @@ void ray_neighbours_init(void)
   MPI_Allreduce(&RayNgbNTask, &ngb_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
   MPI_Allreduce(&RayNgbNTask, &ngb_sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-  mpi_printf("STAR_RADIATION: RayPacket = %d B, comm neighbours: mean %d, max %d (of %d ranks)\n",
-             (int)sizeof(RayPacket), ngb_sum / NTask, ngb_max, NTask);
+  mpi_printf("STAR_RADIATION: RayPacket = %d B, comm neighbours: mean %d, max %d (of %d ranks)\n", (int)sizeof(RayPacket),
+             ngb_sum / NTask, ngb_max, NTask);
 }
 
 void ray_neighbours_free(void)
@@ -682,7 +680,7 @@ static void radiation_feedback(void)
       if(dt <= 0.0 || V <= 0.0)
         goto reset;
 
-      const double V_cgs  = V * L3;
+      const double V_cgs = V * L3;
       const double dt_cgs = dt * All.cf_UnitTime_in_s;
 
 #ifdef PHOTOELECTRIC_HEATING
@@ -693,8 +691,7 @@ static void radiation_feedback(void)
 #endif
 
 #ifdef DISSOCIATION
-      const double n_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / V
-                          / (2.0 * PROTONMASS / All.cf_UnitMass_in_g);
+      const double n_H2 = SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) / V / (2.0 * PROTONMASS / All.cf_UnitMass_in_g);
 
       /* AbsorbedH2Line holds pumped photons; F_DISS is the branching ratio */
       if(n_H2 > 0.0)
@@ -704,8 +701,7 @@ static void radiation_feedback(void)
 #ifdef PHOTOIONIZATION
       for(int s = 0; s < N_ION_SPECIES; s++)
         {
-          const double n = SphP[i].GrackleSpeciesConserved(IonGrackle[s]) / V
-                           / (IonAtomicMass[s] * PROTONMASS / All.cf_UnitMass_in_g);
+          const double n = SphP[i].GrackleSpeciesConserved(IonGrackle[s]) / V / (IonAtomicMass[s] * PROTONMASS / All.cf_UnitMass_in_g);
 
           const double N_abs = SphP[i].AbsorbedIonizing[s].Photons;
           const double E_abs = SphP[i].AbsorbedIonizing[s].Energy * All.cf_UnitEnergy_in_cgs;
@@ -720,8 +716,10 @@ static void radiation_feedback(void)
           if(E_exc > 0.0)
             SphP[i].IonHeatingRate[s] += E_exc / dt_cgs / V_cgs / n_cgs;
           else if(N_abs > 0.0)
-            warn("STAR_RADIATION: sub-threshold mean photon energy, species %d, cell %d " 
-                 "(E_abs=%g N_abs=%g) \n", s, i, E_abs, N_abs);
+            warn(
+                "STAR_RADIATION: sub-threshold mean photon energy, species %d, cell %d "
+                "(E_abs=%g N_abs=%g) \n",
+                s, i, E_abs, N_abs);
 
           SphP[i].IonizationRate[s] += N_abs / (dt / All.cf_hubble_a) / V / n;
         }
@@ -759,22 +757,20 @@ static void rt_timestep(void)
       /* Hydrogen */
       double m_HI = SphP[i].GrackleSpeciesConserved(GRACKLE_HI);
 
-      double m_H = SphP[i].GrackleSpeciesConserved(GRACKLE_HI)
-                 + SphP[i].GrackleSpeciesConserved(GRACKLE_HII);
+      double m_H = SphP[i].GrackleSpeciesConserved(GRACKLE_HI) + SphP[i].GrackleSpeciesConserved(GRACKLE_HII);
 
 #if GRACKLE_CHEMISTRY >= 2
-      m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_H2I)
-          + SphP[i].GrackleSpeciesConserved(GRACKLE_H2II)
-          + SphP[i].GrackleSpeciesConserved(GRACKLE_HM);
+      m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_H2I) + SphP[i].GrackleSpeciesConserved(GRACKLE_H2II) +
+             SphP[i].GrackleSpeciesConserved(GRACKLE_HM);
 #endif
 
-/* To be consistent with grackle we do not include deuterium */
-/*#if GRACKLE_CHEMISTRY >= 3
-      
-     m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_DI)
-          + SphP[i].GrackleSpeciesConserved(GRACKLE_DII)
-          + SphP[i].GrackleSpeciesConserved(GRACKLE_HDI);
-#endif*/
+      /* To be consistent with grackle we do not include deuterium */
+      /*#if GRACKLE_CHEMISTRY >= 3
+
+           m_H += SphP[i].GrackleSpeciesConserved(GRACKLE_DI)
+                + SphP[i].GrackleSpeciesConserved(GRACKLE_DII)
+                + SphP[i].GrackleSpeciesConserved(GRACKLE_HDI);
+      #endif*/
 
       double rate_H = 0.0;
       if(m_H > 0)
@@ -822,8 +818,8 @@ void star_radiation(void)
 
   update_opac();
 
-   /* Zero accumulators before the walk */
-   for(int i = 0; i < NumGas; i++)
+  /* Zero accumulators before the walk */
+  for(int i = 0; i < NumGas; i++)
     {
 #ifdef PHOTOELECTRIC_HEATING
       SphP[i].AbsorbedPE = 0.0;
@@ -839,7 +835,7 @@ void star_radiation(void)
 #endif
     }
 
-    long long n_sources_local = 0;
+  long long n_sources_local = 0;
 
 #ifdef STAR_IN_CELL
   for(int ev = 0; ev < MechanicalFeedbackEvents.NumEvents;)
@@ -851,7 +847,7 @@ void star_radiation(void)
 #else
   n_sources_local = MechanicalFeedbackEvents.NumEvents;
 #endif
-  
+
   long long n_rays_local = n_sources_local * NRays;
 
   long long n_rays_global;

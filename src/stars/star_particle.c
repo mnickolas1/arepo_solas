@@ -3,7 +3,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-
 /* Compute integral with the trapezoid method */
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double))
 {
@@ -31,15 +30,18 @@ double LogIntegralTrapezoidal(double a, double b, int N, double (*f)(double))
   return sum * h;
 }
 
-/* Unnormalized Kroupa (2001), Maschberger (2013) 
+/* Unnormalized Kroupa (2001), Maschberger (2013)
    Continuous three-segment power law with breaks at 0.08 and 0.5 Msun */
 double imf_kroupa(double m)
 {
-  if(m < MMIN || m > MMAX) return 0.0;
+  if(m < MMIN || m > MMAX)
+    return 0.0;
 
-  if(m < 0.08) return pow(m, -0.3);
+  if(m < 0.08)
+    return pow(m, -0.3);
 
-  if(m < 0.5) return 0.08 * pow(m, -1.3);
+  if(m < 0.5)
+    return 0.08 * pow(m, -1.3);
 
   return 0.04 * pow(m, -2.3);
 }
@@ -50,10 +52,11 @@ double imf_chabrier(double m)
 {
   const double mc = 0.079;
   const double logmc = log10(mc);
-  
+
   const double sigma = 0.69;
-  
-  if(m < MMIN || m > MMAX) return 0.0;
+
+  if(m < MMIN || m > MMAX)
+    return 0.0;
 
   if(m < 1.0)
     {
@@ -61,34 +64,39 @@ double imf_chabrier(double m)
       double d = logm - logmc;
       return (0.158 / m) * exp(-d * d / (2.0 * sigma * sigma));
     }
-                  
-    return 0.0441 * pow(m, -2.3);
+
+  return 0.0441 * pow(m, -2.3);
 }
 
 /* Unnormalized Salpeter IMF */
-double imf_salpeter(double m) 
+double imf_salpeter(double m)
 {
-  if(m < MMIN || m > MMAX) return 0.0;
-  
+  if(m < MMIN || m > MMAX)
+    return 0.0;
+
   return pow(m, -2.35);
 }
 
 /* Select IMF */
-double imf(double m) 
+double imf(double m)
 {
-  switch(All.IMF) 
-  {
-    case 0: return imf_kroupa(m);
-    case 1: return imf_chabrier(m);
-    case 2: return imf_salpeter(m);
-        
-    /* Fallback */
-    default: return imf_kroupa(m); 
-  }
+  switch(All.IMF)
+    {
+      case 0:
+        return imf_kroupa(m);
+      case 1:
+        return imf_chabrier(m);
+      case 2:
+        return imf_salpeter(m);
+
+      /* Fallback */
+      default:
+        return imf_kroupa(m);
+    }
 }
 
 /* Wrapper: m * imf(m) */
-double m_times_imf(double m) 
+double m_times_imf(double m)
 {
   return m * imf(m);
 }
@@ -127,76 +135,58 @@ void build_imf_cdf(void)
 /* Invert the CDF at a given u in [0,1] using binary search + linear interpolation */
 double sample_imf(double u)
 {
-    /* Binary search for the interval [i, i+1] straddling u */
-    int lo = 0, hi = N_CDF_BINS;
-    while(hi - lo > 1)
-      {
-        int mid = (lo + hi) / 2;
-        if(cdf_values[mid] <= u)
-          lo = mid;
-        else
-          hi = mid;
-      }
+  /* Binary search for the interval [i, i+1] straddling u */
+  int lo = 0, hi = N_CDF_BINS;
+  while(hi - lo > 1)
+    {
+      int mid = (lo + hi) / 2;
+      if(cdf_values[mid] <= u)
+        lo = mid;
+      else
+        hi = mid;
+    }
 
-    /* Linear interpolation within the interval */
-    double cdf_lo = cdf_values[lo];
-    double cdf_hi = cdf_values[hi];
-    double t = (cdf_hi > cdf_lo) ? (u - cdf_lo) / (cdf_hi - cdf_lo) : 0.0;
+  /* Linear interpolation within the interval */
+  double cdf_lo = cdf_values[lo];
+  double cdf_hi = cdf_values[hi];
+  double t = (cdf_hi > cdf_lo) ? (u - cdf_lo) / (cdf_hi - cdf_lo) : 0.0;
 
-    return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));
+  return exp(log(cdf_masses[lo]) + t * (log(cdf_masses[hi]) - log(cdf_masses[lo])));
 }
 
 #if STAR_PARTICLES < 2
-double StarMassBins[NBINS + 1] = 
-{
-  /* Region A */
-  MMIN, 2.0,
+double StarMassBins[NBINS + 1] = {
+    /* Region A */
+    MMIN, 2.0,
 
-  /* Region B */
-  4.0, 6.0, 8.0,
+    /* Region B */
+    4.0, 6.0, 8.0,
 
-  /* Region C: 8–20, Δm = 0.2 (60 bins) */
-  8.2, 8.4, 8.6, 8.8, 9.0,
-  9.2, 9.4, 9.6, 9.8, 10.0,
-  10.2, 10.4, 10.6, 10.8, 11.0,
-  11.2, 11.4, 11.6, 11.8, 12.0,
-  12.2, 12.4, 12.6, 12.8, 13.0,
-  13.2, 13.4, 13.6, 13.8, 14.0,
-  14.2, 14.4, 14.6, 14.8, 15.0,
-  15.2, 15.4, 15.6, 15.8, 16.0,
-  16.2, 16.4, 16.6, 16.8, 17.0,
-  17.2, 17.4, 17.6, 17.8, 18.0,
-  18.2, 18.4, 18.6, 18.8, 19.0,
-  19.2, 19.4, 19.6, 19.8, 20.0,
+    /* Region C: 8–20, Δm = 0.2 (60 bins) */
+    8.2, 8.4, 8.6, 8.8, 9.0, 9.2, 9.4, 9.6, 9.8, 10.0, 10.2, 10.4, 10.6, 10.8, 11.0, 11.2, 11.4, 11.6, 11.8, 12.0, 12.2, 12.4, 12.6,
+    12.8, 13.0, 13.2, 13.4, 13.6, 13.8, 14.0, 14.2, 14.4, 14.6, 14.8, 15.0, 15.2, 15.4, 15.6, 15.8, 16.0, 16.2, 16.4, 16.6, 16.8, 17.0,
+    17.2, 17.4, 17.6, 17.8, 18.0, 18.2, 18.4, 18.6, 18.8, 19.0, 19.2, 19.4, 19.6, 19.8, 20.0,
 
-  /* Region D: 20–40, Δm = 1 (20 bins) */
-  21.0, 22.0, 23.0, 24.0, 25.0,
-  26.0, 27.0, 28.0, 29.0, 30.0,
-  31.0, 32.0, 33.0, 34.0, 35.0,
-  36.0, 37.0, 38.0, 39.0, 40.0,
+    /* Region D: 20–40, Δm = 1 (20 bins) */
+    21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0, 37.0, 38.0, 39.0, 40.0,
 
-  /* Region E: 40–80, Δm = 2 (20 bins) */
-  42.0, 44.0, 46.0, 48.0, 50.0,
-  52.0, 54.0, 56.0, 58.0, 60.0,
-  62.0, 64.0, 66.0, 68.0, 70.0,
-  72.0, 74.0, 76.0, 78.0, 80.0,
+    /* Region E: 40–80, Δm = 2 (20 bins) */
+    42.0, 44.0, 46.0, 48.0, 50.0, 52.0, 54.0, 56.0, 58.0, 60.0, 62.0, 64.0, 66.0, 68.0, 70.0, 72.0, 74.0, 76.0, 78.0, 80.0,
 
-  /* Region F: 80–120, Δm = 4 (10 bins) */
-  84.0, 88.0, 92.0, 96.0, 100.0,
-  104.0, 108.0, 112.0, 116.0, MMAX
-};
-  
+    /* Region F: 80–120, Δm = 4 (10 bins) */
+    84.0, 88.0, 92.0, 96.0, 100.0, 104.0, 108.0, 112.0, 116.0, MMAX};
+
 double StarMeanMassInBins[NBINS];
 
 void setup_mass_bins(void)
 {
   int i;
   double m1, m2, numerator, denominator;
-  
+
   for(i = 0; i < NBINS; i++)
     {
       m1 = StarMassBins[i];
-      m2 = StarMassBins[i+1];
+      m2 = StarMassBins[i + 1];
 
       numerator = LogIntegralTrapezoidal(m1, m2, 100, m_times_imf);
       denominator = LogIntegralTrapezoidal(m1, m2, 100, imf);
@@ -218,24 +208,24 @@ double bin_imf[NBINS];
 
 void setup_imf_integrals(void)
 {
-    norm = LogIntegralTrapezoidal(MMIN, MMAX, 1000, m_times_imf);
+  norm = LogIntegralTrapezoidal(MMIN, MMAX, 1000, m_times_imf);
 
-    for(int i = 0; i < NBINS; i++)
-      {
-        double m1 = StarMassBins[i];
-        double m2 = StarMassBins[i + 1];
-        bin_imf[i] = LogIntegralTrapezoidal(m1, m2, 100, imf);
-      }
+  for(int i = 0; i < NBINS; i++)
+    {
+      double m1 = StarMassBins[i];
+      double m2 = StarMassBins[i + 1];
+      bin_imf[i] = LogIntegralTrapezoidal(m1, m2, 100, imf);
+    }
 }
 
 /* Draw masses for a star particle of total mass M_particle */
 void sample_star_particle(double m, int *bins)
 {
-    for(int i = 0; i < NBINS; i++)
-      {
-        double lambda = m * (bin_imf[i] / norm);
-        bins[i] = (int) gsl_ran_poisson(rng, lambda);
-      }
+  for(int i = 0; i < NBINS; i++)
+    {
+      double lambda = m * (bin_imf[i] / norm);
+      bins[i] = (int)gsl_ran_poisson(rng, lambda);
+    }
 }
 #endif
 
@@ -244,7 +234,8 @@ void sample_star_particle(double m, int *bins)
 void sample_star_particle(double m, int *bins)
 {
   /* Zero the bins */
-  for(int i = 0; i < NBINS; i++) bins[i] = 0;
+  for(int i = 0; i < NBINS; i++)
+    bins[i] = 0;
 
   double m_sampled = 0.0;
 
@@ -264,18 +255,20 @@ void sample_star_particle(double m, int *bins)
             {
               /* Accept: adding the star is closer to m */
               int bin = 0;
-              while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar) bin++;
+              while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar)
+                bin++;
               bins[bin]++;
             }
           break;
         }
 
-        m_sampled += mstar;
+      m_sampled += mstar;
 
-        /* Find bin with linear search from bottom */
-        int bin = 0;
-        while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar) bin++;
-        bins[bin]++;
-      }
+      /* Find bin with linear search from bottom */
+      int bin = 0;
+      while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar)
+        bin++;
+      bins[bin]++;
+    }
 }
 #endif

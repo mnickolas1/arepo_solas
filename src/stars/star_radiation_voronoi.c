@@ -3,7 +3,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-
 /*
  * Exact ray transport on the Voronoi mesh via face connectivity.
  *
@@ -30,8 +29,7 @@
    minimum number of rays required to sample each cell */
 #define RAY_CELL_CROSS_SECTION(r) (M_PI * (r) * (r))
 
-static inline void cell_dtau(int i, double length, double H2_ray[2],
-                             uint8_t active_bands, ChannelsDtau dtau[WAVEBANDS], double dH2[2])
+static inline void cell_dtau(int i, double length, double H2_ray[2], uint8_t active_bands, ChannelsDtau dtau[WAVEBANDS], double dH2[2])
 {
   dH2[0] = SphP[i].OpacityScaling[CH_LWH2] * length;
   dH2[1] = 0.0;
@@ -55,7 +53,7 @@ static inline void cell_dtau(int i, double length, double H2_ray[2],
       dtau_line = h2shield_dtau(H2_ray[1], dH2[1]);
     }
 
-  double ionizing_length[4] = {0.0, 0.0, 0.0, 0.0};  
+  double ionizing_length[4] = {0.0, 0.0, 0.0, 0.0};
   for(int s = 0; s < N_ION_SPECIES; s++)
     {
       if(live_channels & (1u << (CH_HI + s)))
@@ -104,12 +102,11 @@ static inline double absorbed_fraction(double tau)
 {
   if(tau < RAD_TAU_THIN)
     return tau * (1.0 - tau * (0.5 - tau * (1.0 / 6.0)));
-  
+
   return -expm1(-tau);
 }
 
-static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
-                             Absorption *a)
+static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS], Absorption *a)
 {
   a->mask = ray->active_bands;
 
@@ -119,7 +116,7 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
         continue;
 
       a->Band[w].Energy = a->Band[w].Photons = 0.0;
-      
+
       for(int c = 0; c < CHANNELS; c++)
         a->Ch[w][c].Energy = a->Ch[w][c].Photons = 0.0;
     }
@@ -137,14 +134,13 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
       const int track_N = (BandTrackPhotons >> w) & 1u;
 
 #ifdef RAD_TOTAL_TRUNCATION
-      if((ray->Radiated[w].Energy <= 0.0 || ray->Radiated[w].Energy < 0.1 * RAD_TRUNC_FRAC * ray->E_init) && 
-        (!track_N || ray->Radiated[w].Photons <= 0.0 || ray->Radiated[w].Photons < 0.1 * RAD_TRUNC_FRAC * ray->N_init))
+      if((ray->Radiated[w].Energy <= 0.0 || ray->Radiated[w].Energy < 0.1 * RAD_TRUNC_FRAC * ray->E_init) &&
+         (!track_N || ray->Radiated[w].Photons <= 0.0 || ray->Radiated[w].Photons < 0.1 * RAD_TRUNC_FRAC * ray->N_init))
 #else
       if((ray->Radiated[w].Energy <= 0 || ray->Radiated[w].Energy < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Energy) &&
          (!track_N || ray->Radiated[w].Photons <= 0 || ray->Radiated[w].Photons < RAD_TRUNC_FRAC * ray->Radiated_Init[w].Photons))
 #endif
         {
-
 #ifdef RT_STATISTICS
           rt_statistics_drop(ray, w);
 #endif
@@ -163,7 +159,7 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
       if(tot_E > 0.0)
         {
           const double dE = ray->Radiated[w].Energy * absorbed_fraction(tot_E);
-          const double wE = dE / tot_E;         
+          const double wE = dE / tot_E;
 
           a->Band[w].Energy = dE;
           ray->Radiated[w].Energy -= dE;
@@ -205,11 +201,9 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
 
 #ifdef RAD_TOTAL_TRUNCATION
   /* Never truncate while an ionizing band is live */
-  if(!(ray->active_bands & ONLY_IONIZING_ACTIVE) &&
-     (ray->E_init <= 0.0 || E_live < RAD_TRUNC_FRAC * ray->E_init) &&
+  if(!(ray->active_bands & ONLY_IONIZING_ACTIVE) && (ray->E_init <= 0.0 || E_live < RAD_TRUNC_FRAC * ray->E_init) &&
      (ray->N_init <= 0.0 || N_live < RAD_TRUNC_FRAC * ray->N_init))
     {
-
 #ifdef RT_STATISTICS
       rt_statistics_abandon(ray, RAY_END_TRUNCATE);
       ended = 1;
@@ -233,7 +227,6 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 {
   if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
     {
-
 #ifdef RT_STATISTICS
       RTStatisticsLocal.n_skipped++;
 #endif
@@ -243,7 +236,6 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
   if(length <= 0.0)
     {
-
 #ifdef RT_STATISTICS
       RTStatisticsLocal.n_skipped++;
 #endif
@@ -252,9 +244,9 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
     }
 
   ChannelsDtau dtau[WAVEBANDS];
-  
-  double H2[2] = {ray->N_H2, ray->A_H2};          
-  double dH2[2]; 
+
+  double H2[2] = {ray->N_H2, ray->A_H2};
+  double dH2[2];
 
   cell_dtau(i, length, H2, ray->active_bands, dtau, dH2);
 
@@ -367,9 +359,9 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   return still_alive;
 }
 
-/* Non-periodic wall: the face-defining "neighbour" is the 
-   mirror image of this cell across a box face 
-   Both REFLECTIVE_* = 1 and = 2 build the same mirror ghost; 
+/* Non-periodic wall: the face-defining "neighbour" is the
+   mirror image of this cell across a box face
+   Both REFLECTIVE_* = 1 and = 2 build the same mirror ghost;
    for now we treat either as outflow and drop the ray */
 static inline int dc_is_boundary(int q)
 {
@@ -413,7 +405,7 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
       const double eps = RAY_TOL * r_cell;
 
       const double sx = P[i].Pos[0], sy = P[i].Pos[1], sz = P[i].Pos[2];
-      
+
       const double px = ray->pos[0] + ray->t * ray->dir[0];
       const double py = ray->pos[1] + ray->t * ray->dir[1];
       const double pz = ray->pos[2] + ray->t * ray->dir[2];
@@ -423,24 +415,24 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
         {
           int dp = DC[q].dp_index;
           int particle = Mesh.DP[dp].index;
-          
+
           if(particle >= 0)
             {
               double dx = Mesh.DP[dp].x - sx;
               double dy = Mesh.DP[dp].y - sy;
               double dz = Mesh.DP[dp].z - sz;
 
-              double d2 = dx*dx + dy*dy + dz*dz;
+              double d2 = dx * dx + dy * dy + dz * dz;
 
-              double v = (px*dx + py*dy + pz*dz) - 0.5 * d2;
+              double v = (px * dx + py * dy + pz * dz) - 0.5 * d2;
 
               if(v > v_best && v > eps * sqrt(d2))
                 {
                   v_best = v;
                   q_best = q;
-                  
-                  d_best[0] = dx; 
-                  d_best[1] = dy; 
+
+                  d_best[0] = dx;
+                  d_best[1] = dy;
                   d_best[2] = dz;
                 }
             }
@@ -454,7 +446,7 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
       if(q_best < 0)
         {
           ray->locate_head = 0;
-          return 0;                  
+          return 0;
         }
 
       /* Head is outside the box: the child has already escaped */
@@ -475,7 +467,7 @@ static int voronoi_relocate(RayPacket *ray, RayComms *comm)
       if(DC[q_best].task != ThisTask)
         {
           append_export(comm, ray, DC[q_best].task);
-          return 1;                   
+          return 1;
         }
     }
 
@@ -511,7 +503,7 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double eps, dou
 
       int dp = DC[q].dp_index;
       int particle = Mesh.DP[dp].index;
-          
+
       /* Cell has been removed */
       if(particle < 0)
         {
@@ -519,7 +511,7 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double eps, dou
             break;
 
           q = DC[q].next;
-          
+
           continue;
         }
 
@@ -533,7 +525,7 @@ static inline int voronoi_exit_face(const RayPacket *ray, int i, double eps, dou
       /* Forward-facing bisector*/
       if(ndotd > 0.0)
         {
-          double d2 = dx*dx + dy*dy + dz*dz;
+          double d2 = dx * dx + dy * dy + dz * dz;
 
           double num = 0.5 * d2 - (px * dx + py * dy + pz * dz);
 
@@ -617,15 +609,15 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
             {
               RayPacket children[4];
               split_ray(ray, children);
-              
+
               for(int k = 0; k < 4; k++)
                 {
                   if(voronoi_relocate(&children[k], comm))
-                    continue;           
-    
+                    continue;
+
                   append_ray(work, &children[k]);
                 }
-              
+
               return;
             }
         }
@@ -643,7 +635,7 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
         {
           if(t_step < -eps)
             warn("raytrace_voronoi(): cell %d gives negative t %g along ray - stale DC list?\n", i, t_step);
-          
+
           t_step = 0.0;
         }
 
@@ -707,11 +699,11 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
         terminate("raytrace_voronoi(): self-connection at cell %d (mirror boundary)!\n", i);
 
       if(++steps > RAY_MAX_CELL_STEPS)
-        {       
+        {
 #ifdef RT_STATISTICS
           rt_statistics_abandon(ray, RAY_END_STEPCAP);
 #endif
-          warn("raytrace_voronoi(): ray exceeded %d cell steps on task %d?\n", RAY_MAX_CELL_STEPS, ThisTask);          
+          warn("raytrace_voronoi(): ray exceeded %d cell steps on task %d?\n", RAY_MAX_CELL_STEPS, ThisTask);
           return;
         }
 

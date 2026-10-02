@@ -5,32 +5,30 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-
 /*
  * Asynchronous back end
  *
- * Replaces the bulk-synchronous round structure entirely 
+ * Replaces the bulk-synchronous round structure entirely
  * There is no barrier and no per-round collective: ranks trace whatever they hold, aggregate
  * exports into per-neighbour message buffers, and service MPI between chunks of local work
  * The walk ends when a distributed snapshot proves no rays
  * exist anywhere and none are in flight
  *
- *   1. Send aggregation: One filling buffer per mesh neighbour, 
- *      drawn from a shared slot pool 
- *      A buffer is posted when it fills (RAY_MSG_MAX packets), 
+ *   1. Send aggregation: One filling buffer per mesh neighbour,
+ *      drawn from a shared slot pool
+ *      A buffer is posted when it fills (RAY_MSG_MAX packets),
  *      when the rank runs dry, or when RAY_FLUSH_INTERVAL progress
  *      calls have elapsed, so a lone ray never sits in a partial buffer
  *      starving a peer
  *
  *   2. Pre-posted receives: A pool of persistent MPI_ANY_SOURCE Irecvs, each
- *      sized for a full message 
+ *      sized for a full message
  *      Completed receives are drained straight onto
  *      the work stack and immediately reposted
  *
  *   3. Termination detection: Mattern's four-counter method over a
  *      nonblocking allreduce
  */
-
 
 /* Bail out on a genuine deadlock rather than spinning forever */
 #define RAY_SLOT_SPIN_MAX 100000000LL
@@ -128,7 +126,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
       c->send_req[s] = MPI_REQUEST_NULL;
       c->free_stack[s] = c->nslots - 1 - s; /* pop low indices first */
     }
-  
+
   c->nfree = c->nslots;
 
   for(int k = 0; k < nn; k++)
@@ -150,8 +148,8 @@ RayComms *ray_comms_init(RayWorkStack *work)
               (double)c->nrecv * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0));
 
   for(int r = 0; r < c->nrecv; r++)
-    MPI_Irecv(RECVSLOT(c, r), RAY_MSG_MAX * (int)sizeof(RayPacket), MPI_BYTE,
-              MPI_ANY_SOURCE, TAG_RAY_DATA, MPI_COMM_WORLD, &c->recv_req[r]);
+    MPI_Irecv(RECVSLOT(c, r), RAY_MSG_MAX * (int)sizeof(RayPacket), MPI_BYTE, MPI_ANY_SOURCE, TAG_RAY_DATA, MPI_COMM_WORLD,
+              &c->recv_req[r]);
 
   const int nmax = c->nslots > c->nrecv ? c->nslots : c->nrecv;
   c->done_idx = malloc(nmax * sizeof(int));
@@ -178,8 +176,8 @@ static void post_send(struct RayCommsAsync *c, int k)
   if(s < 0 || c->slot_n[s] == 0)
     return;
 
-  MPI_Isend(SENDSLOT(c, s), c->slot_n[s] * (int)sizeof(RayPacket), MPI_BYTE,
-            RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &c->send_req[s]);
+  MPI_Isend(SENDSLOT(c, s), c->slot_n[s] * (int)sizeof(RayPacket), MPI_BYTE, RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
+            &c->send_req[s]);
 
   /* Counted at post time */
   c->n_sent += c->slot_n[s];
@@ -248,8 +246,8 @@ static int drain_recvs(struct RayCommsAsync *c)
             c->work_highwm = c->work->n;
         }
 
-      MPI_Irecv(RECVSLOT(c, r), RAY_MSG_MAX * (int)sizeof(RayPacket), MPI_BYTE,
-                MPI_ANY_SOURCE, TAG_RAY_DATA, MPI_COMM_WORLD, &c->recv_req[r]);
+      MPI_Irecv(RECVSLOT(c, r), RAY_MSG_MAX * (int)sizeof(RayPacket), MPI_BYTE, MPI_ANY_SOURCE, TAG_RAY_DATA, MPI_COMM_WORLD,
+                &c->recv_req[r]);
     }
 
   if(got > 0)
@@ -263,7 +261,7 @@ static int drain_recvs(struct RayCommsAsync *c)
  * Never waits on sends alone: because transfers are
  * rendezvous, a peer's Isend cannot complete until we complete a matching
  * receive, so a rank waiting only on reclaim_sends() could deadlock against a
- * peer doing the same 
+ * peer doing the same
  * Draining receives here breaks the cycle - we always
  * have receives posted, and repost them immediately
  */
@@ -281,8 +279,7 @@ static int acquire_slot(struct RayCommsAsync *c)
       drain_recvs(c);
 
       if(++spin > RAY_SLOT_SPIN_MAX)
-        terminate("acquire_slot(): task %d stalled waiting for a send slot (%d slots, all in flight)!\n",
-                  ThisTask, c->nslots);
+        terminate("acquire_slot(): task %d stalled waiting for a send slot (%d slots, all in flight)!\n", ThisTask, c->nslots);
     }
 
   if(spin > 0)
@@ -351,7 +348,7 @@ static int comm_idle(const struct RayCommsAsync *c)
 /*
  * Mattern's method.
  *
- * A snapshot reduces (sum sent, sum received, any activity since the previous snapshot) 
+ * A snapshot reduces (sum sent, sum received, any activity since the previous snapshot)
  * Because the local counters are sampled at different wall-clock
  * times on different ranks, a single clean snapshot is not obviously
  * sufficient: an exact cancellation between one in-flight message and one
@@ -359,9 +356,9 @@ static int comm_idle(const struct RayCommsAsync *c)
  * Two consecutive clean snapshots close that hole
  *
  * quiet is a pure function of globally reduced values, so every rank computes
- * the same number and all ranks leave the walk on the same snapshot 
+ * the same number and all ranks leave the walk on the same snapshot
  * That matters: these are collectives, and a rank that exited early would hang its
- * peers on the next one 
+ * peers on the next one
  */
 static int termination_check(struct RayCommsAsync *c)
 {
@@ -376,8 +373,7 @@ static int termination_check(struct RayCommsAsync *c)
           c->activity = 0;
           c->n_snapshots++;
 
-          MPI_Iallreduce(c->term_in, c->term_out, 3, MPI_LONG_LONG, MPI_SUM,
-                         MPI_COMM_WORLD, &c->term_req);
+          MPI_Iallreduce(c->term_in, c->term_out, 3, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD, &c->term_req);
         }
 
       return 0;
@@ -463,9 +459,10 @@ void ray_comms_free(RayComms *comm)
         {
           int nbytes = 0;
           MPI_Get_count(&st, MPI_BYTE, &nbytes);
-          terminate("ray_comms_free(): %d bytes of rays arrived after termination on task %d "
-                    "(sent=%lld recv=%lld) - termination detection is wrong!\n",
-                    nbytes, ThisTask, c->n_sent, c->n_recv);
+          terminate(
+              "ray_comms_free(): %d bytes of rays arrived after termination on task %d "
+              "(sent=%lld recv=%lld) - termination detection is wrong!\n",
+              nbytes, ThisTask, c->n_sent, c->n_recv);
         }
     }
 
@@ -483,13 +480,13 @@ void ray_comms_free(RayComms *comm)
     MPI_Reduce(&c->trace_time, &tmax, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     MPI_Reduce(&c->trace_time, &tsum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    mpi_printf("STAR_RADIATION: async done | %lld msgs, %lld rays exported (%.1f/msg) | "
-               "%lld rays traced, max/rank %lld | queue high water mark %lld | %lld slot stalls | %lld snapshots\n",
-               gsum[0], gsum[1], gsum[0] ? (double)gsum[1] / gsum[0] : 0.0,
-               gsum[2], gmax[1], gmax[0], gsum[3], gsum[4]);
+    mpi_printf(
+        "STAR_RADIATION: async done | %lld msgs, %lld rays exported (%.1f/msg) | "
+        "%lld rays traced, max/rank %lld | queue high water mark %lld | %lld slot stalls | %lld snapshots\n",
+        gsum[0], gsum[1], gsum[0] ? (double)gsum[1] / gsum[0] : 0.0, gsum[2], gmax[1], gmax[0], gsum[3], gsum[4]);
 
-    mpi_printf("STAR_RADIATION: async trace time max/rank %g s, mean %g s (imbalance %.2f)\n",
-               tmax, tsum / NTask, tsum > 0.0 ? tmax * NTask / tsum : 1.0);
+    mpi_printf("STAR_RADIATION: async trace time max/rank %g s, mean %g s (imbalance %.2f)\n", tmax, tsum / NTask,
+               tsum > 0.0 ? tmax * NTask / tsum : 1.0);
   }
 #endif
 

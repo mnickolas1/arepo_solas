@@ -3,7 +3,6 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-
 /* Main Sequence */
 int Z_COUNT = 0;
 int M_COUNT = 0;
@@ -13,7 +12,7 @@ double *M_VALUES = NULL;
 
 double *logZ_VALUES = NULL;
 double *logM_VALUES = NULL;
-   
+
 int **N = NULL;
 
 double ***Age = NULL;
@@ -38,26 +37,26 @@ double ***logWindVelocity = NULL;
 #ifdef STAR_RADIATION_ACTIVE
 /* Radiation */
 WavebandData ***logFlux[WAVEBANDS] = {0};
-#endif 
+#endif
 
 #ifdef SUPERNOVAE
-/* Supernovae */ 
+/* Supernovae */
 double **SN_MassLoss = NULL;
 #if GRACKLE_CHEMISTRY >= 1
 double **SN_X = NULL;
 double **SN_Y = NULL;
-#endif  
-#ifdef METALS  
+#endif
+#ifdef METALS
 double **SN_Z = NULL;
 #endif
-#endif  
+#endif
 
-#ifdef AGB 
+#ifdef AGB
 /* Asymptotic Giant Branch */
-double **AGB_MassLoss; 
+double **AGB_MassLoss;
 #ifdef METALS
-double **AGB_MetalsLoss; 
-#endif 
+double **AGB_MetalsLoss;
+#endif
 #endif
 
 void free_stellar_tables(void)
@@ -93,7 +92,7 @@ void free_stellar_tables(void)
       for(int z = 0; z < Z_COUNT; z++)
         {
           free(N[z]);
-          
+
           free(Age[z]);
           free(FractionalAge[z]);
           free(logRadius[z]);
@@ -133,9 +132,9 @@ void free_stellar_tables(void)
 
       free(logZ_VALUES);
       free(logM_VALUES);
-      
+
       free(N);
-      
+
       free(Age);
       free(FractionalAge);
       free(logRadius);
@@ -174,9 +173,9 @@ void free_stellar_tables(void)
 
       logZ_VALUES = NULL;
       logM_VALUES = NULL;
-      
+
       N = NULL;
-      
+
       Age = NULL;
       FractionalAge = NULL;
       logRadius = NULL;
@@ -197,7 +196,7 @@ void free_stellar_tables(void)
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
         logFlux[w] = NULL;
-#endif    
+#endif
 
 #ifdef SUPERNOVAE
       SN_MassLoss = NULL;
@@ -213,16 +212,16 @@ void free_stellar_tables(void)
 }
 
 void load_star_tables(const char *filename)
-{ 
+{
   hid_t file_id = -1;
 
   if(ThisTask == 0)
     {
-      file_id = my_H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);  
-      
+      file_id = my_H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+
       hid_t zc = my_H5Aopen_name(file_id, "Z_COUNT");
       hid_t mc = my_H5Aopen_name(file_id, "M_COUNT");
-      
+
       my_H5Aread(zc, H5T_NATIVE_INT, &Z_COUNT, "Z_COUNT", 1);
       my_H5Aread(mc, H5T_NATIVE_INT, &M_COUNT, "M_COUNT", 1);
 
@@ -234,14 +233,12 @@ void load_star_tables(const char *filename)
 
       logZ_VALUES = malloc(Z_COUNT * sizeof(double));
       logM_VALUES = malloc(M_COUNT * sizeof(double));
-      
+
       hid_t zv = my_H5Dopen(file_id, "LOGZ_VALUES");
       hid_t mv = my_H5Dopen(file_id, "LOGM_VALUES");
 
-      my_H5Dread(zv, H5T_NATIVE_DOUBLE, 
-              H5S_ALL, H5S_ALL, H5P_DEFAULT, logZ_VALUES, "LOGZ_VALUES");
-      my_H5Dread(mv, H5T_NATIVE_DOUBLE, 
-              H5S_ALL, H5S_ALL, H5P_DEFAULT, logM_VALUES, "LOGM_VALUES");
+      my_H5Dread(zv, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, logZ_VALUES, "LOGZ_VALUES");
+      my_H5Dread(mv, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, logM_VALUES, "LOGM_VALUES");
 
       for(int z = 0; z < Z_COUNT; z++)
         {
@@ -279,28 +276,28 @@ void load_star_tables(const char *filename)
   MPI_Bcast(logZ_VALUES, Z_COUNT, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Bcast(logM_VALUES, M_COUNT, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  N = malloc(Z_COUNT * sizeof(int*));
+  N = malloc(Z_COUNT * sizeof(int *));
 
-  Age = malloc(Z_COUNT * sizeof(double**));
-  FractionalAge = malloc(Z_COUNT * sizeof(double**));
-  logRadius = malloc(Z_COUNT * sizeof(double**));
-  logTemperature = malloc(Z_COUNT * sizeof(double**));
+  Age = malloc(Z_COUNT * sizeof(double **));
+  FractionalAge = malloc(Z_COUNT * sizeof(double **));
+  logRadius = malloc(Z_COUNT * sizeof(double **));
+  logTemperature = malloc(Z_COUNT * sizeof(double **));
 
 #ifdef WINDS
-  logMassLossRate = malloc(Z_COUNT * sizeof(double**));
+  logMassLossRate = malloc(Z_COUNT * sizeof(double **));
 #if GRACKLE_CHEMISTRY >= 1
-  WindX = malloc(Z_COUNT * sizeof(double**));
-  WindY = malloc(Z_COUNT * sizeof(double**));
+  WindX = malloc(Z_COUNT * sizeof(double **));
+  WindY = malloc(Z_COUNT * sizeof(double **));
 #endif
 #ifdef METALS
-  WindZ = malloc(Z_COUNT * sizeof(double**));
+  WindZ = malloc(Z_COUNT * sizeof(double **));
 #endif
-  logWindVelocity = malloc(Z_COUNT * sizeof(double**));
+  logWindVelocity = malloc(Z_COUNT * sizeof(double **));
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
   for(int w = 0; w < WAVEBANDS; w++)
-    logFlux[w] = malloc(Z_COUNT * sizeof(WavebandData**));
+    logFlux[w] = malloc(Z_COUNT * sizeof(WavebandData **));
 #endif
 
 #ifdef SUPERNOVAE
@@ -312,32 +309,32 @@ void load_star_tables(const char *filename)
 #ifdef METALS
   SN_Z = malloc(Z_COUNT * sizeof(double *));
 #endif
-#endif 
+#endif
 
   for(int z = 0; z < Z_COUNT; z++)
     {
       N[z] = malloc(M_COUNT * sizeof(int));
 
-      Age[z] = malloc(M_COUNT * sizeof(double*));
-      FractionalAge[z] = malloc(M_COUNT * sizeof(double*));
-      logRadius[z] = malloc(M_COUNT * sizeof(double*));
-      logTemperature[z] = malloc(M_COUNT * sizeof(double*));
+      Age[z] = malloc(M_COUNT * sizeof(double *));
+      FractionalAge[z] = malloc(M_COUNT * sizeof(double *));
+      logRadius[z] = malloc(M_COUNT * sizeof(double *));
+      logTemperature[z] = malloc(M_COUNT * sizeof(double *));
 
 #ifdef WINDS
-      logMassLossRate[z] = malloc(M_COUNT * sizeof(double*));
+      logMassLossRate[z] = malloc(M_COUNT * sizeof(double *));
 #if GRACKLE_CHEMISTRY >= 1
-      WindX[z] = malloc(M_COUNT * sizeof(double*));
-      WindY[z] = malloc(M_COUNT * sizeof(double*));
+      WindX[z] = malloc(M_COUNT * sizeof(double *));
+      WindY[z] = malloc(M_COUNT * sizeof(double *));
 #endif
 #ifdef METALS
-      WindZ[z] = malloc(M_COUNT * sizeof(double*));
+      WindZ[z] = malloc(M_COUNT * sizeof(double *));
 #endif
-      logWindVelocity[z] = malloc(M_COUNT * sizeof(double*));
+      logWindVelocity[z] = malloc(M_COUNT * sizeof(double *));
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
       for(int w = 0; w < WAVEBANDS; w++)
-        logFlux[w][z] = malloc(M_COUNT * sizeof(WavebandData*));
+        logFlux[w][z] = malloc(M_COUNT * sizeof(WavebandData *));
 #endif
 
 #ifdef SUPERNOVAE
@@ -349,12 +346,12 @@ void load_star_tables(const char *filename)
 #ifdef METALS
       SN_Z[z] = malloc(M_COUNT * sizeof(double));
 #endif
-#endif 
+#endif
     }
 
   if(ThisTask == 0)
     {
-      for (int z = 0; z < Z_COUNT; z++)
+      for(int z = 0; z < Z_COUNT; z++)
         {
           char zname[64];
           snprintf(zname, sizeof(zname), "Z=%g", Z_VALUES[z]);
@@ -366,24 +363,24 @@ void load_star_tables(const char *filename)
               char mname[64];
               snprintf(mname, sizeof(mname), "M=%03d", (int)round((M_VALUES[m])));
 
-              if (H5Lexists(zgrp, mname, H5P_DEFAULT) <= 0)
+              if(H5Lexists(zgrp, mname, H5P_DEFAULT) <= 0)
                 {
                   terminate("Error loading stellar tables!");
                 }
 
               hid_t mgrp = my_H5Gopen(zgrp, mname);
-              
+
               hid_t d_age = my_H5Dopen(mgrp, "Age");
               hid_t d_frage = my_H5Dopen(mgrp, "FractionalAge");
               hid_t d_rad = my_H5Dopen(mgrp, "logRadius");
               hid_t d_tem = my_H5Dopen(mgrp, "logTemperature");
 
               hsize_t dims[1];
-          
+
               hid_t space = H5Dget_space(d_age);
               H5Sget_simple_extent_dims(space, dims, NULL);
               H5Sclose(space);
-              
+
               N[z][m] = (int)dims[0];
 
               Age[z][m] = malloc(N[z][m] * sizeof(double));
@@ -391,15 +388,11 @@ void load_star_tables(const char *filename)
               logRadius[z][m] = malloc(N[z][m] * sizeof(double));
               logTemperature[z][m] = malloc(N[z][m] * sizeof(double));
 
-              my_H5Dread(d_age, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, Age[z][m], "Age");          
-              my_H5Dread(d_frage, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, FractionalAge[z][m], "FractionalAge");
-              my_H5Dread(d_rad, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, logRadius[z][m], "logRadius");
-              my_H5Dread(d_tem, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, logTemperature[z][m], "logTemperature");
-              
+              my_H5Dread(d_age, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, Age[z][m], "Age");
+              my_H5Dread(d_frage, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, FractionalAge[z][m], "FractionalAge");
+              my_H5Dread(d_rad, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, logRadius[z][m], "logRadius");
+              my_H5Dread(d_tem, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, logTemperature[z][m], "logTemperature");
+
               my_H5Dclose(d_age, "Age");
               my_H5Dclose(d_frage, "FractionalAge");
               my_H5Dclose(d_rad, "logRadius");
@@ -408,7 +401,7 @@ void load_star_tables(const char *filename)
 #ifdef WINDS
               hid_t d_ml = my_H5Dopen(mgrp, "logMassLossRate");
 #if GRACKLE_CHEMISTRY >= 1
-              hid_t d_X  = my_H5Dopen(mgrp, "X");
+              hid_t d_X = my_H5Dopen(mgrp, "X");
               hid_t d_Y = my_H5Dopen(mgrp, "Y");
 #endif
 #ifdef METALS
@@ -426,20 +419,15 @@ void load_star_tables(const char *filename)
 #endif
               logWindVelocity[z][m] = malloc(N[z][m] * sizeof(double));
 
-              my_H5Dread(d_ml, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, logMassLossRate[z][m], "logMassLossRate");
+              my_H5Dread(d_ml, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, logMassLossRate[z][m], "logMassLossRate");
 #if GRACKLE_CHEMISTRY >= 1
-              my_H5Dread(d_X, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, WindX[z][m], "X");
-              my_H5Dread(d_Y, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, WindY[z][m], "Y");
+              my_H5Dread(d_X, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, WindX[z][m], "X");
+              my_H5Dread(d_Y, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, WindY[z][m], "Y");
 #endif
 #ifdef METALS
-              my_H5Dread(d_Z, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, WindZ[z][m], "Z");
+              my_H5Dread(d_Z, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, WindZ[z][m], "Z");
 #endif
-              my_H5Dread(d_wv, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, logWindVelocity[z][m], "logWindVelocity");
+              my_H5Dread(d_wv, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, logWindVelocity[z][m], "logWindVelocity");
 
               my_H5Dclose(d_ml, "logMassLossRate");
 #if GRACKLE_CHEMISTRY >= 1
@@ -470,8 +458,8 @@ void load_star_tables(const char *filename)
                   logFlux[w][z][m] = malloc(N[z][m] * sizeof(WavebandData));
                   for(int i = 0; i < N[z][m]; i++)
                     {
-                      logFlux[w][z][m][i].Energy = energy_buf[i][w]; 
-                      logFlux[w][z][m][i].Photons = photon_buf[i][w]; 
+                      logFlux[w][z][m][i].Energy = energy_buf[i][w];
+                      logFlux[w][z][m][i].Photons = photon_buf[i][w];
                     }
                 }
 
@@ -488,17 +476,13 @@ void load_star_tables(const char *filename)
 #ifdef METALS
               hid_t d_snZ = my_H5Dopen(mgrp, "SN_Z");
 #endif
-              my_H5Dread(d_snml, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_MassLoss[z][m], "SN_MassLoss");
+              my_H5Dread(d_snml, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_MassLoss[z][m], "SN_MassLoss");
 #if GRACKLE_CHEMISTRY >= 1
-              my_H5Dread(d_snX, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_X[z][m], "SN_X");
-              my_H5Dread(d_snY, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_Y[z][m], "SN_Y");
+              my_H5Dread(d_snX, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_X[z][m], "SN_X");
+              my_H5Dread(d_snY, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_Y[z][m], "SN_Y");
 #endif
 #ifdef METALS
-              my_H5Dread(d_snZ, H5T_NATIVE_DOUBLE,
-                      H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_Z[z][m], "SN_Z");
+              my_H5Dread(d_snZ, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &SN_Z[z][m], "SN_Z");
 #endif
               my_H5Dclose(d_snml, "SN_MassLoss");
 #if GRACKLE_CHEMISTRY >= 1
@@ -562,7 +546,7 @@ void load_star_tables(const char *filename)
             MPI_Bcast(Age[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
             MPI_Bcast(FractionalAge[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
             MPI_Bcast(logRadius[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-            MPI_Bcast(logTemperature[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);         
+            MPI_Bcast(logTemperature[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 #ifdef WINDS
             MPI_Bcast(logMassLossRate[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);

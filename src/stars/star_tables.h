@@ -3,7 +3,6 @@
 
 #include "../main/allvars.h"
 
-
 extern int Z_COUNT;
 extern int M_COUNT;
 
@@ -37,21 +36,21 @@ extern WavebandData ***logFlux[WAVEBANDS];
 #endif
 
 #ifdef SUPERNOVAE
-extern double **SN_MassLoss; 
+extern double **SN_MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
-extern double **SN_X; 
-extern double **SN_Y; 
+extern double **SN_X;
+extern double **SN_Y;
 #endif
 #ifdef METALS
-extern double **SN_Z; 
-#endif 
+extern double **SN_Z;
+#endif
 #endif
 
-#ifdef AGB 
-extern double **AGB_MassLoss; 
+#ifdef AGB
+extern double **AGB_MassLoss;
 #ifdef METALS
-extern double **AGB_MetalsLoss; 
-#endif 
+extern double **AGB_MetalsLoss;
+#endif
 #endif
 
 #endif
