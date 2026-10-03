@@ -2,6 +2,24 @@
 #define STAR_PARTICLE_H
 
 #define NBINS 265
+
+#ifndef STAR_BINS_BITS 
+#define STAR_BINS_BITS 32
+#endif
+
+#if STAR_BINS_BITS == 8
+typedef unsigned char MyStarBins;
+#define BIN_COUNTS_MAX UCHAR_MAX
+#elif STAR_BINS_BITS == 16
+typedef unsigned short MyStarBins;
+#define BIN_COUNTS_MAX USHRT_MAX
+#elif STAR_BINS_BITS == 32
+typedef unsigned int MyStarBins;
+#define BIN_COUNTS_MAX UINT_MAX
+#else
+#error "STAR_BINS_BITS must be 8, 16 or 32"
+#endif
+
 #define MMIN 0.10
 #define MMAX 120.0
 

@@ -31,11 +31,7 @@ double sample_imf(double u);
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 void setup_mass_bins(void);
-void sample_star_particle(double m, int *bins);
-
-#ifdef STAR_FEEDBACK_ACTIVE
-Star_Feedback star_particle_feedback(int index, double dt, double z, double a);
-#endif
+void sample_star_particle(double m, MyStarBins *bins);
 #endif
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES == 0
@@ -43,6 +39,7 @@ void setup_imf_integrals(void);
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION
+/* Individual star by star formation */
 void individual_starbystar_formation(void);
 void sf_starbystar(void);
 void sf_massdrain(void);
@@ -50,10 +47,15 @@ double gaussian_weight(double r, double h);
 #endif
 
 #ifdef STAR_FEEDBACK_ACTIVE
-/* Feedback tables interpolation */
+/* Feedback tables */
 void load_star_tables(const char *filename);
 void free_stellar_tables(void);
+
+/* Feedback tables interpolation */
 Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, double a);
+#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
+Star_Feedback star_particle_feedback(int index, double dt, double z, double a);
+#endif
 Star_Feedback units_for_feedback(Star_Feedback star);
 
 /* Wrap stars module */
@@ -77,6 +79,11 @@ void star_prep(void);
 void star_density(void);
 #endif
 
+#if defined(WINDS) || defined(SUPERNOVAE)
+/* Winds and SN */
+void star_feedback(void);
+#endif
+
 #ifdef STAR_RADIATION_ACTIVE
 /* Radiation */
 #include "../stars/star_radiation.h"
@@ -84,13 +91,14 @@ void star_density(void);
 /* Opacities and per-cell optical depths */
 void update_opac(void);
 
-#ifdef IR_MOMENTUM_BOOST
-double dtau_IR(int i, double length);
-#endif
-
 /* H2 self-shielding (WG19) */
 double h2shield_dA(double N_H2, double dN_H2, double alpha, double b5);
 double h2shield_dtau(double A_H2, double dA);
+
+#ifdef IR_MOMENTUM_BOOST
+/* Momentum boost */
+double dtau_IR(int i, double length);
+#endif
 
 /* Ray bookkeeping */
 void append_ray(RayWorkStack *w, const RayPacket *ray);
@@ -114,6 +122,7 @@ void star_radiation(void);
 void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm);
 
 #ifdef RT_STATISTICS
+/* RT statistics */
 void rt_statistics_init(const RayPacket *ray);
 void rt_statistics_reset(void);
 void rt_statistics_report(void);
@@ -123,11 +132,8 @@ void rt_statistics_abandon(const RayPacket *ray, int cause);
 #endif
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-void star_feedback(void);
-#endif
-
 #ifdef STAR_FEEDBACK_ACTIVE
+/* Close of step update */
 void star_perform_end_of_step_physics(void);
 #endif
 

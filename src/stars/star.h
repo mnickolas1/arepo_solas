@@ -186,7 +186,7 @@ typedef struct Star_Particle_Data
 #endif
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
-  int NumOfStarsInBins[NBINS];
+  MyStarBins NumOfStarsInBins[NBINS];
 #endif
 
 #ifdef INDIVIDUAL_STAR_BY_STAR_FORMATION

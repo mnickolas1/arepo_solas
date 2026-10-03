@@ -212,6 +212,15 @@ void setup_mass_bins(void)
 
   for(i = 0; i < NBINS; i++)
     {
+      if(!(StarMassBins[i + 1] > StarMassBins[i]))
+        terminate("StarMassBins not strictly increasing at bin %d (%g, %g): check NBINS", i, StarMassBins[i], StarMassBins[i + 1]);
+    }
+
+  if(StarMassBins[NBINS] != MMAX)
+    terminate("StarMassBins[NBINS] = %g != MMAX = %g: check NBINS", StarMassBins[NBINS], MMAX);
+
+  for(i = 0; i < NBINS; i++)
+    {
       m1 = StarMassBins[i];
       m2 = StarMassBins[i + 1];
 
@@ -220,6 +229,21 @@ void setup_mass_bins(void)
 
       StarMeanMassInBins[i] = numerator / denominator;
     }
+}
+
+static MyStarBins store_bin_counts(int bin, unsigned int n)
+{
+  if(n <= BIN_COUNTS_MAX)
+    return (MyStarBins)n;
+
+#ifdef STAR_FEEDBACK_ACTIVE
+  if(StarMassBins[bin + 1] > LOWEST_MASS_FEEDBACK)
+    terminate("Star mass bin %d (%g-%g Msun) holds %u stars, above the STAR_BINS_BITS=%d limit: %u"
+              "raise STAR_BINS_BITS or lower the star particle mass", 
+              bin, StarMassBins[bin], StarMassBins[bin + 1], n, STAR_BINS_BITS, BIN_COUNTS_MAX);
+#endif
+
+  return (MyStarBins)BIN_COUNTS_MAX;
 }
 #endif
 
@@ -246,19 +270,19 @@ void setup_imf_integrals(void)
 }
 
 /* Draw masses for a star particle of total mass M_particle */
-void sample_star_particle(double m, int *bins)
+void sample_star_particle(double m, MyStarBins *bins)
 {
   for(int i = 0; i < NBINS; i++)
     {
       double lambda = m * (bin_imf[i] / norm);
-      bins[i] = (int)gsl_ran_poisson(rng, lambda);
+      bins[i] = store_bin_counts(i, (unsigned int) gsl_ran_poisson(rng, lambda));
     }
 }
 #endif
 
 #if STAR_PARTICLES == 1
 /* Draw masses for a star particle of total mass M_particle */
-void sample_star_particle(double m, int *bins)
+void sample_star_particle(double m, MyStarBins *bins)
 {
   /* Zero the bins */
   for(int i = 0; i < NBINS; i++)
@@ -284,7 +308,7 @@ void sample_star_particle(double m, int *bins)
               int bin = 0;
               while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar)
                 bin++;
-              bins[bin]++;
+              bins[bin] = store_bin_counts(bin, (unsigned int)bins[bin] + 1);
             }
           break;
         }

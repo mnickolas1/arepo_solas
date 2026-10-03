@@ -655,8 +655,9 @@ Star_Feedback units_for_feedback(Star_Feedback StarFeedback)
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 Star_Feedback star_particle_feedback(int index, double dt, double z, double a)
 {
-  int i, Nstars;
+  int i; 
   double m;
+  MyStarBins Nstars;
   Star_Feedback StarParticle = {0};
 
   StarParticle.State = -1;
