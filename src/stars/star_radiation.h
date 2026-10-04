@@ -59,7 +59,9 @@
  *
  * LYMAN_WERNER: 1107.0 A - 911.6 A (11.2 eV - 13.6 eV)
  *
- * IONIZING_HI: 911.6 A - 504.0 A (13.6 eV - 24.6 eV)
+ * IONIZING_HI: 911.6 A - 805.1 A (13.6 eV - 15.4 eV)
+ *
+ * IONIZING_H2: 805.1 A - 504.0 A (15.4 eV - 24.6 eV)
  *
  * IONIZING_HeI: 504.0 A - 227.9 A (24.6 eV - 54.4 eV)
  *
@@ -303,8 +305,13 @@ typedef struct RTStatistics
   double abandoned_E[WAVEBANDS][RAY_END_CAUSES];
   double abandoned_N[WAVEBANDS][RAY_END_CAUSES];
 
-  double drop_cells[WAVEBANDS]; /* summed cells-since-source at band drop */
-  double n_drop[WAVEBANDS];
+  double drop_cells[WAVEBANDS];   /* summed cells-since-source at band drop */
+  double drop_t[WAVEBANDS];       /* summed path length at band drop */
+  double n_drop[WAVEBANDS];       /* # band drops */
+  double n_drop_birth[WAVEBANDS]; /* born below the drop threshold */
+  double n_drop_first[WAVEBANDS]; /* dropped in their first cell */
+
+  double untransported_E[WAVEBANDS]; 
 
   double end_cells[RAY_END_CAUSES];
   double end_t[RAY_END_CAUSES];

@@ -639,6 +639,10 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
           t_step = 0.0;
         }
 
+#ifdef RT_STATISTICS
+        RTStatisticsLocal.n_crossing++;
+#endif
+
       int truncated = 0;
       if(ray->t + t_step >= ray->t_maximum)
         {
@@ -646,15 +650,14 @@ void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm)
           truncated = 1;
         }
 
-#ifdef RT_STATISTICS
-      RTStatisticsLocal.n_crossing++;
-      ray->diag_cells++;
-#endif
-
       /* Absorption, heating, radiation pressure */
       int still_alive = ray_deposit(ray, i, t_step);
 
       SphP[i].RTCost += 1.0f;
+
+#ifdef RT_STATISTICS
+      ray->diag_cells++;
+#endif
 
       ray->t += t_step;
 
