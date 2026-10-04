@@ -1,38 +1,53 @@
-#--------------------------------------- SOLAS additions
+#---------------------------------------- SOLAS additions
 
-#--------------------------------------- Metal parameters
-METALS                 # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS
+#---------------------------------------- Metal parameters
+METALS                  # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS
 
-#--------------------------------------- Cooling parameters
-USE_GRACKLE
-GRACKLE_CHEMISTRY=3    
+#---------------------------------------- Cooling parameters
+COOLING                # General cooling flag
 
-#--------------------------------------- Star Formation options
+USE_GRACKLE            # Enable grackle
+GRACKLE_CHEMISTRY=2    # Set grackle chemistry mode 
+#UV_BACKGROUND          # Apply the grackle UV background
+
+#---------------------------------------- Star Formation options
+USE_SFR                # Star formation model, turning dense gas into collisionless partices
+
 AGORA_SF               # Agora based SF
 
-#--------------------------------------- Star options
+#---------------------------------------- Star options
 STARS                  # General stars framework flag
 
 STAR_PARTICLES=1       # Star particles model flag: set to 0, 1 for massive star particles, set to 2 for resolved individual stars
+STAR_BINS_BITS=32      # Bits per mass-bin star counter: 8, 16 or 32 
+
+STAR_IN_CELL           # Place stars on the host cell generator; superpose all stars in a cell into one source
+#STAR_HOST_REFINEMENT   # Refine the gas cell hosting a star 
 
 WINDS                  # Only winds
-SUPERNOVAE             # Only supernovae
 
 RADIATION              # Full radiation
-RAD_TOTAL_TRUNCATION
+#RADIATION_PRESSURE     # Only radiation pressure
+#PHOTOELECTRIC_HEATING  # Only photoelectric
+#DISSOCIATION           # Only dissociation
+#PHOTOIONIZATION        # Only photoionization
 
-RT_STATISTICS
-RT_COMM_STATISTICS
+SUPERNOVAE             # Only supernovae
 
-DOMAIN_MEASURED_WEIGHTS
+FB_STATISTICS          # Record feedback host-geometry statistics
 
-#STAR_HOST_REFINEMENT
+#---------------------------------------- Radiation / RT options
+RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
+#RT_TIMESTEP            # RT timestep limiter (requires DISSOCIATION or PHOTOIONIZATION)
+#IR_MOMENTUM_BOOST      # IR momentum boost from the per-cell optical depth
 
+RT_STATISTICS          # Ray-tracing statistics
+RT_COMM_STATISTICS     # RT communication timing statistics
+
+DOMAIN_MEASURED_WEIGHTS # Use measured per-channel timings for the domain decomposition weights
 
 #--------------------------------------- Arepo public
-
 CREATE_FULL_MESH
-#ENLARGE_DYNAMIC_RANGE_IN_TIME
 
 #--------------------------------------- Mesh motion and regularization; default: moving mesh
 REGULARIZE_MESH_CM_DRIFT      # Mesh regularization; Move mesh generating point towards center of mass to make cells rounder.
@@ -44,10 +59,6 @@ REFINEMENT_SPLIT_CELLS        # Refinement
 REFINEMENT_MERGE_CELLS        # Derefinement
 REFINEMENT_VOLUME_LIMIT       # Limit the volume of cells and the maximum volume difference between neighboring cels
 NODEREFINE_BACKGROUND_GRID    # Do not de-refine low-res gas cells in zoom simulations
-
-#--------------------------------------- non-standard phyiscs
-COOLING                       # Simple primordial cooling
-USE_SFR                       # Star formation model, turning dense gas into collisionless partices
 
 #--------------------------------------- Gravity treatment; default: no gravity
 SELFGRAVITY                   # gravitational intraction between simulation particles/cells
@@ -76,3 +87,5 @@ HAVE_HDF5                     # needed when HDF5 I/O support is desired (recomme
 DEBUG                         # enables core-dumps
 
 OVERRIDE_PEANOGRID_WARNING    # don't stop if peanogrid is not fine enough
+
+#ADDBACKGROUNDGRID=16          # Re-grid hydrodynamics quantities on a Oct-tree AMR grid. This does not perform a simulation.
