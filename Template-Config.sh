@@ -7,29 +7,40 @@
 #---------------------------------------- SOLAS additions
 
 #---------------------------------------- Metal parameters
-#PASSIVE_SCALARS=1      # Number of passive scalar fields advected with fluid (default: 0)
-#METALS                 # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS
+#PASSIVE_SCALARS_EXTRA=0 # Extra passive scalar fields on top of metals/grackle/jet (internal default: 0)
+#METALS                  # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS
 
 #---------------------------------------- Cooling parameters
-#USE_GRACKLE
-#GRACKLE_CHEMISTRY=0    # Curretly only grackle mode=0 (lookup tables) with no chemistry network is supported
+#COOLING                # General cooling flag
+
+#USE_GRACKLE            # Enable grackle
+#GRACKLE_CHEMISTRY=0    # Set grackle chemistry mode 
+#UV_BACKGROUND          # Apply the grackle UV background
 
 #---------------------------------------- Star Formation options
-#EEOS_SF                # Default SF scheme in Arepo
+#USE_SFR                # Star formation model, turning dense gas into collisionless partices
+
 #AGORA_SF               # Agora based SF
+#AGORA_SF_VIRIAL        # Virial based Agora threshold
+
 #JEANS_SF               # Jeans length based SF
 #JEANS_MASS_BASED       # Jeans mass based SF
 
-#INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars (need STAR_PARTICLES=2 AND USE_SFR)
+#INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars
 
 #---------------------------------------- Star options
 #STARS                  # General stars framework flag
 
 #STAR_PARTICLES=1       # Star particles model flag: set to 0, 1 for massive star particles, set to 2 for resolved individual stars
+#STAR_BINS_BITS=32      # Bits per mass-bin star counter: 8, 16 or 32 
+
+#STAR_IN_CELL           # Place stars on the host cell generator; superpose all stars in a cell into one source
+#STAR_HOST_REFINEMENT   # Refine the gas cell hosting a star 
 
 #STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
 
 #WINDS                  # Only winds
+#AGB                    # Include the AGB mass-loss branch (not operational)
 
 #RADIATION              # Full radiation
 #RADIATION_PRESSURE     # Only radiation pressure
@@ -38,6 +49,21 @@
 #PHOTOIONIZATION        # Only photoionization
 
 #SUPERNOVAE             # Only supernovae
+
+#FB_STATISTICS          # Record feedback host-geometry statistics
+
+#---------------------------------------- Radiation / RT options
+#RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
+#RT_TIMESTEP            # RT timestep limiter (requires DISSOCIATION or PHOTOIONIZATION)
+#IR_MOMENTUM_BOOST      # IR momentum boost from the per-cell optical depth
+#RT_COMM_SYNC           # Synchronous RT communication scheme
+
+#RT_STATISTICS          # Ray-tracing statistics
+#RT_COMM_STATISTICS     # RT communication timing statistics
+
+#RAD_OCT_TREE           # Use a separate oct-tree for the radiation neighbour search (not operational)
+#RAD_OPENING_ANGLE      # Opening-angle criterion for the radiation tree walk (not operational)
+#TREECOLUMN             # Column densities from the gravity tree (not operational)
 
 #---------------------------------------- Blackhole options
 #BLACKHOLES             # General blackholes framework flag
@@ -58,11 +84,20 @@
 
 #REFINEMENT_AROUND_BH   # BH refinement options
 #MIN_REFINEMENT_BH_MASS
+
 #REFINEMENT_AROUND_BH_FIXED
 #REFINEMENT_AROUND_BH_HYBRID
+
 #BH_JET_FEEDBACK
 #BH_JET_REFINEMENT
 #OUTPUT_REFBHCOUNTER
+
+#BH_HSML_IO             # Output the BH smoothing length and neighbour mass
+
+#---------------------------------------- Hydro, gravity and domain extras
+#DIVVEL                 # Compute the velocity divergence in the gradient estimate
+
+#DOMAIN_MEASURED_WEIGHTS # Use measured per-channel timings for the domain decomposition weights
 
 #---------------------------------------- Arepo public
 
@@ -112,12 +147,13 @@
 #NODEREFINE_BACKGROUND_GRID    # Do not de-refine low-res gas cells in zoom simulations
 #OPTIMIZE_MESH_MEMORY_FOR_REFINEMENT  # deletes the mesh structures not needed for refinement/derefinemet to lower the peak memory consumption
 
-#---------------------------------------- non-standard phyiscs
-#COOLING                       # General cooling flag
+#---------------------------------------- Primordial cooling
 #PRIMORDIAL_COOLING            # Simple primordial cooling
-#LOW_TEMP_COOLING              # Maschenko et al. 2008 # Don't use while USE_GRACKLE
-#ENFORCE_JEANS_STABILITY_OF_CELLS  # this imposes an adaptive floor for the temperature
-#USE_SFR                       # Star formation model, turning dense gas into collisionless partices
+#LOW_TEMP_COOLING              # Maschenko et al. 2008
+#NOUVBACKGROUND                # Skip the UV background in the main loop
+
+#---------------------------------------- SFR options
+#EEOS_SF                       # Default SF scheme in Arepo
 #SFR_KEEP_CELLS                # Do not distroy cell out of which a star has formed
 
 #---------------------------------------- Gravity treatment; default: no gravity
