@@ -292,7 +292,7 @@ void rt_statistics_report(void)
       mpi_printf("%s\n", line);
     }
 
-  mpi_printf("STAR_RADIATION: band drop depth\n");
+  mpi_printf("STAR_RADIATION: band drop depth (* = genuine drops, excl. birth and 1cell)\n");
 
   p = statistics_cat(p, end, " ");
   p = statistics_mid(p, end, "band", STAT_BAND);
