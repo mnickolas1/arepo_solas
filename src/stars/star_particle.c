@@ -240,7 +240,7 @@ static MyStarBins store_bin_counts(int bin, unsigned int n)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   if(StarMeanMassInBins[bin] > LOWEST_MASS_FEEDBACK)
-    terminate("Star mass bin %d (%g-%g Msun) holds %u stars, above the STAR_BINS_BITS=%d limit: %u -Raise STAR_BINS_BITS", 
+    terminate("Star mass bin %d (%g-%g Msun) holds %u stars, above the STAR_BINS_BITS=%u limit: %u -Raise STAR_BINS_BITS", 
               bin, StarMassBins[bin], StarMassBins[bin + 1], n, (unsigned int)STAR_BINS_BITS, (unsigned int)BIN_COUNTS_MAX);
 #endif
 
