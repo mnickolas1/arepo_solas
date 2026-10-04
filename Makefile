@@ -521,6 +521,12 @@ $(error STAR_PARTICLES requires USE_SFR or STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
+ifneq (,$(filter STAR_IN_CELL,$(CONFIGVARS)))
+ifeq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+$(error STAR_IN_CELL requires STAR_FEEDBACK_ACTIVE)
+endif
+endif
+
 ifneq (,$(filter STAR_HOST_REFINEMENT,$(CONFIGVARS)))
 ifeq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 $(error STAR_HOST_REFINEMENT requires STAR_FEEDBACK_ACTIVE)
