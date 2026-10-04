@@ -1,6 +1,8 @@
 #ifndef STAR_PARTICLE_H
 #define STAR_PARTICLE_H
 
+#include <limits.h>
+
 #define NBINS 265
 
 #ifndef STAR_BINS_BITS 

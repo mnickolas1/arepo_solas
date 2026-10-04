@@ -156,6 +156,7 @@ double sample_imf(double u)
 
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
 
+/* clang-format off */
 double StarMassBins[NBINS + 1] =
 {
   /* Below LOWEST_MASS_FEEDBACK: a single bin */
@@ -202,6 +203,7 @@ double StarMassBins[NBINS + 1] =
   55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
   105, 110, 115, MMAX
 };
+/* clang-format on */
 
 double StarMeanMassInBins[NBINS];
 
@@ -237,10 +239,9 @@ static MyStarBins store_bin_counts(int bin, unsigned int n)
     return (MyStarBins)n;
 
 #ifdef STAR_FEEDBACK_ACTIVE
-  if(StarMassBins[bin + 1] > LOWEST_MASS_FEEDBACK)
-    terminate("Star mass bin %d (%g-%g Msun) holds %u stars, above the STAR_BINS_BITS=%d limit: %u"
-              "raise STAR_BINS_BITS or lower the star particle mass", 
-              bin, StarMassBins[bin], StarMassBins[bin + 1], n, STAR_BINS_BITS, BIN_COUNTS_MAX);
+  if(StarMeanMassInBins[bin] > LOWEST_MASS_FEEDBACK)
+    terminate("Star mass bin %d (%g-%g Msun) holds %u stars, above the STAR_BINS_BITS=%d limit: %u -Raise STAR_BINS_BITS", 
+              bin, StarMassBins[bin], StarMassBins[bin + 1], n, (unsigned int)STAR_BINS_BITS, (unsigned int)BIN_COUNTS_MAX);
 #endif
 
   return (MyStarBins)BIN_COUNTS_MAX;
@@ -319,7 +320,7 @@ void sample_star_particle(double m, MyStarBins *bins)
       int bin = 0;
       while(bin < NBINS - 1 && StarMassBins[bin + 1] <= mstar)
         bin++;
-      bins[bin]++;
+      bins[bin] = store_bin_counts(bin, (unsigned int)bins[bin] + 1);
     }
 }
 #endif
