@@ -4,16 +4,18 @@
 InitMetallicityinSolar	    1.0
 
 %---- Cooling parameters
-GrackleDataFile				./CloudyData_UVB=HM2012_shielded.h5
+GrackleDataFile				./cloudy_metals_2008_3D.h5
 GrackleSpeciesState         0
 
 %---- Star Formation options
 StarFormationEfficiency	    0.01
-NumberDensThreshold	        10
-TemperatureThreshold        1e6
+NumberDensThreshold	        100
+TemperatureThreshold        1e4
 
 %---- Star options
 IMF                     1
+%RefStarsPerCell         4 %Refine cells hosting more than this number of stars
+
 StarTablesFile          star_feedback_tables.hdf5
 
 SN_HostShellSweepFrac    0.1
@@ -25,8 +27,6 @@ RayMaxDistance          100
 %RTIonizationTimestepFraction  1
 
 %IRDtauMomentumBoostCoeff  1
-
-%RefStarsPerCell         4 %Refine cells hosting more than this number of stars
 
 %----  Arepo public
 
@@ -41,8 +41,8 @@ ICFormat                                3
 SnapFormat                              3
 
 %---- CPU-time limits
-TimeLimitCPU                            93000
-CpuTimeBetRestartFile                   12000
+TimeLimitCPU                            100000
+CpuTimeBetRestartFile                   10000
 ResubmitOn                              0
 ResubmitCommand                         my-scriptfile
 
@@ -51,7 +51,7 @@ MaxMemSize                              2500
 
 %---- Caracteristics of run
 TimeBegin                               0.0
-TimeMax                                 1.0 % End of the simulation
+TimeMax                                 0.5 % End of the simulation
 
 %---- Basic code options that set the type of simulation
 ComovingIntegrationOn                   0
@@ -62,7 +62,7 @@ Omega0                                  0.0
 OmegaLambda                             0.0
 OmegaBaryon                             0.0  
 HubbleParam                             1.0
-BoxSize                                 1200
+BoxSize                                 1300
 
 %---- Output frequency and output parameters
 OutputListOn                            0
@@ -91,8 +91,8 @@ MinEgySpec                              0.0
 TypeOfOpeningCriterion                  1
 ErrTolTheta                             0.7
 ErrTolForceAcc                          0.0025
-MultipleDomains                         2
-TopNodeFactor                           1
+MultipleDomains                         8
+TopNodeFactor                           2.5
 ActivePartFracForNewDomainDecomp        0.01
  
 %---- Initial density estimate
@@ -139,3 +139,5 @@ MeanVolume                              52734.4
 MaxVolumeDiff                           10  
 MinVolume                               2.14e-3    % dx >= 80 pc limit
 MaxVolume                               1.0e9      % no limits
+
+%GridSize                                16
