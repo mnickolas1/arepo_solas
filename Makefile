@@ -553,7 +553,7 @@ endif
 
 ifneq (,$(filter IR_MOMENTUM_BOOST,$(CONFIGVARS)))
 ifeq (,$(filter RADIATION_PRESSURE,$(CONFIGVARS)))
-$(error RT_TIMESTEP requires DISSOCIATION or PHOTOIONIZATION)
+$(error IR_MOMENTUM_BOOST requires RADIATION_PRESSURE)
 endif
 endif
 
