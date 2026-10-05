@@ -276,7 +276,7 @@ void InitGrackle(void)
 #if GRACKLE_CHEMISTRY >= 2
   my_grackle_data->h2_on_dust = 1;
 #else
-  my_grackle_data->h2_on_dust = 0
+  my_grackle_data->h2_on_dust = 0;
 #endif
   my_grackle_data->use_dust_density_field = 1;
 #else

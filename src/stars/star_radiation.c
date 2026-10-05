@@ -740,7 +740,7 @@ static void radiation_feedback(void)
       for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
 #endif
-    }
+    ;}
 }
 
 #ifdef RT_TIMESTEP
