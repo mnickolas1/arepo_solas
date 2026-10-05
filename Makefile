@@ -551,6 +551,12 @@ $(error RT_TIMESTEP requires DISSOCIATION or PHOTOIONIZATION)
 endif
 endif
 
+ifneq (,$(filter IR_MOMENTUM_BOOST,$(CONFIGVARS)))
+ifeq (,$(filter RADIATION_PRESSURE,$(CONFIGVARS)))
+$(error RT_TIMESTEP requires DISSOCIATION or PHOTOIONIZATION)
+endif
+endif
+
 ifneq (,$(filter RT_STATISTICS,$(CONFIGVARS)))
 ifeq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
 $(error RT_STATISTICS requires STAR_RADIATION_ACTIVE)
