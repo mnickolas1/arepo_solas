@@ -299,6 +299,8 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   SP[NumStars].Hsml = get_cell_radius(igas);
   
 #ifdef STAR_FEEDBACK_ACTIVE
+  /* Set Birthtime */
+  SP[NumStars].Birthtime = All.Time;
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;
@@ -380,6 +382,8 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   /* Assign density loop properties */
   SP[NumStars].Hsml = get_cell_radius(igas);
   
+  /* Set Birthtime */
+  SP[NumStars].Birthtime = All.Time;
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;

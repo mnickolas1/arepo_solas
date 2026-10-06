@@ -214,8 +214,9 @@ typedef struct Star_Particle_Data
   int HostHydroBin;
   signed char TimeBinStar;
 
-  MyDouble Age;
-  MyDouble Birthtime;
+  MyDouble Age; // yrs
+  MyDouble PreAge; // yrs      
+  MyDouble Birthtime; // All.Time unit
 
   Mechanical_Feedback MechanicalFeedback;
 #endif
