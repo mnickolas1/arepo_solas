@@ -1441,10 +1441,6 @@ double InitMetallicityinSolar;
   double SN_HostShellSweepFrac;
 #endif
 
-#ifdef FB_STATISTICS
-  int FeedbackHostGeom;
-#endif
-
 #ifdef STAR_RADIATION_ACTIVE
   double RaySplitFactor;
   double RayMaxDistance;

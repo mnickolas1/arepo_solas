@@ -50,8 +50,6 @@
 
 #SUPERNOVAE             # Only supernovae
 
-#FB_STATISTICS          # Record feedback host-geometry statistics
-
 #---------------------------------------- Radiation / RT options
 #RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
 #RT_TIMESTEP            # RT timestep limiter (requires DISSOCIATION or PHOTOIONIZATION)
