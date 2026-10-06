@@ -211,6 +211,29 @@ void free_stellar_tables(void)
     }
 }
 
+static void check_waveband_dataset(hid_t dset, const char *name, int n_expected, const char *zname, const char *mname)
+{
+  hid_t space = my_H5Dget_space(dset, name);
+
+  const int rank = H5Sget_simple_extent_ndims(space);
+
+  if(rank != 2)
+    {
+      my_H5Sclose(space, H5S_SIMPLE);
+      terminate("STAR_RADIATION: %s/%s/%s has rank %d, expected 2 ([N][WAVEBANDS])!\n", zname, mname, name, rank);
+    }
+
+  hsize_t dims[2];
+  H5Sget_simple_extent_dims(space, dims, NULL);
+  my_H5Sclose(space, H5S_SIMPLE);
+
+  if((int)dims[0] != n_expected || (int)dims[1] != WAVEBANDS)
+    terminate(
+        "STAR_RADIATION: %s/%s/%s has shape [%d][%d], expected [%d][%d]. " 
+        "The stellar table (%s) was built for different wavebands\n",
+        zname, mname, name, (int)dims[0], (int)dims[1], n_expected, WAVEBANDS, All.StarTablesFile);
+}
+
 void load_star_tables(const char *filename)
 {
   hid_t file_id = -1;
@@ -443,6 +466,9 @@ void load_star_tables(const char *filename)
 #ifdef STAR_RADIATION_ACTIVE
               hid_t d_energy = my_H5Dopen(mgrp, "logEnergy");
               hid_t d_photons = my_H5Dopen(mgrp, "logPhotons");
+
+              check_waveband_dataset(d_energy, "logEnergy", N[z][m], zname, mname);
+              check_waveband_dataset(d_photons, "logPhotons", N[z][m], zname, mname);
 
               double (*energy_buf)[WAVEBANDS] = malloc(N[z][m] * sizeof(*energy_buf));
               double (*photon_buf)[WAVEBANDS] = malloc(N[z][m] * sizeof(*photon_buf));
