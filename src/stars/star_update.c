@@ -234,8 +234,6 @@ void star_prep(void)
         {
           SP[i].MassOfStar = PPS(i).Mass;
           SP[i].Active = STAR_ACTIVE;
-
-          SP[i].Age = 0.0;
         }
 
       /* Clean up */
