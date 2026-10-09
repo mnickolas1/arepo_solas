@@ -982,11 +982,6 @@ void check_parameters()
       mpi_terminate("NTYPES>8 is not allowed with ICFormat=%d, since the header block is limited to 256 bytes.\n", All.ICFormat);
     }
 #endif /* #if (NTYPES > 8) */
-
-#if defined(ENFORCE_JEANS_STABILITY_OF_CELLS) && defined(USE_SFR)
-  if(ThisTask == 0)
-    warn("Code was compiled with ENFORCE_JEANS_STABILITY_OF_CELLS together with another EOS. Please make sure you really want this.");
-#endif /* #if defined(ENFORCE_JEANS_STABILITY_OF_CELLS) && (defined(ISOTHERM_EQS) || (defined(USE_SFR) && !defined(FM_SFR))) */
 }
 
 /*! \brief This function reads a table with a list of desired output times.
