@@ -9,25 +9,25 @@
    kext_albedo_WD_MW_3.1_60_D03.all, energy and photon-weighted 4e4 K BB
    Gas mass per H = 2.311e-24 g (M_dust/H = 1.398e-26, M_gas/M_dust = 165.3) */
 double Kappa_E[WAVEBANDS] = {
-  [INFRARED] = 34.9,
-  [OPTICAL] = 278.3,
+  [INFRARED] = 34.8,
+  [OPTICAL] = 278.4,
   [ULTRAVIOLET] = 417.7,
-  [LYMAN_WERNER] = 736.6, 
-  [IONIZING_HI] = 899.5,
-  [IONIZING_H2] = 903.5,
-  [IONIZING_HeI] = 460.0,
-  [IONIZING_HeII] = 256.4,
+  [LYMAN_WERNER] = 736.6,
+  [IONIZING_HI] = 898.8,
+  [IONIZING_H2] = 903.6,
+  [IONIZING_HeI] = 459.8,
+  [IONIZING_HeII] = 256.5,
 };
 
 double Kappa_N[WAVEBANDS] = {
   [INFRARED] = 30.0,
   [OPTICAL] = 242.3,
   [ULTRAVIOLET] = 406.9,
-  [LYMAN_WERNER] = 731.4, 
-  [IONIZING_HI] = 898.8,
-  [IONIZING_H2] = 925.8,
-  [IONIZING_HeI] = 469.2,
-  [IONIZING_HeII] = 257.4,
+  [LYMAN_WERNER] = 731.4,
+  [IONIZING_HI] = 898.1,
+  [IONIZING_H2] = 925.9,
+  [IONIZING_HeI] = 469.0,
+  [IONIZING_HeII] = 257.5,
 };
 
 /* Fraction of kappa_eff-attenuated energy that is truly absorbed (heats grains):
@@ -75,25 +75,25 @@ double ReradiatedFraction[WAVEBANDS] = {
 double SigmaH2 = SIGMA_DISS / F_DISS;
 
 double Sigma_E[WAVEBANDS][N_ION_SPECIES] = {
-  [INFRARED] = {0.0, 0.0, 0.0, 0.0},
-  [OPTICAL] = {0.0, 0.0, 0.0, 0.0},
-  [ULTRAVIOLET] = {0.0, 0.0, 0.0, 0.0},
-  [LYMAN_WERNER] = {0.0, 0.0, 0.0, 0.0},
-  [IONIZING_HI] = {5.3851e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00},
-  [IONIZING_H2] = {2.7415e-18, 6.3725e-18, 0.0000e+00, 0.0000e+00},
-  [IONIZING_HeI] = {8.1308e-19, 2.9751e-18, 5.7225e-18, 0.0000e+00},
-  [IONIZING_HeII] = {1.0127e-19, 2.6967e-19, 1.4614e-18, 1.3294e-18},
+  [INFRARED] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [OPTICAL] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [ULTRAVIOLET] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [LYMAN_WERNER] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [IONIZING_HI] = { 5.3970e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [IONIZING_H2] = { 2.7492e-18, 6.2898e-18, 3.7962e-21, 0.0000e+00 },
+  [IONIZING_HeI] = { 8.1229e-19, 2.9848e-18, 5.7193e-18, 0.0000e+00 },
+  [IONIZING_HeII] = { 1.0138e-19, 2.9270e-19, 1.4625e-18, 1.3231e-18 },
 };
 
 double Sigma_N[WAVEBANDS][N_ION_SPECIES] = {
-  [INFRARED] = {0.0, 0.0, 0.0, 0.0},
-  [OPTICAL] = {0.0, 0.0, 0.0, 0.0},
-  [ULTRAVIOLET] = {0.0, 0.0, 0.0, 0.0},
-  [LYMAN_WERNER] = {0.0, 0.0, 0.0, 0.0},
-  [IONIZING_HI] = {5.4042e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00},
-  [IONIZING_H2] = {2.8600e-18, 6.2862e-18, 0.0000e+00, 0.0000e+00},
-  [IONIZING_HeI] = {8.4911e-19, 3.1108e-18, 5.8894e-18, 0.0000e+00},
-  [IONIZING_HeII] = {1.0236e-19, 2.7276e-19, 1.4735e-18, 1.3425e-18},
+  [INFRARED] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [OPTICAL] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [ULTRAVIOLET] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [LYMAN_WERNER] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [IONIZING_HI] = { 5.4157e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [IONIZING_H2] = { 2.8690e-18, 6.1905e-18, 2.8924e-21, 0.0000e+00 },
+  [IONIZING_HeI] = { 8.4826e-19, 3.1202e-18, 5.8860e-18, 0.0000e+00 },
+  [IONIZING_HeII] = { 1.0247e-19, 2.9610e-19, 1.4746e-18, 1.3356e-18 },
 };
 /* clang-format on */
 
