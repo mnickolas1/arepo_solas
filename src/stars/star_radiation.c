@@ -161,6 +161,7 @@ void update_opac(void)
 #ifdef IR_MOMENTUM_BOOST
 double dtau_IR(int i, double length)
 {
+  /* Rosseland opactiy ~ 100 K */
   double kappa_rerad = 1.0;
 
   double Dtau_IR = All.IRDtauMomentumBoostCoeff * kappa_rerad * SphP[i].OpacityScaling[CH_DUST] * length;
