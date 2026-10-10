@@ -86,6 +86,7 @@ void domain_accumulate_step_times(void)
       summed_CPU_Step[parent] += summed_CPU_Step[i];
   }
   
+  /* TODO -> cases without grav parts, hydro parts, stars active */
   /*int mesh_channels = 1;
   
 #ifdef STAR_FEEDBACK_ACTIVE
