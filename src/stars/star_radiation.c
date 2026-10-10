@@ -619,7 +619,7 @@ void ray_neighbours_init(void)
    */
   MPI_Alltoall(sflag, 1, MPI_CHAR, rflag, 1, MPI_CHAR, MPI_COMM_WORLD);
 
-  RayNgbsNTask = 0;
+  RayNgbsNtask = 0;
   for(int t = 0; t < NTask; t++)
     {
       if(sflag[t] || rflag[t])
