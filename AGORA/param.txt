@@ -12,6 +12,8 @@ StarFormationEfficiency	    0.01
 NumberDensThreshold	        100
 TemperatureThreshold        1e4
 
+Njeans                      -1
+
 %---- Star options
 IMF                     1
 %RefStarsPerCell         4 %Refine cells hosting more than this number of stars

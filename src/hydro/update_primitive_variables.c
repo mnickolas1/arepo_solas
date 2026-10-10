@@ -138,10 +138,28 @@ void set_pressure_of_cell_internal(struct particle_data *localP, struct sph_part
   if(get_starformation_rate(i) == 0)
 #endif 
     {
-      double dx = 2.0 * get_cell_radius(i);
+      /* Use gravitational softening */
+      if(All.Njeans < 0)
+        {
+#ifdef ADAPTIVE_HYDRO_SOFTENING
+          double cell_soft = All.ForceSoftening[localP[i].SofteningType];
+#else  /* #ifdef ADAPTIVE_HYDRO_SOFTENING */
+          double cell_soft = All.GasSoftFactor * get_cell_radius(i);
+#endif /* #ifdef ADAPTIVE_HYDRO_SOFTENING #else */
 
-      double pressure_floor = All.Njeans * All.Njeans * dx * dx * All.G * localSphP[i].Density * localSphP[i].Density
+          double dx = 2.0 * cell_soft; 
+
+          double pressure_floor =  dx * dx * All.G * localSphP[i].Density * localSphP[i].Density
                             / localSphP[i].Gamma / M_PI; 
+        }
+      /* Use cell diameter */  
+      else
+        {
+          double dx = 2.0 * get_cell_radius(i);
+
+          double pressure_floor = All.Njeans * All.Njeans * dx * dx * All.G * localSphP[i].Density * localSphP[i].Density
+                            / localSphP[i].Gamma / M_PI; 
+        }
 
       localSphP[i].Pressure = dmax(localSphP[i].Pressure, pressure_floor);
     }

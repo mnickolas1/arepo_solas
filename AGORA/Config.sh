@@ -15,6 +15,8 @@ USE_SFR                # Star formation model, turning dense gas into collisionl
 
 AGORA_SF               # Agora based SF
 
+ENFORCE_JEANS_STABILITY_OF_CELLS # Use non-thermal pressure floor
+
 #---------------------------------------- Star options
 STARS                  # General stars framework flag
 

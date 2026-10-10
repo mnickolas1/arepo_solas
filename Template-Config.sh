@@ -28,6 +28,8 @@
 
 #INDIVIDUAL_STAR_BY_STAR_FORMATION # Form individual resolved stars
 
+#ENFORCE_JEANS_STABILITY_OF_CELLS # Use non-thermal pressure floor
+
 #---------------------------------------- Star options
 #STARS                  # General stars framework flag
 
