@@ -51,7 +51,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
       MPI_Type_commit(&MPI_RAYPACKET);
     }
 
-  const int n = RayNgbNTask > 0 ? RayNgbNTask : 1;
+  const int n = RayNgbsNtask > 0 ? RayNgbsNtask : 1;
 
   SendCount = malloc(n * sizeof(int));
   RecvCount = malloc(n * sizeof(int));
@@ -120,7 +120,7 @@ static void sort_by_ngb(RayExportBuffer *buf)
         terminate("sort_by_ngb(): out of memory growing sort scratch to %lld rays!\n", SortCapacity);
     }
 
-  for(int k = 0; k < RayNgbNTask; k++)
+  for(int k = 0; k < RayNgbsNtask; k++)
     Cursor[k] = SendOffset[k];
 
   for(long long i = 0; i < buf->n; i++)
@@ -143,7 +143,7 @@ static void sort_by_ngb(RayExportBuffer *buf)
  */
 static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_global)
 {
-  const int nn = RayNgbNTask;
+  const int nn = RayNgbsNtask;
 
 #ifdef RT_COMM_STATISTICS
   double ta = second(), tb;
@@ -160,10 +160,10 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
   int nreq = 0;
 
   for(int k = 0; k < nn; k++)
-    MPI_Irecv(&RecvCount[k], 1, MPI_INT, RayNgbTask[k], TAG_RAY_COUNT, MPI_COMM_WORLD, &Req[nreq++]);
+    MPI_Irecv(&RecvCount[k], 1, MPI_INT, RayNgbToTask[k], TAG_RAY_COUNT, MPI_COMM_WORLD, &Req[nreq++]);
 
   for(int k = 0; k < nn; k++)
-    MPI_Isend(&SendCount[k], 1, MPI_INT, RayNgbTask[k], TAG_RAY_COUNT, MPI_COMM_WORLD, &Req[nreq++]);
+    MPI_Isend(&SendCount[k], 1, MPI_INT, RayNgbToTask[k], TAG_RAY_COUNT, MPI_COMM_WORLD, &Req[nreq++]);
 
   MPI_Waitall(nreq, Req, MPI_STATUSES_IGNORE);
 
@@ -204,13 +204,13 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
 
   for(int k = 0; k < nn; k++)
     if(RecvCount[k] > 0)
-      MPI_Irecv(work->rays + work->n + RecvOffset[k], RecvCount[k], MPI_RAYPACKET, RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
+      MPI_Irecv(work->rays + work->n + RecvOffset[k], RecvCount[k], MPI_RAYPACKET, RayNgbToTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
                 &Req[nreq++]);
 
   for(int k = 0; k < nn; k++)
     if(SendCount[k] > 0)
       {
-        MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET, RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
+        MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET, RayNgbToTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
 
 #ifdef RT_COMM_STATISTICS
         MsgsSent++;

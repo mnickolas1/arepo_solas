@@ -567,8 +567,8 @@ void split_ray(const RayPacket *parent, RayPacket children[4])
 }
 
 /* Sparse, neighbour-restricted ray exchange */
-int RayNgbNTask = 0;
-int *RayNgbTask = NULL;
+int RayNgbsNtask = 0;
+int *RayNgbToTask = NULL;
 int *RayTaskToNgb = NULL;
 
 /*
@@ -619,14 +619,14 @@ void ray_neighbours_init(void)
    */
   MPI_Alltoall(sflag, 1, MPI_CHAR, rflag, 1, MPI_CHAR, MPI_COMM_WORLD);
 
-  RayNgbNTask = 0;
+  RayNgbsNTask = 0;
   for(int t = 0; t < NTask; t++)
     {
       if(sflag[t] || rflag[t])
-        RayNgbNTask++;
+        RayNgbsNtask++;
     }
 
-  RayNgbTask = malloc((RayNgbNTask > 0 ? RayNgbNTask : 1) * sizeof(int));
+  RayNgbToTask = malloc((RayNgbsNtask > 0 ? RayNgbsNtask : 1) * sizeof(int));
   RayTaskToNgb = malloc(NTask * sizeof(int));
 
   for(int t = 0; t < NTask; t++)
@@ -638,7 +638,7 @@ void ray_neighbours_init(void)
       if(sflag[t] || rflag[t])
         {
           RayTaskToNgb[t] = k;
-          RayNgbTask[k++] = t;
+          RayNgbToTask[k++] = t;
         }
     }
 
@@ -646,8 +646,8 @@ void ray_neighbours_init(void)
   free(sflag);
 
   int ngb_max, ngb_sum;
-  MPI_Allreduce(&RayNgbNTask, &ngb_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  MPI_Allreduce(&RayNgbNTask, &ngb_sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&RayNgbsNtask, &ngb_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&RayNgbsNtask, &ngb_sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   mpi_printf("STAR_RADIATION: RayPacket = %d B, comm neighbours: mean %d, max %d (of %d ranks)\n", (int)sizeof(RayPacket),
              ngb_sum / NTask, ngb_max, NTask);
@@ -657,9 +657,9 @@ void ray_neighbours_free(void)
 {
   free(RayTaskToNgb);
   RayTaskToNgb = NULL;
-  free(RayNgbTask);
-  RayNgbTask = NULL;
-  RayNgbNTask = 0;
+  free(RayNgbToTask);
+  RayNgbToTask = NULL;
+  RayNgbsNtask = 0;
 }
 
 static void radiation_feedback(void)

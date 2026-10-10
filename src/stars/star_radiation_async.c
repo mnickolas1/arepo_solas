@@ -105,7 +105,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
 
   c->work = work;
 
-  const int nn = RayNgbNTask > 0 ? RayNgbNTask : 1;
+  const int nn = RayNgbsNtask > 0 ? RayNgbsNtask : 1;
 
   /* One filling buffer per neighbour, plus spares so a rank exporting hard in
      one direction is not throttled by its own bookkeeping */
@@ -176,7 +176,7 @@ static void post_send(struct RayCommsAsync *c, int k)
   if(s < 0 || c->slot_n[s] == 0)
     return;
 
-  MPI_Isend(SENDSLOT(c, s), c->slot_n[s] * (int)sizeof(RayPacket), MPI_BYTE, RayNgbTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
+  MPI_Isend(SENDSLOT(c, s), c->slot_n[s] * (int)sizeof(RayPacket), MPI_BYTE, RayNgbToTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
             &c->send_req[s]);
 
   /* Counted at post time */
@@ -312,7 +312,7 @@ void ray_comms_flush(RayComms *comm)
 {
   struct RayCommsAsync *c = comm;
 
-  for(int k = 0; k < RayNgbNTask; k++)
+  for(int k = 0; k < RayNgbsNtask; k++)
     {
       if(c->fill[k] >= 0 && c->slot_n[c->fill[k]] > 0)
         post_send(c, k);
@@ -338,7 +338,7 @@ static int comm_idle(const struct RayCommsAsync *c)
   if(c->work->n > 0)
     return 0;
 
-  for(int k = 0; k < RayNgbNTask; k++)
+  for(int k = 0; k < RayNgbsNtask; k++)
     if(c->fill[k] >= 0 && c->slot_n[c->fill[k]] > 0)
       return 0; /* rays buffered but not yet handed to MPI */
 

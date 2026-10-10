@@ -232,8 +232,8 @@ typedef struct RayExportBuffer
   RayPacket *rays;
 } RayExportBuffer;
 
-extern int RayNgbNTask; /* number of mesh-neighbour ranks */
-extern int *RayNgbTask; /* ascending list of neighbour ranks, length RayNgbNTask */
+extern int RayNgbsNtask; /* number of mesh-neighbour ranks */
+extern int *RayNgbToTask; /* ascending list of neighbour ranks, length RayNgbsNtask */
 extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
 
 #define TAG_RAY_DATA 30201
