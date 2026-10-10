@@ -39,12 +39,12 @@ struct RayCommsAsync
 
   /* --- send side --- */
   int nslots;
-  RayPacket *sendbuf; /* nslots * RAY_MSG_MAX packets, contiguous */
+  int *slot_k; /* neighbour slot -> send slot currently filling, or -1 */
   int *slot_n; /* fill level of each slot */
+  RayPacket *sendbuf; /* nslots * RAY_MSG_MAX packets, contiguous */
   MPI_Request *send_req; /* per slot; MPI_REQUEST_NULL when idle */
   int *free_stack;
   int nfree;
-  int *fill; /* neighbour slot -> send slot currently filling, or -1 */
 
   /* --- receive side --- */
   int nrecv;
@@ -52,8 +52,8 @@ struct RayCommsAsync
   MPI_Request *recv_req;
 
   /* --- Testsome scratch, sized max(nslots, nrecv) --- */
-  int *done_idx;
-  MPI_Status *done_stat;
+  int *done_index;
+  MPI_Status *done_status;
 
   /* --- Mattern counters (in rays, not messages) --- */
   long long n_sent;
@@ -110,13 +110,12 @@ RayComms *ray_comms_init(RayWorkStack *work)
   /* One filling buffer per neighbour, plus spares so a rank exporting hard in
      one direction is not throttled by its own bookkeeping */
   c->nslots = nn + RAY_SEND_SPARE;
-
-  c->sendbuf = malloc((size_t)c->nslots * RAY_MSG_MAX * sizeof(RayPacket));
+  c->slot_k = malloc(nn * sizeof(int));
   c->slot_n = calloc(c->nslots, sizeof(int));
+  c->sendbuf = malloc((size_t)c->nslots * RAY_MSG_MAX * sizeof(RayPacket));
   c->send_req = malloc(c->nslots * sizeof(MPI_Request));
   c->free_stack = malloc(c->nslots * sizeof(int));
-  c->fill = malloc(nn * sizeof(int));
-
+  
   if(!c->sendbuf)
     terminate("ray_comms_init(): could not allocate %g MB of send buffers!\n",
               (double)c->nslots * RAY_MSG_MAX * sizeof(RayPacket) / (1024.0 * 1024.0));
@@ -124,13 +123,15 @@ RayComms *ray_comms_init(RayWorkStack *work)
   for(int s = 0; s < c->nslots; s++)
     {
       c->send_req[s] = MPI_REQUEST_NULL;
-      c->free_stack[s] = c->nslots - 1 - s; /* pop low indices first */
+      
+      /* Pop low indices first */
+      c->free_stack[s] = c->nslots - 1 - s; 
     }
 
   c->nfree = c->nslots;
 
   for(int k = 0; k < nn; k++)
-    c->fill[k] = -1;
+    c->slot_k[k] = -1;
 
   /* Enough pre-posted receives that a burst lands directly rather than in the
      unexpected queue, but capped so memory does not scale with NTask */
@@ -152,8 +153,8 @@ RayComms *ray_comms_init(RayWorkStack *work)
               &c->recv_req[r]);
 
   const int nmax = c->nslots > c->nrecv ? c->nslots : c->nrecv;
-  c->done_idx = malloc(nmax * sizeof(int));
-  c->done_stat = malloc(nmax * sizeof(MPI_Status));
+  c->done_index = malloc(nmax * sizeof(int));
+  c->done_status = malloc(nmax * sizeof(MPI_Status));
 
   c->term_req = MPI_REQUEST_NULL;
   c->quiet = 0;
@@ -171,7 +172,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
 
 static void post_send(struct RayCommsAsync *c, int k)
 {
-  const int s = c->fill[k];
+  const int s = c->slot_k[k];
 
   if(s < 0 || c->slot_n[s] == 0)
     return;
@@ -184,21 +185,21 @@ static void post_send(struct RayCommsAsync *c, int k)
   c->rays_sent += c->slot_n[s];
   c->msgs_sent++;
 
-  c->fill[k] = -1;
+  c->slot_k[k] = -1;
 }
 
 static int reclaim_sends(struct RayCommsAsync *c)
 {
   int outcount = 0;
 
-  MPI_Testsome(c->nslots, c->send_req, &outcount, c->done_idx, MPI_STATUSES_IGNORE);
+  MPI_Testsome(c->nslots, c->send_req, &outcount, c->done_index, MPI_STATUSES_IGNORE);
 
   if(outcount == MPI_UNDEFINED || outcount <= 0)
     return 0;
 
   for(int i = 0; i < outcount; i++)
     {
-      const int s = c->done_idx[i];
+      const int s = c->done_index[i];
       c->slot_n[s] = 0;
       c->free_stack[c->nfree++] = s;
     }
@@ -210,7 +211,7 @@ static int drain_recvs(struct RayCommsAsync *c)
 {
   int outcount = 0;
 
-  MPI_Testsome(c->nrecv, c->recv_req, &outcount, c->done_idx, c->done_stat);
+  MPI_Testsome(c->nrecv, c->recv_req, &outcount, c->done_index, c->done_status);
 
   if(outcount == MPI_UNDEFINED || outcount <= 0)
     return 0;
@@ -219,28 +220,28 @@ static int drain_recvs(struct RayCommsAsync *c)
 
   for(int i = 0; i < outcount; i++)
     {
-      const int r = c->done_idx[i];
+      const int r = c->done_index[i];
 
       int nbytes = 0;
-      MPI_Get_count(&c->done_stat[i], MPI_BYTE, &nbytes);
+      MPI_Get_count(&c->done_status[i], MPI_BYTE, &nbytes);
 
       if(nbytes % (int)sizeof(RayPacket))
         terminate("drain_recvs(): received %d bytes, not a multiple of %d!\n", nbytes, (int)sizeof(RayPacket));
 
-      const long long cnt = nbytes / (long long)sizeof(RayPacket);
+      const long long count = nbytes / (long long)sizeof(RayPacket);
 
-      if(cnt > 0)
+      if(count > 0)
         {
           /* Safe to realloc: nothing holds a pointer into work->rays across a
              call into the comm layer - the driver copies the packet off the
              stack top by value, and split_ray() fills a local array */
-          work_reserve(c->work, cnt);
+          work_reserve(c->work, count);
 
-          memcpy(c->work->rays + c->work->n, RECVSLOT(c, r), (size_t)cnt * sizeof(RayPacket));
-          c->work->n += cnt;
+          memcpy(c->work->rays + c->work->n, RECVSLOT(c, r), (size_t)count * sizeof(RayPacket));
+          c->work->n += count;
 
-          c->n_recv += cnt;
-          got += cnt;
+          c->n_recv += count;
+          got += count;
 
           if(c->work->n > c->work_highwm)
             c->work_highwm = c->work->n;
@@ -258,12 +259,6 @@ static int drain_recvs(struct RayCommsAsync *c)
 
 /*
  * Obtain a free send slot
- * Never waits on sends alone: because transfers are
- * rendezvous, a peer's Isend cannot complete until we complete a matching
- * receive, so a rank waiting only on reclaim_sends() could deadlock against a
- * peer doing the same
- * Draining receives here breaks the cycle - we always
- * have receives posted, and repost them immediately
  */
 static int acquire_slot(struct RayCommsAsync *c)
 {
@@ -297,10 +292,10 @@ void append_export(RayComms *comm, const RayPacket *ray, int task)
   if(k < 0)
     terminate("append_export(): export to task %d, which is not a mesh neighbour of task %d!\n", task, ThisTask);
 
-  if(c->fill[k] < 0)
-    c->fill[k] = acquire_slot(c);
+  if(c->slot_k[k] < 0)
+    c->slot_k[k] = acquire_slot(c);
 
-  const int s = c->fill[k];
+  const int s = c->slot_k[k];
 
   SENDSLOT(c, s)[c->slot_n[s]++] = *ray;
 
@@ -314,7 +309,7 @@ void ray_comms_flush(RayComms *comm)
 
   for(int k = 0; k < RayNgbsNtask; k++)
     {
-      if(c->fill[k] >= 0 && c->slot_n[c->fill[k]] > 0)
+      if(c->slot_k[k] >= 0 && c->slot_n[c->slot_k[k]] > 0)
         post_send(c, k);
     }
 
@@ -339,8 +334,10 @@ static int comm_idle(const struct RayCommsAsync *c)
     return 0;
 
   for(int k = 0; k < RayNgbsNtask; k++)
-    if(c->fill[k] >= 0 && c->slot_n[c->fill[k]] > 0)
-      return 0; /* rays buffered but not yet handed to MPI */
+    {
+      if(c->slot_k[k] >= 0 && c->slot_n[c->slot_k[k]] > 0)
+        return 0;
+    }
 
   return 1;
 }
@@ -490,15 +487,18 @@ void ray_comms_free(RayComms *comm)
   }
 #endif
 
-  free(c->done_stat);
-  free(c->done_idx);
+  free(c->done_status);
+  free(c->done_index);
+  
   free(c->recv_req);
   free(c->recvbuf);
-  free(c->fill);
+
   free(c->free_stack);
   free(c->send_req);
-  free(c->slot_n);
   free(c->sendbuf);
+  free(c->slot_n);
+  free(c->slot_k);
+
   free(c);
 
   ray_neighbours_free();
