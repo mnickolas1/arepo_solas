@@ -224,14 +224,6 @@ typedef struct RayWorkStack
   RayPacket *rays;
 } RayWorkStack;
 
-typedef struct RayExportBuffer
-{
-  long long n; /* Number of rays to export */
-  long long capacity; /* Allocated capacity */
-  int *ngbs; /* Ngbs slot */
-  RayPacket *rays;
-} RayExportBuffer;
-
 extern int RayNgbsNtask; /* number of mesh-neighbour ranks */
 extern int *RayNgbToTask; /* ascending list of neighbour ranks, length RayNgbsNtask */
 extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
@@ -246,7 +238,7 @@ extern int *RayTaskToNgb; /* rank -> neighbour slot, or -1; length NTask */
 
 #define TAG_RAY_COUNT 30202
 
-typedef RayExportBuffer RayComms;
+typedef struct RayExportBuffer RayComms;
 
 #else
 

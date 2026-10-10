@@ -10,6 +10,14 @@
  * Synchronous back end
  */
 
+struct RayExportBuffer
+{
+  long long n;        /* Number of rays to export */
+  long long capacity; /* Allocated capacity */
+  int *ngbs;          /* Ngbs slot */
+  RayPacket *rays;
+};
+
 static MPI_Datatype MPI_RAYPACKET = MPI_DATATYPE_NULL;
 
 /* All indexed by neighbour slot, allocated once per star_radiation() call */
@@ -68,7 +76,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
   MsgsSent = RaysSent = 0;
 #endif
 
-  RayExportBuffer *buf = malloc(sizeof(RayExportBuffer));
+  struct RayExportBuffer *buf = malloc(sizeof(struct RayExportBuffer));
 
   buf->n = 0;
   buf->capacity = 1024;
@@ -80,7 +88,7 @@ RayComms *ray_comms_init(RayWorkStack *work)
 
 void append_export(RayComms *comm, const RayPacket *ray, int task)
 {
-  RayExportBuffer *buf = comm;
+  struct RayExportBuffer *buf = comm;
 
   const int k = RayTaskToNgb[task];
 
@@ -105,7 +113,7 @@ void append_export(RayComms *comm, const RayPacket *ray, int task)
 /*
  * Sort rays by destined task
  */
-static void sort_by_ngb(RayExportBuffer *buf)
+static void sort_by_ngb(struct RayExportBuffer *buf)
 {
   if(buf->n <= 1)
     return;
@@ -141,7 +149,7 @@ static void sort_by_ngb(RayExportBuffer *buf)
  * post-exchange local count is known, so it completes underneath the payload
  * movement rather than serialising behind it
  */
-static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *n_global)
+static void exchange_rays(struct RayExportBuffer *send, RayWorkStack *work, long long *n_global)
 {
   const int nn = RayNgbsNtask;
 
@@ -203,20 +211,24 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
   nreq = 0;
 
   for(int k = 0; k < nn; k++)
-    if(RecvCount[k] > 0)
-      MPI_Irecv(work->rays + work->n + RecvOffset[k], RecvCount[k], MPI_RAYPACKET, RayNgbToTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
+    {
+      if(RecvCount[k] > 0)
+        MPI_Irecv(work->rays + work->n + RecvOffset[k], RecvCount[k], MPI_RAYPACKET, RayNgbToTask[k], TAG_RAY_DATA, MPI_COMM_WORLD,
                 &Req[nreq++]);
+    }
 
   for(int k = 0; k < nn; k++)
-    if(SendCount[k] > 0)
-      {
-        MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET, RayNgbToTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
+    {
+      if(SendCount[k] > 0)
+        {
+          MPI_Isend(send->rays + SendOffset[k], SendCount[k], MPI_RAYPACKET, RayNgbToTask[k], TAG_RAY_DATA, MPI_COMM_WORLD, &Req[nreq++]);
 
 #ifdef RT_COMM_STATISTICS
-        MsgsSent++;
-        RaysSent += SendCount[k];
+          MsgsSent++;
+          RaysSent += SendCount[k];
 #endif
-      }
+        }
+    }
 
   MPI_Waitall(nreq, Req, MPI_STATUSES_IGNORE);
 
@@ -238,7 +250,7 @@ static void exchange_rays(RayExportBuffer *send, RayWorkStack *work, long long *
 
 void ray_comms_walk(RayWorkStack *work, RayComms *comm)
 {
-  RayExportBuffer *send = comm;
+  struct RayExportBuffer *send = comm;
 
   long long n_global;
   int iter = 0;
@@ -285,7 +297,7 @@ void ray_comms_walk(RayWorkStack *work, RayComms *comm)
 
 void ray_comms_free(RayComms *comm)
 {
-  RayExportBuffer *buf = comm;
+  struct RayExportBuffer *buf = comm;
 
 #ifdef RT_COMM_STATISTICS
   {
