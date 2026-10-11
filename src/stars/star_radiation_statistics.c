@@ -369,7 +369,7 @@ void rt_statistics_report(void)
     }
 
   /* How rays end */
-  mpi_printf("STAR_RADIATION: how rays end\n");
+  /* mpi_printf("STAR_RADIATION: how rays end\n");
 
   p = line;
   end = line + STATISTICS_LINE_MAX;
@@ -396,4 +396,5 @@ void rt_statistics_report(void)
                      STAT_FRAC, (em_tot > 0.0) ? aband_tot[c] / em_tot : 0.0);
       mpi_printf("%s\n", line);
     }
+  */
 }
