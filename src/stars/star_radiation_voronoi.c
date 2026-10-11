@@ -145,6 +145,7 @@ static inline int ray_absorb(RayPacket *ray, const ChannelsDtau dtau[WAVEBANDS],
           rt_statistics_drop(ray, w);
 #endif
           ray->active_bands &= (uint8_t)(~(1u << w));
+          ray->Radiated[w].Energy = ray->Radiated[w].Photons = 0.0;
           continue;
         }
 
