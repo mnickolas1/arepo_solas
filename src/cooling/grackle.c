@@ -322,32 +322,15 @@ void InitGrackle(void)
   my_grackle_data->cmb_temperature_floor = 1;
 
   /* Override */
-  my_grackle_data->use_grackle                      = 1;
-  my_grackle_data->primordial_chemistry             = 2;     
-  my_grackle_data->metal_cooling                    = 0;
-  my_grackle_data->dust_chemistry                   = 0;
-  my_grackle_data->h2_on_dust                       = 0;
-  my_grackle_data->photoelectric_heating            = 0;
-  my_grackle_data->dust_recombination_cooling       = 0;
-  my_grackle_data->UVbackground                     = 0;
-  my_grackle_data->LWbackground_intensity           = 0.0;
-  my_grackle_data->Compton_xray_heating             = 0;
-  my_grackle_data->self_shielding_method            = 0;
-  my_grackle_data->H2_self_shielding                = 0;
-  my_grackle_data->cmb_temperature_floor            = 0;   
-  my_grackle_data->CaseBRecombination               = 1;
-  my_grackle_data->HydrogenFractionByMass           = 1.0;
-  my_grackle_data->use_radiative_transfer           = 1;
-  my_grackle_data->radiative_transfer_hydrogen_only = 1;
-  my_grackle_data->radiative_transfer_coupled_rate_solver = 0;   
-
   my_grackle_data->ExplicitHydrogenFraction = 0;
+
+  my_grackle_data->radiative_transfer_hydrogen_only = 1;
+  my_grackle_data->use_volumetric_heating_rate = 0;
   
-  my_grackle_data->max_iterations = 100000;
+  my_grackle_data->cmb_temperature_floor = 0;   
 
 #ifdef RTYPE
   /* rtype/r2 */
-  my_grackle_data->Gamma = 1.0001;
   my_grackle_data->with_radiative_cooling = 0;
   my_grackle_data->collisional_excitation_rates = 0;
   my_grackle_data->collisional_ionisation_rates = 0;
@@ -355,7 +338,6 @@ void InitGrackle(void)
   my_grackle_data->bremsstrahlung_cooling_rates = 0;
 #else
   /* dtype */
-  my_grackle_data->Gamma = 1.6667;
   my_grackle_data->with_radiative_cooling = 1;
   my_grackle_data->collisional_excitation_rates = 1;
   my_grackle_data->collisional_ionisation_rates = 0;
