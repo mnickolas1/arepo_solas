@@ -259,6 +259,7 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   ray->N_H2 += dH2[0];
   ray->A_H2 = fmin(1.0, ray->A_H2 + dH2[1]);
 
+#ifdef RADIATION_PRESSURE
 #ifdef IR_MOMENTUM_BOOST
   /* Reradiation in the IR (boosts momentum) */
   double Dtau_IR = dtau_IR(i, length);
@@ -321,7 +322,6 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
       dK_total += dK;
     }
 
-#ifdef RADIATION_PRESSURE
   for(int k = 0; k < 3; k++)
     SphP[i].StarMomentumFeed[k] = smf[k];
 
