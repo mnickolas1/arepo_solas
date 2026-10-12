@@ -341,7 +341,7 @@ void InitGrackle(void)
   my_grackle_data->radiative_transfer_hydrogen_only = 1;
   my_grackle_data->radiative_transfer_coupled_rate_solver = 0;   
 
-  my_grackle_data->ExplicitHydrogenFraction = 0
+  my_grackle_data->ExplicitHydrogenFraction = 0;
   
   my_grackle_data->max_iterations = 100000;
 
@@ -355,7 +355,7 @@ void InitGrackle(void)
   my_grackle_data->bremsstrahlung_cooling_rates = 0;
 #else
   /* dtype */
-  my_grackle_data->Gamma = 1.6667
+  my_grackle_data->Gamma = 1.6667;
   my_grackle_data->with_radiative_cooling = 1;
   my_grackle_data->collisional_excitation_rates = 1;
   my_grackle_data->collisional_ionisation_rates = 0;
