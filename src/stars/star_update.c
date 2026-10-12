@@ -293,7 +293,7 @@ void star_prep(void)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
-      const double N_photons = pow(10,49) * star_timestep_yr * SEC_PER_YEAR;
+      const double N_photons = 1e49 * star_timestep_yr * SEC_PER_YEAR;
 
       SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Photons = N_photons;
 #ifdef RTYPE

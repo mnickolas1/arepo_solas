@@ -327,7 +327,9 @@ void InitGrackle(void)
   my_grackle_data->radiative_transfer_hydrogen_only = 1;
   my_grackle_data->use_volumetric_heating_rate = 0;
   
-  my_grackle_data->cmb_temperature_floor = 0;   
+  my_grackle_data->cmb_temperature_floor = 0; 
+  
+  my_grackle_data->max_iterations = 100000;
 
 #ifdef RTYPE
   /* rtype/r2 */
