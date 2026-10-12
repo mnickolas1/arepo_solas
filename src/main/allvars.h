@@ -465,13 +465,17 @@ typedef unsigned long long peano1D;
 #define MIN_REAL_NUMBER MIN_FLOAT_NUMBER
 #endif /* #ifdef DOUBLEPRECISION #else */
 
-#ifndef GAMMA
-#define GAMMA (5. / 3.) /*!< adiabatic index of simulated gas */
-#endif                  /* #ifndef  GAMMA */
+#ifdef RTYPE
+/* rtype/r2 */
+#define GAMMA 1.0001
+#else
+/* dtype */
+#define GAMMA (5. / 3.)
+#endif                 
 #define GAMMA_MINUS1 (GAMMA - 1.)
 #define GAMMA_PLUS1 (GAMMA + 1.)
 
-#define HYDROGEN_MASSFRAC 0.76 /*!< mass fraction of hydrogen */
+#define HYDROGEN_MASSFRAC 1.0 /*!< mass fraction of hydrogen */
 #define DEUTERIUM_TO_HYDROGEN_RATIO (2.0 * 3.4e-5)
 
 /* ... often used physical constants (cgs units; NIST 2010) */

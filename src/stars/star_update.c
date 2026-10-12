@@ -90,6 +90,10 @@ void feedback_free(struct Mechanical_Feedback_Events *MFEvents)
 
 integertime star_timestep(int i)
 {
+#if defined(RTYPE) || defined(DTYPE)
+  return 0.0;
+#endif
+
   /* Host hydro bin */
   double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
 
@@ -260,6 +264,13 @@ void star_prep(void)
 
       Star_Feedback StarFeedback;
 
+#if defined(RTYPE) || defined(DTYPE)
+      memset(&StarFeedback, 0, sizeof(Star_Feedback));
+
+      (void)star_age_yr;
+      (void)star_mass_msun;
+      (void)star_metallicity;
+#else
       /* Call the interpolation functions */
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
       StarFeedback = units_for_feedback(star_particle_feedback(i, star_timestep_yr, star_metallicity, star_age_yr));
@@ -273,6 +284,7 @@ void star_prep(void)
           deactivate_star(i);
           continue;
         }
+#endif
 
         /* Assign stellar feedback variables */
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
@@ -299,11 +311,22 @@ void star_prep(void)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
+#if defined(RTYPE) || defined(DTYPE)
+      const double N_photons = pow(10,49) * star_timestep_yr * SEC_PER_YEAR;
+
+      SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Photons = N_photons;
+#ifdef RTYPE
+      SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Energy = 0.0;
+#else
+      SP[i].MechanicalFeedback.Radiated[IONIZING_HI].Energy  = N_photons * 15.6 * ELECTRONVOLT_IN_ERGS / All.cf_UnitEnergy_in_cgs;
+#endif
+#else
       for(int w = 0; w < WAVEBANDS; w++)
         {
           SP[i].MechanicalFeedback.Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
           SP[i].MechanicalFeedback.Radiated[w].Energy = StarFeedback.Radiated[w].Energy;
         }
+#endif
 #endif
 
 #ifdef SUPERNOVAE

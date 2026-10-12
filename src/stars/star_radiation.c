@@ -79,7 +79,7 @@ double Sigma_E[WAVEBANDS][N_ION_SPECIES] = {
   [OPTICAL] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
   [ULTRAVIOLET] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
   [LYMAN_WERNER] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
-  [IONIZING_HI] = { 5.3970e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [IONIZING_HI] = { 6.3e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
   [IONIZING_H2] = { 2.7492e-18, 6.2898e-18, 3.7962e-21, 0.0000e+00 },
   [IONIZING_HeI] = { 8.1229e-19, 2.9848e-18, 5.7193e-18, 0.0000e+00 },
   [IONIZING_HeII] = { 1.0138e-19, 2.9270e-19, 1.4625e-18, 1.3231e-18 },
@@ -90,7 +90,7 @@ double Sigma_N[WAVEBANDS][N_ION_SPECIES] = {
   [OPTICAL] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
   [ULTRAVIOLET] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
   [LYMAN_WERNER] = { 0.0000e+00, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
-  [IONIZING_HI] = { 5.4157e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
+  [IONIZING_HI] = { 6.3e-18, 0.0000e+00, 0.0000e+00, 0.0000e+00 },
   [IONIZING_H2] = { 2.8690e-18, 6.1905e-18, 2.8924e-21, 0.0000e+00 },
   [IONIZING_HeI] = { 8.4826e-19, 3.1202e-18, 5.8860e-18, 0.0000e+00 },
   [IONIZING_HeII] = { 1.0247e-19, 2.9610e-19, 1.4746e-18, 1.3356e-18 },
@@ -717,7 +717,7 @@ static void radiation_feedback(void)
 
           if(E_exc > 0.0)
             SphP[i].IonHeatingRate[s] += E_exc / dt_cgs / V_cgs / n_cgs;
-          else if(N_abs > 0.0)
+          else if(N_abs > 0.0 && E_abs > 0.0)
             warn(
                 "STAR_RADIATION: sub-threshold mean photon energy, species %d, cell %d "
                 "(E_abs=%g N_abs=%g) \n",
