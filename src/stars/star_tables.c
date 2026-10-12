@@ -211,6 +211,7 @@ void free_stellar_tables(void)
     }
 }
 
+#ifdef STAR_RADIATION_ACTIVE
 static void check_waveband_dataset(hid_t dset, const char *name, int n_expected, const char *zname, const char *mname)
 {
   hid_t space = my_H5Dget_space(dset, name);
@@ -220,7 +221,7 @@ static void check_waveband_dataset(hid_t dset, const char *name, int n_expected,
   if(rank != 2)
     {
       my_H5Sclose(space, H5S_SIMPLE);
-      terminate("STAR_RADIATION: %s/%s/%s has rank %d, expected 2 ([N][WAVEBANDS])!\n", zname, mname, name, rank);
+      terminate("check_waveband_dataset(): %s/%s/%s has rank %d, expected 2 ([N][WAVEBANDS])!\n", zname, mname, name, rank);
     }
 
   hsize_t dims[2];
@@ -229,10 +230,11 @@ static void check_waveband_dataset(hid_t dset, const char *name, int n_expected,
 
   if((int)dims[0] != n_expected || (int)dims[1] != WAVEBANDS)
     terminate(
-        "STAR_RADIATION: %s/%s/%s has shape [%d][%d], expected [%d][%d]. " 
+        "check_waveband_dataset(): %s/%s/%s has shape [%d][%d], expected [%d][%d]. " 
         "The stellar table (%s) was built for different wavebands\n",
         zname, mname, name, (int)dims[0], (int)dims[1], n_expected, WAVEBANDS, All.StarTablesFile);
 }
+#endif
 
 void load_star_tables(const char *filename)
 {
