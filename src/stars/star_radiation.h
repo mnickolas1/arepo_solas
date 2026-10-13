@@ -24,8 +24,8 @@
 #define RAY_TOL 1.0e-10
 
 /* Healpix: Powers of 2! */
-#define NSIDE_MIN 1
-#define NSIDE_MAX 128
+#define NSIDE_MIN 64
+#define NSIDE_MAX 512
 
 /* Starting number of rays */
 #define NRays (12 * NSIDE_MIN * NSIDE_MIN)
