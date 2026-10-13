@@ -1,39 +1,23 @@
 %---- SOLAS additions
 
-%---- Metal parameters
-InitMetallicityinSolar	    1.0
-
 %---- Cooling parameters
 GrackleDataFile				./cloudy_metals_2008_3D.h5
 GrackleSpeciesState         0
 
-%---- Star Formation options
-StarFormationEfficiency	    0.01
-NumberDensThreshold	        100
-TemperatureThreshold        1e4
-
-Njeans                      -1
-
 %---- Star options
 IMF                     1
-%RefStarsPerCell         4 %Refine cells hosting more than this number of stars
-
 StarTablesFile          star_feedback_tables.hdf5
 
-SN_HostShellSweepFrac    0.1
-SN_LeadTime              40
-
-RaySplitFactor          2
+RaySplitFactor          8
 RayMaxDistance          100
 
-%RTIonizationTimestepFraction  1
+RTIonizationTimestepFraction  0.1
 
-%IRDtauMomentumBoostCoeff  1
 
 %----  Arepo public
 
 %----  Relevant files
-InitCondFile                            ./agora_galaxy_arepo-with-grid
+InitCondFile                            ./ics
 OutputDir                               ./output
 SnapshotFileBase                        snap
 OutputListFilename                      ./output_list.txt
@@ -53,7 +37,7 @@ MaxMemSize                              2500
 
 %---- Caracteristics of run
 TimeBegin                               0.0
-TimeMax                                 0.5 % End of the simulation
+TimeMax                                 1.0 % End of the simulation
 
 %---- Basic code options that set the type of simulation
 ComovingIntegrationOn                   0
@@ -64,7 +48,7 @@ Omega0                                  0.0
 OmegaLambda                             0.0
 OmegaBaryon                             0.0  
 HubbleParam                             1.0
-BoxSize                                 1300
+BoxSize                                 1.0
 
 %---- Output frequency and output parameters
 OutputListOn                            0
@@ -79,12 +63,12 @@ TypeOfTimestepCriterion                 0
 ErrTolIntAccuracy                       0.012
 CourantFac                              0.3
 MaxSizeTimestep                         1.0e-2
-MinSizeTimestep                         2.0e-8
+MinSizeTimestep                         2.0e-12
 
 %---- Treatment of empty space and temperature limits
-InitGasTemp                             1.0e4
-MinGasTemp                              10.0
-MinimumDensityOnStartUp                 1.0e-10  %% very important for this setup!
+InitGasTemp                             0.0
+MinGasTemp                              0.0
+MinimumDensityOnStartUp                 0.0
 LimitUBelowThisDensity                  0.0
 LimitUBelowCertainDensityToThisValue    0.0
 MinEgySpec                              0.0
@@ -108,38 +92,31 @@ UnitVelocity_in_cm_per_s                1e5            %  1 km/sec
 GravityConstantInternal                 0
 
 %---- Gravitational softening lengths
-SofteningComovingType0                  0.08
-SofteningComovingType1                  0.08
-SofteningComovingType2                  0.08
-SofteningComovingType3                  0.08
+SofteningComovingType0                  1
+SofteningComovingType1                  1
+SofteningComovingType2                  1
+SofteningComovingType3                  1
+SofteningComovingType4                  1
+SofteningComovingType5                  1
 
-SofteningMaxPhysType0                   0.08
-SofteningMaxPhysType1                   0.08
-SofteningMaxPhysType2                   0.08
-SofteningMaxPhysType3                   0.08
-
-GasSoftFactor                           2.5
+SofteningMaxPhysType0                   1
+SofteningMaxPhysType1                   1
+SofteningMaxPhysType2                   1
+SofteningMaxPhysType3                   1
+SofteningMaxPhysType4                   1
+SofteningMaxPhysType5                   1
 
 SofteningTypeOfPartType0                0
 SofteningTypeOfPartType1                1
 SofteningTypeOfPartType2                2
 SofteningTypeOfPartType3                3
-SofteningTypeOfPartType4                3
-SofteningTypeOfPartType5                1
-
-MinimumComovingHydroSoftening           0.08
-AdaptiveHydroSofteningSpacing           1.2
+SofteningTypeOfPartType4                4
+SofteningTypeOfPartType5                5
 
 %---- Mesh regularization options
 CellShapingSpeed                        0.5
 CellMaxAngleFactor                      2.25
-ReferenceGasPartMass                    8.59322e-05
+ReferenceGasPartMass                    1.0
 TargetGasMassFactor                     1
 RefinementCriterion                     1
 DerefinementCriterion                   1
-MeanVolume                              52734.4
-MaxVolumeDiff                           10  
-MinVolume                               2.14e-3    % dx >= 80 pc limit
-MaxVolume                               1.0e9      % no limits
-
-%GridSize                                16
