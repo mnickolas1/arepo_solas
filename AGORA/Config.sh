@@ -32,6 +32,8 @@ RTYPE
 #--------------------------------------- Arepo public
 CREATE_FULL_MESH
 
+FORCE_EQUAL_TIMESTEPS
+
 #--------------------------------------- Mesh motion and regularization; default: moving mesh
 REGULARIZE_MESH_CM_DRIFT      # Mesh regularization; Move mesh generating point towards center of mass to make cells rounder.
 REGULARIZE_MESH_CM_DRIFT_USE_SOUNDSPEED  # Limit mesh regularization speed by local sound speed
