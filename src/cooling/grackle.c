@@ -321,6 +321,32 @@ void InitGrackle(void)
 
   my_grackle_data->cmb_temperature_floor = 1;
 
+  /* Override */
+  my_grackle_data->ExplicitHydrogenFraction = 0;
+
+  my_grackle_data->radiative_transfer_hydrogen_only = 1;
+  my_grackle_data->use_volumetric_heating_rate = 0;
+  
+  my_grackle_data->cmb_temperature_floor = 0; 
+  
+  my_grackle_data->max_iterations = 100000;
+
+#ifdef RTYPE
+  /* rtype/r2 */
+  my_grackle_data->with_radiative_cooling = 0;
+  my_grackle_data->collisional_excitation_rates = 0;
+  my_grackle_data->collisional_ionisation_rates = 0;
+  my_grackle_data->recombination_cooling_rates = 0;
+  my_grackle_data->bremsstrahlung_cooling_rates = 0;
+#else
+  /* dtype */
+  my_grackle_data->with_radiative_cooling = 1;
+  my_grackle_data->collisional_excitation_rates = 1;
+  my_grackle_data->collisional_ionisation_rates = 0;
+  my_grackle_data->recombination_cooling_rates = 0;
+  my_grackle_data->bremsstrahlung_cooling_rates = 0;
+#endif
+
   /* Finally, initialize the chemistry object. This has to be the last step of the initialisation. */
   if(initialize_chemistry_data(&All.GrackleUnits) == 0)
     {
