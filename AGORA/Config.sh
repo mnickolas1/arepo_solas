@@ -24,16 +24,17 @@ RT_COMM_STATISTICS     # RT communication timing statistics
 
 DOMAIN_MEASURED_WEIGHTS # Use measured per-channel timings for the domain decomposition weights
 
+#RT_COMM_SYNC
+
 RTYPE
 #DTYPE
-
-#RT_COMM_SYNC
 
 #--------------------------------------- Arepo public
 CREATE_FULL_MESH
 
 FORCE_EQUAL_TIMESTEPS
 
+NOHYDRO
 #--------------------------------------- Mesh motion and regularization; default: moving mesh
 REGULARIZE_MESH_CM_DRIFT      # Mesh regularization; Move mesh generating point towards center of mass to make cells rounder.
 REGULARIZE_MESH_CM_DRIFT_USE_SOUNDSPEED  # Limit mesh regularization speed by local sound speed
