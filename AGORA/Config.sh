@@ -54,3 +54,5 @@ HAVE_HDF5                     # needed when HDF5 I/O support is desired (recomme
 
 #--------------------------------------- Testing and Debugging options
 DEBUG                         # enables core-dumps
+
+OVERRIDE_PEANOGRID_WARNING
