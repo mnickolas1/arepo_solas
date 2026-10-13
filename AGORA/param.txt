@@ -113,6 +113,8 @@ SofteningTypeOfPartType3                3
 SofteningTypeOfPartType4                4
 SofteningTypeOfPartType5                5
 
+GasSoftFactor                           2.5
+
 %---- Mesh regularization options
 CellShapingSpeed                        0.5
 CellMaxAngleFactor                      2.25
