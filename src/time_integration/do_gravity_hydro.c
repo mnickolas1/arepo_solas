@@ -64,6 +64,12 @@ static inline void kick_particle(int i, double dt_gravkick, MySingle* Grav)
 {
   int j;
   double dvel[3];
+
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+  if(P[i].Type == 4)
+    return;
+#endif
+
   if(P[i].Type == 0)
     {
       SphP[i].Energy -= 0.5 * P[i].Mass * (P[i].Vel[0] * P[i].Vel[0] + P[i].Vel[1] * P[i].Vel[1] + P[i].Vel[2] * P[i].Vel[2]);
