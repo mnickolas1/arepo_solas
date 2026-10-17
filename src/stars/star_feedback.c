@@ -7,7 +7,7 @@
 #include "../main/allvars.h"
 #include "../main/proto.h"
 
-#define MAX_FACES 128
+#define MAX_FACES 256
 
 /* SN host-injection modes, returned by SN_feedback_radius() */
 #define MESH 0 /* Couple across Voronoi faces */
