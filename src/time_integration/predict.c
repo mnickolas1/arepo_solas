@@ -376,11 +376,13 @@ void drift_particle(int i, integertime time1)
   else
     dt_drift = (time1 - time0) * All.Timebase_interval;
 
-  /*if(P[i].Type == 5)
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+  if(P[i].Type == 4)
     {
       P[i].Ti_Current = time1;
       return;
-    }*/
+    }
+#endif
     
   if(P[i].Type == 0)
     {
