@@ -9,7 +9,7 @@ GrackleSpeciesState         0
 
 %---- Star Formation options
 StarFormationEfficiency	    0.01
-NumberDensThreshold	        100
+NumberDensThreshold	        10
 TemperatureThreshold        1e4
 
 Njeans                      -1
@@ -24,7 +24,7 @@ SN_HostShellSweepFrac    0.1
 SN_LeadTime              40
 
 RaySplitFactor          2
-RayMaxDistance          100
+RayMaxDistance          20
 
 %RTIonizationTimestepFraction  1
 
