@@ -1251,7 +1251,7 @@ extern struct global_data_all_processes
 #endif /* #ifdef FORCE_EQUAL_TIMESTEPS */
 
 #ifdef TIMESTEP_LIMITER
-  int TimestepLimiterBin;
+  int TimestepLimiterMaxNgbBinDiff;
 #endif
 
   double IsoSoundSpeed;

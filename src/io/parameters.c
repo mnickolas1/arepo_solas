@@ -226,8 +226,8 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 
 #ifdef TIMESTEP_LIMITER
-      strcpy(tag[nt], "TimestepLimiterBin");
-      addr[nt] = &All.TimestepLimiterBin;
+      strcpy(tag[nt], "TimestepLimiterMaxNgbBinDiff");
+      addr[nt] = &All.TimestepLimiterMaxNgbBinDiff;
       id[nt++] = INT;
 #endif
 
@@ -928,10 +928,10 @@ void check_parameters()
     }
 
 #ifdef TIMESTEP_LIMITER
-  if(All.TimestepLimiterBin < 1 || All.TimestepLimiterBin >= TIMEBINS)
-    mpi_terminate("check_parameters(): TimestepLimiterBin = %d must be in [1, %d)\n", All.TimestepLimiterBin, TIMEBINS);
+  if(All.TimestepLimiterMaxNgbBinDiff < 1 || All.TimestepLimiterMaxNgbBinDiff >= TIMEBINS)
+    mpi_terminate("check_parameters(): TimestepLimiterMaxNgbBinDiff = %d must be in [1, %d)\n", All.TimestepLimiterMaxNgbBinDiff, TIMEBINS);
 
-  mpi_printf("TIMESTEPS: neighbour limiter active, at most %d bins above the shortest neighbour\n", All.TimestepLimiterBin);
+  mpi_printf("TIMESTEPS: neighbour limiter active, at most %d bins above the shortest neighbour\n", All.TimestepLimiterMaxNgbBinDiff);
 #endif
 
   /* check softening types */

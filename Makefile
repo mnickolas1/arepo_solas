@@ -341,7 +341,7 @@ SUBDIRS += add_backgroundgrid
 endif
 
 ifneq (,$(filter TIMESTEP_LIMITER,$(CONFIGVARS)))
-OBJS += time_integration/timestep_limiter.c
+OBJS += time_integration/timestep_limiter.o
 endif
 
 #COOLING

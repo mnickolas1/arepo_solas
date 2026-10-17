@@ -1,5 +1,7 @@
 %---- SOLAS additions
 
+TimestepLimiterMaxNgbBinDiff 2
+
 %---- Metal parameters
 InitMetallicityinSolar	    1.0
 

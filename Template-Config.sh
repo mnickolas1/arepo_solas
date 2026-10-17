@@ -6,7 +6,7 @@
 
 #---------------------------------------- SOLAS additions
 
-#TIMESTEP_LIMITER # Neigbhour timestep limiter
+#TIMESTEP_LIMITER # Neighbour timestep limiter
 
 #---------------------------------------- Metal parameters
 #PASSIVE_SCALARS_EXTRA=0 # Extra passive scalar fields on top of metals/grackle/jet (internal default: 0)

@@ -258,7 +258,7 @@ void find_timesteps_without_gravity(void)
 #ifdef TIMESTEP_LIMITER
       if(MinNgbBin[idx] < TIMEBINS)
         {
-          int bin_max = MinNgbBin[idx] + All.TimestepLimiterBin;
+          int bin_max = MinNgbBin[idx] + All.TimestepLimiterMaxNgbBinDiff;
 
           if(bin_max > TIMEBINS - 1)
             bin_max = TIMEBINS - 1;
