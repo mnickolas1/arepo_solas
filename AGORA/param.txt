@@ -18,9 +18,10 @@ Njeans                      -1
 
 %---- Star options
 IMF                     1
-%RefStarsPerCell         4 %Refine cells hosting more than this number of stars
+%StarsPerCellRefinement  4 
 
 StarTablesFile          star_feedback_tables.hdf5
+StarTimestep            0.1
 
 SN_HostShellSweepFrac    0.1
 SN_LeadTime              40

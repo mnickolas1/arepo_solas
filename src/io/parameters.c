@@ -431,8 +431,8 @@ void read_parameter_file(char *fname)
 #endif /* #ifdef REFINEMENT_VOLUME_LIMIT */
 
 #ifdef STAR_HOST_REFINEMENT
-      strcpy(tag[nt], "RefStarsPerCell");
-      addr[nt] = &All.RefStarsPerCell;
+      strcpy(tag[nt], "StarsPerCellRefinement");
+      addr[nt] = &All.StarsPerCellRefinement;
       id[nt++] = REAL;
 #endif
 
@@ -627,6 +627,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "StarTablesFile");
       addr[nt] = &All.StarTablesFile;
       id[nt++] = STRING;
+
+      strcpy(tag[nt], "StarTimestep");
+      addr[nt] = &All.StarTimestep;
+      id[nt++] = REAL;
 #endif
 
 #ifdef SUPERNOVAE

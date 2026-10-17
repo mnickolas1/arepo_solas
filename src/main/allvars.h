@@ -1333,7 +1333,7 @@ extern struct global_data_all_processes
 #endif 
 
 #ifdef STAR_HOST_REFINEMENT
-  double RefStarsPerCell;
+  double StarsPerCellRefinement;
 #endif
 
 #ifdef REFINEMENT_AROUND_BH
@@ -1439,6 +1439,7 @@ double InitMetallicityinSolar;
   double StarFeedbackGlobal[6];
   
   char StarTablesFile[MAXLEN_PATH];
+  double StarTimestep;
 #endif 
 
 #ifdef SUPERNOVAE
