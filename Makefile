@@ -340,6 +340,10 @@ INCL += add_backgroundgrid/add_bggrid.h
 SUBDIRS += add_backgroundgrid
 endif
 
+ifneq (,$(filter TIMESTEP_LIMITER,$(CONFIGVARS)))
+OBJS += time_integration/timestep_limiter.c
+endif
+
 #COOLING
 ifneq (,$(filter COOLING,$(CONFIGVARS)))
 OBJS += cooling/cooling.o 

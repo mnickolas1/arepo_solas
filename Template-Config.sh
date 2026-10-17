@@ -6,6 +6,8 @@
 
 #---------------------------------------- SOLAS additions
 
+#TIMESTEP_LIMITER # Neigbhour timestep limiter
+
 #---------------------------------------- Metal parameters
 #PASSIVE_SCALARS_EXTRA=0 # Extra passive scalar fields on top of metals/grackle/jet (internal default: 0)
 #METALS                  # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS

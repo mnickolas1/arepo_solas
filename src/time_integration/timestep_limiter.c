@@ -16,13 +16,7 @@
 #include "../main/proto.h"
 #include "../mesh/voronoi/voronoi.h"
 
-/*! \brief Minimum connection-neighbour hydro time bin of every active cell.
- *
- *  Walks the same neighbour set that star_feedback() distributes kicks over,
- *  see compute_face_weights() (stars/star_feedback.c:295)
- *
- *  \param[out] min_ngb_bin one entry per entry of TimeBinsHydro.ActiveParticleList,
- *              set to TIMEBINS where the cell has no usable neighbour
+/*! \brief Minimum connection-neighbour hydro time bin of every active cell
  *
  *  \return void
  */
@@ -45,7 +39,6 @@ void timestep_limiter_min_ngb_bin(int *min_ngb_bin)
             terminate("Strange connectivity q=%d MaxNvc=%d", q, MaxNvc);
 
           int dp = DC[q].dp_index;
-          int vf = DC[q].vf_index;
           int particle = Mesh.DP[dp].index;
 
           if(particle >= 0)

@@ -242,7 +242,6 @@ void find_timesteps_without_gravity(void)
 #ifdef TIMESTEP_LIMITER
   int nmin = TimeBinsHydro.NActiveParticles > 0 ? TimeBinsHydro.NActiveParticles : 1;
   int *MinNgbBin = (int *)mymalloc("MinNgbBin", nmin * sizeof(int));
-  int nlimited = 0;
 
   timestep_limiter_min_ngb_bin(MinNgbBin);
 #endif /* #ifdef TIMESTEP_LIMITER */
@@ -267,10 +266,7 @@ void find_timesteps_without_gravity(void)
           integertime ti_limit = ((integertime)1) << bin_max;
 
           if(ti_step > ti_limit)
-            {
-              ti_step = ti_limit;
-              nlimited++;
-            }
+            ti_step = ti_limit;
         }
 #endif /* #ifdef TIMESTEP_LIMITER */
 

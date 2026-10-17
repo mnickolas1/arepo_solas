@@ -927,6 +927,13 @@ void check_parameters()
           "MaxSizeTimestep < TimeMax-TimeBegin! \n");
     }
 
+#ifdef TIMESTEP_LIMITER
+  if(All.TimestepLimiterBin < 1 || All.TimestepLimiterBin >= TIMEBINS)
+    mpi_terminate("check_parameters(): TimestepLimiterBin = %d must be in [1, %d)\n", All.TimestepLimiterBin, TIMEBINS);
+
+  mpi_printf("TIMESTEPS: neighbour limiter active, at most %d bins above the shortest neighbour\n", All.TimestepLimiterBin);
+#endif
+
   /* check softening types */
   for(i = 0; i < NTYPES; i++)
     {
