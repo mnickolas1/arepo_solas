@@ -368,8 +368,7 @@ void load_cluster_stars(const char *fname)
           if(sscanf(line, "%lf", &m) != 1)
             continue;
 
-          /* The feedback tables only span MMIN..MMAX; refuse to extrapolate */
-          if(!(m > 0.0) || m > MMAX)
+          if(!(m > 0.0) || m < MMIN || m > MMAX)
             terminate("load_cluster_stars(): mass %g Msun on entry %d of '%s' is outside (0, MMAX = %g]", m, k + 1, fname, (double)MMAX);
 
           ClusterStarMass[k++] = m;
