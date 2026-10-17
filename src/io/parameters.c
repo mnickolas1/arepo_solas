@@ -653,6 +653,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "RTIonizationTimestepFraction");
       addr[nt] = &All.RTIonizationTimestepFraction;
       id[nt++] = REAL;
+
+      strcpy(tag[nt], "RTMinTimestep");
+      addr[nt] = &All.RTMinTimestep;
+      id[nt++] = REAL;
 #endif  
 
 #ifdef IR_MOMENTUM_BOOST

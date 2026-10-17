@@ -30,6 +30,7 @@ RaySplitFactor          2
 RayMaxDistance          20
 
 %RTIonizationTimestepFraction  1
+%RTMinTimestep                 0.01
 
 %IRDtauMomentumBoostCoeff  1
 

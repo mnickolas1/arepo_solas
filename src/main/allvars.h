@@ -1453,6 +1453,7 @@ double InitMetallicityinSolar;
 
 #ifdef RT_TIMESTEP
   double RTIonizationTimestepFraction;
+  double RTMinTimestep;
 #endif
 
 #ifdef IR_MOMENTUM_BOOST
