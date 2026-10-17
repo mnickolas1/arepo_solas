@@ -225,6 +225,12 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.MinSizeTimestep;
       id[nt++] = REAL;
 
+#ifdef TIMESTEP_LIMITER
+      strcpy(tag[nt], "TimestepLimiterBin");
+      addr[nt] = &All.TimestepLimiterBin;
+      id[nt++] = INT;
+#endif
+
       strcpy(tag[nt], "CourantFac");
       addr[nt] = &All.CourantFac;
       id[nt++] = REAL;

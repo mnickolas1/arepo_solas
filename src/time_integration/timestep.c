@@ -236,7 +236,16 @@ void find_timesteps_without_gravity(void)
     }
 
 #else  /* #ifdef FORCE_EQUAL_TIMESTEPS */
+  
   /* Calculate and assign hydro timesteps */
+
+#ifdef TIMESTEP_LIMITER
+  int nmin = TimeBinsHydro.NActiveParticles > 0 ? TimeBinsHydro.NActiveParticles : 1;
+  int *MinNgbBin = (int *)mymalloc("MinNgbBin", nmin * sizeof(int));
+  int nlimited = 0;
+
+  timestep_limiter_min_ngb_bin(MinNgbBin);
+#endif /* #ifdef TIMESTEP_LIMITER */
 
   for(idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
@@ -247,6 +256,24 @@ void find_timesteps_without_gravity(void)
 
       ti_step = get_timestep_hydro(i);
 
+#ifdef TIMESTEP_LIMITER
+      if(MinNgbBin[idx] < TIMEBINS)
+        {
+          int bin_max = MinNgbBin[idx] + All.TimestepLimiterBin;
+
+          if(bin_max > TIMEBINS - 1)
+            bin_max = TIMEBINS - 1;
+
+          integertime ti_limit = ((integertime)1) << bin_max;
+
+          if(ti_step > ti_limit)
+            {
+              ti_step = ti_limit;
+              nlimited++;
+            }
+        }
+#endif /* #ifdef TIMESTEP_LIMITER */
+
       binold = P[i].TimeBinHydro;
 
       timebins_get_bin_and_do_validity_checks(ti_step, &bin, binold);
@@ -255,6 +282,10 @@ void find_timesteps_without_gravity(void)
 
       P[i].TimeBinHydro = bin;
     }
+
+#ifdef TIMESTEP_LIMITER
+  myfree(MinNgbBin);
+#endif /* #ifdef TIMESTEP_LIMITER */
 #endif /* #ifdef FORCE_EQUAL_TIMESTEPS #else */
 
   TIMER_STOP(CPU_TIMELINE);

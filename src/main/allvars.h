@@ -1250,6 +1250,10 @@ extern struct global_data_all_processes
   integertime GlobalTimeStep;
 #endif /* #ifdef FORCE_EQUAL_TIMESTEPS */
 
+#ifdef TIMESTEP_LIMITER
+  int TimestepLimiterBin;
+#endif
+
   double IsoSoundSpeed;
 
   double CourantFac; /*!< Hydrodynamics-Courant factor */

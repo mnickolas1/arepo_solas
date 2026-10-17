@@ -85,4 +85,8 @@ void timebin_move_sfr(int p, int timeBin_old, int timeBin_new);
 void timebin_make_list_of_active_particles_up_to_timebin(struct TimeBinData *tbData, int timebin);
 void timebin_add_particles_of_timebin_to_list_of_active_particles(struct TimeBinData *tbData, int timebin);
 
+#ifdef TIMESTEP_LIMITER
+void timestep_limiter_min_ngb_bin(int *min_ngb_bin);
+#endif
+
 #endif /* TIMESTEP */
