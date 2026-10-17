@@ -662,12 +662,24 @@ Star_Feedback star_particle_feedback(int index, double dt, double z, double a)
 
   StarParticle.State = -1;
 
+#if STAR_PARTICLES == 1
+  (void)index;
+#endif
+
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   StarParticle.TimeToSN = MAX_REAL_NUMBER;
   StarParticle.NextSNEnergy = 0.0;
 #endif
 
-  /* Add feedback contributions for each bin */
+#if STAR_PARTICLES == 1  
+  for(i = 0; i < NumClusterStars; i++)
+    {
+      Nstars = 1;
+
+      m = ClusterStarMass[i];
+
+#else
+
   for(i = 0; i < NBINS; i++)
     {
       if(SP[index].NumOfStarsInBins[i] == 0)
@@ -676,6 +688,7 @@ Star_Feedback star_particle_feedback(int index, double dt, double z, double a)
       Nstars = SP[index].NumOfStarsInBins[i];
 
       m = StarMeanMassInBins[i];
+#endif
 
       Star_Feedback Star = star_feedback_compute(dt, z, m, a);
 

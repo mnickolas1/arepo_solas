@@ -323,4 +323,73 @@ void sample_star_particle(double m, MyStarBins *bins)
       bins[bin] = store_bin_counts(bin, (unsigned int)bins[bin] + 1);
     }
 }
+
+/* The exact stellar masses of the single aggregated star particle */
+int NumClusterStars = 0;
+double *ClusterStarMass = NULL;
+
+void load_cluster_stars(const char *fname)
+{
+  if(ThisTask == 0)
+    {
+      FILE *fd = fopen(fname, "r");
+
+      if(!fd)
+        terminate("load_cluster_stars(): cannot open ClusterMassFile '%s'", fname);
+
+      char line[512];
+      int n = 0;
+
+      /* First pass: count the entries */
+      while(fgets(line, sizeof(line), fd))
+        {
+          double m;
+          if(line[0] == '#' || line[0] == '%')
+            continue;
+          if(sscanf(line, "%lf", &m) == 1)
+            n++;
+        }
+
+      if(n == 0)
+        terminate("load_cluster_stars(): no masses found in '%s'", fname);
+
+      NumClusterStars = n;
+
+      ClusterStarMass = (double *)malloc(n * sizeof(double));
+
+      /* Second pass: read them */
+      rewind(fd);
+      int k = 0;
+      while(fgets(line, sizeof(line), fd) && k < n)
+        {
+          double m;
+          if(line[0] == '#' || line[0] == '%')
+            continue;
+          if(sscanf(line, "%lf", &m) != 1)
+            continue;
+
+          /* The feedback tables only span MMIN..MMAX; refuse to extrapolate */
+          if(!(m > 0.0) || m > MMAX)
+            terminate("load_cluster_stars(): mass %g Msun on entry %d of '%s' is outside (0, MMAX = %g]", m, k + 1, fname, (double)MMAX);
+
+          ClusterStarMass[k++] = m;
+        }
+
+      if(k != n)
+        terminate("load_cluster_stars(): read %d masses but counted %d in '%s'", k, n, fname);
+    }
+
+  MPI_Bcast(&NumClusterStars, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if(ThisTask != 0)
+    ClusterStarMass = (double *)malloc(NumClusterStars * sizeof(double));
+
+  MPI_Bcast(ClusterStarMass, NumClusterStars, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+  double mtot = 0.0;
+  for(int i = 0; i < NumClusterStars; i++)
+    mtot += ClusterStarMass[i];
+
+  mpi_printf("STARS: read %d exact stellar masses from '%s', total %g Msun\n", NumClusterStars, fname, mtot);
+}
 #endif

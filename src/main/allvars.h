@@ -1426,6 +1426,10 @@ double InitMetallicityinSolar;
   int IMF;
 #endif
 
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+  char ClusterMassFile[MAXLEN_PATH];
+#endif
+
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   double SN_LeadTime;
 #endif
@@ -1435,7 +1439,7 @@ double InitMetallicityinSolar;
   double StarFeedbackGlobal[6];
   
   char StarTablesFile[MAXLEN_PATH];
-#endif 
+#endif
 
 #ifdef SUPERNOVAE
   double SN_HostShellSweepFrac;

@@ -214,7 +214,12 @@ void sfr_create_star_particles(void)
     }
 #endif /* #ifdef STARS */
 
-#if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+  if(stars_spawned + stars_converted > 0)
+    terminate("sfr_create_star_particles(): STAR_PARTICLES=1 with an exact mass list cannot form new stars: %d spawned, %d converted. Disable USE_SFR.",
+              stars_spawned, stars_converted);
+
+#elif STAR_PARTICLES == 0
   for(i = NumStars-stars_spawned-stars_converted; i < NumStars; i++)
     sample_star_particle(PPS(i).Mass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
 #endif
