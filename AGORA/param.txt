@@ -1,5 +1,4 @@
 %---- SOLAS additions
-
 TimestepLimiterMaxNgbBinDiff 2
 
 %---- Metal parameters
