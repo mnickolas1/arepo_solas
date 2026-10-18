@@ -1,4 +1,5 @@
 %---- SOLAS additions
+TimestepLimiterMaxNgbBinDiff 2
 
 %---- Metal parameters
 InitMetallicityinSolar	    1.0
@@ -9,24 +10,26 @@ GrackleSpeciesState         0
 
 %---- Star Formation options
 StarFormationEfficiency	    0.01
-NumberDensThreshold	        100
+NumberDensThreshold	        10
 TemperatureThreshold        1e4
 
 Njeans                      -1
 
 %---- Star options
 IMF                     1
-%RefStarsPerCell         4 %Refine cells hosting more than this number of stars
+%StarsPerCellRefinement  4 
 
 StarTablesFile          star_feedback_tables.hdf5
+StarTimestep            0.1
 
 SN_HostShellSweepFrac    0.1
 SN_LeadTime              40
 
 RaySplitFactor          2
-RayMaxDistance          100
+RayMaxDistance          20
 
 %RTIonizationTimestepFraction  1
+%RTMinTimestep                 0.01
 
 %IRDtauMomentumBoostCoeff  1
 

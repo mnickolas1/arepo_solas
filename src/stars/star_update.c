@@ -100,8 +100,8 @@ integertime star_timestep(int i)
   else
     dt = TIMEBASE * All.Timebase_interval;
 
-  /* Set a maximum star timestep at 0.01 Myr */
-  double dt_star = 1.0e4 / All.cf_UnitTime_in_yr;
+  /* Set a max star timestep */
+  double dt_star = All.StarTimestep * 1.0e6 / All.cf_UnitTime_in_yr;
 
   if(dt_star < dt)
     dt = dt_star;

@@ -748,6 +748,7 @@ static void radiation_feedback(void)
 static void rt_timestep(void)
 {
   const double eps_ion = All.RTIonizationTimestepFraction;
+  const double dt_min = All.RTMinTimestep * 1.0e6 / All.cf_UnitTime_in_yr; 
 
   for(int idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
@@ -801,7 +802,7 @@ static void rt_timestep(void)
         }
 
 
-      SphP[i].RT_Timestep = (rate > 0.0) ? eps_ion / rate : All.MaxSizeTimestep / All.cf_hubble_a;
+      SphP[i].RT_Timestep = (rate > 0.0) ? fmax(eps_ion / rate, dt_min) : All.MaxSizeTimestep / All.cf_hubble_a;
     }
 }
 #endif

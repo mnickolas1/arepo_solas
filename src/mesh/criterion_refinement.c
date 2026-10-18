@@ -94,7 +94,7 @@ int should_this_cell_be_split(int i)
 #endif /* #if defined(REFINEMENT_VOLUME_LIMIT) */
 
 #ifdef STAR_HOST_REFINEMENT
-  if(SphP[i].Host > All.RefStarsPerCell)
+  if(SphP[i].Host > All.StarsPerCellRefinement)
     if(can_this_cell_be_split(i))
       return 1;
 #endif

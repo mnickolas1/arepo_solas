@@ -1,4 +1,5 @@
 #---------------------------------------- SOLAS additions
+TIMESTEP_LIMITER
 
 #---------------------------------------- Metal parameters
 METALS                  # Advect all metals, ie metal mass fraction, as a PASSIVE_SCALARS

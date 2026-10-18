@@ -225,6 +225,12 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.MinSizeTimestep;
       id[nt++] = REAL;
 
+#ifdef TIMESTEP_LIMITER
+      strcpy(tag[nt], "TimestepLimiterMaxNgbBinDiff");
+      addr[nt] = &All.TimestepLimiterMaxNgbBinDiff;
+      id[nt++] = INT;
+#endif
+
       strcpy(tag[nt], "CourantFac");
       addr[nt] = &All.CourantFac;
       id[nt++] = REAL;
@@ -425,8 +431,8 @@ void read_parameter_file(char *fname)
 #endif /* #ifdef REFINEMENT_VOLUME_LIMIT */
 
 #ifdef STAR_HOST_REFINEMENT
-      strcpy(tag[nt], "RefStarsPerCell");
-      addr[nt] = &All.RefStarsPerCell;
+      strcpy(tag[nt], "StarsPerCellRefinement");
+      addr[nt] = &All.StarsPerCellRefinement;
       id[nt++] = REAL;
 #endif
 
@@ -627,6 +633,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "StarTablesFile");
       addr[nt] = &All.StarTablesFile;
       id[nt++] = STRING;
+
+      strcpy(tag[nt], "StarTimestep");
+      addr[nt] = &All.StarTimestep;
+      id[nt++] = REAL;
 #endif
 
 #ifdef SUPERNOVAE
@@ -648,6 +658,10 @@ void read_parameter_file(char *fname)
 #ifdef RT_TIMESTEP
       strcpy(tag[nt], "RTIonizationTimestepFraction");
       addr[nt] = &All.RTIonizationTimestepFraction;
+      id[nt++] = REAL;
+
+      strcpy(tag[nt], "RTMinTimestep");
+      addr[nt] = &All.RTMinTimestep;
       id[nt++] = REAL;
 #endif  
 
@@ -926,6 +940,13 @@ void check_parameters()
           "check_parameters: Your total runtime is smaller than the maximum allowed timestep! Choose an appropriate value for "
           "MaxSizeTimestep < TimeMax-TimeBegin! \n");
     }
+
+#ifdef TIMESTEP_LIMITER
+  if(All.TimestepLimiterMaxNgbBinDiff < 1 || All.TimestepLimiterMaxNgbBinDiff >= TIMEBINS)
+    mpi_terminate("check_parameters(): TimestepLimiterMaxNgbBinDiff = %d must be in [1, %d)\n", All.TimestepLimiterMaxNgbBinDiff, TIMEBINS);
+
+  mpi_printf("TIMESTEPS: neighbour limiter active, at most %d bins above the shortest neighbour\n", All.TimestepLimiterMaxNgbBinDiff);
+#endif
 
   /* check softening types */
   for(i = 0; i < NTYPES; i++)

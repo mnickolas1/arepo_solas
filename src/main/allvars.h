@@ -1250,6 +1250,10 @@ extern struct global_data_all_processes
   integertime GlobalTimeStep;
 #endif /* #ifdef FORCE_EQUAL_TIMESTEPS */
 
+#ifdef TIMESTEP_LIMITER
+  int TimestepLimiterMaxNgbBinDiff;
+#endif
+
   double IsoSoundSpeed;
 
   double CourantFac; /*!< Hydrodynamics-Courant factor */
@@ -1329,7 +1333,7 @@ extern struct global_data_all_processes
 #endif 
 
 #ifdef STAR_HOST_REFINEMENT
-  double RefStarsPerCell;
+  double StarsPerCellRefinement;
 #endif
 
 #ifdef REFINEMENT_AROUND_BH
@@ -1439,7 +1443,8 @@ double InitMetallicityinSolar;
   double StarFeedbackGlobal[6];
   
   char StarTablesFile[MAXLEN_PATH];
-#endif
+  double StarTimestep;
+#endif 
 
 #ifdef SUPERNOVAE
   double SN_HostShellSweepFrac;
@@ -1452,6 +1457,7 @@ double InitMetallicityinSolar;
 
 #ifdef RT_TIMESTEP
   double RTIonizationTimestepFraction;
+  double RTMinTimestep;
 #endif
 
 #ifdef IR_MOMENTUM_BOOST
