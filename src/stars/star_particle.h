@@ -35,6 +35,11 @@ extern double StarMassBins[NBINS + 1];
 extern double StarMeanMassInBins[NBINS];
 #endif
 
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+extern int NumClusterStars;
+extern double *ClusterStarMass;
+#endif
+
 #if defined(STAR_PARTICLES) && STAR_PARTICLES == 0
 
 #include <gsl/gsl_rng.h>

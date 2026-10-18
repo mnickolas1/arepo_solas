@@ -41,7 +41,16 @@ void star_init(void)
   MPI_Bcast(bin_imf, NBINS, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
-#if STAR_PARTICLES < 2
+#if STAR_PARTICLES == 1
+  load_cluster_stars(All.ClusterMassFile);
+
+  int totnumstars;
+  MPI_Allreduce(&NumStars, &totnumstars, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  if(totnumstars != 1)
+    terminate("star_init(): STAR_PARTICLES=1 with an exact mass list expects exactly one star particle, found %d", totnumstars);
+
+#elif STAR_PARTICLES == 0
   if(RestartFlag != 1)
     {
       for(int i = 0; i < NumStars; i++)

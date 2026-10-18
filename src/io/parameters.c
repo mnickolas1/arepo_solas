@@ -617,6 +617,12 @@ void read_parameter_file(char *fname)
       id[nt++] = INT;
 #endif
 
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+      strcpy(tag[nt], "ClusterMassFile");
+      addr[nt] = &All.ClusterMassFile;
+      id[nt++] = STRING;
+#endif
+
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
       strcpy(tag[nt], "SN_LeadTime");
       addr[nt] = &All.SN_LeadTime;

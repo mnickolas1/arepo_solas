@@ -34,6 +34,10 @@ void setup_mass_bins(void);
 void sample_star_particle(double m, MyStarBins *bins);
 #endif
 
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+void load_cluster_stars(const char *fname);
+#endif
+
 #if defined(STAR_PARTICLES) && STAR_PARTICLES == 0
 void setup_imf_integrals(void);
 #endif

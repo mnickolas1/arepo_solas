@@ -1430,6 +1430,10 @@ double InitMetallicityinSolar;
   int IMF;
 #endif
 
+#if defined(STAR_PARTICLES) && STAR_PARTICLES == 1
+  char ClusterMassFile[MAXLEN_PATH];
+#endif
+
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
   double SN_LeadTime;
 #endif
