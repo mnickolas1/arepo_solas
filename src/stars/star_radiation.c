@@ -936,30 +936,33 @@ void star_radiation(void)
   TIMER_START(CPU_STARS_RADIATION);
 
 #ifdef RT_LONG_TIMESTEP
-  if(rt_long_step() && All.Ti_Current > All.Ti_LastRT)
+  const int need_pass = rt_long_step() && All.Ti_Current > All.Ti_LastRT;
+
+#ifdef RADIATION_PRESSURE
+  rt_long_momentum();
+#endif
+
+  radiation_feedback();
+
+  if(need_pass)
     {
       rt_do_pass();
 
       All.RTLongStepSpan = (All.Ti_Current - All.Ti_LastRT) * All.Timebase_interval;
 
       All.TimeLastRT = All.Time;
-      All.Ti_LastRT = All.Ti_Current;
+      All.Ti_LastRT  = All.Ti_Current;
     }
   else
     {
       mpi_printf("STAR_RADIATION: no pass, %g of %g Myr elapsed; drawing on stored totals\n",
                  get_time_difference_in_Gyr(All.TimeLastRT, All.Time) * 1.0e3, All.RTLongTimestep);
     }
-
 #else
   rt_do_pass();
-#endif
-
-#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
-  rt_long_momentum();
-#endif
 
   radiation_feedback();
+#endif
 
 #ifdef RT_TIMESTEP
   rt_timestep();
