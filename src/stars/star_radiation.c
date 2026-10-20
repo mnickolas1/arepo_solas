@@ -852,6 +852,7 @@ int rt_long_step(void)
 
   return (get_time_difference_in_Gyr(All.TimeLastRT, All.Time) * 1.0e3 >= All.RTLongTimestep);
 }
+#endif
 
 static void rt_do_pass(void)
 {
@@ -935,7 +936,7 @@ void star_radiation(void)
   TIMER_START(CPU_STARS_RADIATION);
 
 #ifdef RT_LONG_TIMESTEP
-  if(rt_long_step())
+  if(rt_long_step() && All.Ti_Current > All.Ti_LastRT)
     {
       rt_do_pass();
 

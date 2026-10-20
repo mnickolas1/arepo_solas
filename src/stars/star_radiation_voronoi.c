@@ -280,9 +280,7 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
   double dp_total[3] = {0.0, 0.0, 0.0};
   double dK_total = 0.0;
 
-  /* Deposit absorbed energy into the cell, one band at a time */
-  double dK_total = 0.0;
-
+  /* Deposit absorbed energy into the cell, one band a time */
   for(int w = 0; w < WAVEBANDS; w++)
     {
       /* Careful! a contains uninitialized entries! */
