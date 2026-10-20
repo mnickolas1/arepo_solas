@@ -769,6 +769,9 @@ static void rt_long_momentum(void)
 
   for(int i = 0; i < NumGas; i++)
     {
+      if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
+        continue;
+
       for(int k = 0; k < 3; k++)
         SphP[i].StarMomentumFeed[k] += frac * SphP[i].MomentumFeed_Long[k];
 
