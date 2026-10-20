@@ -390,6 +390,36 @@ int do_refinements(void)
               SphP[j].RTCost *= facj;
 #endif
 
+#ifdef RT_LONG_TIMESTEP
+#ifdef PHOTOELECTRIC_HEATING
+              SphP[i].AbsorbedPE *= faci;
+              SphP[j].AbsorbedPE *= facj;
+#endif
+#ifdef DISSOCIATION
+              SphP[i].AbsorbedH2Line *= faci;
+              SphP[j].AbsorbedH2Line *= facj;
+#endif
+#ifdef PHOTOIONIZATION
+              for(int s = 0; s < N_ION_SPECIES; s++)
+                {
+                  SphP[i].AbsorbedIonizing[s].Energy *= faci;
+                  SphP[j].AbsorbedIonizing[s].Energy *= facj;
+                  SphP[i].AbsorbedIonizing[s].Photons *= faci;
+                  SphP[j].AbsorbedIonizing[s].Photons *= facj;
+                }
+#endif
+#ifdef RADIATION_PRESSURE
+              for(int k = 0; k < 3; k++)
+                {
+                  SphP[i].MomentumFeed_Long[k] *= faci;
+                  SphP[j].MomentumFeed_Long[k] *= facj;
+                }
+                
+              SphP[i].EnergyFeed_Long *= faci;
+              SphP[j].EnergyFeed_Long *= facj;
+#endif
+#endif
+
               /* add the new particle into the neighbour tree */
               int no          = Ngb_Nextnode[i];
               Ngb_Nextnode[i] = j;

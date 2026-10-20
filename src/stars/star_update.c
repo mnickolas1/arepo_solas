@@ -299,11 +299,29 @@ void star_prep(void)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
+#ifdef RT_LONG_TIMESTEP
+      for(int w = 0; w < WAVEBANDS; w++)
+        {
+          SP[i].RadiatedBuffer[w].Photons += StarFeedback.Radiated[w].Photons;
+          SP[i].RadiatedBuffer[w].Energy += StarFeedback.Radiated[w].Energy;
+        }
+
+      if(rt_long_step())
+        {
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              SP[i].MechanicalFeedback.Radiated[w] = SP[i].RadiatedBuffer[w];
+
+              SP[i].RadiatedBuffer[w].Photons = SP[i].RadiatedBuffer[w].Energy = 0.0;
+            }
+        }
+#else
       for(int w = 0; w < WAVEBANDS; w++)
         {
           SP[i].MechanicalFeedback.Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
           SP[i].MechanicalFeedback.Radiated[w].Energy = StarFeedback.Radiated[w].Energy;
         }
+#endif
 #endif
 
 #ifdef SUPERNOVAE

@@ -1456,6 +1456,14 @@ double InitMetallicityinSolar;
   double RTMinTimestep;
 #endif
 
+#ifdef RT_LONG_TIMESTEP
+  double RTLongTimestep;
+  double RTLongStepSpan;
+
+  double TimeLastRT; 
+  integertime Ti_LastRT;
+#endif
+
 #ifdef IR_MOMENTUM_BOOST
   double IRDtauMomentumBoostCoeff;
 #endif
@@ -1813,6 +1821,11 @@ extern struct sph_particle_data
 
 #ifdef RT_TIMESTEP
   MyDouble RT_Timestep;
+#endif
+
+#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
+  MyDouble MomentumFeed_Long[3];
+  MyDouble EnergyFeed_Long;
 #endif
 
 /* Blackholes */    

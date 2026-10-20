@@ -145,6 +145,39 @@ void create_mesh(void)
   reconstruct_timebins();
 #endif
 
+#if !defined(CREATE_FULL_MESH) && defined(STAR_RADIATION_ACTIVE)
+#ifdef RT_LONG_TIMESTEP
+  const int rt_full_mesh = rt_long_step();
+#else
+  const int rt_full_mesh = 1;
+#endif
+
+  int k;
+
+  short int *buTimeBin = NULL;
+  static int buTimeBinActive[TIMEBINS];
+
+  if(rt_full_mesh)
+    {
+      buTimeBin = mymalloc_movable(&buTimeBin, "buTimeBin", NumPart * sizeof(short int));
+
+      for(k = 0; k < NumPart; k++)
+        {
+          buTimeBin[k]      = P[k].TimeBinHydro;
+          P[k].TimeBinHydro = 0;
+        }
+
+      for(k = 0; k < TIMEBINS; k++)
+        {
+          buTimeBinActive[k] = TimeBinSynchronized[k];
+
+          TimeBinSynchronized[k] = 1;
+        }
+
+      reconstruct_timebins();
+    }
+#endif
+
   int tlast;
   int idx, i, iter = 0, n, skip;
   double tstart, tend;
@@ -468,6 +501,21 @@ void create_mesh(void)
 
   myfree_movable(buTimeBin);
 #endif /* #if defined(CREATE_FULL_MESH) */
+
+#if !defined(CREATE_FULL_MESH) && defined(STAR_RADIATION_ACTIVE)
+  if(rt_full_mesh)
+    {
+      for(k = 0; k < TIMEBINS; k++)
+        TimeBinSynchronized[k] = buTimeBinActive[k];
+
+      for(k = 0; k < NumPart; k++)
+        P[k].TimeBinHydro = buTimeBin[k];
+
+      reconstruct_timebins();
+
+      myfree_movable(buTimeBin);
+    }
+#endif
 
 #if !defined(CREATE_FULL_MESH) && (defined(WINDS) || defined(SUPERNOVAE))
   for(j = 0; j < NumGas; j++)

@@ -272,12 +272,13 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
   const double mj = P[i].Mass + SphP[i].StarMassFeed;
 
-  double mom[3], smf[3];
+  /* Partially updated state */
+  double pj[3];
   for(int k = 0; k < 3; k++)
-    {
-      mom[k] = SphP[i].Momentum[k];
-      smf[k] = SphP[i].StarMomentumFeed[k];
-    }
+    pj[k] = SphP[i].Momentum[k] + SphP[i].StarMomentumFeed[k];
+
+  double dp_total[3] = {0.0, 0.0, 0.0};
+  double dK_total = 0.0;
 
   /* Deposit absorbed energy into the cell, one band at a time */
   double dK_total = 0.0;
@@ -303,20 +304,14 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
 
       double dp_vec[3] = {dp * ray->dir[0], dp * ray->dir[1], dp * ray->dir[2]};
 
-      /* Partially updated state */
-      double pj[3];
-      for(int k = 0; k < 3; k++)
-        pj[k] = mom[k] + smf[k];
-
       double sq_momentum = dp_vec[0] * dp_vec[0] + dp_vec[1] * dp_vec[1] + dp_vec[2] * dp_vec[2];
 
       double cross = 2 * (pj[0] * dp_vec[0] + pj[1] * dp_vec[1] + pj[2] * dp_vec[2]);
 
       double dK = (sq_momentum + cross) / (2 * mj);
 
-      smf[0] += dp_vec[0];
-      smf[1] += dp_vec[1];
-      smf[2] += dp_vec[2];
+      for(int k = 0; k < 3; k++)
+        dp_total[k] += dp_vec[k];
 
       const double f_K = dK / E_w;
       for(int c = 0; c < CHANNELS; c++)
@@ -325,10 +320,18 @@ static inline int ray_deposit(RayPacket *ray, int i, double length)
       dK_total += dK;
     }
 
+#ifdef RT_LONG_TIMESTEP
   for(int k = 0; k < 3; k++)
-    SphP[i].StarMomentumFeed[k] = smf[k];
+    SphP[i].MomentumFeed_Long[k] += dp_total[k];
+
+  SphP[i].EnergyFeed_Long += dK_total;
+#else
+  for(int k = 0; k < 3; k++)
+    SphP[i].StarMomentumFeed[k] += dp_total[k];
 
   SphP[i].StarEnergyFeed += dK_total;
+#endif
+
   All.StarFeedbackLocal[2] += dK_total;
 #endif
 

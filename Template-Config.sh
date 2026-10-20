@@ -56,8 +56,12 @@
 
 #---------------------------------------- Radiation / RT options
 #RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
+
 #RT_TIMESTEP            # RT timestep limiter (requires DISSOCIATION or PHOTOIONIZATION)
+#RT_LONG_TIMESTEP       # RT long timestep for mesh construction and ray tracing
+
 #IR_MOMENTUM_BOOST      # IR momentum boost from the per-cell optical depth
+
 #RT_COMM_SYNC           # Synchronous RT communication scheme
 
 #RT_STATISTICS          # Ray-tracing statistics

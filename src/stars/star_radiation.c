@@ -671,13 +671,24 @@ static void radiation_feedback(void)
 
   const double L3 = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;
 
+#ifdef RT_LONG_TIMESTEP
+  /* Absorbed* holds the whole interval; this step gets dt_sync/RTLongStepSpan of it */
+  const double dt_sync = (All.Ti_Current - All.Previous_Ti_Current) * All.Timebase_interval;
+
+  const double frac = (All.RTLongStepSpan > 0.0) ? dt_sync / All.RTLongStepSpan : 0.0;
+#endif
+
   for(int i = 0; i < NumGas; i++)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
 
-      const double V = SphP[i].Volume;
-      const double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+      double V = SphP[i].Volume;
+      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+
+#ifdef RT_LONG_TIMESTEP
+      dt = (frac > 0.0) ? dt / frac : 0.0;
+#endif
 
       if(dt <= 0.0 || V <= 0.0)
         goto reset;
@@ -729,6 +740,7 @@ static void radiation_feedback(void)
 
     reset:
 
+#ifndef RT_LONG_TIMESTEP
 #ifdef PHOTOELECTRIC_HEATING
       SphP[i].AbsorbedPE = 0.0;
 #endif
@@ -741,8 +753,29 @@ static void radiation_feedback(void)
       for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
 #endif
+#endif
     ;}
 }
+
+#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
+static void rt_long_momentum(void)
+{
+  const double dt_sync = (All.Ti_Current - All.Previous_Ti_Current) * All.Timebase_interval;
+
+  const double frac = (All.RTLongStepSpan > 0.0) ? dt_sync / All.RTLongStepSpan : 0.0;
+
+  if(frac <= 0.0)
+    return;
+
+  for(int i = 0; i < NumGas; i++)
+    {
+      for(int k = 0; k < 3; k++)
+        SphP[i].StarMomentumFeed[k] += frac * SphP[i].MomentumFeed_Long[k];
+
+      SphP[i].StarEnergyFeed += frac * SphP[i].EnergyFeed_Long;
+    }
+}
+#endif
 
 #ifdef RT_TIMESTEP
 static void rt_timestep(void)
@@ -801,18 +834,29 @@ static void rt_timestep(void)
 #endif
         }
 
-
       SphP[i].RT_Timestep = (rate > 0.0) ? fmax(eps_ion / rate, dt_min) : All.MaxSizeTimestep / All.cf_hubble_a;
     }
 }
 #endif
 
-void star_radiation(void)
+#ifdef RT_LONG_TIMESTEP
+/*! \brief Whether this step runs RT
+ */
+int rt_long_step(void)
 {
-  TIMER_START(CPU_STARS_RADIATION);
+  if(All.Ti_LastRT == 0)
+    return (All.Ti_Current > 0); 
 
+  if(All.Ti_LastRT == All.Ti_Current)
+    return 1; 
+
+  return (get_time_difference_in_Gyr(All.TimeLastRT, All.Time) * 1.0e3 >= All.RTLongTimestep);
+}
+
+static void rt_do_pass(void)
+{
   double t0, t1;
-
+        
   update_opac();
 
   /* Zero accumulators before the walk */
@@ -829,6 +873,13 @@ void star_radiation(void)
 #ifdef PHOTOIONIZATION
       for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
+#endif
+
+#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
+      for(int k = 0; k < 3; k++)
+        SphP[i].MomentumFeed_Long[k] = 0.0;
+      
+      SphP[i].EnergyFeed_Long = 0.0;
 #endif
     }
 
@@ -877,6 +928,35 @@ void star_radiation(void)
 
   ray_comms_free(comm);
   free_work_stack(work);
+}
+
+void star_radiation(void)
+{
+  TIMER_START(CPU_STARS_RADIATION);
+
+#ifdef RT_LONG_TIMESTEP
+  if(rt_long_step())
+    {
+      rt_do_pass();
+
+      All.RTLongStepSpan = (All.Ti_Current - All.Ti_LastRT) * All.Timebase_interval;
+
+      All.TimeLastRT = All.Time;
+      All.Ti_LastRT = All.Ti_Current;
+    }
+  else
+    {
+      mpi_printf("STAR_RADIATION: no pass, %g of %g Myr elapsed; drawing on stored totals\n",
+                 get_time_difference_in_Gyr(All.TimeLastRT, All.Time) * 1.0e3, All.RTLongTimestep);
+    }
+
+#else
+  rt_do_pass();
+#endif
+
+#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
+  rt_long_momentum();
+#endif
 
   radiation_feedback();
 

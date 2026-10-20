@@ -219,6 +219,11 @@ typedef struct Star_Particle_Data
   MyDouble Birthtime; // All.Time unit
 
   Mechanical_Feedback MechanicalFeedback;
+  
+#ifdef RT_LONG_TIMESTEP
+  /* Radiated energy/photons since the last RT pass; flushed into MechanicalFeedback on a pass */
+  WavebandData RadiatedBuffer[WAVEBANDS];
+#endif
 #endif
 } Star_Particle_Data;
 

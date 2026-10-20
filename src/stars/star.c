@@ -62,6 +62,12 @@ void star_init(void)
         SP[i].WithFeedback = 1;
     }
 #endif
+
+#ifdef RT_LONG_TIMESTEP
+  if(RestartFlag != 1)
+    All.TimeLastRT = All.TimeBegin;
+    All.Ti_LastRT = 0;
+#endif
 }
 
 #ifdef METALS

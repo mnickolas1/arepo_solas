@@ -121,6 +121,11 @@ void ray_comms_flush(RayComms *comm);
 void star_radiation(void);
 void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm);
 
+#ifdef RT_LONG_TIMESTEP
+/* RT timesteps */
+int rt_long_step(void);
+#endif
+
 #ifdef RT_STATISTICS
 /* RT statistics */
 void rt_statistics_init(const RayPacket *ray);

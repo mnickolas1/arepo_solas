@@ -659,6 +659,12 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif  
 
+#ifdef RT_LONG_TIMESTEP
+      strcpy(tag[nt], "RTLongTimestep");
+      addr[nt] = &All.RTLongTimestep;
+      id[nt++] = REAL;
+#endif  
+
 #ifdef IR_MOMENTUM_BOOST
       strcpy(tag[nt], "IRDtauMomentumBoostCoeff");
       addr[nt] = &All.IRDtauMomentumBoostCoeff;

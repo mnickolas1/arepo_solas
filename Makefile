@@ -543,15 +543,18 @@ $(error STAR_RADIATION_ACTIVE requires GRACKLE_CHEMISTRY >= 2)
 endif
 endif
 
-ifneq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
-ifeq (,$(filter CREATE_FULL_MESH,$(CONFIGVARS)))
-$(error STAR_RADIATION_ACTIVE requires CREATE_FULL_MESH)
-endif
-endif
-
 ifneq (,$(filter RT_TIMESTEP,$(CONFIGVARS)))
 ifeq (,$(filter DISSOCIATION PHOTOIONIZATION,$(CONFIGVARS)))
 $(error RT_TIMESTEP requires DISSOCIATION or PHOTOIONIZATION)
+endif
+endif
+
+ifneq (,$(filter RT_LONG_TIMESTEP,$(CONFIGVARS)))
+ifeq (,$(filter STAR_RADIATION_ACTIVE,$(CONFIGVARS)))
+$(error RT_LONG_TIMESTEP requires STAR_RADIATION_ACTIVE)
+endif
+ifneq (,$(filter CREATE_FULL_MESH,$(CONFIGVARS)))
+$(warning CREATE_FULL_MESH builds the full mesh every step, so RT_LONG_TIMESTEP will not reduce mesh cost)
 endif
 endif
 
