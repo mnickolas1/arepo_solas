@@ -683,7 +683,7 @@ void find_long_range_step_constraint(void)
  */
 integertime get_timestep_integertime(double dt, double units)
 {
-  dt_code = dt / units;
+  double dt_code = dt / units;
   integertime ti_step = dt_code / All.Timebase_interval;
 
   return ti_step;
