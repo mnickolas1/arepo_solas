@@ -1451,7 +1451,7 @@ double InitMetallicityinSolar;
   double RayMaxDistance;
 #endif
 
-#ifdef RT_TIMESTEP
+#if defined(RT_TIMESTEP) || defined(RT_LONG_TIMESTEP)
   double RTIonizationTimestepFraction;
   double RTMinTimestep;
 #endif
