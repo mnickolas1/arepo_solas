@@ -1451,7 +1451,7 @@ double InitMetallicityinSolar;
   double RayMaxDistance;
 #endif
 
-#if defined(RT_TIMESTEP) || defined(RT_LONG_TIMESTEP)
+#ifdef RT_TIMESTEP
   double RTIonizationTimestepFraction;
   double RTMinTimestep;
 #endif
@@ -1816,7 +1816,7 @@ extern struct sph_particle_data
   MyDouble IonizationRate[N_ION_SPECIES];
 #endif
 
-#ifdef RT_TIMESTEP
+#if defined(RT_TIMESTEP) || defined(RT_LONG_TIMESTEP)
   MyDouble RT_Timestep;
 #endif
 
