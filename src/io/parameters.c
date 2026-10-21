@@ -1012,7 +1012,7 @@ void check_parameters()
 
 #ifdef RT_LONG_TIMESTEP
   if(All.RTLongTimestep < All.StarTimestep)
-    mpi_terminate("check_parameters(): RTLongTimestep %g must be longer than StarTimestep %g)\n", All.RTLongTimestep, All.StarTimestep);
+    mpi_terminate("check_parameters(): RTLongTimestep %g must be longer than StarTimestep %g\n", All.RTLongTimestep, All.StarTimestep);
 #endif
 }
 
