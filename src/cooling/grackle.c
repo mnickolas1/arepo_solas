@@ -545,7 +545,7 @@ double CallGrackle(int i, double dt, int mode)
   *All.GrackleFieldData.RT_HeII_ionization_rate = 0.0;
 #endif
 
-#ifndef RT_LONG_TIMESTEP
+#if defined(STAR_RADIATION_ACTIVE) && !defined(RT_LONG_TIMESTEP)
   rt_rates_consume(i);
 #endif
 

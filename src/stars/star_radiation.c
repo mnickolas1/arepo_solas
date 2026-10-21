@@ -972,7 +972,9 @@ void star_radiation(void)
       All.Ti_LastRT = All.Ti_Current;
     }
 
+#ifdef RADIATION_PRESSURE
   rt_long_momentum();
+#endif
 
 #else
   
