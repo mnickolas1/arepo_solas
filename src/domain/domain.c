@@ -115,11 +115,18 @@ void domain_accumulate_step_times(void)
 #endif
 }
 
-void domain_reset_channel_times(void)
-{
-  for(int c = 0; c < DOMAIN_NCHANNELS; c++)
-    DomainChannelTime[c] = 0.0;
-}
+ void domain_reset_channel_times(void)
+ {
+   for(int c = 0; c < DOMAIN_NCHANNELS; c++)
+    {
+#ifdef RT_LONG_TIMESTEP
+      if(c == DOMAIN_CH_RT)
+        if(!rt_long_step())
+          continue;
+#endif
+      DomainChannelTime[c] = 0.0;
+    }
+ }
 
 /*! \brief Whether this sync point performs a domain decomposition.
  */
