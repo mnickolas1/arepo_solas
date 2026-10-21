@@ -90,27 +90,19 @@ void feedback_free(struct Mechanical_Feedback_Events *MFEvents)
 
 integertime star_timestep(int i)
 {
+  /* Park dead or low mass stars */
+  if(SP[i].Active < 0)
+    return TIMEBASE;
+
   /* Host hydro bin */
-  double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
-
-  double dt;
-
-  if(dt_host != 0)
-    dt = dt_host;
-  else
-    dt = TIMEBASE * All.Timebase_interval;
+  integertime ti_step = SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : TIMEBASE;
 
   /* Set a max star timestep */
   double dt_star = All.StarTimestep * 1.0e6 / All.cf_UnitTime_in_yr;
+  integertime ti_star = get_timestep_pow2((integertime)(dt_star / All.Timebase_interval));
 
-  if(dt_star < dt)
-    dt = dt_star;
-
-  /* Park dead or low mass stars */
-  if(SP[i].Active < 0)
-    dt = TIMEBASE * All.Timebase_interval;
-
-  integertime ti_step = (integertime)(dt / All.Timebase_interval);
+  if(ti_star < ti_step)
+    ti_step = ti_star;
 
   return ti_step;
 }

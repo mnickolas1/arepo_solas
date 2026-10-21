@@ -840,8 +840,6 @@ static void rt_timestep(void)
 #endif
 
 #ifdef RT_LONG_TIMESTEP
-/*! \brief Whether this step runs RT
- */
 int rt_long_step(void)
 {
   if(All.Ti_LastRT == 0)
@@ -850,7 +848,10 @@ int rt_long_step(void)
   if(All.Ti_LastRT == All.Ti_Current)
     return 1; 
 
-  return (get_time_difference_in_Gyr(All.TimeLastRT, All.Time) * 1.0e3 >= All.RTLongTimestep);
+  const double dt = All.RTLongTimestep * 1.0e6 / All.cf_UnitTime_in_yr;
+  integertime ti_step = get_timestep_pow2((integertime)(dt / All.Timebase_interval));
+
+  return (All.Ti_Current % ti_step == 0);
 }
 #endif
 

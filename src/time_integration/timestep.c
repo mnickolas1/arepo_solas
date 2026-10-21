@@ -674,6 +674,21 @@ void find_long_range_step_constraint(void)
 }
 #endif /* #ifdef PMGRID */
 
+/*! \brief Rounds an integer timestep down to a power 2 subdivision.
+ *
+ *  \param[in] ti_step Timestep on the integer timeline.
+ *
+ *  \return Largest power of two not exceeding ti_step.
+ */
+integertime get_timestep_pow2(integertime ti_step)
+{
+  integertime ti_min = TIMEBASE;
+  while(ti_min > ti_step)
+    ti_min >>= 1;
+
+  return ti_min;
+}
+
 /*! \brief Converts an integer time to a time bin.
  *
  *  \param[in] ti_step Timestep as integertime variable.
@@ -829,10 +844,7 @@ void timebins_reallocate(struct TimeBinData *tbData)
 void timebins_get_bin_and_do_validity_checks(integertime ti_step, int *bin_new, int bin_old)
 {
   /* make it a power 2 subdivision */
-  integertime ti_min = TIMEBASE;
-  while(ti_min > ti_step)
-    ti_min >>= 1;
-  ti_step = ti_min;
+  ti_step = get_timestep_pow2(ti_step);
 
   /* get timestep bin */
   int bin = -1;

@@ -67,8 +67,10 @@ void update_timesteps_from_gravity(void);
 integertime get_timestep_gravity(int p);
 integertime get_timestep_hydro(int p);
 integertime get_timestep_pm(void);
+
 int test_if_grav_timestep_is_too_large(int p, int bin);
 void validate_timestep(double dt, integertime ti_step, int p);
+integertime get_timestep_pow2(integertime ti_step);
 int get_timestep_bin(integertime ti_step);
 double get_time_difference_in_Gyr(double a0, double a1);
 
