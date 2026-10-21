@@ -117,6 +117,9 @@ void append_export(RayComms *comm, const RayPacket *ray, int task);
 void ray_comms_progress(RayComms *comm);
 void ray_comms_flush(RayComms *comm);
 
+/* Helper */
+void rt_rates_consume(int i);
+
 /* Driver and traversal */
 void star_radiation(void);
 void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm);

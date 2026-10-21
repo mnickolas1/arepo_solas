@@ -1458,9 +1458,6 @@ double InitMetallicityinSolar;
 
 #ifdef RT_LONG_TIMESTEP
   double RTLongTimestep;
-  double RTLongStepSpan;
-
-  double TimeLastRT; 
   integertime Ti_LastRT;
 #endif
 

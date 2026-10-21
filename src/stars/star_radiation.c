@@ -662,7 +662,23 @@ void ray_neighbours_free(void)
   RayNgbsNtask = 0;
 }
 
-static void radiation_feedback(void)
+void rt_rates_consume(int i)
+{
+#ifdef PHOTOELECTRIC_HEATING
+  SphP[i].PE_VolHeatingRate = 0.0;
+#endif
+
+#ifdef DISSOCIATION
+  SphP[i].H2_DissociationRate = 0.0;
+#endif
+
+#ifdef PHOTOIONIZATION
+  for(int s = 0; s < N_ION_SPECIES; s++)
+    SphP[i].IonHeatingRate[s] = SphP[i].IonizationRate[s] = 0.0;
+#endif
+}
+
+static void radiation_feedback(double dt_rt)
 {
   /* Indexed by ionizing species a = 0,1,2,3 (HI, H2, HeI, HeII) */
   static const double IonThreshold_eV[N_ION_SPECIES] = {13.6, 15.4, 24.6, 54.4};
@@ -671,24 +687,13 @@ static void radiation_feedback(void)
 
   const double L3 = All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm * All.cf_UnitLength_in_cm;
 
-#ifdef RT_LONG_TIMESTEP
-  /* Absorbed* holds the whole interval; this step gets dt_sync/RTLongStepSpan of it */
-  const double dt_sync = (All.Ti_Current - All.Previous_Ti_Current) * All.Timebase_interval;
-
-  const double frac = (All.RTLongStepSpan > 0.0) ? dt_sync / All.RTLongStepSpan : 0.0;
-#endif
-
   for(int i = 0; i < NumGas; i++)
     {
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
 
       double V = SphP[i].Volume;
-      double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
-
-#ifdef RT_LONG_TIMESTEP
-      dt = (frac > 0.0) ? dt / frac : 0.0;
-#endif
+      double dt = (dt_rt > 0.0) ? dt_rt : (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
 
       if(dt <= 0.0 || V <= 0.0)
         goto reset;
@@ -740,7 +745,6 @@ static void radiation_feedback(void)
 
     reset:
 
-#ifndef RT_LONG_TIMESTEP
 #ifdef PHOTOELECTRIC_HEATING
       SphP[i].AbsorbedPE = 0.0;
 #endif
@@ -753,26 +757,39 @@ static void radiation_feedback(void)
       for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
 #endif
-#endif
     ;}
 }
 
 #if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
-static void rt_long_momentum(void)
+static void rt_rate_momentum(double dt_rt)
 {
-  const double dt_sync = (All.Ti_Current - All.Previous_Ti_Current) * All.Timebase_interval;
-
-  const double frac = (All.RTLongStepSpan > 0.0) ? dt_sync / All.RTLongStepSpan : 0.0;
-
-  if(frac <= 0.0)
-    return;
+  const double inv_dt = (dt_rt > 0.0) ? 1.0 / dt_rt : 0.0;
 
   for(int i = 0; i < NumGas; i++)
     {
       for(int k = 0; k < 3; k++)
-        SphP[i].StarMomentumFeed[k] += frac * SphP[i].MomentumFeed_Long[k];
+        SphP[i].MomentumFeed_Long[k] *= inv_dt;
 
-      SphP[i].StarEnergyFeed += frac * SphP[i].EnergyFeed_Long;
+      SphP[i].EnergyFeed_Long *= inv_dt;
+    }
+}
+
+/*! \brief Applies the held radiation pressure force over each active cell's own timestep.
+ */
+static void rt_long_momentum(void)
+{
+  for(int idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+    {
+      const int i = TimeBinsHydro.ActiveParticleList[idx];
+      if(i < 0)
+        continue;
+
+      const double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+
+      for(int k = 0; k < 3; k++)
+        SphP[i].StarMomentumFeed[k] += SphP[i].MomentumFeed_Long[k] * dt;
+
+      SphP[i].StarEnergyFeed += SphP[i].EnergyFeed_Long * dt;
     }
 }
 #endif
@@ -877,11 +894,14 @@ static void rt_do_pass(void)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
 #endif
 
-#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
+#ifdef RT_LONG_TIMESTEP
+      rt_rates_consume(i);
+#ifdef RADIATION_PRESSURE
       for(int k = 0; k < 3; k++)
         SphP[i].MomentumFeed_Long[k] = 0.0;
       
       SphP[i].EnergyFeed_Long = 0.0;
+#endif
 #endif
     }
 
@@ -939,28 +959,27 @@ void star_radiation(void)
 #ifdef RT_LONG_TIMESTEP
   if(rt_long_step() && All.Ti_Current > All.Ti_LastRT)
     {
+      const double dt_rt = (All.Ti_Current - All.Ti_LastRT) * All.Timebase_interval;
+
       rt_do_pass();
 
-      All.RTLongStepSpan = (All.Ti_Current - All.Ti_LastRT) * All.Timebase_interval;
+      radiation_feedback(dt_rt);
 
-      All.TimeLastRT = All.Time;
+#ifdef RADIATION_PRESSURE
+      rt_rate_momentum(dt_rt);
+#endif
+
       All.Ti_LastRT = All.Ti_Current;
     }
-  else
-    {
-      mpi_printf("STAR_RADIATION: no pass, %g of %g Myr elapsed; drawing on stored totals\n",
-                 get_time_difference_in_Gyr(All.TimeLastRT, All.Time) * 1.0e3, All.RTLongTimestep);
-    }
+
+  rt_long_momentum();
 
 #else
+  
   rt_do_pass();
-#endif
 
-#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
-  rt_long_momentum();
+  radiation_feedback(0.0);
 #endif
-
-  radiation_feedback();
 
 #ifdef RT_TIMESTEP
   rt_timestep();
