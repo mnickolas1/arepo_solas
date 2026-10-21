@@ -261,7 +261,7 @@ void run(void)
 #ifdef RAD_OCT_TREE
       if(1)
 #else
-      if(All.HighestActiveTimeBin >= All.SmallestTimeBinWithDomainDecomposition) /* only do this for sufficiently large steps */
+      if(domain_decomposition_due())
 #endif
         {
 #ifdef VORONOI_STATIC_MESH

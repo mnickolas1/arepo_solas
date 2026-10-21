@@ -579,8 +579,8 @@ int force_treebuild_construct(int npart, int optimized_domain_mapping, int inser
 
           mpi_printf("FORCETREE: current balance=  %g | %g\n", current_balance, impact);
 
-          if(All.HighestActiveTimeBin <
-             All.SmallestTimeBinWithDomainDecomposition) /* only do this for steps which did not do a domain decomposition */
+          /* Only do this for steps which did not do a domain decomposition */
+          if(!domain_decomposition_due()) 
             {
               if(impact > MAX_IMPACT_BEFORE_OPTIMIZATION)
                 {

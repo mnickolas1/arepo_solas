@@ -674,6 +674,21 @@ void find_long_range_step_constraint(void)
 }
 #endif /* #ifdef PMGRID */
 
+/*! \brief Converts a timestep in units to the integer timeline.
+ *
+ *  \param[in] dt Timestep.
+ *  \param[in] units Timestep units.
+ *
+ *  \return Same timestep in the integer timeline.
+ */
+integertime get_timestep_integertime(double dt, double units)
+{
+  dt_code = dt / units;
+  integertime ti_step = dt_code / All.Timebase_interval;
+
+  return ti_step;
+}
+
 /*! \brief Rounds an integer timestep down to a power 2 subdivision.
  *
  *  \param[in] ti_step Timestep on the integer timeline.

@@ -121,6 +121,23 @@ void domain_reset_channel_times(void)
     DomainChannelTime[c] = 0.0;
 }
 
+/*! \brief Whether this sync point performs a domain decomposition.
+ */
+int domain_decomposition_due(void)
+{
+  /* Enough particles are active to be worth rebalancing */
+  if(All.HighestActiveTimeBin >= All.SmallestTimeBinWithDomainDecomposition)
+    return 1;
+
+#ifdef RT_LONG_TIMESTEP
+  /* Always before a ray trace */
+  if(rt_long_step())
+    return 1;
+#endif
+
+  return 0;
+}
+
 /*! \brief The main routine for the domain decomposition
  *
  *  It acts as a driver routine that allocates various temporary buffers,
@@ -249,8 +266,11 @@ void domain_Decomposition(void)
   domain_reset_channel_times();
 
 #ifdef STAR_RADIATION_ACTIVE
-  for(int i = 0; i < NumGas; i++)
-    SphP[i].RTCost = 0.0f;
+#ifdef RT_LONG_TIMESTEP
+  if(rt_long_step())
+#endif
+   for(int i = 0; i < NumGas; i++)
+     SphP[i].RTCost = 0.0f;
 #endif
 
   TIMER_STOP(CPU_DOMAIN);

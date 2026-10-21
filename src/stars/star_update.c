@@ -98,8 +98,7 @@ integertime star_timestep(int i)
   integertime ti_step = SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : TIMEBASE;
 
   /* Set a max star timestep */
-  double dt_star = All.StarTimestep * 1.0e6 / All.cf_UnitTime_in_yr;
-  integertime ti_star = get_timestep_pow2((integertime)(dt_star / All.Timebase_interval));
+  integertime ti_star = get_timestep_pow2(get_timestep_integertime(All.StarTimestep, All.cf_UnitTime_in_yr / 1.0e6));
 
   if(ti_star < ti_step)
     ti_step = ti_star;

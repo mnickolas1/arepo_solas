@@ -62,6 +62,10 @@ struct TimeBinData
   int *MaxPart;
 };
 
+#ifdef TIMESTEP_LIMITER
+void timestep_limiter_min_ngb_bin(int *min_ngb_bin);
+#endif
+
 void find_timesteps_without_gravity(void);
 void update_timesteps_from_gravity(void);
 integertime get_timestep_gravity(int p);
@@ -70,6 +74,7 @@ integertime get_timestep_pm(void);
 
 int test_if_grav_timestep_is_too_large(int p, int bin);
 void validate_timestep(double dt, integertime ti_step, int p);
+integertime get_timestep_integertime(double dt, double units);
 integertime get_timestep_pow2(integertime ti_step);
 int get_timestep_bin(integertime ti_step);
 double get_time_difference_in_Gyr(double a0, double a1);
@@ -86,9 +91,5 @@ void timebin_cleanup_list_of_active_particles(struct TimeBinData *tbData);
 void timebin_move_sfr(int p, int timeBin_old, int timeBin_new);
 void timebin_make_list_of_active_particles_up_to_timebin(struct TimeBinData *tbData, int timebin);
 void timebin_add_particles_of_timebin_to_list_of_active_particles(struct TimeBinData *tbData, int timebin);
-
-#ifdef TIMESTEP_LIMITER
-void timestep_limiter_min_ngb_bin(int *min_ngb_bin);
-#endif
 
 #endif /* TIMESTEP */

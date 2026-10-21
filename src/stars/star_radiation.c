@@ -865,10 +865,9 @@ int rt_long_step(void)
   if(All.Ti_LastRT == All.Ti_Current)
     return 1; 
 
-  const double dt = All.RTLongTimestep * 1.0e6 / All.cf_UnitTime_in_yr;
-  integertime ti_step = get_timestep_pow2((integertime)(dt / All.Timebase_interval));
+  integertime ti_rt = get_timestep_pow2(get_timestep_integertime(All.RTLongTimestep, All.cf_UnitTime_in_yr / 1.0e6));
 
-  return (All.Ti_Current % ti_step == 0);
+  return (All.Ti_Current % ti_rt == 0);
 }
 #endif
 
