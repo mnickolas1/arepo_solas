@@ -479,12 +479,6 @@ int init(void)
   /* Need to run this after the gas state is set */
   update_mu_gamma();
 
-#ifdef METALS
-#ifdef STARS
-  init_star_metallicity();
-#endif
-#endif
-
   if(RestartFlag == 17)
     {
       update_primitive_variables();

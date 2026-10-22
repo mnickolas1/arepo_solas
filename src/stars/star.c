@@ -13,8 +13,48 @@ Mechanical_Feedback_Events MechanicalFeedbackEvents;
 
 Star_Particle_Data *SP;
 
+static void star_init_properties(void)
+{
+  if(!field_read_from_ic(IO_STAR_INITMASS))
+    {
+      warn("star_init(): no StarInitMass block in the input file - seeding from the current particle mass\n");
+
+      for(int i = 0; i < NumStars; i++)
+        SP[i].InitMass = PPS(i).Mass;
+    }
+
+  if(!field_read_from_ic(IO_STAR_FORMTIME))
+    {
+      warn("star_init(): no StarFormTime block in the input file - seeding from TimeBegin\n");
+
+      for(int i = 0; i < NumStars; i++)
+        SP[i].FormTime = All.TimeBegin;
+    }
+}
+
+#ifdef METALS
+static void star_init_metals(void)
+{
+  if(!field_read_from_ic(IO_STAR_METALS))
+    {
+      warn("star_init(): no StarMetallicity block in the input file - seeding from the parameter file\n");
+
+      for(int i = 0; i < NumStars; i++)
+        SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
+    }
+}
+#endif
+
 void star_init(void)
 {
+  if(RestartFlag == 0)
+    star_init_properties();
+
+#ifdef METALS
+  if(RestartFlag == 0)
+    star_init_metals();
+#endif
+
 #ifdef STAR_PARTICLES
   if(ThisTask == 0)
     {
@@ -42,10 +82,10 @@ void star_init(void)
 #endif
 
 #if STAR_PARTICLES < 2
-  if(RestartFlag != 1)
+  if(RestartFlag == 0)
     {
       for(int i = 0; i < NumStars; i++)
-        sample_star_particle(PPS(i).Mass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
+        sample_star_particle(PPS(i).InitMass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
     }
 #endif
 #endif
@@ -56,25 +96,10 @@ void star_init(void)
 
   feedback_init(&MechanicalFeedbackEvents);
 
-  if(RestartFlag != 1)
+  if(RestartFlag == 0)
     {
       for(int i = 0; i < NumStars; i++)
         SP[i].WithFeedback = 1;
     }
 #endif
 }
-
-#ifdef METALS
-void init_star_metallicity(void)
-{
-  const int from_file = field_read_from_ic(IO_STAR_METALS);
-
-  if(!from_file)
-    {
-      warn("INIT: no StarMetallicity block in the input file - seeding from the parameter file\n");
-
-      for(int i = 0; i < NumStars; i++)
-        SP[i].Metallicity = All.InitMetallicityinSolar * SOLAR_METALLICITY;
-    }
-}
-#endif
