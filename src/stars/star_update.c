@@ -223,7 +223,6 @@ void star_prep(void)
       /* Put newly formed stars on the main sequence */
       if(SP[i].Active == STAR_UNBORN)
         {
-          SP[i].MassOfStar = PPS(i).Mass;
           SP[i].Active = STAR_ACTIVE;
         }
 
@@ -231,7 +230,7 @@ void star_prep(void)
       memset(&SP[i].MechanicalFeedback, 0, sizeof(Mechanical_Feedback));
 
       /* Set age properties */
-      SP[i].Age = get_time_difference_in_Gyr(SP[i].Birthtime, All.Time) * 1.0e9;
+      SP[i].Age = get_time_difference_in_Gyr(SP[i].FormTime, All.Time) * 1.0e9;
 
       /* Last time this star was active */
       MyDouble star_age_yr = SP[i].PreAge;    
@@ -241,7 +240,7 @@ void star_prep(void)
       SP[i].PreAge = SP[i].Age;
 
       /* Convert properties to yr and msun */
-      MyDouble star_mass_msun = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
+      MyDouble star_mass_msun = SP[i].InitMass * All.cf_UnitMass_in_Msun;
 
 #ifdef METALS
       MyDouble star_metallicity = SP[i].Metallicity;

@@ -16,7 +16,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid);
 typedef struct
 {
   MyDouble Pos[3];
-  MyDouble MassOfStar;
+  MyDouble InitMass;
   MyDouble NgbsMass;
   MyFloat Hsml;
   int Firstnode;
@@ -37,7 +37,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPS(i).Pos[j];
-  in->MassOfStar = SP[i].MassOfStar;
+  in->InitMass = SP[i].InitMass;
   in->NgbsMass = SP[i].NgbsMass;
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
@@ -209,7 +209,7 @@ static int sf_massdrain_evaluate(int target, int mode, int threadid)
   h = target_data->Hsml;
   h2 = h * h;
   
-  massofstar = target_data->MassOfStar;
+  massofstar = target_data->InitMass;
   ngbsmass = target_data->NgbsMass;
 
   for(int k = 0; k < 3; k++) 

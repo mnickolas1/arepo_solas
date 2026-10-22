@@ -2127,6 +2127,8 @@ enum iofields
   IO_TIMEBIN_HYDRO,
 #ifdef STARS
   IO_STARID,
+  IO_STAR_INITMASS,
+  IO_STAR_FORMTIME,
 #ifdef METALS
   IO_STAR_METALS,
 #endif

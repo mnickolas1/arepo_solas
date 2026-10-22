@@ -81,9 +81,9 @@ TREE_BASED_TIMESTEPS          # non-local timestep criterion (take 'signal speed
 
 #--------------------------------------- Single/Double Precision
 DOUBLEPRECISION=1             # Mode of double precision: not defined: single; 1: full double precision 2: mixed, 3: mixed, fewer single precisions; unless short of memory, use 1.
+OUTPUT_IN_DOUBLEPRECISION     # snapshot files will be written in double precision
 
 #--------------------------------------- output options
-PROCESS_TIMES_OF_OUTPUTLIST   # goes through times of output list prior to starting the simulaiton to ensure that outputs are written as close to the desired time as possible (as opposed to at next possible time if this flag is not active)
 HAVE_HDF5                     # needed when HDF5 I/O support is desired (recommended)
 
 #--------------------------------------- Testing and Debugging options

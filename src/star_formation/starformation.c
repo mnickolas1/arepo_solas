@@ -351,6 +351,12 @@ void convert_cell_into_star(int i, double birthtime)
   /* Assign star_ids */
   P[i].StarID = NumStars;
   SP[NumStars].PID = i;
+    
+  /* Set init mass */
+  SP[NumStars].InitMass = P[i].Mass; 
+  /* Set form time */
+  SP[NumStars].FormTime = All.Time;
+
 #ifdef METALS 
   SP[NumStars].Metallicity = SphP[i].GasMetals / P[i].Mass;
 #endif 
@@ -358,9 +364,8 @@ void convert_cell_into_star(int i, double birthtime)
 
 #ifdef STAR_FEEDBACK_ACTIVE
   /* Assign density loop properties */
-  SP[NumStars].Hsml = get_cell_radius(i); 
-  /* Set Birthtime */
-  SP[NumStars].Birthtime = All.Time;
+  SP[NumStars].Hsml = get_cell_radius(i);
+  
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;
@@ -445,6 +450,12 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
   /* Assign star_ids */
   P[istar].StarID = NumStars;
   SP[NumStars].PID = istar;
+
+  /* Set init mass */
+  SP[NumStars].InitMass = P[istar].Mass;
+  /* Set form time */
+  SP[NumStars].FormTime = All.Time;
+
 #ifdef METALS 
   SP[NumStars].Metallicity = SphP[igas].GasMetals / P[igas].Mass;
 #endif
@@ -453,8 +464,7 @@ void spawn_star_from_cell(int igas, double birthtime, int istar, MyDouble mass_o
 #ifdef STAR_FEEDBACK_ACTIVE
   /* Assign density loop properties */
   SP[NumStars].Hsml = get_cell_radius(igas);
-  /* Set Birthtime */
-  SP[NumStars].Birthtime = All.Time;
+  
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;
