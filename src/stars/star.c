@@ -47,11 +47,11 @@ static void star_init_metals(void)
 
 void star_init(void)
 {
-  if(RestartFlag == 0)
+  if(RestartFlag != 1)
     star_init_properties();
 
 #ifdef METALS
-  if(RestartFlag == 0)
+  if(RestartFlag != 1)
     star_init_metals();
 #endif
 
@@ -82,10 +82,10 @@ void star_init(void)
 #endif
 
 #if STAR_PARTICLES < 2
-  if(RestartFlag == 0)
+  if(RestartFlag != 1)
     {
       for(int i = 0; i < NumStars; i++)
-        sample_star_particle(PPS(i).InitMass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
+        sample_star_particle(SP[i].InitMass * All.cf_UnitMass_in_Msun, SP[i].NumOfStarsInBins);
     }
 #endif
 #endif
@@ -96,7 +96,7 @@ void star_init(void)
 
   feedback_init(&MechanicalFeedbackEvents);
 
-  if(RestartFlag == 0)
+  if(RestartFlag != 1)
     {
       for(int i = 0; i < NumStars; i++)
         SP[i].WithFeedback = 1;
