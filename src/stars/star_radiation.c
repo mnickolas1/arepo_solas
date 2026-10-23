@@ -816,6 +816,15 @@ static int rt_irradiated(int i)
       return 1;
 #endif
 
+#ifdef RADIATION_PRESSURE
+  const double dp2 = SphP[i].MomentumFeed_Long[0] * SphP[i].MomentumFeed_Long[0]
+                   + SphP[i].MomentumFeed_Long[1] * SphP[i].MomentumFeed_Long[1]
+                   + SphP[i].MomentumFeed_Long[2] * SphP[i].MomentumFeed_Long[2];
+
+  if(dp2 > 0.0 || SphP[i].EnergyFeed_Long > 0.0)
+    return 1;
+#endif
+
   return 0;
 }
 #endif
