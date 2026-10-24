@@ -390,6 +390,19 @@ int do_refinements(void)
               SphP[j].RTCost *= facj;
 #endif
 
+#ifdef RT_LONG_TIMESTEP
+#ifdef RADIATION_PRESSURE
+              for(int k = 0; k < 3; k++)
+                {
+                  SphP[i].MomentumFeed_Long[k] *= faci;
+                  SphP[j].MomentumFeed_Long[k] *= facj;
+                }
+                
+              SphP[i].EnergyFeed_Long *= faci;
+              SphP[j].EnergyFeed_Long *= facj;
+#endif
+#endif
+
               /* add the new particle into the neighbour tree */
               int no          = Ngb_Nextnode[i];
               Ngb_Nextnode[i] = j;

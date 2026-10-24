@@ -17,7 +17,7 @@ static int sf_starbystar_isactive(int n);
  typedef struct
 {
   MyDouble Pos[3];
-  MyDouble MassOfStar;
+  MyDouble InitMass;
   MyFloat Hsml;
   int Firstnode;
 } data_in;
@@ -37,7 +37,7 @@ static void particle2in(data_in *in, int i, int firstnode)
 {
   for(int j = 0; j < 3; j++)
     in->Pos[j] = PPS(i).Pos[j];
-  in->MassOfStar = SP[i].MassOfStar;
+  in->InitMass = SP[i].InitMass;
   in->Hsml = SP[i].Hsml;
   in->Firstnode = firstnode;
 }  
@@ -183,7 +183,7 @@ void sf_starbystar()
           if(SP[i].Hsml > 10 * All.SofteningTable[PPS(i).SofteningType])
             terminate("Star formation radius too large!");
 
-          if(SP[i].NgbsMass < (5 * SP[i].MassOfStar) || SP[i].NgbsMass > (10 * SP[i].MassOfStar))
+          if(SP[i].NgbsMass < (5 * SP[i].InitMass) || SP[i].NgbsMass > (10 * SP[i].InitMass))
             {
               /* need to redo this particle */
               npleft++;
@@ -199,7 +199,7 @@ void sf_starbystar()
                     }
                 } 
 
-              if(SP[i].NgbsMass < (5 * SP[i].MassOfStar))
+              if(SP[i].NgbsMass < (5 * SP[i].InitMass))
                 Left[i] = dmax(SP[i].Hsml, Left[i]);
               else
                 {

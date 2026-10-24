@@ -195,6 +195,7 @@ void domain_rearrange_particle_sequence(void);
 void domain_combine_topleaves_to_domains(int ncpu, int ndomain);
 void domain_combine_multipledomains(void);
 void domain_allocate(void);
+int domain_decomposition_due(void);
 void domain_Decomposition(void);
 int domain_compare_key(const void *a, const void *b);
 int domain_countToGo(void);

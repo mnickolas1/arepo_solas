@@ -515,16 +515,12 @@ double CallGrackle(int i, double dt, int mode)
   /* Radiation */
 #ifdef PHOTOELECTRIC_HEATING
   *All.GrackleFieldData.volumetric_heating_rate = SphP[i].PE_VolHeatingRate;
-
-  SphP[i].PE_VolHeatingRate = 0.0;
 #else
   *All.GrackleFieldData.volumetric_heating_rate = 0.0;
 #endif
 
 #ifdef DISSOCIATION
   *All.GrackleFieldData.RT_H2_dissociation_rate = SphP[i].H2_DissociationRate;
-
-  SphP[i].H2_DissociationRate = 0.0;
 #else
   *All.GrackleFieldData.RT_H2_dissociation_rate = 0.0;
 #endif
@@ -538,10 +534,6 @@ double CallGrackle(int i, double dt, int mode)
   *All.GrackleFieldData.RT_H2_ionization_rate = SphP[i].IonizationRate[SP_H2];
   *All.GrackleFieldData.RT_HeI_ionization_rate = SphP[i].IonizationRate[SP_HeI];
   *All.GrackleFieldData.RT_HeII_ionization_rate = SphP[i].IonizationRate[SP_HeII];
-
-  for(int s = 0; s < N_ION_SPECIES; s++)
-    SphP[i].IonHeatingRate[s] = SphP[i].IonizationRate[s] = 0.0;
-
 #else
   *All.GrackleFieldData.RT_HI_heating_rate = 0.0;
   *All.GrackleFieldData.RT_H2_heating_rate = 0.0;
@@ -551,6 +543,10 @@ double CallGrackle(int i, double dt, int mode)
   *All.GrackleFieldData.RT_H2_ionization_rate = 0.0;
   *All.GrackleFieldData.RT_HeI_ionization_rate = 0.0;
   *All.GrackleFieldData.RT_HeII_ionization_rate = 0.0;
+#endif
+
+#if defined(STAR_RADIATION_ACTIVE) && !defined(RT_LONG_TIMESTEP)
+  rt_rates_consume(i);
 #endif
 
   *All.GrackleFieldData.specific_heating_rate = 0.0;

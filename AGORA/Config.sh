@@ -38,8 +38,11 @@ RADIATION              # Full radiation
 SUPERNOVAE             # Only supernovae
 
 #---------------------------------------- Radiation / RT options
-RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
+#RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
+
 #RT_TIMESTEP            # RT timestep limiter (requires DISSOCIATION or PHOTOIONIZATION)
+RT_LONG_TIMESTEP        # RT long timestep for mesh construction and ray tracing 
+
 #IR_MOMENTUM_BOOST      # IR momentum boost from the per-cell optical depth
 
 RT_STATISTICS          # Ray-tracing statistics
@@ -48,7 +51,6 @@ RT_COMM_STATISTICS     # RT communication timing statistics
 DOMAIN_MEASURED_WEIGHTS # Use measured per-channel timings for the domain decomposition weights
 
 #--------------------------------------- Arepo public
-CREATE_FULL_MESH
 
 #--------------------------------------- Mesh motion and regularization; default: moving mesh
 REGULARIZE_MESH_CM_DRIFT      # Mesh regularization; Move mesh generating point towards center of mass to make cells rounder.
@@ -79,9 +81,9 @@ TREE_BASED_TIMESTEPS          # non-local timestep criterion (take 'signal speed
 
 #--------------------------------------- Single/Double Precision
 DOUBLEPRECISION=1             # Mode of double precision: not defined: single; 1: full double precision 2: mixed, 3: mixed, fewer single precisions; unless short of memory, use 1.
+OUTPUT_IN_DOUBLEPRECISION     # snapshot files will be written in double precision
 
 #--------------------------------------- output options
-PROCESS_TIMES_OF_OUTPUTLIST   # goes through times of output list prior to starting the simulaiton to ensure that outputs are written as close to the desired time as possible (as opposed to at next possible time if this flag is not active)
 HAVE_HDF5                     # needed when HDF5 I/O support is desired (recommended)
 
 #--------------------------------------- Testing and Debugging options

@@ -22,14 +22,16 @@ IMF                     1
 StarTablesFile          star_feedback_tables.hdf5
 StarTimestep            0.1
 
-SN_HostShellSweepFrac    0.1
-SN_LeadTime              40
+SN_HostShellSweepFrac   0.1
+SN_LeadTime             40
 
 RaySplitFactor          2
 RayMaxDistance          20
 
 %RTIonizationTimestepFraction  1
 %RTMinTimestep                 0.01
+
+RTLongTimestep          0.1
 
 %IRDtauMomentumBoostCoeff  1
 
@@ -52,7 +54,7 @@ ResubmitOn                              0
 ResubmitCommand                         my-scriptfile
 
 %----- Memory alloction
-MaxMemSize                              2500
+MaxMemSize                              1500
 
 %---- Caracteristics of run
 TimeBegin                               0.0
@@ -142,7 +144,7 @@ RefinementCriterion                     1
 DerefinementCriterion                   1
 MeanVolume                              52734.4
 MaxVolumeDiff                           10  
-MinVolume                               2.14e-3    % dx >= 80 pc limit
-MaxVolume                               1.0e9      % no limits
+MinVolume                               5.12e-4    
+MaxVolume                               1.0e9      
 
 %GridSize                                16

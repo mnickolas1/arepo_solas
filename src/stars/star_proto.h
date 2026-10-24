@@ -10,10 +10,6 @@ void domain_resize_storage_stars(int count_get_star);
 /* Initialization */
 void star_init(void);
 
-#ifdef METALS
-void init_star_metallicity(void);
-#endif
-
 #ifdef STAR_PARTICLES
 /* IMF */
 double IntegralTrapezoidal(double a, double b, int N, double (*f)(double));
@@ -121,9 +117,17 @@ void append_export(RayComms *comm, const RayPacket *ray, int task);
 void ray_comms_progress(RayComms *comm);
 void ray_comms_flush(RayComms *comm);
 
+/* Helper */
+void rt_rates_consume(int i);
+
 /* Driver and traversal */
 void star_radiation(void);
 void raytrace_voronoi(RayPacket *ray, RayWorkStack *work, RayComms *comm);
+
+#ifdef RT_LONG_TIMESTEP
+/* RT timesteps */
+int rt_long_step(void);
+#endif
 
 #ifdef RT_STATISTICS
 /* RT statistics */

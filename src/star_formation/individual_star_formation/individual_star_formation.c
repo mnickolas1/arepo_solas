@@ -213,9 +213,9 @@ void individual_starbystar_formation(void)
   for(i = 0; i < NumStars; i++)
     {
       /* Heavy star */
-      if(PPS(i).Mass == 0 && SP[i].MassOfStar > 0) 
+      if(PPS(i).Mass == 0 && SP[i].InitMass > 0) 
         {
-          PPS(i).Mass = SP[i].MassOfStar;
+          PPS(i).Mass = SP[i].InitMass;
           SP[i].Metallicity /= PPS(i).Mass;
         }
     }
@@ -295,12 +295,12 @@ static void spawn_heavy(int igas, double birthtime, int istar, MyDouble mass_of_
   SP[NumStars].PID = istar;
   
   /* Prepare for star forming loop */
-  SP[NumStars].MassOfStar = mass_of_star;
+  SP[NumStars].InitMass = mass_of_star;
   SP[NumStars].Hsml = get_cell_radius(igas);
   
 #ifdef STAR_FEEDBACK_ACTIVE
-  /* Set Birthtime */
-  SP[NumStars].Birthtime = All.Time;
+  /* Set FormTime */
+  SP[NumStars].FormTime = All.Time;
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;
@@ -382,8 +382,8 @@ static void spawn_light(int igas, double birthtime, int istar, MyDouble mass_of_
   /* Assign density loop properties */
   SP[NumStars].Hsml = get_cell_radius(igas);
   
-  /* Set Birthtime */
-  SP[NumStars].Birthtime = All.Time;
+  /* Set FormTime */
+  SP[NumStars].FormTime = All.Time;
   /* Set timebin */
   SP[NumStars].Active = 0;
   SP[NumStars].WithFeedback = 1;

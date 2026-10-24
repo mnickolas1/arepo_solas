@@ -662,7 +662,23 @@ void ray_neighbours_free(void)
   RayNgbsNtask = 0;
 }
 
-static void radiation_feedback(void)
+void rt_rates_consume(int i)
+{
+#ifdef PHOTOELECTRIC_HEATING
+  SphP[i].PE_VolHeatingRate = 0.0;
+#endif
+
+#ifdef DISSOCIATION
+  SphP[i].H2_DissociationRate = 0.0;
+#endif
+
+#ifdef PHOTOIONIZATION
+  for(int s = 0; s < N_ION_SPECIES; s++)
+    SphP[i].IonHeatingRate[s] = SphP[i].IonizationRate[s] = 0.0;
+#endif
+}
+
+static void radiation_feedback(double dt_rt)
 {
   /* Indexed by ionizing species a = 0,1,2,3 (HI, H2, HeI, HeII) */
   static const double IonThreshold_eV[N_ION_SPECIES] = {13.6, 15.4, 24.6, 54.4};
@@ -676,8 +692,8 @@ static void radiation_feedback(void)
       if(P[i].Type != 0 || P[i].Mass == 0 || P[i].ID == 0)
         continue;
 
-      const double V = SphP[i].Volume;
-      const double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+      double V = SphP[i].Volume;
+      double dt = (dt_rt > 0.0) ? dt_rt : (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
 
       if(dt <= 0.0 || V <= 0.0)
         goto reset;
@@ -744,18 +760,95 @@ static void radiation_feedback(void)
     ;}
 }
 
-#ifdef RT_TIMESTEP
-static void rt_timestep(void)
+#if defined(RADIATION_PRESSURE) && defined(RT_LONG_TIMESTEP)
+static void rt_rate_momentum(double dt_rt)
 {
-  const double eps_ion = All.RTIonizationTimestepFraction;
-  const double dt_min = All.RTMinTimestep * 1.0e6 / All.cf_UnitTime_in_yr; 
+  const double inv_dt = (dt_rt > 0.0) ? 1.0 / dt_rt : 0.0;
 
+  for(int i = 0; i < NumGas; i++)
+    {
+      for(int k = 0; k < 3; k++)
+        SphP[i].MomentumFeed_Long[k] *= inv_dt;
+
+      SphP[i].EnergyFeed_Long *= inv_dt;
+    }
+}
+
+/*! \brief Applies the held radiation pressure force over each active cell's own timestep.
+ */
+static void rt_long_momentum(void)
+{
+  for(int idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
+    {
+      const int i = TimeBinsHydro.ActiveParticleList[idx];
+      if(i < 0)
+        continue;
+
+      const double dt = (P[i].TimeBinHydro ? (((integertime)1) << P[i].TimeBinHydro) : 0) * All.Timebase_interval;
+
+      for(int k = 0; k < 3; k++)
+        SphP[i].StarMomentumFeed[k] += SphP[i].MomentumFeed_Long[k] * dt;
+
+      SphP[i].StarEnergyFeed += SphP[i].EnergyFeed_Long * dt;
+    }
+}
+#endif
+
+#if defined(RT_TIMESTEP) || defined(RT_LONG_TIMESTEP)
+#ifdef RT_LONG_TIMESTEP
+/*! \brief Whether this cell received radiation at the last pass.
+ */
+static int rt_irradiated(int i)
+{
+#ifdef PHOTOELECTRIC_HEATING
+  if(SphP[i].PE_VolHeatingRate > 0.0)
+    return 1;
+#endif
+
+#ifdef DISSOCIATION
+  if(SphP[i].H2_DissociationRate > 0.0)
+    return 1;
+#endif
+
+#ifdef PHOTOIONIZATION
+  for(int s = 0; s < N_ION_SPECIES; s++)
+    if(SphP[i].IonizationRate[s] > 0.0 || SphP[i].IonHeatingRate[s] > 0.0)
+      return 1;
+#endif
+
+#ifdef RADIATION_PRESSURE
+  const double dp2 = SphP[i].MomentumFeed_Long[0] * SphP[i].MomentumFeed_Long[0]
+                   + SphP[i].MomentumFeed_Long[1] * SphP[i].MomentumFeed_Long[1]
+                   + SphP[i].MomentumFeed_Long[2] * SphP[i].MomentumFeed_Long[2];
+
+  if(dp2 > 0.0 || SphP[i].EnergyFeed_Long != 0.0)
+    return 1;
+#endif
+
+  return 0;
+}
+#endif
+
+/*! \brief Sets the per-cell radiation limit on the hydro timestep.
+ *
+ *  \param[in] dt_rt RT interval, or <= 0 when RT runs on every step.
+ */
+static void rt_timestep(double dt_rt)
+{
   for(int idx = 0; idx < TimeBinsHydro.NActiveParticles; idx++)
     {
       int i = TimeBinsHydro.ActiveParticleList[idx];
       if(i < 0)
         continue;
 
+      double dt = 0.0;
+
+#ifdef RT_LONG_TIMESTEP
+      if(dt_rt > 0.0 && rt_irradiated(i))
+        dt = dt_rt;
+#endif
+
+#ifdef RT_TIMESTEP
       /* Total hydrogen */
       double m_H = SphP[i].GrackleSpeciesConserved(GRACKLE_HI)
                  + SphP[i].GrackleSpeciesConserved(GRACKLE_HII)
@@ -801,18 +894,39 @@ static void rt_timestep(void)
 #endif
         }
 
+      if(rate > 0.0)
+        {
+          const double dt_ion = fmax(All.RTIonizationTimestepFraction / rate, All.RTMinTimestep * 1.0e6 / All.cf_UnitTime_in_yr);
 
-      SphP[i].RT_Timestep = (rate > 0.0) ? fmax(eps_ion / rate, dt_min) : All.MaxSizeTimestep / All.cf_hubble_a;
+          if(dt <= 0.0 || dt > dt_ion)
+            dt = dt_ion;
+        }
+#endif
+
+      SphP[i].RT_Timestep = dt;
     }
 }
 #endif
 
-void star_radiation(void)
+#ifdef RT_LONG_TIMESTEP
+int rt_long_step(void)
 {
-  TIMER_START(CPU_STARS_RADIATION);
+  if(All.Ti_LastRT == 0)
+    return (All.Ti_Current > 0); 
 
+  if(All.Ti_LastRT == All.Ti_Current)
+    return 1; 
+
+  integertime ti_rt = get_timestep_pow2(get_timestep_integertime(All.RTLongTimestep, All.cf_UnitTime_in_yr / 1.0e6));
+
+  return (All.Ti_Current % ti_rt == 0);
+}
+#endif
+
+static void rt_do_pass(void)
+{
   double t0, t1;
-
+        
   update_opac();
 
   /* Zero accumulators before the walk */
@@ -829,6 +943,16 @@ void star_radiation(void)
 #ifdef PHOTOIONIZATION
       for(int s = 0; s < N_ION_SPECIES; s++)
         SphP[i].AbsorbedIonizing[s].Energy = SphP[i].AbsorbedIonizing[s].Photons = 0.0;
+#endif
+
+#ifdef RT_LONG_TIMESTEP
+      rt_rates_consume(i);
+#ifdef RADIATION_PRESSURE
+      for(int k = 0; k < 3; k++)
+        SphP[i].MomentumFeed_Long[k] = 0.0;
+      
+      SphP[i].EnergyFeed_Long = 0.0;
+#endif
 #endif
     }
 
@@ -877,11 +1001,43 @@ void star_radiation(void)
 
   ray_comms_free(comm);
   free_work_stack(work);
+}
 
-  radiation_feedback();
+void star_radiation(void)
+{
+  TIMER_START(CPU_STARS_RADIATION);
+
+#ifdef RT_LONG_TIMESTEP
+  if(rt_long_step() && All.Ti_Current > All.Ti_LastRT)
+    {
+      const double dt_rt = (All.Ti_Current - All.Ti_LastRT) * All.Timebase_interval;
+
+      rt_do_pass();
+
+      radiation_feedback(dt_rt);
+
+#ifdef RADIATION_PRESSURE
+      rt_rate_momentum(dt_rt);
+#endif
+     
+      rt_timestep(dt_rt);
+
+      All.Ti_LastRT = All.Ti_Current;
+    }
+
+#ifdef RADIATION_PRESSURE
+  rt_long_momentum();
+#endif
+
+#else
+  
+  rt_do_pass();
+
+  radiation_feedback(0.0);
 
 #ifdef RT_TIMESTEP
-  rt_timestep();
+  rt_timestep(0.0);
+#endif
 #endif
 
   TIMER_STOP(CPU_STARS_RADIATION);

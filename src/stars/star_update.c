@@ -90,27 +90,18 @@ void feedback_free(struct Mechanical_Feedback_Events *MFEvents)
 
 integertime star_timestep(int i)
 {
-  /* Host hydro bin */
-  double dt_host = (SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : 0) * All.Timebase_interval;
-
-  double dt;
-
-  if(dt_host != 0)
-    dt = dt_host;
-  else
-    dt = TIMEBASE * All.Timebase_interval;
-
-  /* Set a max star timestep */
-  double dt_star = All.StarTimestep * 1.0e6 / All.cf_UnitTime_in_yr;
-
-  if(dt_star < dt)
-    dt = dt_star;
-
   /* Park dead or low mass stars */
   if(SP[i].Active < 0)
-    dt = TIMEBASE * All.Timebase_interval;
+    return TIMEBASE;
 
-  integertime ti_step = (integertime)(dt / All.Timebase_interval);
+  /* Host hydro bin */
+  integertime ti_step = SP[i].HostHydroBin ? (((integertime)1) << SP[i].HostHydroBin) : TIMEBASE;
+
+  /* Set a max star timestep */
+  integertime ti_star = get_timestep_pow2(get_timestep_integertime(All.StarTimestep, All.cf_UnitTime_in_yr / 1.0e6));
+
+  if(ti_star < ti_step)
+    ti_step = ti_star;
 
   return ti_step;
 }
@@ -232,7 +223,6 @@ void star_prep(void)
       /* Put newly formed stars on the main sequence */
       if(SP[i].Active == STAR_UNBORN)
         {
-          SP[i].MassOfStar = PPS(i).Mass;
           SP[i].Active = STAR_ACTIVE;
         }
 
@@ -240,7 +230,7 @@ void star_prep(void)
       memset(&SP[i].MechanicalFeedback, 0, sizeof(Mechanical_Feedback));
 
       /* Set age properties */
-      SP[i].Age = get_time_difference_in_Gyr(SP[i].Birthtime, All.Time) * 1.0e9;
+      SP[i].Age = get_time_difference_in_Gyr(SP[i].FormTime, All.Time) * 1.0e9;
 
       /* Last time this star was active */
       MyDouble star_age_yr = SP[i].PreAge;    
@@ -250,7 +240,7 @@ void star_prep(void)
       SP[i].PreAge = SP[i].Age;
 
       /* Convert properties to yr and msun */
-      MyDouble star_mass_msun = SP[i].MassOfStar * All.cf_UnitMass_in_Msun;
+      MyDouble star_mass_msun = SP[i].InitMass * All.cf_UnitMass_in_Msun;
 
 #ifdef METALS
       MyDouble star_metallicity = SP[i].Metallicity;
@@ -299,11 +289,29 @@ void star_prep(void)
 #endif
 
 #ifdef STAR_RADIATION_ACTIVE
+#ifdef RT_LONG_TIMESTEP
+      for(int w = 0; w < WAVEBANDS; w++)
+        {
+          SP[i].RadiatedBuffer[w].Photons += StarFeedback.Radiated[w].Photons;
+          SP[i].RadiatedBuffer[w].Energy += StarFeedback.Radiated[w].Energy;
+        }
+
+      if(rt_long_step())
+        {
+          for(int w = 0; w < WAVEBANDS; w++)
+            {
+              SP[i].MechanicalFeedback.Radiated[w] = SP[i].RadiatedBuffer[w];
+
+              SP[i].RadiatedBuffer[w].Photons = SP[i].RadiatedBuffer[w].Energy = 0.0;
+            }
+        }
+#else
       for(int w = 0; w < WAVEBANDS; w++)
         {
           SP[i].MechanicalFeedback.Radiated[w].Photons = StarFeedback.Radiated[w].Photons;
           SP[i].MechanicalFeedback.Radiated[w].Energy = StarFeedback.Radiated[w].Energy;
         }
+#endif
 #endif
 
 #ifdef SUPERNOVAE

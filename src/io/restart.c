@@ -1392,6 +1392,10 @@ void readjust_timebase(double TimeMax_old, double TimeMax_new)
       All.PM_Ti_endstep /= 2;
 #endif /* #ifdef PMGRID */
 
+#ifdef RT_LONG_TIMESTEP
+      All.Ti_LastRT /= 2;
+#endif
+
       for(i = 0; i < NumPart; i++)
         {
           P[i].Ti_Current /= 2;

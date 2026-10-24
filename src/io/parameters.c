@@ -665,6 +665,12 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif  
 
+#ifdef RT_LONG_TIMESTEP
+      strcpy(tag[nt], "RTLongTimestep");
+      addr[nt] = &All.RTLongTimestep;
+      id[nt++] = REAL;
+#endif  
+
 #ifdef IR_MOMENTUM_BOOST
       strcpy(tag[nt], "IRDtauMomentumBoostCoeff");
       addr[nt] = &All.IRDtauMomentumBoostCoeff;
@@ -1009,6 +1015,11 @@ void check_parameters()
       mpi_terminate("NTYPES>8 is not allowed with ICFormat=%d, since the header block is limited to 256 bytes.\n", All.ICFormat);
     }
 #endif /* #if (NTYPES > 8) */
+
+#ifdef RT_LONG_TIMESTEP
+  if(All.RTLongTimestep < All.StarTimestep)
+    mpi_terminate("check_parameters(): RTLongTimestep %g must be longer than StarTimestep %g\n", All.RTLongTimestep, All.StarTimestep);
+#endif
 }
 
 /*! \brief This function reads a table with a list of desired output times.

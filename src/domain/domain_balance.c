@@ -164,8 +164,12 @@ double domain_star_tot_costfactor(int i)
 double domain_rt_tot_costfactor(int i)
 {
   double w = 0.0;
-  if(P[i].Type == 0)
-    w = SphP[i].RTCost;
+
+#ifdef RT_LONG_TIMESTEP
+  if(rt_long_step())
+#endif
+    if(P[i].Type == 0)
+      w = SphP[i].RTCost;
 
   return w;
 }

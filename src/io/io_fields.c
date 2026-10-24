@@ -770,6 +770,17 @@ void init_io_fields()
   init_field(IO_STARID, "SID ", "StarIDs", MEM_INT, FILE_INT, FILE_NONE, 1, A_P, &P[0].StarID, 0, STARS_ONLY);
   init_units(IO_STARID, 0, 0, 0, 0, 0, 0);
   init_snapshot_type(IO_STARID, SN_MINI);
+
+  init_field(IO_STAR_INITMASS, "SIM ", "StarInitMass", MEM_MY_DOUBLE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_STAR,
+             &SP[0].InitMass, 0, STARS_ONLY);
+  init_units(IO_STAR_INITMASS, 0., -1., 0., 1., 0., All.UnitMass_in_g);
+  init_snapshot_type(IO_STAR_INITMASS, SN_MINI);
+
+  init_field(IO_STAR_FORMTIME, "SFT ", "StarFormTime", MEM_MY_DOUBLE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_STAR,
+             &SP[0].FormTime, 0, STARS_ONLY);
+  init_units(IO_STAR_FORMTIME, 0., 0., 0., 0., 0., 0);
+  init_snapshot_type(IO_STAR_FORMTIME, SN_MINI);
+
 #ifdef METALS
   init_field(IO_STAR_METALS, "SZ  ", "StarMetallicity", MEM_MY_DOUBLE, FILE_MY_IO_FLOAT, FILE_MY_IO_FLOAT, 1, A_STAR, &SP[0].Metallicity, 0, STARS_ONLY);
   init_units(IO_STAR_METALS, 0., 0., 0., 0., 0., 0);
