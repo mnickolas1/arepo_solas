@@ -252,10 +252,20 @@ void star_prep(void)
 
       /* Call the interpolation functions */
 #if defined(STAR_PARTICLES) && STAR_PARTICLES < 2
-      StarFeedback = units_for_feedback(star_particle_feedback(i, star_timestep_yr, star_metallicity, star_age_yr));
+      StarFeedback = star_particle_feedback(i, star_timestep_yr, star_metallicity, star_age_yr);
 #elif STAR_PARTICLES == 2
-      StarFeedback = units_for_feedback(star_feedback_compute(star_timestep_yr, star_metallicity, star_mass_msun, star_age_yr));
+      StarFeedback = star_feedback_compute(star_timestep_yr, star_metallicity, star_mass_msun, star_age_yr);
 #endif
+
+      /* Test hooks, raw units (Msun, Msun km/s, erg, photons): replace the feedback with Starburst99, log it */
+#ifdef STAR_SB99
+      sb99_feedback(&StarFeedback, star_timestep_yr, star_mass_msun, star_age_yr);
+#endif
+#ifdef STAR_FB
+      star_fb(&StarFeedback, i, star_timestep_yr, star_age_yr);
+#endif
+
+      StarFeedback = units_for_feedback(StarFeedback);
 
       /* Deactivate dead or low mass stars */
       if(StarFeedback.State == -1)

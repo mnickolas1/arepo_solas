@@ -340,6 +340,8 @@ INCL += add_backgroundgrid/add_bggrid.h
 SUBDIRS += add_backgroundgrid
 endif
 
+OBJS += stars/star_test.o 
+
 ifneq (,$(filter TIMESTEP_LIMITER,$(CONFIGVARS)))
 OBJS += time_integration/timestep_limiter.o
 endif

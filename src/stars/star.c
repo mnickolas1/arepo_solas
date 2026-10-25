@@ -94,6 +94,10 @@ void star_init(void)
   mpi_printf("Loading star evolution tables\n");
   load_star_tables(All.StarTablesFile);
 
+#ifdef STAR_SB99
+  sb99_load();
+#endif
+
   feedback_init(&MechanicalFeedbackEvents);
 
   if(RestartFlag != 1)

@@ -64,6 +64,15 @@ void feedback_allocate(struct Mechanical_Feedback_Events *MFEvents, int MaxEvent
 void feedback_reallocate(struct Mechanical_Feedback_Events *MFEvents, int NewMaxEvents);
 void feedback_free(struct Mechanical_Feedback_Events *MFEvents);
 
+/* Feedback test hooks (star_test.c) */
+#ifdef STAR_SB99
+void sb99_load(void);
+void sb99_feedback(Star_Feedback *F, double dt, double m, double a);
+#endif
+#ifdef STAR_FB
+void star_fb(Star_Feedback *F, int i, double dt, double a);
+#endif
+
 /* Timesteps */
 integertime star_timestep(int p);
 void star_update_timesteps(void);

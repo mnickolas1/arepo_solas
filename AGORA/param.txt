@@ -9,21 +9,23 @@ GrackleDataFile				./cloudy_metals_2008_3D.h5
 GrackleSpeciesState         0
 
 %---- Star Formation options
-StarFormationEfficiency	    0.01
-NumberDensThreshold	        10
-TemperatureThreshold        1e4
+%StarFormationEfficiency	    0.01
+%NumberDensThreshold	        10
+%TemperatureThreshold        1e4
 
-Njeans                      -1
+%Njeans                      -1
 
 %---- Star options
-IMF                     1
+IMF                     0
 %StarsPerCellRefinement  4 
 
 StarTablesFile          star_feedback_tables.hdf5
+
+% Set time resolution
 StarTimestep            0.1
 
 SN_HostShellSweepFrac   0.1
-SN_LeadTime             40
+SN_LeadTime             1
 
 RaySplitFactor          2
 RayMaxDistance          20

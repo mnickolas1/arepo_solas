@@ -1,3 +1,6 @@
+STAR_SB99
+STAR_FB
+
 #---------------------------------------- SOLAS additions
 TIMESTEP_LIMITER
 
@@ -12,16 +15,18 @@ GRACKLE_CHEMISTRY=2    # Set grackle chemistry mode
 #UV_BACKGROUND          # Apply the grackle UV background
 
 #---------------------------------------- Star Formation options
-USE_SFR                # Star formation model, turning dense gas into collisionless partices
+#USE_SFR                # Star formation model, turning dense gas into collisionless partices
 
-AGORA_SF               # Agora based SF
+#AGORA_SF               # Agora based SF
 
-ENFORCE_JEANS_STABILITY_OF_CELLS # Use non-thermal pressure floor
+#ENFORCE_JEANS_STABILITY_OF_CELLS # Use non-thermal pressure floor
 
 #---------------------------------------- Star options
 STARS                  # General stars framework flag
 
 STAR_PARTICLES=1       # Star particles model flag: set to 0, 1 for massive star particles, set to 2 for resolved individual stars
+
+# Low:32, Med: 16, Hi: 8
 STAR_BINS_BITS=32      # Bits per mass-bin star counter: 8, 16 or 32 
 
 STAR_IN_CELL           # Place stars on the host cell generator; superpose all stars in a cell into one source
@@ -41,14 +46,14 @@ SUPERNOVAE             # Only supernovae
 #RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
 
 #RT_TIMESTEP            # RT timestep limiter (requires DISSOCIATION or PHOTOIONIZATION)
-RT_LONG_TIMESTEP        # RT long timestep for mesh construction and ray tracing 
+#RT_LONG_TIMESTEP        # RT long timestep for mesh construction and ray tracing 
 
 #IR_MOMENTUM_BOOST      # IR momentum boost from the per-cell optical depth
 
-RT_STATISTICS          # Ray-tracing statistics
-RT_COMM_STATISTICS     # RT communication timing statistics
+#RT_STATISTICS          # Ray-tracing statistics
+#RT_COMM_STATISTICS     # RT communication timing statistics
 
-DOMAIN_MEASURED_WEIGHTS # Use measured per-channel timings for the domain decomposition weights
+#DOMAIN_MEASURED_WEIGHTS # Use measured per-channel timings for the domain decomposition weights
 
 #--------------------------------------- Arepo public
 
@@ -61,20 +66,23 @@ REGULARIZE_MESH_FACE_ANGLE    # Use maximum face angle as roundness criterion in
 REFINEMENT_SPLIT_CELLS        # Refinement
 REFINEMENT_MERGE_CELLS        # Derefinement
 REFINEMENT_VOLUME_LIMIT       # Limit the volume of cells and the maximum volume difference between neighboring cels
-NODEREFINE_BACKGROUND_GRID    # Do not de-refine low-res gas cells in zoom simulations
+#NODEREFINE_BACKGROUND_GRID    # Do not de-refine low-res gas cells in zoom simulations
 
 #--------------------------------------- Gravity treatment; default: no gravity
-SELFGRAVITY                   # gravitational intraction between simulation particles/cells
-HIERARCHICAL_GRAVITY          # use hierarchical splitting of the time integration of the gravity
-CELL_CENTER_GRAVITY           # uses geometric centers to calculate gravity of cells, only possible with HIERARCHICAL_GRAVITY
-GRAVITY_NOT_PERIODIC          # gravity is not treated periodically
-ALLOW_DIRECT_SUMMATION        # Performed direct summation instead of tree-based gravity if number of active particles < DIRECT_SUMMATION_THRESHOLD (= 3000 unless specified differently here)
-DIRECT_SUMMATION_THRESHOLD=500  # Overrides maximum number of active particles for which direct summation is performed instead of tree based calculation
+#SELFGRAVITY                   # gravitational intraction between simulation particles/cells
+#HIERARCHICAL_GRAVITY          # use hierarchical splitting of the time integration of the gravity
+#CELL_CENTER_GRAVITY           # uses geometric centers to calculate gravity of cells, only possible with HIERARCHICAL_GRAVITY
+#GRAVITY_NOT_PERIODIC          # gravity is not treated periodically
+#ALLOW_DIRECT_SUMMATION        # Performed direct summation instead of tree-based gravity if number of active particles < DIRECT_SUMMATION_THRESHOLD (= 3000 unless specified differently here)
+#DIRECT_SUMMATION_THRESHOLD=500  # Overrides maximum number of active particles for which direct summation is performed instead of tree based calculation
+
+EXTERNALGRAVITY
+EXTERNALGY=0.0
 
 #--------------------------------------- Gravity softening
-NSOFTTYPES=4                  # Number of different softening values to which particle types can be mapped.
-MULTIPLE_NODE_SOFTENING       # If a tree node is to be used which is softened, this is done with the softenings of its different mass components
-ADAPTIVE_HYDRO_SOFTENING      # Adaptive softening of gas cells depending on their size
+#NSOFTTYPES=4                  # Number of different softening values to which particle types can be mapped.
+#MULTIPLE_NODE_SOFTENING       # If a tree node is to be used which is softened, this is done with the softenings of its different mass components
+#ADAPTIVE_HYDRO_SOFTENING      # Adaptive softening of gas cells depending on their size
 
 #--------------------------------------- Time integration options
 TREE_BASED_TIMESTEPS          # non-local timestep criterion (take 'signal speed' into account)
