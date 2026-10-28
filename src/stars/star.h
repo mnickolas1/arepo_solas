@@ -78,7 +78,7 @@ typedef struct Star_Feedback
 #endif
 
   /*
-    STAR_MS: Main sequence, STAR_SN: Supernove (if any), STAR_POST_SN: After main sequence/Supernovae
+    STAR_MS: Main sequence, STAR_SN: Supernovae (if any), STAR_POST_SN: After main sequence/Supernovae
   */
   int Stage;
 

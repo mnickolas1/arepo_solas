@@ -219,7 +219,7 @@ static inline int retire_star(int i)
 }
 #endif
 
-#if defined(WIND) && STAR_OLD_AGE == 1
+#if defined(WIND) && (STAR_OLD_AGE == 1 || STAR_OLD_AGE == 3)
 static inline void retire_wind(Star_Feedback *sf)
 {
   sf->MassLoss = 0.0;
@@ -234,7 +234,7 @@ static inline void retire_wind(Star_Feedback *sf)
 }
 #endif
 
-#if defined(SUPERNOVAE) && STAR_OLD_AGE == 2
+#if defined(SUPERNOVAE) && (STAR_OLD_AGE == 2 || STAR_OLD_AGE == 3)
 static inline void retire_sn(Star_Feedback *sf)
 {
 #ifdef TREE_BASED_TIMESTEPS

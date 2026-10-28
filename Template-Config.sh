@@ -54,7 +54,7 @@
 
 #SUPERNOVAE             # Only supernovae
 
-#STAR_OLD_AGE=0         # Deactivate feedback from stars older than StarOldAgeCutoff (Myr): 0 = whole star, 1 = wind, 2 = sn, 3 = wind + sn, 4 = radiation
+#STAR_OLD_AGE=0         # Deactivate feedback from stars older than StarOldAge (Myr): 0 = whole star, 1 = wind, 2 = sn, 3 = wind + sn, 4 = radiation
 
 #---------------------------------------- Radiation / RT options
 #RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
