@@ -19,7 +19,7 @@ extern double ***FractionalAge;
 extern double ***logRadius;
 extern double ***logTemperature;
 
-#ifdef WINDS
+#ifdef WIND
 extern double ***logMassLossRate;
 #if GRACKLE_CHEMISTRY >= 1
 extern double ***WindX;

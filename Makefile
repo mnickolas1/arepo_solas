@@ -479,8 +479,8 @@ define add_define
 endef
 
 ifneq (,$(filter STAR_FEEDBACK,$(CONFIGVARS)))
-CONFIGVARS += WINDS RADIATION SUPERNOVAE
-$(shell $(call add_define,WINDS))
+CONFIGVARS += WIND RADIATION SUPERNOVAE
+$(shell $(call add_define,WIND))
 $(shell $(call add_define,SUPERNOVAE))
 endif
 
@@ -492,7 +492,7 @@ $(shell $(call add_define,DISSOCIATION))
 $(shell $(call add_define,PHOTOIONIZATION))
 endif
 
-STAR_FEEDBACK_ACTIVE = WINDS RADIATION_PRESSURE PHOTOELECTRIC_HEATING DISSOCIATION PHOTOIONIZATION SUPERNOVAE
+STAR_FEEDBACK_ACTIVE = WIND RADIATION_PRESSURE PHOTOELECTRIC_HEATING DISSOCIATION PHOTOIONIZATION SUPERNOVAE
 
 STAR_RADIATION_ACTIVE = RADIATION_PRESSURE PHOTOELECTRIC_HEATING DISSOCIATION PHOTOIONIZATION  
 
@@ -534,6 +534,12 @@ endif
 ifneq (,$(filter STAR_HOST_REFINEMENT,$(CONFIGVARS)))
 ifeq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
 $(error STAR_HOST_REFINEMENT requires STAR_FEEDBACK_ACTIVE)
+endif
+endif
+
+ifneq (,$(filter STAR_OLD_AGE,$(CONFIGVARS)))
+ifeq (,$(filter STAR_FEEDBACK_ACTIVE,$(CONFIGVARS)))
+$(error STAR_OLD_AGE requires STAR_FEEDBACK_ACTIVE)
 endif
 endif
 
@@ -591,7 +597,7 @@ INCL += stars/star_proto.h \
         stars/star_tables.h
 endif
 
-ifneq (,$(filter WINDS SUPERNOVAE,$(CONFIGVARS)))
+ifneq (,$(filter WIND SUPERNOVAE,$(CONFIGVARS)))
 OBJS += stars/star_feedback.o 
 endif
 

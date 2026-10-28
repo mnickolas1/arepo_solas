@@ -633,6 +633,12 @@ void read_parameter_file(char *fname)
       id[nt++] = REAL;
 #endif
 
+#ifdef STAR_OLD_AGE
+      strcpy(tag[nt], "StarOldAge");
+      addr[nt] = &All.StarOldAge;
+      id[nt++] = REAL;
+#endif
+
 #ifdef SUPERNOVAE
       strcpy(tag[nt], "SN_HostShellSweepFrac");
       addr[nt] = &All.SN_HostShellSweepFrac;

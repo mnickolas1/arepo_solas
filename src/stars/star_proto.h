@@ -75,8 +75,8 @@ void star_prep(void);
 void star_density(void);
 #endif
 
-#if defined(WINDS) || defined(SUPERNOVAE)
-/* Winds and SN */
+#if defined(WIND) || defined(SUPERNOVAE)
+/* Wind and Supernovae */
 void star_feedback(void);
 #endif
 

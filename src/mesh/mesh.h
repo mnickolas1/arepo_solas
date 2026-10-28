@@ -139,7 +139,7 @@ extern struct primexch
   /*  int task, index; */
   short int TimeBinHydro;
 
-#if defined(WINDS) || defined(SUPERNOVAE)
+#if defined(WIND) || defined(SUPERNOVAE)
   MyDouble Mass;
 #ifdef METALS
   MyDouble Metals;

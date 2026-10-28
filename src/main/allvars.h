@@ -1442,6 +1442,10 @@ double InitMetallicityinSolar;
   double StarTimestep;
 #endif 
 
+#ifdef STAR_OLD_AGE
+  double StarOldAge;
+#endif
+
 #ifdef SUPERNOVAE
   double SN_HostShellSweepFrac;
 #endif

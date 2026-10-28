@@ -41,9 +41,9 @@
 #STAR_IN_CELL           # Place stars on the host cell generator; superpose all stars in a cell into one source
 #STAR_HOST_REFINEMENT   # Refine the gas cell hosting a star 
 
-#STAR_FEEDBACK          # Include full star feedback (winds + full radiation + supernovae)
+#STAR_FEEDBACK          # Include full star feedback (wind + full radiation + supernovae)
 
-#WINDS                  # Only winds
+#WIND                   # Only wind
 #AGB                    # Include the AGB mass-loss branch (not operational)
 
 #RADIATION              # Full radiation
@@ -53,6 +53,8 @@
 #PHOTOIONIZATION        # Only photoionization
 
 #SUPERNOVAE             # Only supernovae
+
+#STAR_OLD_AGE=0         # Deactivate feedback from stars older than StarOldAgeCutoff (Myr): 0 = whole star, 1 = wind, 2 = sn, 3 = wind + sn, 4 = radiation
 
 #---------------------------------------- Radiation / RT options
 #RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values

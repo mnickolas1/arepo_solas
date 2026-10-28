@@ -298,7 +298,7 @@ void run(void)
 
       exchange_primitive_variables_and_gradients();
 
-#if defined(WINDS) || defined(SUPERNOVAE)
+#if defined(WIND) || defined(SUPERNOVAE)
       star_feedback();
 #endif
 

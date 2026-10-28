@@ -41,7 +41,7 @@ typedef struct Star_Interpolate
   MyDouble logRadius;
   MyDouble logTemperature;
 
-#ifdef WINDS
+#ifdef WIND
   MyDouble logMassLossRate;
 #if GRACKLE_CHEMISTRY >= 1
   MyDouble WindX;
@@ -78,14 +78,14 @@ typedef struct Star_Feedback
 #endif
 
   /*
-    STAR_MS: Main sequence, STAR_SN: Supernova (if any), STAR_POST_SN: After main sequence/Supernova
+    STAR_MS: Main sequence, STAR_SN: Supernove (if any), STAR_POST_SN: After main sequence/Supernovae
   */
   int Stage;
 
   /* 1: Active, -1: Inactive */
   int State;
 
-#ifdef WINDS
+#ifdef WIND
   MyDouble MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
   MyDouble HLoss;
@@ -119,7 +119,7 @@ typedef struct Mechanical_Feedback
   MyDouble StarPosition[3];
   MyDouble StarVelocity[3];
 
-#ifdef WINDS
+#ifdef WIND
   MyDouble MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
   MyDouble HLoss;

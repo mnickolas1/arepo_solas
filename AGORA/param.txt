@@ -20,20 +20,22 @@ IMF                     1
 %StarsPerCellRefinement  4 
 
 StarTablesFile          star_feedback_tables.hdf5
-StarTimestep            0.1
-
-SN_HostShellSweepFrac   0.1
-SN_LeadTime             40
+StarTimestep            0.15
 
 RaySplitFactor          2
-RayMaxDistance          20
+RayMaxDistance          4
 
 %RTIonizationTimestepFraction  1
 %RTMinTimestep                 0.01
 
-RTLongTimestep          0.1
+RTLongTimestep          0.15
 
 %IRDtauMomentumBoostCoeff  1
+
+SN_HostShellSweepFrac   0.1
+SN_LeadTime             1
+
+%StarOldAge              100
 
 %----  Arepo public
 

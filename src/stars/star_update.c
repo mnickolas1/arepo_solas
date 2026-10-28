@@ -209,6 +209,60 @@ static inline void deactivate_star(int i)
   SP[i].TimeBinStar = TIMEBINS;
 }
 
+#ifdef STAR_OLD_AGE
+/* SP[i].Age is in yr and All.StarOldAgeCutoff is in Myr, so no cf_ conversion is needed */
+static inline int retire_star(int i) 
+{ 
+  integertime ti_old_age = get_timestep_pow2(get_timestep_integertime(All.StarOldAge, All.cf_UnitTime_in_yr / 1.0e6));
+  integertime ti_age = get_timestep_integertime(SP[i].Age, All.cf_UnitTime_in_yr);
+
+  return ti_age >= ti_old_age; 
+}
+#endif
+
+#ifdef WIND && STAR_OLD_AGE == 1
+static inline void retire_wind(Star_Feedback *sf)
+{
+  sf->MassLoss = 0.0;
+#if GRACKLE_CHEMISTRY >= 1
+  sf->HLoss = 0.0;
+  sf->HeLoss = 0.0;
+#endif
+#ifdef METALS
+  sf->MetalsLoss = 0.0;
+#endif
+  sf->WindMomentum = 0.0;
+}
+#endif
+
+#ifdef SUPERNOVAE && STAR_OLD_AGE == 2
+static inline void retire_sn(Star_Feedback *sf)
+{
+#ifdef TREE_BASED_TIMESTEPS
+  sf->TimeToSN = MAX_REAL_NUMBER;
+  sf->NextSNEnergy = 0.0;
+#endif
+
+  sf->SN_MassLoss = 0.0;
+#if GRACKLE_CHEMISTRY >= 1
+  sf->SN_HLoss = 0.0;
+  sf->SN_HeLoss = 0.0;
+#endif
+#ifdef METALS
+  sf->SN_MetalsLoss = 0.0;
+#endif
+  sf->SN_EnergyInject = 0.0;
+}
+#endif
+
+#ifdef STAR_RADIATION_ACTIVE && STAR_OLD_AGE == 4
+static inline void retire_radiation(Star_Feedback *sf)
+{
+  for(int w = 0; w < WAVEBANDS; w++)
+    sf->Radiated[w].Photons = sf->Radiated[w].Energy = 0.0;
+}
+#endif
+
 /* Compute feedback properties of active stars */
 void star_prep(void)
 {
@@ -231,6 +285,15 @@ void star_prep(void)
 
       /* Set age properties */
       SP[i].Age = get_time_difference_in_Gyr(SP[i].FormTime, All.Time) * 1.0e9;
+
+#if defined(STAR_OLD_AGE) && STAR_OLD_AGE == 0
+      /* Retire old stars */
+      if(star_past_age_cutoff(i))
+        {
+          deactivate_star(i);
+          continue;
+        }
+#endif
 
       /* Last time this star was active */
       MyDouble star_age_yr = SP[i].PreAge;    
@@ -264,6 +327,25 @@ void star_prep(void)
           continue;
         }
 
+#ifdef STAR_OLD_AGE
+      if(retire_star(i))
+        {
+#if defined(WIND) && STAR_OLD_AGE == 1
+          retire_wind(&StarFeedback);
+#endif
+#if defined(SUPERNOVAE) && STAR_OLD_AGE == 2
+          retire_sn(&StarFeedback);
+#endif
+#if defined(WIND) && defined(SUPERNOVAE) && STAR_OLD_AGE == 3
+          retire_wind(&StarFeedback);
+          retire_sn(&StarFeedback);
+#endif
+#if defined(STAR_RADIATION_ACTIVE) && STAR_OLD_AGE == 4
+          retire_radiation(&StarFeedback);
+#endif
+        }
+#endif
+
         /* Assign stellar feedback variables */
 #if defined(TREE_BASED_TIMESTEPS) && defined(SUPERNOVAE)
       SP[i].TimeToSN = StarFeedback.TimeToSN;
@@ -276,7 +358,7 @@ void star_prep(void)
           SP[i].MechanicalFeedback.StarVelocity[k] = PPS(i).Vel[k];
         }
 
-#ifdef WINDS
+#ifdef WIND
       SP[i].MechanicalFeedback.MassLoss = StarFeedback.MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
       SP[i].MechanicalFeedback.HLoss = StarFeedback.HLoss;
@@ -330,7 +412,7 @@ void star_prep(void)
       /* If with_feedback == 0 the star is skipped in the feedback functions */
       int with_feedback = 0;
 
-#ifdef WINDS
+#ifdef WIND
       if(SP[i].MechanicalFeedback.MassLoss > 0)
         with_feedback++;
 #endif
@@ -375,7 +457,7 @@ void star_perform_end_of_step_physics(void)
     {
       i = TimeBinsStar.ActiveParticleList[idx];
 
-#ifdef WINDS
+#ifdef WIND
       PPS(i).Mass -= SP[i].MechanicalFeedback.MassLoss;
 #endif
 
@@ -391,7 +473,7 @@ void star_perform_end_of_step_physics(void)
       if(i < 0)
         continue;
 
-#if defined(WINDS) || defined(SUPERNOVAE)
+#if defined(WIND) || defined(SUPERNOVAE)
       /* Add mass */
       P[i].Mass += SphP[i].StarMassFeed;
       All.StarFeedbackLocal[3] += SphP[i].StarMassFeed;
@@ -418,7 +500,7 @@ void star_perform_end_of_step_physics(void)
 #endif
 #endif
 
-#if defined(WINDS) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
+#if defined(WIND) || defined(RADIATION_PRESSURE) || defined(SUPERNOVAE)
       /* Update momentum */
       SphP[i].Momentum[0] += SphP[i].StarMomentumFeed[0];
       SphP[i].Momentum[1] += SphP[i].StarMomentumFeed[1];

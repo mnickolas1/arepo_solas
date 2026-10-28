@@ -17,7 +17,7 @@ static double lifetime(double z_val, double m_val);
 static double next_SN_time(double tau, double z_val, double m_val, double a);
 #endif
 
-#if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
+#if defined(WIND) || defined(STAR_RADIATION_ACTIVE)
 static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double f);
 static Star_Interpolate interpolate_mass(int z_idx, double m_val, double f);
 static Star_Interpolate interpolate_metallicity(double z_val, double m_val, double f);
@@ -130,7 +130,7 @@ static double next_SN_time(double tau, double z_val, double m_val, double a)
 }
 #endif
 
-#if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
+#if defined(WIND) || defined(STAR_RADIATION_ACTIVE)
 /* Linear interpolation in fractional age
    Tracks are sampled at the same fraction of their own lifetime rather than
    at the same absolute age, so a bracketing pair is always at the same
@@ -146,7 +146,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double f)
   const double *logradius = logRadius[z_idx][m_idx];
   const double *logtemperature = logTemperature[z_idx][m_idx];
 
-#ifdef WINDS
+#ifdef WIND
   const double *logmasslossrate = logMassLossRate[z_idx][m_idx];
 #if GRACKLE_CHEMISTRY >= 1
   const double *windx = WindX[z_idx][m_idx];
@@ -171,7 +171,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double f)
       Feedback.logRadius = logradius[0];
       Feedback.logTemperature = logtemperature[0];
 
-#ifdef WINDS
+#ifdef WIND
       Feedback.logMassLossRate = logmasslossrate[0];
 #if GRACKLE_CHEMISTRY >= 1
       Feedback.WindX = windx[0];
@@ -196,7 +196,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double f)
       Feedback.logRadius = logradius[n - 1];
       Feedback.logTemperature = logtemperature[n - 1];
 
-#ifdef WINDS
+#ifdef WIND
       Feedback.logMassLossRate = logmasslossrate[n - 1];
 #if GRACKLE_CHEMISTRY >= 1
       Feedback.WindX = windx[n - 1];
@@ -223,7 +223,7 @@ static inline Star_Interpolate interpolate_age(int z_idx, int m_idx, double f)
           Feedback.logRadius = log_linear_interpolation(f, frage[i], frage[i + 1], logradius[i], logradius[i + 1]);
           Feedback.logTemperature = log_linear_interpolation(f, frage[i], frage[i + 1], logtemperature[i], logtemperature[i + 1]);
 
-#ifdef WINDS
+#ifdef WIND
           Feedback.logMassLossRate = log_linear_interpolation(f, frage[i], frage[i + 1], logmasslossrate[i], logmasslossrate[i + 1]);
 #if GRACKLE_CHEMISTRY >= 1
           Feedback.WindX = linear_interpolation(f, frage[i], frage[i + 1], windx[i], windx[i + 1]);
@@ -276,7 +276,7 @@ static Star_Interpolate interpolate_mass(int z_idx, double m_val, double f)
           Feedback.logRadius = log_linear_interpolation(lm, lm0, lm1, Feedback0.logRadius, Feedback1.logRadius);
           Feedback.logTemperature = log_linear_interpolation(lm, lm0, lm1, Feedback0.logTemperature, Feedback1.logTemperature);
 
-#ifdef WINDS
+#ifdef WIND
           Feedback.logMassLossRate = log_linear_interpolation(lm, lm0, lm1, Feedback0.logMassLossRate, Feedback1.logMassLossRate);
 #if GRACKLE_CHEMISTRY >= 1
           Feedback.WindX = linear_interpolation(lm, lm0, lm1, Feedback0.WindX, Feedback1.WindX);
@@ -329,7 +329,7 @@ static Star_Interpolate interpolate_metallicity(double z_val, double m_val, doub
           Feedback.logRadius = log_linear_interpolation(lz, lz0, lz1, Feedback0.logRadius, Feedback1.logRadius);
           Feedback.logTemperature = log_linear_interpolation(lz, lz0, lz1, Feedback0.logTemperature, Feedback1.logTemperature);
 
-#ifdef WINDS
+#ifdef WIND
           Feedback.logMassLossRate = log_linear_interpolation(lz, lz0, lz1, Feedback0.logMassLossRate, Feedback1.logMassLossRate);
 #if GRACKLE_CHEMISTRY >= 1
           Feedback.WindX = linear_interpolation(lz, lz0, lz1, Feedback0.WindX, Feedback1.WindX);
@@ -565,10 +565,10 @@ Star_Feedback star_feedback_compute(double dt, double z_val, double m_val, doubl
     {
       Star.Stage = STAR_MS;
 
-#if defined(WINDS) || defined(STAR_RADIATION_ACTIVE)
+#if defined(WIND) || defined(STAR_RADIATION_ACTIVE)
       Star_Interpolate Feedback = interpolate_metallicity(z_val, m_val, a / tau);
 
-#ifdef WINDS
+#ifdef WIND
       /* Back out of log space; the species losses follow from the mass
          fractions, so they add up to the total by construction. */
       Star.MassLoss = unlog(Feedback.logMassLossRate) * dt;
@@ -620,7 +620,7 @@ Star_Feedback units_for_feedback(Star_Feedback StarFeedback)
     }
 #endif
 
-#ifdef WINDS
+#ifdef WIND
   StarFeedback.MassLoss /= All.cf_UnitMass_in_Msun;
 #if GRACKLE_CHEMISTRY >= 1
   StarFeedback.HLoss /= All.cf_UnitMass_in_Msun;
@@ -696,7 +696,7 @@ Star_Feedback star_particle_feedback(int index, double dt, double z, double a)
         {
           case STAR_MS:
 
-#ifdef WINDS
+#ifdef WIND
             StarParticle.MassLoss += Nstars * Star.MassLoss;
 #if GRACKLE_CHEMISTRY >= 1
             StarParticle.HLoss += Nstars * Star.HLoss;

@@ -27,7 +27,7 @@ STAR_BINS_BITS=32      # Bits per mass-bin star counter: 8, 16 or 32
 STAR_IN_CELL           # Place stars on the host cell generator; superpose all stars in a cell into one source
 #STAR_HOST_REFINEMENT   # Refine the gas cell hosting a star 
 
-WINDS                  # Only winds
+WIND                   # Only wind
 
 RADIATION              # Full radiation
 #RADIATION_PRESSURE     # Only radiation pressure
@@ -36,6 +36,8 @@ RADIATION              # Full radiation
 #PHOTOIONIZATION        # Only photoionization
 
 SUPERNOVAE             # Only supernovae
+
+#STAR_OLD_AGE=0         # Deactivate feedback from stars older than StarOldAgeCutoff (Myr): 0 = whole star, 1 = wind, 2 = sn, 3 = wind + sn, 4 = radiation
 
 #---------------------------------------- Radiation / RT options
 #RAD_TOTAL_TRUNCATION   # Truncate rays against the initial total energy/photons, not the per-band values
