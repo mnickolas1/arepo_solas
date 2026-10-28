@@ -210,7 +210,6 @@ static inline void deactivate_star(int i)
 }
 
 #ifdef STAR_OLD_AGE
-/* SP[i].Age is in yr and All.StarOldAgeCutoff is in Myr, so no cf_ conversion is needed */
 static inline int retire_star(int i) 
 { 
   integertime ti_old_age = get_timestep_pow2(get_timestep_integertime(All.StarOldAge, All.cf_UnitTime_in_yr / 1.0e6));
@@ -220,7 +219,7 @@ static inline int retire_star(int i)
 }
 #endif
 
-#ifdef WIND && STAR_OLD_AGE == 1
+#if defined(WIND) && STAR_OLD_AGE == 1
 static inline void retire_wind(Star_Feedback *sf)
 {
   sf->MassLoss = 0.0;
@@ -235,7 +234,7 @@ static inline void retire_wind(Star_Feedback *sf)
 }
 #endif
 
-#ifdef SUPERNOVAE && STAR_OLD_AGE == 2
+#if defined(SUPERNOVAE) && STAR_OLD_AGE == 2
 static inline void retire_sn(Star_Feedback *sf)
 {
 #ifdef TREE_BASED_TIMESTEPS
@@ -255,7 +254,7 @@ static inline void retire_sn(Star_Feedback *sf)
 }
 #endif
 
-#ifdef STAR_RADIATION_ACTIVE && STAR_OLD_AGE == 4
+#if defined(STAR_RADIATION_ACTIVE) && STAR_OLD_AGE == 4
 static inline void retire_radiation(Star_Feedback *sf)
 {
   for(int w = 0; w < WAVEBANDS; w++)
@@ -288,7 +287,7 @@ void star_prep(void)
 
 #if defined(STAR_OLD_AGE) && STAR_OLD_AGE == 0
       /* Retire old stars */
-      if(star_past_age_cutoff(i))
+      if(retire_star(i))
         {
           deactivate_star(i);
           continue;
