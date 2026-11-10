@@ -22,7 +22,7 @@ struct Feedback_Kick
   /* Cell index on the receiving task */
   int CellIndex;
 
-#ifdef WINDS
+#ifdef WIND
   MyDouble DeltaMass;
 #if GRACKLE_CHEMISTRY >= 1
   MyDouble DeltaChem[GRACKLE_SPECIES_NUMBER];
@@ -50,7 +50,7 @@ struct Feedback_Kick
 /* Apply a kick packet to a local cell */
 static void apply_kick(int j, const struct Feedback_Kick *Kick)
 {
-#ifdef WINDS
+#ifdef WIND
   SphP[j].StarMassFeed += Kick->DeltaMass;
   All.StarFeedbackLocal[0] += Kick->DeltaMass;
 #if GRACKLE_CHEMISTRY >= 1
@@ -90,7 +90,7 @@ static void apply_kick(int j, const struct Feedback_Kick *Kick)
 /* Mirror of apply_kick(), but for the local copy of a remote cell (ghost) */
 static void apply_kick_primexch(int particle, const struct Feedback_Kick *Kick)
 {
-#ifdef WINDS
+#ifdef WIND
   PrimExch[particle].MassFeed += Kick->DeltaMass;
 #ifdef METALS
   PrimExch[particle].MetalsFeed += Kick->DeltaMetals;
@@ -158,7 +158,7 @@ static void SN_compute(int ev, int h, double alpha, double beta, double gamma, d
 }
 #endif
 
-#ifdef WINDS
+#ifdef WIND
 /*
  * TODO
  */
@@ -174,7 +174,7 @@ static int Wind_feedback_radius(int i, int ev, int h)
  */
 static void Wind_feedback_host(int i, int ev, int h, int mode)
 {
-  // warn("Wind_feedback_host(): host-mode winds not yet implemented (cell %d, mode %d)\n", i, mode);
+  // warn("Wind_feedback_host(): host-mode wind not yet implemented (cell %d, mode %d)\n", i, mode);
 
   Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
   Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
@@ -452,7 +452,7 @@ void star_feedback(void)
           Mechanical_Feedback_Data *MechanicalFeedbackData = &MechanicalFeedbackEvents.MechanicalFeedbackData[ev + h];
           Mechanical_Feedback *MechanicalFeedback = &MechanicalFeedbackData->MechanicalFeedback;
 
-#ifdef WINDS
+#ifdef WIND
           if(MechanicalFeedback->MassLoss)
             flag_wind = 1;
 #endif
@@ -462,7 +462,7 @@ void star_feedback(void)
             flag_sn = 1;
 #endif
 
-#ifdef WINDS
+#ifdef WIND
           /* Wind radius */
           /* Skip the mesh-neighbour geometry entirely and dump Wind into the host cell */
           if(flag_wind)
@@ -719,7 +719,7 @@ void star_feedback(void)
               Kick.CellIndex = DC[q].index;
 
               /* Mesh ngbs feedback */
-#ifdef WINDS
+#ifdef WIND
               if(flag_wind && !flag_wind_host)
                 {
                   Kick.DeltaMass = MechanicalFeedback->MassLoss * sqrtsq_wbar;

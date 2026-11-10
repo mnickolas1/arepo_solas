@@ -20,8 +20,8 @@ double ***FractionalAge = NULL;
 double ***logRadius = NULL;
 double ***logTemperature = NULL;
 
-#ifdef WINDS
-/* Winds */
+#ifdef WIND
+/* Wind */
 double ***logMassLossRate = NULL;
 
 #if GRACKLE_CHEMISTRY >= 1
@@ -71,7 +71,7 @@ void free_stellar_tables(void)
             free(logRadius[z][m]);
             free(logTemperature[z][m]);
 
-#ifdef WINDS
+#ifdef WIND
             free(logMassLossRate[z][m]);
 #if GRACKLE_CHEMISTRY >= 1
             free(WindX[z][m]);
@@ -98,7 +98,7 @@ void free_stellar_tables(void)
           free(logRadius[z]);
           free(logTemperature[z]);
 
-#ifdef WINDS
+#ifdef WIND
           free(logMassLossRate[z]);
 #if GRACKLE_CHEMISTRY >= 1
           free(WindX[z]);
@@ -140,7 +140,7 @@ void free_stellar_tables(void)
       free(logRadius);
       free(logTemperature);
 
-#ifdef WINDS
+#ifdef WIND
       free(logMassLossRate);
 #if GRACKLE_CHEMISTRY >= 1
       free(WindX);
@@ -181,7 +181,7 @@ void free_stellar_tables(void)
       logRadius = NULL;
       logTemperature = NULL;
 
-#ifdef WINDS
+#ifdef WIND
       logMassLossRate = NULL;
 #if GRACKLE_CHEMISTRY >= 1
       WindX = NULL;
@@ -308,7 +308,7 @@ void load_star_tables(const char *filename)
   logRadius = malloc(Z_COUNT * sizeof(double **));
   logTemperature = malloc(Z_COUNT * sizeof(double **));
 
-#ifdef WINDS
+#ifdef WIND
   logMassLossRate = malloc(Z_COUNT * sizeof(double **));
 #if GRACKLE_CHEMISTRY >= 1
   WindX = malloc(Z_COUNT * sizeof(double **));
@@ -345,7 +345,7 @@ void load_star_tables(const char *filename)
       logRadius[z] = malloc(M_COUNT * sizeof(double *));
       logTemperature[z] = malloc(M_COUNT * sizeof(double *));
 
-#ifdef WINDS
+#ifdef WIND
       logMassLossRate[z] = malloc(M_COUNT * sizeof(double *));
 #if GRACKLE_CHEMISTRY >= 1
       WindX[z] = malloc(M_COUNT * sizeof(double *));
@@ -423,7 +423,7 @@ void load_star_tables(const char *filename)
               my_H5Dclose(d_rad, "logRadius");
               my_H5Dclose(d_tem, "logTemperature");
 
-#ifdef WINDS
+#ifdef WIND
               hid_t d_ml = my_H5Dopen(mgrp, "logMassLossRate");
 #if GRACKLE_CHEMISTRY >= 1
               hid_t d_X = my_H5Dopen(mgrp, "X");
@@ -553,7 +553,7 @@ void load_star_tables(const char *filename)
                 logRadius[z][m] = malloc(N[z][m] * sizeof(double));
                 logTemperature[z][m] = malloc(N[z][m] * sizeof(double));
 
-#ifdef WINDS
+#ifdef WIND
                 logMassLossRate[z][m] = malloc(N[z][m] * sizeof(double));
 #if GRACKLE_CHEMISTRY >= 1
                 WindX[z][m] = malloc(N[z][m] * sizeof(double));
@@ -576,7 +576,7 @@ void load_star_tables(const char *filename)
             MPI_Bcast(logRadius[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
             MPI_Bcast(logTemperature[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-#ifdef WINDS
+#ifdef WIND
             MPI_Bcast(logMassLossRate[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #if GRACKLE_CHEMISTRY >= 1
             MPI_Bcast(WindX[z][m], N[z][m], MPI_DOUBLE, 0, MPI_COMM_WORLD);

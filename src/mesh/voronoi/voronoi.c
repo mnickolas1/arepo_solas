@@ -125,7 +125,7 @@ void create_mesh(void)
   reconstruct_timebins();
 #endif /* #ifdef CREATE_FULL_MESH */
 
-#if !defined(CREATE_FULL_MESH) && (defined(WINDS) || defined(SUPERNOVAE))
+#if !defined(CREATE_FULL_MESH) && (defined(WIND) || defined(SUPERNOVAE))
   int j;
 
   short int *FeedbackTimeBin = mymalloc_movable(&FeedbackTimeBin, "FeedbackTimeBin", NumGas * sizeof(short int));
@@ -517,7 +517,7 @@ void create_mesh(void)
     }
 #endif
 
-#if !defined(CREATE_FULL_MESH) && (defined(WINDS) || defined(SUPERNOVAE))
+#if !defined(CREATE_FULL_MESH) && (defined(WIND) || defined(SUPERNOVAE))
   for(j = 0; j < NumGas; j++)
     {
       if(P[j].Type != 0 || P[j].Mass == 0 || P[j].ID == 0)

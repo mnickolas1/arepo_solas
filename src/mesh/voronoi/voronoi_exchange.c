@@ -279,7 +279,7 @@ void exchange_primitive_variables(void)
                 }
               tmpPrimExch[off].Csnd = get_sound_speed(place);
 
-#if defined(WINDS) || defined(SUPERNOVAE) 
+#if defined(WIND) || defined(SUPERNOVAE) 
               tmpPrimExch[off].Mass = P[place].Mass;
 #ifdef METALS
               tmpPrimExch[off].Metals = SphP[place].GasMetals;
@@ -406,7 +406,7 @@ void exchange_primitive_variables_and_gradients(void)
 
               tmpPrimExch[off].Csnd = get_sound_speed(place);
 
-#if defined(WINDS) || defined(SUPERNOVAE) 
+#if defined(WIND) || defined(SUPERNOVAE) 
               tmpPrimExch[off].Mass = P[place].Mass;
 #ifdef METALS
               tmpPrimExch[off].Metals = SphP[place].GasMetals;
